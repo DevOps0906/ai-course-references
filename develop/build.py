@@ -39,6 +39,9 @@ STAGES = [
     ("04", "음성 AI", "04-voice-ai", [
         ("", "음성 AI 전문가 과정 Day 1~7"),
     ]),
+    ("05", "LangChain · RAG · Agent", "05-langchain-agent", [
+        ("", "LangChain LCEL → RAG → Gradio → 음성 RAG → LangGraph (14일)"),
+    ]),
     ("06", "AI 비전 · OpenVINO", "06-ai-openVino", [
         ("", "리눅스 → 파이썬 → OpenCV → OpenVINO 엣지 AI"),
     ]),

@@ -1,0 +1,1090 @@
+{
+  "id": "pai-ros",
+  "code": "PR",
+  "title": "Physical AI 3일차 · ROS 2 (노드·토픽·turtlesim·카메라·launch)",
+  "subtitle": "Node·Topic·Message · Graph·QoS·Image · TTL·watchdog·launch",
+  "course": "07 · Physical AI",
+  "source": "07-NEPES_physicalAI_자율주행자동차/08.ROS_v2/*.ipynb + ____/_____3___v2.pdf",
+  "salt": "pai-ros",
+  "version": 1,
+  "updated": "2026-10-15",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "ROS 통신 기본 · Node·Topic·Message",
+      "ref": "08.ROS_v2 01 · 슬라이드 p.52–56",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "ROS에서 카메라 프레임·온도처럼 계속 생기는 데이터를 전달하는 논리 이름은?",
+          "o": [
+            "Node",
+            "Topic",
+            "Message",
+            "Callback"
+          ],
+          "a": 1,
+          "h": "'흘러가는 데이터'에 붙이는 이름입니다. 계산 주체·필드 계약과 구분하세요.",
+          "w": "Topic은 연속 데이터의 이름입니다. Node는 계산 주체, Message는 필드와 타입의 계약, Callback은 도착한 메시지를 처리하는 함수입니다.",
+          "an": "01_ros_basics §1 세 용어 · 슬라이드 p.52"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "전달할 필드 이름과 자료형의 '계약'에 해당하는 것은?",
+          "o": [
+            "Topic",
+            "Node",
+            "Message",
+            "Domain"
+          ],
+          "a": 2,
+          "h": "temperature_c·status 같은 필드가 무엇을 담는지 정한 약속입니다.",
+          "w": "Message는 field와 type의 계약입니다. 숫자처럼 보이는 문자열과 실제 숫자를 구분하는 것도 이 계약의 일부입니다.",
+          "an": "01_ros_basics §1 · 슬라이드 p.54"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Subscriber 쪽에서 메시지가 도착할 때마다 실행되는 함수는?",
+          "o": [
+            "callback",
+            "launch",
+            "publisher",
+            "daemon"
+          ],
+          "a": 0,
+          "h": "구독한 topic에 새 메시지가 '도착하면' 불리는 함수입니다.",
+          "w": "Subscriber는 topic을 구독하고 메시지가 도착하면 callback을 실행합니다. 긴 작업을 callback에 넣으면 다른 처리가 지연될 수 있습니다.",
+          "an": "01_ros_basics §1 · 슬라이드 p.53"
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "온도 메시지 계약에서 status가 'hot'이 되는 조건은?",
+          "o": [
+            "69.9도 이상",
+            "70.0도 이상",
+            "70.0도 초과",
+            "75.0도 이상"
+          ],
+          "a": 1,
+          "h": "69.999와 70.0을 경계값으로 검사합니다.",
+          "w": "70.0도 이상이면 hot, 그 아래면 normal입니다. 69.999는 normal, 70.0은 hot입니다.",
+          "an": "01_ros_basics §2 TODO Message schema · 슬라이드 p.63"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "<code>make_temperature_message</code>에 temperature_c로 NaN이 들어오면 올바른 처리는?",
+          "o": [
+            "0으로 바꿔 보낸다",
+            "normal로 보낸다",
+            "예외로 거부한다",
+            "문자열로 바꾼다"
+          ],
+          "a": 2,
+          "h": "잘못된 값을 임의 기본값으로 바꾸지 않는다는 원칙을 떠올리세요.",
+          "w": "NaN·Inf는 정상 측정값처럼 메시지에 들어가면 안 되므로 ValueError로 거부합니다. 임의 기본값으로 바꾸면 입력 문제가 숨겨집니다.",
+          "an": "01_ros_basics §2 · 정답 해설"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Publisher는 subscriber가 없어도 topic에 메시지를 발행할 수 있다.",
+          "a": true,
+          "h": "Publisher와 subscriber는 서로의 함수를 직접 호출하지 않습니다.",
+          "w": "맞습니다. 구독자가 없어도 발행할 수 있습니다. 다만 늦게 시작한 구독자가 과거 메시지를 모두 받는 것은 아니며, 보존 여부는 QoS에 달려 있습니다.",
+          "an": "슬라이드 p.53"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "노트북의 MiniBus 검증을 통과하면 실제 DDS·QoS 통신도 검증된 것이다.",
+          "a": false,
+          "h": "MiniBus는 한 Python 프로세스 안의 모형입니다.",
+          "w": "틀렸습니다. MiniBus는 메시지 흐름과 경계값을 배우는 순수 Python 모형이며, 실제 DDS·QoS·네트워크 통신은 talker/listener로 따로 확인합니다.",
+          "an": "슬라이드 p.56 · p.62"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "온도 메시지 필드와 계약을 연결하세요.",
+          "pairs": [
+            [
+              "device_id",
+              "앞뒤 공백 없는 비어 있지 않은 문자열"
+            ],
+            [
+              "sequence",
+              "bool이 아닌 0 이상 정수 순번"
+            ],
+            [
+              "temperature_c",
+              "유한한 숫자, 원래 측정값 보존"
+            ],
+            [
+              "status",
+              "70.0도 기준 hot/normal 해석"
+            ],
+            [
+              "captured_ms",
+              "촬영·측정 시각"
+            ]
+          ],
+          "h": "측정값과 해석을 분리해서 담는다는 점이 핵심입니다.",
+          "w": "측정 온도와 hot이라는 해석을 별도 필드로 둡니다. sequence는 순번, captured_ms는 측정 시각이므로 서로 바꿔 쓰지 않습니다.",
+          "an": "01_ros_basics §2 계약 표 · 슬라이드 p.54"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "실제 ROS 통신을 확인하는 순서를 맞추세요.",
+          "steps": [
+            "패키지 build",
+            "각 터미널에서 source와 Domain 설정",
+            "A: 발행 노드 실행",
+            "B: 수신 노드 실행",
+            "C: node·topic 관찰과 메시지 저장"
+          ],
+          "h": "빌드 → 환경 → 발행 → 수신 → 관찰 순서입니다.",
+          "w": "빌드로 실행 진입점을 만들고, 각 터미널에 환경을 적용한 뒤 A가 발행, B가 수신, C가 topic을 관찰합니다.",
+          "an": "01_ros_basics 전체 과정 · §3-4"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "온도 메시지 계약에서 <b>거부</b>해야 하는 입력을 모두 고르세요.",
+          "o": [
+            "앞 공백이 있는 ID",
+            "sequence=True",
+            "temperature_c=inf",
+            "temperature_c=69.999",
+            "captured_ms=1000"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "ID 공백·bool 정수·무한대를 각각 떠올려 보세요.",
+          "w": "공백 있는 ID는 자동 수정하지 않고 거부하고, bool은 정수에서 제외하며, Inf는 유한수가 아니므로 거부합니다. 69.999는 normal로 정상, captured_ms=1000도 정상입니다.",
+          "an": "01_ros_basics §2 · 따라 실행 1"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "Workspace 빌드와 터미널 환경",
+      "ref": "08.ROS_v2 01 §3 · 슬라이드 p.57–60·p.100",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "colcon build 뒤 ROS가 사용할 실행 진입점이 설치되는 위치는?",
+          "o": [
+            "ros_ws/src",
+            "Data/build/08.ROS_v2/install",
+            "Data/build/08.ROS_v2/log",
+            "/opt/ros/humble"
+          ],
+          "a": 1,
+          "h": "소스·중간 결과·설치·로그 중 '설치' 폴더입니다.",
+          "w": "install 폴더에 패키지·실행 진입점·환경 설정이 놓입니다. src는 원본 소스, log는 빌드 로그, /opt/ros/humble은 기본 ROS 설치 경로입니다.",
+          "an": "01_ros_basics §3-1 경로 표"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>source</code> 명령이 하는 일로 옳은 것은?",
+          "o": [
+            "패키지를 컴파일한다",
+            "노드를 백그라운드로 실행",
+            "Domain 번호를 자동 배정",
+            "현재 셸에 환경을 적용"
+          ],
+          "a": 3,
+          "h": "스크립트를 '현재 셸에서' 읽는 명령입니다.",
+          "w": "source는 스크립트를 현재 셸에서 읽어 환경 변수를 적용합니다. 그래서 새 터미널마다 다시 실행해야 합니다.",
+          "an": "01_ros_basics §3-3"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>ros2: not found</code>가 나오면 가장 먼저 확인할 것은?",
+          "o": [
+            "개인 Domain 번호",
+            "기본 ROS setup source",
+            "topic 이름 오타",
+            "QoS 호환"
+          ],
+          "a": 1,
+          "h": "ros2 명령 자체를 찾지 못하는 상황입니다.",
+          "w": "ros2 명령이 없으면 컨테이너 터미널인지 확인하고 bash에 들어간 뒤 /opt/ros/humble/setup.bash를 source했는지 봅니다.",
+          "an": "01_ros_basics 오류 표 · 슬라이드 p.100"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>Package ... not found</code>가 나오면 확인할 단계는?",
+          "o": [
+            "빌드 성공과 install source",
+            "카메라 장치 연결",
+            "Ollama 서버 실행",
+            "rqt_graph 실행"
+          ],
+          "a": 0,
+          "h": "기본 ROS는 찾았지만 수업 패키지를 못 찾는 상황입니다.",
+          "w": "수업 패키지를 찾지 못하면 빌드가 성공했는지, 현재 터미널에서 install/setup.bash를 source했는지 확인합니다.",
+          "an": "01_ros_basics 오류 표 · §4"
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>ros2 run 패키지 이름</code>에서 두 번째 이름이 가리키는 것은?",
+          "o": [
+            "노드 이름",
+            "topic 이름",
+            "실행 이름(진입점)",
+            "launch 파일"
+          ],
+          "a": 2,
+          "h": "setup.py의 console_scripts에 등록된 이름입니다.",
+          "w": "첫 이름은 패키지, 두 번째는 실행 이름입니다. console_scripts가 실행 이름을 Python의 main() 함수와 연결합니다.",
+          "an": "01_ros_basics §3-1"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "빌드 스크립트 안에서 source했으므로 빌드가 끝나면 터미널 B·C에도 환경이 자동 적용된다.",
+          "a": false,
+          "h": "source는 그 셸에만 적용됩니다.",
+          "w": "틀렸습니다. 빌드 스크립트 내부의 source는 별도 Bash 프로세스에만 적용됩니다. A·B·C 각 터미널에서 직접 source해야 합니다.",
+          "an": "01_ros_basics §3-3"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "같은 개인 실습의 A·B·C 터미널은 같은 ROS_DOMAIN_ID를 사용한다.",
+          "a": true,
+          "h": "같은 번호의 참가자끼리 서로를 발견합니다.",
+          "w": "맞습니다. 개인 실습의 모든 터미널은 같은 번호를 쓰고, 공동 통신 실습만 강사가 지정한 동일 번호를 씁니다.",
+          "an": "슬라이드 p.58–59"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "오류 증상과 확인할 단계를 연결하세요.",
+          "pairs": [
+            [
+              "source: not found",
+              "셸이 sh인지 확인하고 bash 실행"
+            ],
+            [
+              "No executable found",
+              "실행 이름 오타와 등록 확인"
+            ],
+            [
+              "발행되지만 수신 안 됨",
+              "Domain·topic 이름·타입 확인"
+            ],
+            [
+              "setup.bash가 없음",
+              "빌드 미완료 여부 확인"
+            ]
+          ],
+          "h": "오류 메시지가 어느 단계를 가리키는지 생각하세요.",
+          "w": "오류 메시지는 빠진 단계를 알려 줍니다. 셸·실행 이름·통신 그룹·빌드 순서로 원인을 좁힙니다.",
+          "an": "01_ros_basics 오류 메시지 표"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "새 터미널에서 ROS를 쓰기 전 준비 순서를 맞추세요.",
+          "steps": [
+            "JupyterLab에서 Terminal 열기",
+            "bash 실행",
+            "기본 ROS setup.bash source",
+            "수업 install/setup.bash source",
+            "ROS_DOMAIN_ID 설정"
+          ],
+          "h": "새 셸 → 기본 ROS → 수업 패키지 → 통신 그룹 순서입니다.",
+          "w": "Terminal을 열고 bash로 들어간 뒤 기본 ROS와 수업 패키지 순으로 source하고 Domain을 설정합니다.",
+          "an": "슬라이드 p.59–60 · 01_ros_basics §3-3"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "다시 빌드가 필요한 경우를 모두 고르세요.",
+          "o": [
+            "install 산출물이 없을 때",
+            "실행 이름을 바꿨을 때",
+            "재부팅만 했을 때",
+            "의존성을 바꿨을 때",
+            "새 터미널을 열었을 때"
+          ],
+          "a": [
+            0,
+            1,
+            3
+          ],
+          "h": "빌드 산출물은 Data에 남아 재부팅 후에도 유지됩니다.",
+          "w": "첫 사용·패키지 설정·실행 이름·의존성 변경이면 다시 빌드합니다. 재부팅만 했거나 새 터미널을 연 경우는 빌드가 아니라 source가 필요합니다.",
+          "an": "01_ros_basics §3-2"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "Graph·CLI·QoS와 turtlesim",
+      "ref": "08.ROS_v2 02 · 슬라이드 p.64–72",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "topic 이름과 type을 함께 보여 주는 명령은?",
+          "o": [
+            "ros2 node list",
+            "ros2 topic list -t",
+            "ros2 topic hz",
+            "ros2 daemon stop"
+          ],
+          "a": 1,
+          "h": "-t는 type을 함께 표시하는 옵션입니다.",
+          "w": "ros2 topic list -t는 topic 이름과 type을 보여 줍니다. node list는 노드 목록, hz는 빈도입니다.",
+          "an": "02_turtlesim_tools §1 CLI 표 · 슬라이드 p.65"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "topic의 endpoint 수와 QoS까지 확인하는 명령은?",
+          "o": [
+            "ros2 topic echo --once",
+            "ros2 node list",
+            "ros2 topic hz",
+            "ros2 topic info --verbose"
+          ],
+          "a": 3,
+          "h": "info에 자세히 보기 옵션을 붙입니다.",
+          "w": "ros2 topic info --verbose는 publisher/subscriber endpoint와 QoS를 보여 줍니다.",
+          "an": "02_turtlesim_tools §1 CLI 표"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "turtlesim이 사용하는 Twist 필드 조합은?",
+          "o": [
+            "linear.x와 angular.z",
+            "linear.y와 angular.x",
+            "linear.z와 angular.y",
+            "angular.x와 angular.z"
+          ],
+          "a": 0,
+          "h": "평면에서 앞으로 가는 속도와 제자리 회전 속도입니다.",
+          "w": "Twist에는 linear와 angular 벡터가 있고 turtlesim은 linear.x(전진)와 angular.z(회전)를 씁니다. 0,0은 정지 명령입니다.",
+          "an": "슬라이드 p.67"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "QoS의 History/depth가 정하는 것은?",
+          "o": [
+            "전달 신뢰성 정책",
+            "Domain 번호",
+            "대기열에 남길 메시지 수",
+            "노드 실행 순서"
+          ],
+          "a": 2,
+          "h": "reliable·best effort와는 다른 항목입니다.",
+          "w": "Reliability는 전달 정책, History/depth는 대기열에 남길 메시지 수입니다. 이름과 type이 맞아도 QoS가 호환되지 않으면 수신되지 않을 수 있습니다.",
+          "an": "슬라이드 p.66"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "turtle_teleop_key를 실행했는데 방향키에 거북이가 반응하지 않습니다. 가장 먼저 확인할 것은?",
+          "o": [
+            "QoS depth 값",
+            "키보드 터미널의 입력 초점",
+            "rqt_graph 실행 여부",
+            "빌드 로그"
+          ],
+          "a": 1,
+          "h": "거북이 그림을 클릭하는 것으로는 키 입력이 전달되지 않습니다.",
+          "w": "B 터미널 내부를 클릭해 입력 초점을 둬야 합니다. 그다음 A/B 프로세스 → 동일 Domain → 토픽 연결 순으로 확인합니다.",
+          "an": "02_turtlesim_tools §3 직접 조작하고 관찰하기"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "graph에 publisher와 subscriber가 모두 보이면 메시지 수신이 증명된 것이다.",
+          "a": false,
+          "h": "연결 '후보'와 실제 수신을 구분하세요.",
+          "w": "틀렸습니다. connected=True는 연결 가능성일 뿐입니다. echo 출력이나 pose 변화 같은 별도 근거로 실제 수신을 확인합니다.",
+          "an": "02_turtlesim_tools 정답 해설 · 슬라이드 p.70–71"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "cmd_vel은 요청한 속도이고 pose는 관측된 상태이다.",
+          "a": true,
+          "h": "명령과 상태는 같은 값이 아닙니다.",
+          "w": "맞습니다. cmd_vel은 commanded state, pose는 observed state이므로 숫자나 단위가 같다고 해석하지 않습니다.",
+          "an": "02_turtlesim_tools §3"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "CLI 명령과 확인하는 내용을 연결하세요.",
+          "pairs": [
+            [
+              "ros2 node list",
+              "실행 중인 노드 목록"
+            ],
+            [
+              "ros2 topic list -t",
+              "topic 이름과 type"
+            ],
+            [
+              "ros2 topic echo --once",
+              "실제 메시지 한 건"
+            ],
+            [
+              "ros2 topic hz",
+              "메시지 수신 빈도"
+            ]
+          ],
+          "h": "참가자 · 이름과 타입 · 내용 · 빈도 네 가지 질문입니다.",
+          "w": "node list는 참가자, topic list -t는 이름·type, echo는 내용, hz는 빈도를 보여 줍니다. echo와 hz는 Ctrl+C로 끝냅니다.",
+          "an": "슬라이드 p.65"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "turtlesim에서 키 입력이 화면 움직임이 되는 흐름을 맞추세요.",
+          "steps": [
+            "A: turtlesim 화면과 pose 생성",
+            "B: 키보드로 명령 입력",
+            "cmd_vel로 선속도·각속도 전달",
+            "화면 움직임과 pose 갱신",
+            "C: node·topic·echo로 관찰"
+          ],
+          "h": "입력 → 명령 → 상태 변화 → 관찰 순서입니다.",
+          "w": "A가 turtlesim을 유지하고 B의 키 입력이 cmd_vel로 전달되어 pose가 바뀌며, C는 이를 관찰합니다.",
+          "an": "슬라이드 p.64"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "Graph 완료 시 연결을 설명하는 근거로 알맞은 것을 모두 고르세요.",
+          "o": [
+            "endpoint(보내는 쪽·받는 쪽)",
+            "message type",
+            "실제 메시지나 pose 변화",
+            "GUI 창이 떴다는 사실",
+            "소스 파일이 존재한다는 사실"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "노드 실행·연결 정보·실제 데이터의 세 근거입니다.",
+          "w": "endpoint와 type, 실제 메시지 또는 pose 변화를 근거로 설명합니다. GUI가 뜨거나 소스가 있다는 사실만으로는 전달을 증명하지 못합니다.",
+          "an": "슬라이드 p.72"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "통신 방식 선택·Namespace·Domain",
+      "ref": "08.ROS_v2 01·02 자습 · 슬라이드 p.55·58·97",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "현재 운전 mode를 한 번 묻고 짧은 응답 하나를 받는 통신 방식은?",
+          "o": [
+            "Topic",
+            "Service",
+            "Action",
+            "Parameter"
+          ],
+          "a": 1,
+          "h": "요청 하나에 응답 하나가 짝입니다.",
+          "w": "Service는 request 한 번, response 한 번입니다. 연속 데이터는 Topic, 오래 걸리는 목표는 Action입니다.",
+          "an": "슬라이드 p.55 · 01_ros_basics 자습"
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "목표점까지 수 초간 이동하며 진행률·결과·취소가 필요한 통신 방식은?",
+          "o": [
+            "Topic",
+            "Service",
+            "Action",
+            "Message"
+          ],
+          "a": 2,
+          "h": "feedback과 cancel이 필요한 '장기 목표'입니다.",
+          "w": "Action은 goal 한 번에 feedback 여러 번, result 한 번을 주고 cancel이 가능합니다.",
+          "an": "슬라이드 p.55 · 01_ros_basics 자습 표"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "namespace /robot_a에서 상대 이름 status의 최종 이름은?",
+          "o": [
+            "/status",
+            "/robot_a/status",
+            "/factory/status",
+            "robot_a/status"
+          ],
+          "a": 1,
+          "h": "슬래시로 시작하지 않는 이름에는 namespace가 붙습니다.",
+          "w": "상대 이름 status는 namespace /robot_a 안에서 /robot_a/status가 됩니다.",
+          "an": "02_turtlesim_tools 자습 Namespace와 remap"
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "namespace /robot_a에서 remap 없이 절대 이름 /factory/status의 최종 이름은?",
+          "o": [
+            "/robot_a/factory/status",
+            "/robot_a/status",
+            "/factory/status",
+            "/status"
+          ],
+          "a": 2,
+          "h": "슬래시로 시작하는 이름은 namespace만으로 바뀌지 않습니다.",
+          "w": "절대 이름은 namespace만으로 바뀌지 않아 /factory/status 그대로입니다. 상대 목표로 remap해야 /robot_a/status가 됩니다.",
+          "an": "02_turtlesim_tools 자습 · 슬라이드 p.97"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "ROS_DOMAIN_ID의 역할은?",
+          "o": [
+            "같은 번호끼리 발견·통신",
+            "topic 이름 접두사",
+            "노드 실행 순서 지정",
+            "QoS depth 설정"
+          ],
+          "a": 0,
+          "h": "실습 통신 그룹을 나누는 번호입니다.",
+          "w": "같은 Domain 번호의 ROS 참가자끼리 발견하고 통신합니다. namespace(이름 접두사)와 혼동하지 않습니다.",
+          "an": "슬라이드 p.58 · 01_ros_basics §3-3"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Action을 쓰면 timeout·cancel 뒤 STOP 같은 안전 기능이 자동으로 보장된다.",
+          "a": false,
+          "h": "통신 방식과 제어 계약은 다른 층입니다.",
+          "w": "틀렸습니다. Action도 안전 기능 자체는 아닙니다. Goal 검사, timeout, cancel 뒤 STOP, 속도 제한은 별도 제어 계약으로 남습니다.",
+          "an": "01_ros_basics 자습"
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "remap은 소스 코드를 고치지 않고 실행할 때 연결 이름을 바꾼다.",
+          "a": true,
+          "h": "실행 인자로 이름을 바꾸는 기능입니다.",
+          "w": "맞습니다. remap은 실행 시 연결 이름을 바꿉니다. 송신·수신 양쪽의 remap 목적지를 함께 맞춰야 통신합니다.",
+          "an": "02_turtlesim_tools 자습 · 슬라이드 p.97"
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "상황과 알맞은 통신 방식을 연결하세요.",
+          "pairs": [
+            [
+              "30 fps 카메라 프레임",
+              "Topic"
+            ],
+            [
+              "설정값 한 번 조회",
+              "Service"
+            ],
+            [
+              "진행률·취소가 필요한 이동 목표",
+              "Action"
+            ]
+          ],
+          "h": "반복 데이터 · 단발 질의 · 장기 작업으로 나눠 보세요.",
+          "w": "계속 생기는 데이터는 Topic, 요청 하나에 응답 하나는 Service, 진행률과 취소가 필요한 장기 목표는 Action입니다.",
+          "an": "01_ros_basics 자습 예상 결과"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "최종 topic 이름을 정하는 판단 순서를 맞추세요.",
+          "steps": [
+            "remap 목적지가 있으면 그 이름을 먼저 선택",
+            "선택한 이름이 '/'로 시작하는지 판정",
+            "상대 이름이면 namespace 뒤에 붙임"
+          ],
+          "h": "remap → 절대/상대 판정 → namespace 결합입니다.",
+          "w": "remap이 있으면 목적지부터 보고, 절대 이름이면 그대로 두며, 상대 이름이면 namespace를 붙입니다.",
+          "an": "02_turtlesim_tools 자습 TODO"
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "ROS_DOMAIN_ID 운영 규칙으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "개인 실습은 각자 명부 번호",
+            "공동 실습은 강사가 정한 번호",
+            "모든 터미널에 같은 값 적용",
+            "번호만 같으면 통신이 보장됨",
+            "실행 중 노드에 자동 반영됨"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "번호가 같아도 이름·타입·QoS·네트워크 문제는 남습니다.",
+          "w": "개인 실습은 본인 번호, 공동 실습은 지정 번호를 모든 터미널에 같게 씁니다. 번호만 같다고 통신이 보장되지 않고, 실행 중인 노드는 종료 후 다시 실행해야 합니다.",
+          "an": "슬라이드 p.58"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "ROS Image·cv_bridge·대역폭",
+      "ref": "08.ROS_v2 03 · 슬라이드 p.73–83·96",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "mono8 encoding에서 픽셀당 byte 수는?",
+          "o": [
+            "1",
+            "2",
+            "3",
+            "4"
+          ],
+          "a": 0,
+          "h": "흑백 한 채널입니다.",
+          "w": "mono8은 픽셀당 1 byte, rgb8·bgr8은 3 byte입니다.",
+          "an": "03_camera_opencv §1"
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "ROS Image 메시지의 step이 의미하는 것은?",
+          "o": [
+            "프레임 순번",
+            "한 행의 byte 수",
+            "채널 수",
+            "촬영 시각"
+          ],
+          "a": 1,
+          "h": "다음 행의 시작 위치를 찾을 때 씁니다.",
+          "w": "step은 한 행의 byte 수이며 행 끝 padding 때문에 width×채널 수보다 클 수 있습니다. data 길이는 step×height입니다.",
+          "an": "슬라이드 p.74 · 03_camera_opencv §1"
+        },
+        {
+          "id": "t5-03",
+          "ty": "num",
+          "lv": 2,
+          "game": false,
+          "p": "640×480 bgr8 영상의 최소 row byte(step)는 몇 byte인가요?",
+          "a": 1920,
+          "unit": "byte",
+          "h": "계산식: 최소 step = width × 채널 수",
+          "w": "bgr8은 픽셀당 3 byte이므로 640×3=1920 byte입니다. padding이 있으면 실제 step은 더 클 수 있습니다.",
+          "an": "슬라이드 p.74 · 03_camera_opencv §4"
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "cv_bridge가 하는 일은?",
+          "o": [
+            "카메라 장치를 연다",
+            "QoS를 설정한다",
+            "topic을 remap한다",
+            "Image를 OpenCV 배열로 변환"
+          ],
+          "a": 3,
+          "h": "ROS 메시지와 NumPy 배열 사이의 다리입니다.",
+          "w": "cv_bridge는 encoding에 맞춰 ROS Image를 BGR 배열로 변환할 뿐 카메라를 열지 않습니다.",
+          "an": "슬라이드 p.76 · 03_camera_opencv §3"
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "mono8, width=2, height=2, step=3, data=[10,20,255,30,40,255]의 활성 픽셀 평균은?",
+          "o": [
+            "95",
+            "63.3",
+            "25",
+            "35"
+          ],
+          "a": 2,
+          "h": "각 행의 마지막 255는 padding입니다.",
+          "w": "활성 값은 10·20·30·40이므로 평균 25입니다. padding 255를 포함하면 영상에 없는 값으로 평균이 왜곡됩니다.",
+          "an": "03_camera_opencv 따라 실행 1 · 정답 해설"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "여러 처리 노드가 같은 카메라 장치를 각자 직접 여는 구조가 권장된다.",
+          "a": false,
+          "h": "장치는 한 곳에서 열고 topic으로 나눠 줍니다.",
+          "w": "틀렸습니다. 각 처리기가 장치를 직접 열면 점유 충돌과 frame 시각 불일치가 생깁니다. 한 node가 열고 여러 node가 구독합니다.",
+          "an": "슬라이드 p.73 · 03_camera_opencv §1"
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "교재 계약에서 age가 정확히 500ms인 프레임은 허용된다.",
+          "a": true,
+          "h": "0 ≤ age ≤ 500ms의 양 끝을 확인하세요.",
+          "w": "맞습니다. 정확한 0과 500ms는 허용하고 501ms와 미래 프레임(음수 age)은 거부합니다.",
+          "an": "03_camera_opencv §2 TODO · 슬라이드 p.75"
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "영상 규격과 raw 대역폭을 연결하세요.",
+          "pairs": [
+            [
+              "640×480 bgr8 30fps",
+              "27.648 MB/s"
+            ],
+            [
+              "1280×720 bgr8 30fps",
+              "82.944 MB/s"
+            ],
+            [
+              "320×240 mono8 10fps",
+              "0.768 MB/s"
+            ]
+          ],
+          "h": "W×H×채널×fps ÷ 1,000,000으로 계산합니다.",
+          "w": "raw payload는 W×H×C×fps입니다. 가로·세로를 두 배로 하면 픽셀 수와 대역폭은 네 배가 됩니다. header·직렬화·네트워크 overhead는 포함하지 않습니다.",
+          "an": "03_camera_opencv 자습 예상 결과 · 슬라이드 p.96"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "카메라 영상이 OpenCV 처리까지 가는 경로를 맞추세요.",
+          "steps": [
+            "카메라 노드가 장치를 단독으로 연다",
+            "stamp·layout을 담아 Image 발행",
+            "구독 노드가 타입·step·신선도 검사",
+            "cv_bridge로 배열 변환",
+            "OpenCV로 밝기 계산"
+          ],
+          "h": "장치 소유 → 발행 → 검사 → 변환 → 처리 순서입니다.",
+          "w": "카메라 노드 하나가 장치를 열어 Image를 발행하고, 구독 노드가 검사한 뒤 cv_bridge로 변환해 OpenCV 처리합니다.",
+          "an": "슬라이드 p.73"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "<code>mean_active_pixels</code>가 거부해야 하는 입력을 모두 고르세요.",
+          "o": [
+            "지원하지 않는 encoding",
+            "step이 width×채널보다 작음",
+            "data 길이 ≠ step×height",
+            "age가 501ms",
+            "age가 0ms"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "age의 허용 범위 양 끝은 포함됩니다.",
+          "w": "encoding·step·data 길이 위반은 ValueError, age 501ms는 TimeoutError로 거부합니다. age 0ms는 허용 범위의 양 끝이라 정상입니다.",
+          "an": "03_camera_opencv §2 · 슬라이드 p.82"
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "제스처 controller·TTL·launch",
+      "ref": "08.ROS_v2 04 · 슬라이드 p.84–95",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "point_forward 관측의 고정 속도 (linear.x, angular.z)는?",
+          "o": [
+            "(0.8, 0.0)",
+            "(0.0, 1.2)",
+            "(1.2, 0.0)",
+            "(0.0, 0.0)"
+          ],
+          "a": 0,
+          "h": "전진만 하고 회전은 하지 않습니다.",
+          "w": "point_forward=(0.8, 0), point_left/right=(0, ±1.2), open_palm=(0, 0)입니다. 속도표는 controller만 가집니다.",
+          "an": "04_gesture_launch §1 표 · 슬라이드 p.84"
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>to_twist</code>에서 open_palm은 어떻게 처리되나요?",
+          "o": [
+            "거부되어 accepted=False",
+            "승인되지만 속도는 0",
+            "0.8로 전진",
+            "왼쪽으로 회전"
+          ],
+          "a": 1,
+          "h": "승인 여부와 이동 여부는 다른 값입니다.",
+          "w": "open_palm은 유효하게 승인된 정지이므로 accepted=True이고 속도는 0입니다.",
+          "an": "04_gesture_launch §2 설명할 지점"
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "입력이 끊겨 callback이 불리지 않을 때 zero Twist를 발행하는 장치는?",
+          "o": [
+            "launch",
+            "cv_bridge",
+            "watchdog",
+            "QoS"
+          ],
+          "a": 2,
+          "h": "새 입력이 없어도 별도 주기로 시간을 검사합니다.",
+          "w": "입력이 끊기면 callback 자체가 불리지 않을 수 있으므로 별도 주기의 watchdog이 마지막 입력 시각을 검사해 zero Twist를 발행합니다.",
+          "an": "슬라이드 p.85 · 04_gesture_launch 생각하기"
+        },
+        {
+          "id": "t6-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "이 수업 controller가 관측 시각부터 명령을 유지하는 TTL은?",
+          "o": [
+            "0.1초",
+            "0.5초",
+            "3초",
+            "180초"
+          ],
+          "a": 1,
+          "h": "launch 코드의 command_ttl_seconds 값입니다.",
+          "w": "controller는 관측 시각부터 최대 0.5초만 명령을 유지합니다. 입력 중단 후 0.5초가 지나면 정지합니다.",
+          "an": "슬라이드 p.85 · 04_gesture_launch §3"
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "<code>to_twist</code>에서 미지의 이름이면서 오래된 입력의 reason은?",
+          "o": [
+            "accepted",
+            "stale_or_future",
+            "timeout",
+            "unknown_or_missing"
+          ],
+          "a": 3,
+          "h": "reason에도 우선순위가 있습니다.",
+          "w": "미지 이름이면서 오래된 경우 reason 우선순위는 unknown_or_missing입니다. 알려진 이름의 오래된/미래 입력만 stale_or_future입니다.",
+          "an": "04_gesture_launch §2 시간 계약"
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "launch가 오류 없이 시작되면 카메라 입력과 메시지 연결도 성공한 것이다.",
+          "a": false,
+          "h": "launch는 프로그램을 시작하고 설정을 전달할 뿐입니다.",
+          "w": "틀렸습니다. launch 성공은 연결 성공이 아닙니다. 노드 목록·토픽·실제 메시지를 이어서 확인해야 합니다.",
+          "an": "04_gesture_launch §3 launch 설명"
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "with_turtlesim:=false는 화면 노드만 생략하고 제스처·속도 명령 발행은 계속된다.",
+          "a": true,
+          "h": "IfCondition이 붙은 노드만 영향을 받습니다.",
+          "w": "맞습니다. with_turtlesim은 turtlesim 노드 실행 여부만 정합니다. 제스처 발행과 속도 명령 발행은 계속됩니다.",
+          "an": "04_gesture_launch §3 · 슬라이드 p.86"
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "launch 코드 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "DeclareLaunchArgument",
+              "외부 인자 이름과 기본값 선언"
+            ],
+            [
+              "LaunchConfiguration",
+              "실행 시점의 설정값 참조"
+            ],
+            [
+              "IfCondition",
+              "노드 시작 여부 결정"
+            ],
+            [
+              "output=\"screen\"",
+              "프로세스 출력을 터미널에 표시"
+            ]
+          ],
+          "h": "선언 · 참조 · 조건 · 출력 네 역할입니다.",
+          "w": "인자를 선언하고, 실행 시점 값을 참조하며, 조건으로 노드 실행을 정하고, output은 출력 위치를 정합니다. GUI 창 옵션이 아닙니다.",
+          "an": "04_gesture_launch §3 코드 요소 표"
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "입력 중단 실험의 관찰 순서를 맞추세요.",
+          "steps": [
+            "입력(source) 터미널만 중단",
+            "마지막 관측의 age가 TTL을 넘음",
+            "watchdog이 만료 조건 확인",
+            "제어기가 zero Twist 발행",
+            "시각·속도 기록 후 전체 종료"
+          ],
+          "h": "제어기는 유지한 채 입력만 끊습니다.",
+          "w": "입력만 끊고 제어기는 유지해야 watchdog을 관찰할 수 있습니다. 마지막 관측·zero·재입력 시각을 함께 기록합니다.",
+          "an": "슬라이드 p.88 · 04_gesture_launch §4"
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "기본 controller가 이동을 허용하지 않는 관측을 모두 고르세요.",
+          "o": [
+            "UNKNOWN 제스처",
+            "미래 시각의 관측",
+            "TTL이 지난 관측",
+            "age 0ms의 point_forward",
+            "confidence 없는 이동 요청"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            4
+          ],
+          "h": "알 수 없음 · 시간 · 점수 조건을 떠올리세요.",
+          "w": "UNKNOWN·미래·오래된 관측은 STOP입니다. 기본 controller는 점수 없는(null) 이동도 거부합니다. age 0ms의 point_forward는 정상 허용입니다.",
+          "an": "슬라이드 p.84·87 · 04_gesture_launch §3"
+        }
+      ]
+    }
+  ]
+}

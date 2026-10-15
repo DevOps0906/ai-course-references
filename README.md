@@ -23,6 +23,7 @@ AI 업무 활용, 바이브코딩, n8n 자동화, 음성 AI, LangChain 에이전
 | 4 | [`04-voice-ai`](04-voice-ai) | 음성 AI: 오디오 기초 → 주파수 → 전처리 → KWS → ASR → Whisper (Day 1~7) | pptx/pdf, ipynb, html | 37 |
 | 5 | [`05-langchain-agent`](05-langchain-agent) | LangChain LCEL → RAG → Gradio 챗봇 → Whisper 음성 RAG → LangGraph (14일차) | ipynb, mp3 | 56 |
 | 6 | [`06-ai-openVino`](06-ai-openVino) | 엣지 AI 비전: 리눅스 → 파이썬 → OpenCV → OpenVINO 추론·최적화·디바이스 비교 | pdf | 8 |
+| 7 | [`07-NEPES_physicalAI_자율주행자동차`](07-NEPES_physicalAI_자율주행자동차) | Physical AI 5일: Jetson → LLM·VLM → OpenCV·MediaPipe·ROS 2 → Pseudo-VLA → VLA | pdf, ipynb | 108 |
 
 ## 🧭 추천 학습 순서
 
@@ -30,7 +31,7 @@ AI 업무 활용, 바이브코딩, n8n 자동화, 음성 AI, LangChain 에이전
 01-ai-work (프롬프트·문서·엑셀)  →  02-dev-basics (Git → 바이브코딩)
         →  03-n8n-automation (교육 업무 → 블로그 자동화)  →  04-voice-ai (Day 1 → 7)
         →  05-langchain-agent (day01 → 14)
-        →  06-ai-openVino (리눅스 → 파이썬 → OpenCV → OpenVINO)
+        →  06-ai-openVino (리눅스 → 파이썬 → OpenCV → OpenVINO)  →  07 Physical AI (Jetson → VLA)
 ```
 
 > `04-voice-ai`의 Whisper(D7)와 `05-langchain-agent`의 음성 RAG(day13)는 이어서 보면 좋습니다.
@@ -90,8 +91,18 @@ AI 업무 활용, 바이브코딩, n8n 자동화, 음성 AI, LangChain 에이전
 | 06 | AI 비전 · OpenVINO | OpenCV · 컴퓨터 비전 기초부터 객체 검출까지 | 9탭 · 90 | [`05-opencv.html`](develop/dist/06-ai-openVino/05-opencv.html) |
 | 06 | AI 비전 · OpenVINO | OpenVINO 심화와 비전 AI 프로젝트 | 8탭 · 80 | [`06-runtime.html`](develop/dist/06-ai-openVino/06-runtime.html) |
 | 06 | AI 비전 · OpenVINO | CPU · GPU · NPU 속도 비교 | 3탭 · 30 | [`07-device-benchmark.html`](develop/dist/06-ai-openVino/07-device-benchmark.html) |
+| 07 | Physical AI | Physical AI 1일차 · Jetson · Ubuntu · 실습 환경 | 9탭 · 90 | [`01-jetson-ubuntu.html`](develop/dist/07-physical-ai/01-jetson-ubuntu.html) |
+| 07 | Physical AI | Physical AI · Python 기초와 자료구조 | 5탭 · 50 | [`02-python.html`](develop/dist/07-physical-ai/02-python.html) |
+| 07 | Physical AI | Physical AI · C++ 기초 · 메모리 · STL · CMake | 9탭 · 90 | [`03-cpp.html`](develop/dist/07-physical-ai/03-cpp.html) |
+| 07 | Physical AI | Physical AI 2일차 · LLM 학습 원리 (RNN·LSTM·Seq2Seq·Transformer) | 8탭 · 80 | [`04-llm-training.html`](develop/dist/07-physical-ai/04-llm-training.html) |
+| 07 | Physical AI | Physical AI 2일차 · LLM 활용 (프롬프트·Tool·RAG·에이전트) | 6탭 · 60 | [`05-llm-apps.html`](develop/dist/07-physical-ai/05-llm-apps.html) |
+| 07 | Physical AI | Physical AI 2일차 · VLM (이미지 질문·카메라 기록·구조화 결과) | 5탭 · 50 | [`06-vlm.html`](develop/dist/07-physical-ai/06-vlm.html) |
+| 07 | Physical AI | Physical AI 3일차 · OpenCV · MediaPipe | 7탭 · 70 | [`07-opencv-mediapipe.html`](develop/dist/07-physical-ai/07-opencv-mediapipe.html) |
+| 07 | Physical AI | Physical AI 3일차 · ROS 2 (노드·토픽·turtlesim·카메라·launch) | 6탭 · 60 | [`08-ros.html`](develop/dist/07-physical-ai/08-ros.html) |
+| 07 | Physical AI | Physical AI 4일차 · 좌표 기반 Pseudo-VLA | 9탭 · 90 | [`09-pseudo-vla.html`](develop/dist/07-physical-ai/09-pseudo-vla.html) |
+| 07 | Physical AI | Physical AI 5일차 · 학습된 VLA 정책과 시뮬레이션 | 10탭 · 100 | [`10-vla.html`](develop/dist/07-physical-ai/10-vla.html) |
 
-합계 **36개 · 194탭 · 1,945문항**. 04-voice-ai는 기존 워크시트 구성(Day1 15문항, Day2~7 4교시×10)을 그대로 옮겼습니다.
+합계 **46개 · 268탭 · 2,685문항**. 04-voice-ai는 기존 워크시트 구성(Day1 15문항, Day2~7 4교시×10)을 그대로 옮겼습니다. 05-langchain-agent는 준비 중입니다.
 
 - **학습 모드**: 탭별 10문항 채점, 해설과 자료 위치, 종합 결과와 결과 코드.
 - **게임 모드**: 탭 하나를 채점하면 열립니다. 문항마다 10~15초 타이머가 있고 콤보 점수와 순위표가 있습니다.

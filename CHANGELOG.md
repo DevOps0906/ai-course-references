@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2026-10-16 07 Physical AI 문제은행
+- 5일 과정(슬라이드 v1·v2 PDF 10개 + 노트북 95개) 분석 → 문제은행 10개(740문항): Jetson·Ubuntu, Python, C++, LLM 학습 원리, LLM 활용, VLM, OpenCV·MediaPipe, ROS 2, Pseudo-VLA, VLA
+  - v2(개정판) 기준. 2일차는 v1(학습 원리)·v2(활용) 내용이 달라 따로 출제. `appendix/previous_4h`는 이전 판이라 제외
+  - 문항에는 원 출처 회사명·고객사명·주소를 쓰지 않음(원본 파일의 저작권 표기는 그대로 둠). `validate.py`에 검사 추가(`source` 경로 제외)
+- 전체 **46개 · 268탭 · 2,685문항**. 허브에 '07 Physical AI · 자율주행', '05 LangChain(준비 중)' 단계 추가
+- `.gitignore`에 압축 메타데이터 `@PaxHeader` 추가
+
 ## 2026-10-15 05-langchain-agent 추가
 - 업로드한 `교육과정.zip`(LangChain·RAG·Agent 14일 과정)을 `05-langchain-agent/day01~day14`로 배치
 - 3일차 중복 노트북 1개 제외, 5일차 확장자 `.배포ipynb` → `.ipynb` 수정
