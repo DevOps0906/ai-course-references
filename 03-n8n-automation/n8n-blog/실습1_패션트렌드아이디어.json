@@ -1,0 +1,155 @@
+{
+  "name": "실습1_패션트렌드아이디어",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7c40f46c-e3e0-4a42-8494-8d91e78d0fbf",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9a03081a-a84e-4e84-9112-e2266b188d79",
+              "name": "스타일",
+              "value": "미니멀 & 모던",
+              "type": "string"
+            },
+            {
+              "id": "4b6e7568-3e5f-49f2-897c-00af982c9adf",
+              "name": "타겟독자",
+              "value": "20대 후반 여성 직장인",
+              "type": "string"
+            },
+            {
+              "id": "1ec218fa-1d0f-488d-a853-5181c18da983",
+              "name": "카테고리",
+              "value": "스타일링, 트렌드",
+              "type": "string"
+            },
+            {
+              "id": "08e13a43-13ac-4c68-bdd7-a246331877a2",
+              "name": "글유형",
+              "value": "하우투 가이드",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "c47fc777-b981-4e8b-8458-afa1c226004a",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "당신은 한국 패션 미디어에서 10년 경력을 가진 시니어 에디터입니다.\n한국의 패션 트렌드, 스타일링, K-패션 시장에 대해 깊이 있는 지식을 보유하고 있습니다.\n\n규칙:\n1. 한국어로 답변\n2. 반드시 JSON 배열 형식으로만 응답\n3. 현재 시즌과 트렌드를 반영\n4. SEO에 강한 제목 생성"
+            },
+            {
+              "content": "=스타일: {{ $json.스타일 }}\n타겟 독자: {{ $json.타겟독자 }}\n카테고리: {{ $json.카테고리 }}\n글 유형: {{ $json.글유형 }}\n\n위 조건에 맞는 패션 블로그 포스트 아이디어 10개를 만들어주세요.\n\n각 아이디어에 포함할 정보:\n- 제목 (검색에 강하고 클릭을 유도하는 40~60자)\n- 카테고리 (트렌드/스타일링/리뷰/쇼핑가이드/룩북 중 1개)\n- 핵심 키워드 3개\n- 검색 의도 (정보 탐색 / 구매 결정 / 비교)\n- 예상인기도 (1~10점)\n- 콘텐츠 각도 (어떤 관점으로 다룰지 한 문장)\n- 예상 썸네일 분위기 (한 줄)\n\nJSON 형식:\n[\n  {\n    \"제목\": \"...\",\n    \"카테고리\": \"스타일링\",\n    \"키워드\": [\"키워드1\", \"키워드2\", \"키워드3\"],\n    \"검색의도\": \"정보 탐색\",\n    \"예상인기도\": 8,\n    \"각도\": \"체형별 맞춤 가이드\",\n    \"썸네일\": \"파리지앵 감성, 베이지 톤\"\n  }\n]"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "0c5420e3-09d0-4906-adf9-ab08e2dbee52",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "OoNnUcG6ZT8TM06G",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── AI 응답 파싱 ──\nconst rawContent = $input.first().json.output[0].content[0].text;\nlet jsonStr = rawContent.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n\nlet ideas = [];\ntry {\n  ideas = JSON.parse(jsonStr);\n} catch (e) {\n  return [{ json: { 상태: '파싱 실패', 원본: rawContent, 에러: e.message } }];\n}\n\n// ── 현재 시즌 자동 판별 ──\nconst now = new Date();\nconst month = now.getMonth() + 1;\n\nlet season, seasonEn, mood, colors;\nif (month >= 3 && month <= 5) {\n  season = '봄'; seasonEn = 'spring';\n  mood = 'fresh, pastel, light';\n  colors = '파스텔 핑크, 라벤더, 민트, 아이보리';\n} else if (month >= 6 && month <= 8) {\n  season = '여름'; seasonEn = 'summer';\n  mood = 'bright, vibrant, minimal';\n  colors = '화이트, 스카이블루, 코럴, 옐로우';\n} else if (month >= 9 && month <= 11) {\n  season = '가을'; seasonEn = 'autumn';\n  mood = 'warm, earthy, textured';\n  colors = '버건디, 카멜, 올리브, 테라코타';\n} else {\n  season = '겨울'; seasonEn = 'winter';\n  mood = 'cozy, rich, layered';\n  colors = '네이비, 차콜, 보르도, 크림';\n}\n\n// ── 시즌별 추천 키워드 ──\nconst seasonKeywords = {\n  '봄': ['봄코디', '트렌치코트', '가디건', '로퍼', '파스텔'],\n  '여름': ['여름코디', '린넨', '원피스', '샌들', '시어서커'],\n  '가을': ['가을코디', '니트', '자켓', '로퍼', '트위드'],\n  '겨울': ['겨울코디', '패딩', '코트', '부츠', '머플러']\n};\n\n// ── 아이디어에 메타 정보 추가 ──\nconst enrichedIdeas = ideas.map((idea, index) => ({\n  번호: index + 1,\n  ...idea,\n  시즌: season,\n  시즌무드: mood,\n  시즌컬러: colors,\n  추천키워드: seasonKeywords[season],\n  생성일시: now.toISOString().slice(0, 19).replace('T', ' '),\n  상태: '대기중'\n}));\n\n// ── 인기도순 정렬 ──\nenrichedIdeas.sort((a, b) => (b.예상인기도 || 0) - (a.예상인기도 || 0));\n\nreturn enrichedIdeas.map(idea => ({ json: idea }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        0
+      ],
+      "id": "cdf9fe74-53f7-4c07-a3ce-dd55e50526db",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "bb4c4ecf-3d20-49ac-8a16-583eccf6824e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d44289cc3580f3d6dcb7645751e7910d50a16a2ed63d93ecd67ae638a09accda"
+  },
+  "id": "lUTdp1yUHuXFd7OS",
+  "tags": []
+}

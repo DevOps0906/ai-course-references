@@ -1,0 +1,15 @@
+{
+  "_comment": "원본 저장소와 이 레포 폴더의 대응표. sync.py가 이 파일을 읽고 last_commit을 갱신합니다.",
+  "owner_repo": "DevOps0906/ai-course-references",
+  "link_base": "",
+  "sources": [
+    {"name": "AI_Automation", "upstream": "https://github.com/imguru-mooc/AI_Automation.git", "branch": "main", "target": "01-ai-work/ai-automation",          "last_commit": "e304213c14a29f0cf0085df644c2b6cd4c89f7ae"},
+    {"name": "AI_EXCEL",      "upstream": "https://github.com/imguru-mooc/AI_EXCEL.git",      "branch": "main", "target": "01-ai-work/ai-excel",               "last_commit": "52915e7be252c00182a84993b5e8157692e15a7e"},
+    {"name": "CLAUDE_AI",     "upstream": "https://github.com/imguru-mooc/CLAUDE_AI.git",     "branch": "main", "target": "01-ai-work/claude-for-educators",   "last_commit": "1ccab276af3e7adf5d619f151153ab4c11746b8e"},
+    {"name": "git_study",     "upstream": "https://github.com/imguru-mooc/git_study.git",     "branch": "main", "target": "02-dev-basics/git",                 "last_commit": "98973e3cb31eb2c312b1b59018db81101e67a1cc"},
+    {"name": "VibeCoding",    "upstream": "https://github.com/imguru-mooc/VibeCoding.git",    "branch": "main", "target": "02-dev-basics/vibe-coding",         "last_commit": "dd2cedafc9315895f2f406cd30807fbdcc5a27db"},
+    {"name": "n8n_agent",     "upstream": "https://github.com/imguru-mooc/n8n_agent.git",     "branch": "main", "target": "03-n8n-automation/n8n-edu-agent",   "last_commit": "63d5a0508f0c724f3b3b4199302aff07bcca2395"},
+    {"name": "n8n_blog",      "upstream": "https://github.com/imguru-mooc/n8n_blog.git",      "branch": "main", "target": "03-n8n-automation/n8n-blog",        "last_commit": "4727b6c28e9e5cdb042e1d942798f31b1d1e82d7"},
+    {"name": "AI_Voice",      "upstream": "https://github.com/imguru-mooc/AI_Voice.git",      "branch": "main", "target": "04-voice-ai",                       "last_commit": "0d1745ea415bbd181f655f0f89f68b40f6bfe247"}
+  ]
+}

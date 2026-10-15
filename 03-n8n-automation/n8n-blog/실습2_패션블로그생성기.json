@@ -1,0 +1,215 @@
+{
+  "name": "실습2_패션블로그생성기",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7dec43b7-b6f8-4e32-8f61-4284fc73e811",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c2ae55d4-c23d-437f-8d1d-467419ed88d2",
+              "name": "주제",
+              "value": "2026 봄 여자 트렌치코트 스타일링",
+              "type": "string"
+            },
+            {
+              "id": "03f7c20f-a3f9-494e-96f5-cc8a91a1d9a6",
+              "name": "키워드",
+              "value": "트렌치코트 코디",
+              "type": "string"
+            },
+            {
+              "id": "d4399f23-b452-4d6c-a940-a6b85d3234a4",
+              "name": "타겟독자",
+              "value": "20~30대 여성 직장인",
+              "type": "string"
+            },
+            {
+              "id": "5f9b5633-5ce1-43de-8097-a7f3bcae1cb8",
+              "name": "카테고리",
+              "value": "스타일링",
+              "type": "string"
+            },
+            {
+              "id": "18b26ac7-24e6-4739-aea5-456c028d9464",
+              "name": "톤",
+              "value": "친근하고 트렌디한, 언니가 알려주는 느낌",
+              "type": "string"
+            },
+            {
+              "id": "d300db43-51d8-4a32-8187-955820dbf33e",
+              "name": "목표글자수",
+              "value": "2000",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "1a98ccda-21d0-483e-b6b1-470dfe5be1a3",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "당신은 한국 최고의 패션 블로그 에디터입니다.\nSEO와 트렌드에 강하며, 패션 독자의 검색 의도를 정확히 파악합니다.\n반드시 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요."
+            },
+            {
+              "content": "=아래 패션 블로그 포스트의 SEO 메타 정보와 구조를 생성해주세요.\n\n주제: {{ $json.주제 }}\n핵심 키워드: {{ $json.키워드 }}\n타겟 독자: {{ $json.타겟독자 }}\n카테고리: {{ $json.카테고리 }}\n\nJSON으로만 응답:\n{\n  \"meta_title\": \"55자 이내 SEO 제목\",\n  \"meta_description\": \"160자 이내 검색 설명\",\n  \"h1\": \"독자가 클릭하고 싶은 메인 제목\",\n  \"hook\": \"첫 2~3문장 — 독자 공감 유도\",\n  \"h2_sections\": [\n    {\"제목\": \"섹션1\", \"핵심\": \"이 섹션의 핵심 메시지\"},\n    {\"제목\": \"섹션2\", \"핵심\": \"...\"},\n    {\"제목\": \"섹션3\", \"핵심\": \"...\"},\n    {\"제목\": \"섹션4\", \"핵심\": \"...\"},\n    {\"제목\": \"섹션5\", \"핵심\": \"...\"}\n  ],\n  \"related_keywords\": [\"연관1\", \"연관2\", \"연관3\"],\n  \"featured_items\": [\"추천 아이템1\", \"아이템2\", \"아이템3\"],\n  \"price_tiers\": {\n    \"하이엔드\": \"브랜드 예시\",\n    \"미드\": \"브랜드 예시\",\n    \"SPA\": \"브랜드 예시\"\n  }\n}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "07ff4c17-42a8-4db9-b470-a98b2599c007",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "OoNnUcG6ZT8TM06G",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=당신은 한국의 인기 패션 블로거입니다.\n독자와 친근하게 소통하며, 실용적인 스타일링 팁을 제공합니다.\n\n작성 규칙:\n1. 한국어, Markdown 형식 (# 메인제목, ## 섹션)\n2. 톤: {{ $('Edit Fields').first().json.톤 }}\n3. 독자에게 말을 거는 친근한 어투 (\"~해보세요\", \"~추천드려요\")\n4. 각 섹션마다 구체적인 스타일링 팁 1개 이상\n5. 아이템 추천 시 가격대 3단계 구분 (하이엔드/미드/SPA)\n6. 체형·상황별 조언 반드시 포함\n7. 이모지는 섹션 제목과 핵심 포인트에만 사용 (1섹션당 2~3개)\n8. 총 {{ $('Edit Fields').first().json.목표글자수 }}자 이상\n9. 마지막에 \"오늘의 핵심 정리\" 체크리스트 형태\n10. 독자 참여 유도 CTA (\"댓글로 알려주세요!\")\n\n피해야 할 것:\n- 체형 부정적 표현 (모든 체형 긍정적으로)\n- \"제가 생각할 때\" 같은 불필요한 겸양\n- 추측성 정보"
+            },
+            {
+              "content": "=아래 SEO 구조에 맞춰 패션 블로그 본문을 작성해주세요.\n\nSEO 구조:\n{{ $json.output[0].content[0].text }}\n\n핵심 키워드: {{ $('Edit Fields').first().json.키워드 }}\n\n구성 순서:\n1. 후크 (2~3문장) — 독자 고민 공감\n2. 간단한 도입 (트렌드 배경)\n3. H2 섹션들 (위 JSON의 h2_sections 순서대로)\n4. \"오늘의 핵심 정리\" (✅ 체크리스트 5~7항목)\n5. 독자 참여 CTA\n\nMarkdown 형식으로 출력하세요."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        768,
+        0
+      ],
+      "id": "4757acba-c448-4acf-84b4-9c6f6502c152",
+      "name": "Message a model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "OoNnUcG6ZT8TM06G",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.first().json.output[0].content[0].text;\nconst keyword = $('Edit Fields').first().json.키워드;\nconst category = $('Edit Fields').first().json.카테고리;\n\n// ═══ 기본 SEO 체크 ═══\nconst charCount = content.length;\nconst h1Count = (content.match(/^#\\s/gm) || []).length;\nconst h2Count = (content.match(/^##\\s/gm) || []).length;\n\nconst keywordMatches = (content.match(new RegExp(keyword, 'gi')) || []).length;\nconst density = ((keywordMatches * keyword.length) / charCount * 100).toFixed(2);\n\n// ═══ 패션 블로그 특화 체크 ═══\n\n// 1. 가격대 언급\nconst priceTerms = ['하이엔드', '미드', 'SPA', '합리적', '명품', '만원', '가격', '프리미엄'];\nconst hasPriceInfo = priceTerms.some(t => content.includes(t));\nconst priceCount = priceTerms.reduce((s, t) => s + (content.match(new RegExp(t, 'g')) || []).length, 0);\n\n// 2. 스타일링 팁\nconst stylingTerms = ['스타일링', '코디', '매칭', '포인트', '팁', '추천', '연출', '활용'];\nconst stylingCount = stylingTerms.reduce((s, t) => s + (content.match(new RegExp(t, 'g')) || []).length, 0);\n\n// 3. 체형/상황별 팁\nconst contextTerms = ['체형', '키', '상황', '오피스', '데일리', '데이트', '캐주얼', '통통', '슬림', '볼륨'];\nconst hasContextualTips = contextTerms.some(t => content.includes(t));\n\n// 4. 이모지 수\nconst emojiCount = (content.match(/[\\u{1F300}-\\u{1F9FF}]|[\\u{2600}-\\u{26FF}]/gu) || []).length;\n\n// 5. CTA\nconst ctaTerms = ['댓글', '저장', '공유', '팔로우', '알려주세요', '어떠세요', '좋아요'];\nconst hasCTA = ctaTerms.some(t => content.includes(t));\n\n// 6. 체크리스트 존재\nconst hasChecklist = content.includes('✅') || content.includes('체크리스트') || content.includes('핵심 정리');\n\n// ═══ 점수 계산 ═══\nlet score = 100;\nconst issues = [];\nconst wins = [];\n\n// 기본 체크\nif (charCount < 1500) { score -= 20; issues.push(`글자수 부족 (${charCount}자)`); }\nelse { wins.push(`✅ 충분한 분량 (${charCount}자)`); }\n\nif (h2Count < 4) { score -= 15; issues.push(`섹션 부족 (H2 ${h2Count}개)`); }\nelse { wins.push(`✅ 체계적 구조 (${h2Count}개 섹션)`); }\n\nif (density < 0.5) { score -= 10; issues.push(`키워드 밀도 낮음 (${density}%)`); }\nif (density > 3) { score -= 10; issues.push(`키워드 남용 (${density}%)`); }\n\n// 패션 특화 체크\nif (!hasPriceInfo) { score -= 10; issues.push(`가격대 정보 없음`); }\nelse { wins.push(`✅ 가격대 정보 포함 (${priceCount}회)`); }\n\nif (stylingCount < 5) { score -= 10; issues.push(`스타일링 팁 부족 (${stylingCount}회)`); }\nelse { wins.push(`✅ 풍부한 스타일링 팁 (${stylingCount}회)`); }\n\nif (!hasContextualTips) { score -= 5; issues.push(`체형/상황별 팁 없음`); }\nelse { wins.push(`✅ 맞춤형 팁 포함`); }\n\nif (emojiCount === 0) { score -= 5; issues.push(`이모지 없음 (패션 블로그 권장)`); }\nelse if (emojiCount > 20) { score -= 5; issues.push(`이모지 남용 (${emojiCount}개)`); }\nelse { wins.push(`✅ 적절한 이모지 (${emojiCount}개)`); }\n\nif (!hasCTA) { score -= 5; issues.push(`독자 참여 CTA 없음`); }\nelse { wins.push(`✅ CTA 포함`); }\n\nif (!hasChecklist) { score -= 5; issues.push(`핵심 정리 체크리스트 없음`); }\nelse { wins.push(`✅ 핵심 정리 포함`); }\n\n// ═══ 등급 판정 ═══\nlet grade;\nif (score >= 90) grade = 'S (발행 추천)';\nelse if (score >= 80) grade = 'A (소폭 수정 후 발행)';\nelse if (score >= 70) grade = 'B (수정 필요)';\nelse grade = 'C (재작성 필요)';\n\n// ═══ H1 제목 추출 ═══\nconst titleMatch = content.match(/^#\\s+(.+)$/m);\nconst title = titleMatch ? titleMatch[1] : '제목없음';\n\n// ═══ Markdown → HTML 변환 ═══\nlet html = content\n  .replace(/^#\\s+(.+)$/gm, '<h1>$1</h1>')\n  .replace(/^##\\s+(.+)$/gm, '<h2>$1</h2>')\n  .replace(/^###\\s+(.+)$/gm, '<h3>$1</h3>')\n  .replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')\n  .replace(/\\*(.+?)\\*/g, '<em>$1</em>')\n  .replace(/\\[(.+?)\\]\\((.+?)\\)/g, '<a href=\"$2\">$1</a>')\n  .replace(/^\\-\\s+(.+)$/gm, '<li>$1</li>')\n  .split('\\n\\n')\n  .map(p => {\n    if (p.trim().startsWith('<')) return p;\n    if (p.trim() === '') return '';\n    return `<p>${p.trim()}</p>`;\n  })\n  .join('\\n');\n\nhtml = html.replace(/(<li>.*?<\\/li>\\n?)+/gs, m => `<ul>\\n${m}</ul>\\n`);\n\nreturn [{\n  json: {\n    제목: title,\n    카테고리: category,\n    본문_MD: content,\n    본문_HTML: html,\n    글자수: charCount,\n    H2개수: h2Count,\n    키워드밀도: `${density}%`,\n    가격정보: hasPriceInfo ? '✅' : '❌',\n    스타일링팁수: stylingCount,\n    체형상황별팁: hasContextualTips ? '✅' : '❌',\n    이모지수: emojiCount,\n    CTA여부: hasCTA ? '✅' : '❌',\n    체크리스트: hasChecklist ? '✅' : '❌',\n    품질점수: score,\n    등급: grade,\n    통과여부: score >= 70 ? '✅ 통과' : '❌ 재작성 필요',\n    강점: wins,\n    이슈: issues,\n    작성일시: new Date().toISOString().slice(0, 19).replace('T', ' ')\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "07cee6ed-90ed-4e4d-a499-e10b29c3831b",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e3efa5b5-0161-43ff-9bc8-25aeacfad62d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d44289cc3580f3d6dcb7645751e7910d50a16a2ed63d93ecd67ae638a09accda"
+  },
+  "id": "Uu8v3YbvROzfYgj7",
+  "tags": []
+}

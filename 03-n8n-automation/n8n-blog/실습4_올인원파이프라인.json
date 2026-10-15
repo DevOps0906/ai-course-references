@@ -1,0 +1,400 @@
+{
+  "name": "실습4_올인원파이프라인",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -320,
+        0
+      ],
+      "id": "831664f8-3b4f-4a59-b43b-d06bc8b9eaf9",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "5f9b5633-5ce1-43de-8097-a7f3bcae1cb8",
+              "name": "카테고리",
+              "value": "스타일링",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -112,
+        0
+      ],
+      "id": "d417d351-0d30-4df9-9b3d-9479bb9cbec3",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "당신은 한국 패션 블로그 시니어 에디터입니다.\n현재 시즌과 트렌드에 맞는 블로그 주제를 전문적으로 기획합니다.\n반드시 JSON 배열로만 응답하세요."
+            },
+            {
+              "content": "=카테고리: {{ $json.카테고리 }}\n시즌: {{ $json.시즌 }}\n시즌 이벤트: {{ $json.시즌이벤트 }}\n시즌 키워드: {{ $json.시즌키워드.join(', ') }}\n\n위 조건에 맞는 패션 블로그 포스트 아이디어 5개를 생성해주세요.\n\nJSON 배열:\n[\n  {\n    \"제목\": \"SEO에 강한 제목 (40~60자)\",\n    \"키워드\": \"핵심 키워드 1개\",\n    \"타겟독자\": \"누구를 위한 글인지\",\n    \"예상인기도\": 1-10,\n    \"각도\": \"한 문장으로 어떤 관점인지\"\n  }\n]"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        304,
+        0
+      ],
+      "id": "7de8d416-8f72-4342-a3a5-77339547b8a0",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "OoNnUcG6ZT8TM06G",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=당신은 한국 패션 블로그 시니어 에디터입니다.\n현재 시즌과 트렌드에 맞는 블로그 주제를 전문적으로 기획합니다.\n반드시 JSON 배열로만 응답하세요."
+            },
+            {
+              "content": "=카테고리: {{ $json.카테고리 }}\n시즌: {{ $json.시즌 }}\n시즌 이벤트: {{ $('Code_시즌판별').item.json['시즌이벤트'] }}\n시즌 키워드: {{ $('Code_시즌판별').item.json['시즌키워드'] }}\n\n위 조건에 맞는 패션 블로그 포스트 아이디어 5개를 생성해주세요.\n\nJSON 배열:\n[\n  {\n    \"제목\": \"SEO에 강한 제목 (40~60자)\",\n    \"키워드\": \"핵심 키워드 1개\",\n    \"타겟독자\": \"누구를 위한 글인지\",\n    \"예상인기도\": 1-10,\n    \"각도\": \"한 문장으로 어떤 관점인지\"\n  }\n]"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        976,
+        0
+      ],
+      "id": "c4ae7789-bc39-4088-a04d-24685abe148d",
+      "name": "Message a model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "OoNnUcG6ZT8TM06G",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.first().json.output[0].content[0].text\nconst keyword = $('Code_아이디어선택').first().json['키워드'];\nconst category = $('Edit Fields').first().json['카테고리'];\n\n// ═══ 기본 SEO 체크 ═══\nconst charCount = content.length;\nconst h1Count = (content.match(/^#\\s/gm) || []).length;\nconst h2Count = (content.match(/^##\\s/gm) || []).length;\n\nconst keywordMatches = (content.match(new RegExp(keyword, 'gi')) || []).length;\nconst density = ((keywordMatches * keyword.length) / charCount * 100).toFixed(2);\n\n// ═══ 패션 블로그 특화 체크 ═══\n\n// 1. 가격대 언급\nconst priceTerms = ['하이엔드', '미드', 'SPA', '합리적', '명품', '만원', '가격', '프리미엄'];\nconst hasPriceInfo = priceTerms.some(t => content.includes(t));\nconst priceCount = priceTerms.reduce((s, t) => s + (content.match(new RegExp(t, 'g')) || []).length, 0);\n\n// 2. 스타일링 팁\nconst stylingTerms = ['스타일링', '코디', '매칭', '포인트', '팁', '추천', '연출', '활용'];\nconst stylingCount = stylingTerms.reduce((s, t) => s + (content.match(new RegExp(t, 'g')) || []).length, 0);\n\n// 3. 체형/상황별 팁\nconst contextTerms = ['체형', '키', '상황', '오피스', '데일리', '데이트', '캐주얼', '통통', '슬림', '볼륨'];\nconst hasContextualTips = contextTerms.some(t => content.includes(t));\n\n// 4. 이모지 수\nconst emojiCount = (content.match(/[\\u{1F300}-\\u{1F9FF}]|[\\u{2600}-\\u{26FF}]/gu) || []).length;\n\n// 5. CTA\nconst ctaTerms = ['댓글', '저장', '공유', '팔로우', '알려주세요', '어떠세요', '좋아요'];\nconst hasCTA = ctaTerms.some(t => content.includes(t));\n\n// 6. 체크리스트 존재\nconst hasChecklist = content.includes('✅') || content.includes('체크리스트') || content.includes('핵심 정리');\n\n// ═══ 점수 계산 ═══\nlet score = 100;\nconst issues = [];\nconst wins = [];\n\n// 기본 체크\nif (charCount < 1500) { score -= 20; issues.push(`글자수 부족 (${charCount}자)`); }\nelse { wins.push(`✅ 충분한 분량 (${charCount}자)`); }\n\nif (h2Count < 4) { score -= 15; issues.push(`섹션 부족 (H2 ${h2Count}개)`); }\nelse { wins.push(`✅ 체계적 구조 (${h2Count}개 섹션)`); }\n\nif (density < 0.5) { score -= 10; issues.push(`키워드 밀도 낮음 (${density}%)`); }\nif (density > 3) { score -= 10; issues.push(`키워드 남용 (${density}%)`); }\n\n// 패션 특화 체크\nif (!hasPriceInfo) { score -= 10; issues.push(`가격대 정보 없음`); }\nelse { wins.push(`✅ 가격대 정보 포함 (${priceCount}회)`); }\n\nif (stylingCount < 5) { score -= 10; issues.push(`스타일링 팁 부족 (${stylingCount}회)`); }\nelse { wins.push(`✅ 풍부한 스타일링 팁 (${stylingCount}회)`); }\n\nif (!hasContextualTips) { score -= 5; issues.push(`체형/상황별 팁 없음`); }\nelse { wins.push(`✅ 맞춤형 팁 포함`); }\n\nif (emojiCount === 0) { score -= 5; issues.push(`이모지 없음 (패션 블로그 권장)`); }\nelse if (emojiCount > 20) { score -= 5; issues.push(`이모지 남용 (${emojiCount}개)`); }\nelse { wins.push(`✅ 적절한 이모지 (${emojiCount}개)`); }\n\nif (!hasCTA) { score -= 5; issues.push(`독자 참여 CTA 없음`); }\nelse { wins.push(`✅ CTA 포함`); }\n\nif (!hasChecklist) { score -= 5; issues.push(`핵심 정리 체크리스트 없음`); }\nelse { wins.push(`✅ 핵심 정리 포함`); }\n\n// ═══ 등급 판정 ═══\nlet grade;\nif (score >= 90) grade = 'S (발행 추천)';\nelse if (score >= 80) grade = 'A (소폭 수정 후 발행)';\nelse if (score >= 70) grade = 'B (수정 필요)';\nelse grade = 'C (재작성 필요)';\n\n// ═══ H1 제목 추출 ═══\nconst titleMatch = content.match(/^#\\s+(.+)$/m);\nconst title = titleMatch ? titleMatch[1] : '제목없음';\n\n// ═══ Markdown → HTML 변환 ═══\nlet html = content\n  .replace(/^#\\s+(.+)$/gm, '<h1>$1</h1>')\n  .replace(/^##\\s+(.+)$/gm, '<h2>$1</h2>')\n  .replace(/^###\\s+(.+)$/gm, '<h3>$1</h3>')\n  .replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')\n  .replace(/\\*(.+?)\\*/g, '<em>$1</em>')\n  .replace(/\\[(.+?)\\]\\((.+?)\\)/g, '<a href=\"$2\">$1</a>')\n  .replace(/^\\-\\s+(.+)$/gm, '<li>$1</li>')\n  .split('\\n\\n')\n  .map(p => {\n    if (p.trim().startsWith('<')) return p;\n    if (p.trim() === '') return '';\n    return `<p>${p.trim()}</p>`;\n  })\n  .join('\\n');\n\nhtml = html.replace(/(<li>.*?<\\/li>\\n?)+/gs, m => `<ul>\\n${m}</ul>\\n`);\n\nreturn [{\n  json: {\n    제목: title,\n    카테고리: category,\n    본문_MD: content,\n    본문_HTML: html,\n    글자수: charCount,\n    H2개수: h2Count,\n    키워드밀도: `${density}%`,\n    가격정보: hasPriceInfo ? '✅' : '❌',\n    스타일링팁수: stylingCount,\n    체형상황별팁: hasContextualTips ? '✅' : '❌',\n    이모지수: emojiCount,\n    CTA여부: hasCTA ? '✅' : '❌',\n    체크리스트: hasChecklist ? '✅' : '❌',\n    품질점수: score,\n    등급: grade,\n    통과여부: score >= 70 ? '✅ 통과' : '❌ 재작성 필요',\n    강점: wins,\n    이슈: issues,\n    작성일시: new Date().toISOString().slice(0, 19).replace('T', ' ')\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1312,
+        0
+      ],
+      "id": "d124057f-f774-4360-ba2b-3a3bec647eae",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash-image",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash-image (Nano Banana)"
+        },
+        "prompt": "={{ $json.imagePrompt }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1952,
+        0
+      ],
+      "id": "e07000c0-2ba3-4b5e-a5bc-15e871e16e8e",
+      "name": "Generate an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "259HGiJ1M7s8XNc4",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "title": "={{ $('Code').item.json['제목'] }}",
+        "additionalFields": {
+          "content": "={{ $('Code').item.json['본문_HTML'] }}",
+          "slug": "=fashion-{{ $now.toFormat('yyyyMMdd-HHmm') }}",
+          "status": "draft",
+          "categories": "={{ $json.catId }}"
+        }
+      },
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        0
+      ],
+      "id": "c136a55a-6a1a-427c-985d-997e7788b35c",
+      "name": "Create a post",
+      "credentials": {
+        "wordpressApi": {
+          "id": "1NyL1WCGvW2JjjVZ",
+          "name": "Wordpress account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const code = $('Code').first().json;   // 품질 체크 결과\nconst wp = $json;                       // WordPress 생성 결과\n\nreturn [{\n  json: {\n    상태: '✅ 패션 블로그 초안 저장 완료',\n    글_ID: wp.id,\n    제목: code.제목,\n    카테고리: code.카테고리,\n    카테고리ID: code.카테고리ID,\n    글자수: code.글자수,\n    품질점수: code.품질점수,\n    품질등급: code.등급,\n    강점: code.강점,\n    이슈: code.이슈,\n    검토_URL: `http://localhost:8080/wp-admin/post.php?post=${wp.id}&action=edit`,\n    미리보기_URL: `http://localhost:8080/?p=${wp.id}&preview=true`,\n    다음단계: [\n      '1. 검토 URL 클릭하여 내용 확인',\n      '2. 본인의 실착 경험·인사이트 1~2단락 추가',\n      '3. AI 이미지 적절성 확인',\n      '4. 발행 버튼 클릭'\n    ]\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2352,
+        0
+      ],
+      "id": "cde79377-0ac0-4b71-aff4-6631a24b598f",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $json;\nconst category = item.카테고리;\nconst title = item.제목;\n\n// ── 현재 시즌 판별 ──\nconst month = new Date().getMonth() + 1;\nlet seasonEn, mood;\nif (month >= 3 && month <= 5) { seasonEn = 'spring'; mood = 'fresh, pastel, airy'; }\nelse if (month >= 6 && month <= 8) { seasonEn = 'summer'; mood = 'bright, breezy, vibrant'; }\nelse if (month >= 9 && month <= 11) { seasonEn = 'autumn'; mood = 'warm, earthy, cozy'; }\nelse { seasonEn = 'winter'; mood = 'rich, elegant, layered'; }\n\n// ── 카테고리별 프롬프트 ──\nconst prompts = {\n  '쇼핑가이드': `Flat lay photography of ${seasonEn} fashion items arranged on natural linen, editorial magazine style, ${mood}, overhead shot`,\n  '스타일링': `Korean ${seasonEn} fashion editorial, young woman in stylish outfit, street photography style, natural pose, ${mood} atmosphere`,\n  '트렌드': `Fashion mood board collage, ${seasonEn} color palette swatches, fabric textures, magazine tear sheet aesthetic, ${mood}`,\n  '리뷰': `Luxury product photography on white marble surface, ${seasonEn} fashion accessory, studio lighting, ${mood}`,\n  '룩북': `Full-body fashion editorial portrait, ${seasonEn} Korean style, soft natural window light, minimalist background, ${mood}`\n};\n\nconst basePrompt = prompts[category] || prompts['스타일링'];\nconst fullPrompt = `${basePrompt}, topic: ${title}, 16:9 aspect ratio, NO text, NO logos, NO watermarks, magazine quality, aspirational and modern, high resolution`;\n\nconst categoryMap = { '트렌드': 3, '스타일링': 4, '리뷰': 5, '쇼핑가이드': 6, '룩북': 7 };\n\nreturn [{\n  json: {\n    ...item,\n    imagePrompt: fullPrompt,\n    시즌_EN: seasonEn,\n    카테고리ID: categoryMap[category] || 1\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1488,
+        0
+      ],
+      "id": "ca9408f4-7a21-4965-be90-027452bf3652",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "const month = new Date().getMonth() + 1;\nconst category = $json.카테고리;\n\nlet season, seasonKeywords, seasonEvents;\nif (month >= 3 && month <= 5) {\n  season = '봄';\n  seasonKeywords = ['봄코디', '트렌치코트', '가디건', '파스텔', '꽃무늬'];\n  seasonEvents = '벚꽃놀이, 입학, 신학기';\n} else if (month >= 6 && month <= 8) {\n  season = '여름';\n  seasonKeywords = ['여름코디', '린넨', '원피스', '시어서커', '썸머니트'];\n  seasonEvents = '바캉스, 페스티벌, 휴가';\n} else if (month >= 9 && month <= 11) {\n  season = '가을';\n  seasonKeywords = ['가을코디', '니트', '자켓', '트위드', '레이어드'];\n  seasonEvents = '추석, 단풍놀이, 캠핑';\n} else {\n  season = '겨울';\n  seasonKeywords = ['겨울코디', '패딩', '코트', '부츠', '머플러'];\n  seasonEvents = '크리스마스, 연말파티, 설날';\n}\n\nreturn [{\n  json: {\n    카테고리: category,\n    시즌: season,\n    시즌키워드: seasonKeywords,\n    시즌이벤트: seasonEvents,\n    생성일시: new Date().toISOString().slice(0, 19).replace('T', ' ')\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        96,
+        0
+      ],
+      "id": "c6150b9f-1838-4c65-a9e1-7881ae858de9",
+      "name": "Code_시즌판별"
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.output[0].content[0].text;\nlet cleaned = raw.replace(/```json\\n?/g, '').replace(/```\\n?/g, '').trim();\n\nlet ideas;\ntry {\n  ideas = JSON.parse(cleaned);\n} catch (e) {\n  return [{ json: { 에러: '파싱실패', 원본: raw } }];\n}\n\n// 인기도 가장 높은 것 1개 선택\nideas.sort((a, b) => (b.예상인기도 || 0) - (a.예상인기도 || 0));\nconst best = ideas[0];\n\n// 이전 시즌 정보 이어받기\nconst prev = $('Code_시즌판별').first().json;\n\nreturn [{\n  json: {\n    주제: best.제목,\n    키워드: best.키워드,\n    타겟독자: best.타겟독자,\n    카테고리: prev.카테고리,\n    시즌: prev.시즌,\n    톤: '친근하고 트렌디한, 언니가 알려주는 느낌',\n    목표글자수: 2000,\n    각도: best.각도,\n    인기도: best.예상인기도,\n    후보아이디어: ideas\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        0
+      ],
+      "id": "17de751d-5e1c-4879-b437-4c16c12829b6",
+      "name": "Code_아이디어선택"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b78ef0bc-56a3-4de7-baef-0f2fc1ebd585",
+              "leftValue": "={{ $json.품질점수 }}",
+              "rightValue": 70,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1728,
+        160
+      ],
+      "id": "e87159a1-cf46-4c99-aefc-06b48a65e3da",
+      "name": "IF_품질게이트"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Code_시즌판별",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Code_아이디어선택",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate an image": {
+      "main": [
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a post": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "IF_품질게이트",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_시즌판별": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_아이디어선택": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF_품질게이트": {
+      "main": [
+        [
+          {
+            "node": "Generate an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "ebe4d19b-78ee-40ac-8556-e49cc1d349f2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d44289cc3580f3d6dcb7645751e7910d50a16a2ed63d93ecd67ae638a09accda"
+  },
+  "id": "XjpMO2fLOcB4zG3t",
+  "tags": []
+}

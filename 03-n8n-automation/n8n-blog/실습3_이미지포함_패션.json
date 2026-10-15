@@ -1,0 +1,418 @@
+{
+  "name": "실습3_이미지포함_패션",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "30e12d87-8514-4ab2-aae2-49a5c07ef7a4",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c2ae55d4-c23d-437f-8d1d-467419ed88d2",
+              "name": "주제",
+              "value": "2026 봄 여자 트렌치코트 스타일링",
+              "type": "string"
+            },
+            {
+              "id": "03f7c20f-a3f9-494e-96f5-cc8a91a1d9a6",
+              "name": "키워드",
+              "value": "트렌치코트 코디",
+              "type": "string"
+            },
+            {
+              "id": "d4399f23-b452-4d6c-a940-a6b85d3234a4",
+              "name": "타겟독자",
+              "value": "20~30대 여성 직장인",
+              "type": "string"
+            },
+            {
+              "id": "5f9b5633-5ce1-43de-8097-a7f3bcae1cb8",
+              "name": "카테고리",
+              "value": "스타일링",
+              "type": "string"
+            },
+            {
+              "id": "18b26ac7-24e6-4739-aea5-456c028d9464",
+              "name": "톤",
+              "value": "친근하고 트렌디한, 언니가 알려주는 느낌",
+              "type": "string"
+            },
+            {
+              "id": "d300db43-51d8-4a32-8187-955820dbf33e",
+              "name": "목표글자수",
+              "value": "2000",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "91deda1f-2301-4dbf-a1ed-db8a36d56ffb",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "당신은 한국 최고의 패션 블로그 에디터입니다.\nSEO와 트렌드에 강하며, 패션 독자의 검색 의도를 정확히 파악합니다.\n반드시 JSON 형식으로만 응답하세요. 다른 텍스트는 포함하지 마세요."
+            },
+            {
+              "content": "=아래 패션 블로그 포스트의 SEO 메타 정보와 구조를 생성해주세요.\n\n주제: {{ $json.주제 }}\n핵심 키워드: {{ $json.키워드 }}\n타겟 독자: {{ $json.타겟독자 }}\n카테고리: {{ $json.카테고리 }}\n\nJSON으로만 응답:\n{\n  \"meta_title\": \"55자 이내 SEO 제목\",\n  \"meta_description\": \"160자 이내 검색 설명\",\n  \"h1\": \"독자가 클릭하고 싶은 메인 제목\",\n  \"hook\": \"첫 2~3문장 — 독자 공감 유도\",\n  \"h2_sections\": [\n    {\"제목\": \"섹션1\", \"핵심\": \"이 섹션의 핵심 메시지\"},\n    {\"제목\": \"섹션2\", \"핵심\": \"...\"},\n    {\"제목\": \"섹션3\", \"핵심\": \"...\"},\n    {\"제목\": \"섹션4\", \"핵심\": \"...\"},\n    {\"제목\": \"섹션5\", \"핵심\": \"...\"}\n  ],\n  \"related_keywords\": [\"연관1\", \"연관2\", \"연관3\"],\n  \"featured_items\": [\"추천 아이템1\", \"아이템2\", \"아이템3\"],\n  \"price_tiers\": {\n    \"하이엔드\": \"브랜드 예시\",\n    \"미드\": \"브랜드 예시\",\n    \"SPA\": \"브랜드 예시\"\n  }\n}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "fdf9c070-d00c-4618-b667-fd89efcf0ce7",
+      "name": "Message a model",
+      "credentials": {
+        "openAiApi": {
+          "id": "OoNnUcG6ZT8TM06G",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "=당신은 한국의 인기 패션 블로거입니다.\n독자와 친근하게 소통하며, 실용적인 스타일링 팁을 제공합니다.\n\n작성 규칙:\n1. 한국어, Markdown 형식 (# 메인제목, ## 섹션)\n2. 톤: {{ $('Edit Fields').first().json.톤 }}\n3. 독자에게 말을 거는 친근한 어투 (\"~해보세요\", \"~추천드려요\")\n4. 각 섹션마다 구체적인 스타일링 팁 1개 이상\n5. 아이템 추천 시 가격대 3단계 구분 (하이엔드/미드/SPA)\n6. 체형·상황별 조언 반드시 포함\n7. 이모지는 섹션 제목과 핵심 포인트에만 사용 (1섹션당 2~3개)\n8. 총 {{ $('Edit Fields').first().json.목표글자수 }}자 이상\n9. 마지막에 \"오늘의 핵심 정리\" 체크리스트 형태\n10. 독자 참여 유도 CTA (\"댓글로 알려주세요!\")\n\n피해야 할 것:\n- 체형 부정적 표현 (모든 체형 긍정적으로)\n- \"제가 생각할 때\" 같은 불필요한 겸양\n- 추측성 정보"
+            },
+            {
+              "content": "=아래 SEO 구조에 맞춰 패션 블로그 본문을 작성해주세요.\n\nSEO 구조:\n{{ $json.output[0].content[0].text }}\n\n핵심 키워드: {{ $('Edit Fields').first().json.키워드 }}\n\n구성 순서:\n1. 후크 (2~3문장) — 독자 고민 공감\n2. 간단한 도입 (트렌드 배경)\n3. H2 섹션들 (위 JSON의 h2_sections 순서대로)\n4. \"오늘의 핵심 정리\" (✅ 체크리스트 5~7항목)\n5. 독자 참여 CTA\n\nMarkdown 형식으로 출력하세요."
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.1,
+      "position": [
+        768,
+        0
+      ],
+      "id": "4f4e21e7-d217-4c14-867c-3690297f10cd",
+      "name": "Message a model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "OoNnUcG6ZT8TM06G",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $input.first().json.output[0].content[0].text;\nconst keyword = $('Edit Fields').first().json.키워드;\nconst category = $('Edit Fields').first().json.카테고리;\n\n// ═══ 기본 SEO 체크 ═══\nconst charCount = content.length;\nconst h1Count = (content.match(/^#\\s/gm) || []).length;\nconst h2Count = (content.match(/^##\\s/gm) || []).length;\n\nconst keywordMatches = (content.match(new RegExp(keyword, 'gi')) || []).length;\nconst density = ((keywordMatches * keyword.length) / charCount * 100).toFixed(2);\n\n// ═══ 패션 블로그 특화 체크 ═══\n\n// 1. 가격대 언급\nconst priceTerms = ['하이엔드', '미드', 'SPA', '합리적', '명품', '만원', '가격', '프리미엄'];\nconst hasPriceInfo = priceTerms.some(t => content.includes(t));\nconst priceCount = priceTerms.reduce((s, t) => s + (content.match(new RegExp(t, 'g')) || []).length, 0);\n\n// 2. 스타일링 팁\nconst stylingTerms = ['스타일링', '코디', '매칭', '포인트', '팁', '추천', '연출', '활용'];\nconst stylingCount = stylingTerms.reduce((s, t) => s + (content.match(new RegExp(t, 'g')) || []).length, 0);\n\n// 3. 체형/상황별 팁\nconst contextTerms = ['체형', '키', '상황', '오피스', '데일리', '데이트', '캐주얼', '통통', '슬림', '볼륨'];\nconst hasContextualTips = contextTerms.some(t => content.includes(t));\n\n// 4. 이모지 수\nconst emojiCount = (content.match(/[\\u{1F300}-\\u{1F9FF}]|[\\u{2600}-\\u{26FF}]/gu) || []).length;\n\n// 5. CTA\nconst ctaTerms = ['댓글', '저장', '공유', '팔로우', '알려주세요', '어떠세요', '좋아요'];\nconst hasCTA = ctaTerms.some(t => content.includes(t));\n\n// 6. 체크리스트 존재\nconst hasChecklist = content.includes('✅') || content.includes('체크리스트') || content.includes('핵심 정리');\n\n// ═══ 점수 계산 ═══\nlet score = 100;\nconst issues = [];\nconst wins = [];\n\n// 기본 체크\nif (charCount < 1500) { score -= 20; issues.push(`글자수 부족 (${charCount}자)`); }\nelse { wins.push(`✅ 충분한 분량 (${charCount}자)`); }\n\nif (h2Count < 4) { score -= 15; issues.push(`섹션 부족 (H2 ${h2Count}개)`); }\nelse { wins.push(`✅ 체계적 구조 (${h2Count}개 섹션)`); }\n\nif (density < 0.5) { score -= 10; issues.push(`키워드 밀도 낮음 (${density}%)`); }\nif (density > 3) { score -= 10; issues.push(`키워드 남용 (${density}%)`); }\n\n// 패션 특화 체크\nif (!hasPriceInfo) { score -= 10; issues.push(`가격대 정보 없음`); }\nelse { wins.push(`✅ 가격대 정보 포함 (${priceCount}회)`); }\n\nif (stylingCount < 5) { score -= 10; issues.push(`스타일링 팁 부족 (${stylingCount}회)`); }\nelse { wins.push(`✅ 풍부한 스타일링 팁 (${stylingCount}회)`); }\n\nif (!hasContextualTips) { score -= 5; issues.push(`체형/상황별 팁 없음`); }\nelse { wins.push(`✅ 맞춤형 팁 포함`); }\n\nif (emojiCount === 0) { score -= 5; issues.push(`이모지 없음 (패션 블로그 권장)`); }\nelse if (emojiCount > 20) { score -= 5; issues.push(`이모지 남용 (${emojiCount}개)`); }\nelse { wins.push(`✅ 적절한 이모지 (${emojiCount}개)`); }\n\nif (!hasCTA) { score -= 5; issues.push(`독자 참여 CTA 없음`); }\nelse { wins.push(`✅ CTA 포함`); }\n\nif (!hasChecklist) { score -= 5; issues.push(`핵심 정리 체크리스트 없음`); }\nelse { wins.push(`✅ 핵심 정리 포함`); }\n\n// ═══ 등급 판정 ═══\nlet grade;\nif (score >= 90) grade = 'S (발행 추천)';\nelse if (score >= 80) grade = 'A (소폭 수정 후 발행)';\nelse if (score >= 70) grade = 'B (수정 필요)';\nelse grade = 'C (재작성 필요)';\n\n// ═══ H1 제목 추출 ═══\nconst titleMatch = content.match(/^#\\s+(.+)$/m);\nconst title = titleMatch ? titleMatch[1] : '제목없음';\n\n// ═══ Markdown → HTML 변환 ═══\nlet html = content\n  .replace(/^#\\s+(.+)$/gm, '<h1>$1</h1>')\n  .replace(/^##\\s+(.+)$/gm, '<h2>$1</h2>')\n  .replace(/^###\\s+(.+)$/gm, '<h3>$1</h3>')\n  .replace(/\\*\\*(.+?)\\*\\*/g, '<strong>$1</strong>')\n  .replace(/\\*(.+?)\\*/g, '<em>$1</em>')\n  .replace(/\\[(.+?)\\]\\((.+?)\\)/g, '<a href=\"$2\">$1</a>')\n  .replace(/^\\-\\s+(.+)$/gm, '<li>$1</li>')\n  .split('\\n\\n')\n  .map(p => {\n    if (p.trim().startsWith('<')) return p;\n    if (p.trim() === '') return '';\n    return `<p>${p.trim()}</p>`;\n  })\n  .join('\\n');\n\nhtml = html.replace(/(<li>.*?<\\/li>\\n?)+/gs, m => `<ul>\\n${m}</ul>\\n`);\n\nreturn [{\n  json: {\n    제목: title,\n    카테고리: category,\n    본문_MD: content,\n    본문_HTML: html,\n    글자수: charCount,\n    H2개수: h2Count,\n    키워드밀도: `${density}%`,\n    가격정보: hasPriceInfo ? '✅' : '❌',\n    스타일링팁수: stylingCount,\n    체형상황별팁: hasContextualTips ? '✅' : '❌',\n    이모지수: emojiCount,\n    CTA여부: hasCTA ? '✅' : '❌',\n    체크리스트: hasChecklist ? '✅' : '❌',\n    품질점수: score,\n    등급: grade,\n    통과여부: score >= 70 ? '✅ 통과' : '❌ 재작성 필요',\n    강점: wins,\n    이슈: issues,\n    작성일시: new Date().toISOString().slice(0, 19).replace('T', ' ')\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "4441db93-ab38-4ffa-a500-0e8f94378164",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash-image",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash-image (Nano Banana)"
+        },
+        "prompt": "={{ $json.imagePrompt }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        1536,
+        0
+      ],
+      "id": "5e27bc8c-ac0c-492e-b35e-571bf67ae627",
+      "name": "Generate an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "259HGiJ1M7s8XNc4",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "title": "={{ $json['제목'] }}",
+        "additionalFields": {
+          "content": "={{ $json['본문_HTML_이미지포함'] }}",
+          "slug": "=fashion-{{ $now.toFormat('yyyyMMdd-HHmm') }}",
+          "status": "draft",
+          "categories": "={{ $json['카테고리ID'] }}"
+        }
+      },
+      "type": "n8n-nodes-base.wordpress",
+      "typeVersion": 1,
+      "position": [
+        2144,
+        0
+      ],
+      "id": "33e56c71-3ccc-4c8c-9b30-6cc0ab5ab225",
+      "name": "Create a post",
+      "credentials": {
+        "wordpressApi": {
+          "id": "1NyL1WCGvW2JjjVZ",
+          "name": "Wordpress account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const code = $('Code').first().json;   // 품질 체크 결과\nconst wp = $json;                       // WordPress 생성 결과\n\nreturn [{\n  json: {\n    상태: '✅ 패션 블로그 초안 저장 완료',\n    글_ID: wp.id,\n    제목: code.제목,\n    카테고리: code.카테고리,\n    카테고리ID: code.카테고리ID,\n    글자수: code.글자수,\n    품질점수: code.품질점수,\n    품질등급: code.등급,\n    강점: code.강점,\n    이슈: code.이슈,\n    검토_URL: `http://localhost:8080/wp-admin/post.php?post=${wp.id}&action=edit`,\n    미리보기_URL: `http://localhost:8080/?p=${wp.id}&preview=true`,\n    다음단계: [\n      '1. 검토 URL 클릭하여 내용 확인',\n      '2. 본인의 실착 경험·인사이트 1~2단락 추가',\n      '3. AI 이미지 적절성 확인',\n      '4. 발행 버튼 클릭'\n    ]\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2352,
+        0
+      ],
+      "id": "139a34b2-6423-42b2-822e-60368c050265",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $json;\nconst category = item.카테고리;\nconst title = item.제목;\n\n// ── 현재 시즌 판별 ──\nconst month = new Date().getMonth() + 1;\nlet seasonEn, mood;\nif (month >= 3 && month <= 5) { seasonEn = 'spring'; mood = 'fresh, pastel, airy'; }\nelse if (month >= 6 && month <= 8) { seasonEn = 'summer'; mood = 'bright, breezy, vibrant'; }\nelse if (month >= 9 && month <= 11) { seasonEn = 'autumn'; mood = 'warm, earthy, cozy'; }\nelse { seasonEn = 'winter'; mood = 'rich, elegant, layered'; }\n\n// ── 카테고리별 프롬프트 ──\nconst prompts = {\n  '쇼핑가이드': `Flat lay photography of ${seasonEn} fashion items arranged on natural linen, editorial magazine style, ${mood}, overhead shot`,\n  '스타일링': `Korean ${seasonEn} fashion editorial, young woman in stylish outfit, street photography style, natural pose, ${mood} atmosphere`,\n  '트렌드': `Fashion mood board collage, ${seasonEn} color palette swatches, fabric textures, magazine tear sheet aesthetic, ${mood}`,\n  '리뷰': `Luxury product photography on white marble surface, ${seasonEn} fashion accessory, studio lighting, ${mood}`,\n  '룩북': `Full-body fashion editorial portrait, ${seasonEn} Korean style, soft natural window light, minimalist background, ${mood}`\n};\n\nconst basePrompt = prompts[category] || prompts['스타일링'];\nconst fullPrompt = `${basePrompt}, topic: ${title}, 16:9 aspect ratio, NO text, NO logos, NO watermarks, magazine quality, aspirational and modern, high resolution`;\n\nconst categoryMap = { '트렌드': 3, '스타일링': 4, '리뷰': 5, '쇼핑가이드': 6, '룩북': 7 };\n\nreturn [{\n  json: {\n    ...item,\n    imagePrompt: fullPrompt,\n    시즌_EN: seasonEn,\n    카테고리ID: categoryMap[category] || 1\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        0
+      ],
+      "id": "1b8865e0-73bc-4786-888d-1de0ceb7f3e9",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://wordpress/wp-json/wp/v2/media",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "image/png"
+            },
+            {
+              "name": "Content-Disposition",
+              "value": "=attachment; filename=\"fashion-{{ $now.toFormat('yyyyMMddHHmm') }}.png\""
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1744,
+        0
+      ],
+      "id": "aafb3bc8-1c8b-48ad-b940-d48db985bee9",
+      "name": "HTTP_이미지업로드",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "htju1AmLcHkQAu2S",
+          "name": "Unnamed credential"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ─ 이전 노드들의 데이터 가져오기 ─\nconst post = $('Code').first().json;        // 품질 체크 결과 (제목, 본문_HTML, 카테고리ID 등)\nconst media = $json;                         // HTTP Request의 WordPress 응답 (id, source_url)\n\n// ─ 안전 체크 ─\nif (!media.id || !media.source_url) {\n  return [{\n    json: {\n      에러: '이미지 업로드 실패',\n      미디어응답: media\n    }\n  }];\n}\n\n// ─ 본문 HTML 맨 앞에 이미지 삽입 ─\n// <figure>로 감싸면 WordPress 기본 스타일이 적용됩니다\nconst imageBlock = `\n<figure class=\"wp-block-image aligncenter size-large\">\n  <img src=\"${media.source_url}\" \n       alt=\"${post.제목}\"\n       title=\"${post.제목}\"\n       class=\"fashion-hero-image\"\n       style=\"width:100%; max-width:900px; height:auto; margin:0 auto; display:block;\" />\n  <figcaption style=\"text-align:center; color:#888; font-size:0.9em; margin-top:8px;\">\n    AI 생성 이미지 · ${post.카테고리}\n  </figcaption>\n</figure>\n<br/>\n`;\n\n// H1 제목 뒤에 이미지 삽입 (H1이 없으면 맨 앞)\nlet contentWithImage;\nif (post.본문_HTML.includes('</h1>')) {\n  // H1 닫는 태그 바로 뒤에 이미지 삽입\n  contentWithImage = post.본문_HTML.replace('</h1>', '</h1>\\n' + imageBlock);\n} else {\n  // H1이 없으면 맨 앞에 삽입\n  contentWithImage = imageBlock + post.본문_HTML;\n}\n\n// ─ 다음 노드(WordPress)로 전달 ─\nreturn [{\n  json: {\n    // 기존 필드들 그대로 전달\n    ...post,\n    // 이미지 반영된 본문으로 덮어쓰기\n    본문_HTML_이미지포함: contentWithImage,\n    // WordPress Featured Media에 쓸 미디어 ID\n    미디어ID: media.id,\n    미디어URL: media.source_url,\n    미디어파일명: media.slug,\n    // 확인용 로그\n    이미지삽입위치: post.본문_HTML.includes('</h1>') ? 'H1 뒤' : '본문 최상단',\n    업로드시각: new Date().toISOString().slice(0, 19).replace('T', ' ')\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1952,
+        0
+      ],
+      "id": "8faddcea-b315-484f-8d73-7a18cbe37e83",
+      "name": "Code_미디어병합"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate an image": {
+      "main": [
+        [
+          {
+            "node": "HTTP_이미지업로드",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a post": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Generate an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP_이미지업로드": {
+      "main": [
+        [
+          {
+            "node": "Code_미디어병합",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_미디어병합": {
+      "main": [
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "a7d2c1d0-eafd-4ef9-b140-284dd8f03c32",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d44289cc3580f3d6dcb7645751e7910d50a16a2ed63d93ecd67ae638a09accda"
+  },
+  "id": "rKbtvv09V9BxcDFy",
+  "tags": []
+}
