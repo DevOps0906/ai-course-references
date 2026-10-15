@@ -86,6 +86,9 @@ def main():
         if a.only and src["name"] != a.only:
             continue
         print(f"\n■ {src['name']} → {src['target']}")
+        if not src.get("upstream"):
+            print("  수동 업로드 자료 — 원본 저장소가 없어 동기화하지 않습니다 (새 zip을 받으면 clean.py로 정리)")
+            continue
         try:
             up, head = fetch(src)
         except subprocess.CalledProcessError as e:

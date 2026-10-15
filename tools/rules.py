@@ -99,6 +99,11 @@ TEXT_RULES = [
     (r"(drive\.google\.com/drive/folders/)[\w-]{20,}", r"\g<1><YOUR_DRIVE_FOLDER_ID>"),
     (r'("documentId"\s*:\s*\{[^{}]*?"value"\s*:\s*")[\w-]{20,}', r"\g<1><YOUR_SHEET_ID>"),
     (r'("folderId"\s*:\s*\{[^{}]*?"value"\s*:\s*")[\w-]{20,}', r"\g<1><YOUR_DRIVE_FOLDER_ID>"),
+    # 노트북 실행 결과 등에 찍힌 실제 API 키
+    (r"sk-(?:proj-|ant-api\d\d-)?(?![\w-]*[Xx]{8})[A-Za-z0-9_-]{32,}", "<YOUR_API_KEY>"),
+    (r"\bhf_[A-Za-z0-9]{30,}", "<YOUR_HF_TOKEN>"),
+    (r"\bAIza(?![\w-]*[Xx]{8})[0-9A-Za-z_-]{35}", "<YOUR_GOOGLE_API_KEY>"),
+    (r"\b(?:lsv2_(?:pt|sk)_|tvly-|ghp_|github_pat_)[A-Za-z0-9_]{20,}", "<YOUR_TOKEN>"),
     # 안전망: 위 규칙에서 빠진 표기
     (r"(?i)imguru", BRAND),
 ]
@@ -108,6 +113,8 @@ TEXT_RULES = [(re.compile(p), r) for p, r in TEXT_RULES]
 FORBIDDEN = re.compile(
     r"(?i:imguru)|아이구루|아이 ?구로|김정인|\bjikim\b|(?i:jungin\s?kim)|ngrok config add-authtoken\s+(?!<)\S+"
     r"|docs\.google\.com/spreadsheets/d/(?!<)[\w-]{20,}"
+    r"|sk-(?:proj-|ant-api\d\d-)?(?![\w-]*[Xx]{8})[A-Za-z0-9_-]{32,}|\bhf_[A-Za-z0-9]{30,}|\bAIza(?![\w-]*[Xx]{8})[0-9A-Za-z_-]{35}"
+    r"|\b(?:lsv2_(?:pt|sk)_|tvly-|ghp_|github_pat_)[A-Za-z0-9_]{20,}"
 )
 
 
