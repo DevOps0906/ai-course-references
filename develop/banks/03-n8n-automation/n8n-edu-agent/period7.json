@@ -1,0 +1,1094 @@
+{
+  "id": "n8n-edu-p7",
+  "code": "NE7",
+  "title": "n8n 교육 자동화 7교시 · 멀티미디어 AI 활용",
+  "subtitle": "이미지 OCR·생성 · PDF·녹음 분석 · 멀티모달 파이프라인",
+  "course": "03-n8n-automation / n8n-edu-agent",
+  "source": "03-n8n-automation/n8n-edu-agent/실습가이드_7교시_멀티미디어AI활용.md",
+  "salt": "n8n-edu-p7",
+  "version": 1,
+  "updated": "2026-10-15",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "이미지 OCR 수강 신청 접수",
+      "ref": "실습 15",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "실습 15에서 신청서 이미지에서 정보를 추출하는 노드와 Operation은?",
+          "o": [
+            "OpenAI / Send",
+            "Gemini / Analyze Image",
+            "Anthropic / Analyze Document",
+            "Gemini / Generate an Image"
+          ],
+          "a": 1,
+          "h": "이미지를 '분석'하는 Gemini 기능입니다.",
+          "w": "Google Gemini 노드의 Resource: Image, Operation: Analyze Image로 이미지 속 텍스트를 추출합니다.",
+          "an": "실습 15 Step 3"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "이미지에서 정보를 찾을 수 없을 때 프롬프트가 지시한 표기는?",
+          "o": [
+            "빈칸",
+            "없음",
+            "미확인",
+            "N/A"
+          ],
+          "a": 2,
+          "h": "Code 노드의 기본값과 같은 단어입니다.",
+          "w": "찾을 수 없는 항목은 '미확인'으로 표시하게 해 빈 값과 구분합니다.",
+          "an": "실습 15 Step 3 프롬프트"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Gemini가 돌려준 JSON 텍스트를 파싱하는 노드는?",
+          "o": [
+            "Code",
+            "Edit Fields",
+            "Merge",
+            "IF"
+          ],
+          "a": 0,
+          "h": "JavaScript로 JSON.parse를 실행하는 노드입니다.",
+          "w": "Code 노드에서 코드 블록 표시를 지우고 <code>JSON.parse</code>로 파싱한 뒤 필드별로 정리합니다.",
+          "an": "실습 15 Step 4"
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "JSON 파싱에 실패하면 Code 노드가 '이름' 필드에 넣는 값은?",
+          "o": [
+            "미확인",
+            "오류",
+            "빈 문자열",
+            "파싱실패"
+          ],
+          "a": 3,
+          "h": "catch 블록의 첫 필드를 떠올려 보세요.",
+          "w": "실패 시 이름에 '파싱실패', 비고에 원본 텍스트, 접수방법에 '이미지OCR(파싱실패)'를 넣어 사람이 확인할 수 있게 합니다.",
+          "an": "실습 15 Step 4 코드 · catch"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "실습에서 분석할 이미지 URL을 넣어 두는 노드는?",
+          "o": [
+            "Code",
+            "Edit Fields (Set)",
+            "Google Sheets",
+            "Gmail"
+          ],
+          "a": 1,
+          "h": "Manual Trigger 바로 뒤에 붙인 입력용 노드입니다.",
+          "w": "Edit Fields(Set)에 imageUrl 필드를 만들고, Gemini에서 <code>{{ $json.imageUrl }}</code>로 참조합니다.",
+          "an": "실습 15 Step 2–3"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Code 노드는 AI 응답이 코드 블록(```)으로 감싸져 있으면 그 표시를 지운 뒤 파싱한다.",
+          "a": true,
+          "h": "코드의 '코드 블록으로 감싸져 있을 경우 제거' 주석을 떠올려 보세요.",
+          "w": "맞습니다. AI가 JSON을 코드 블록으로 감싸는 경우가 많아 먼저 제거해야 파싱 오류가 줄어듭니다.",
+          "an": "실습 15 Step 4 코드"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "실제 운영에서도 공개된 이미지 URL만 사용할 수 있다.",
+          "a": false,
+          "h": "Step 1 안내문의 둘째 줄을 떠올려 보세요.",
+          "w": "틀렸습니다. 실제 운영에서는 Webhook으로 이미지를 받거나 Google Drive에서 가져올 수 있습니다.",
+          "an": "실습 15 Step 1"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "Code 노드 출력 필드와 값을 연결하세요.",
+          "pairs": [
+            [
+              "접수방법(정상)",
+              "이미지OCR"
+            ],
+            [
+              "이름(파싱 실패)",
+              "파싱실패"
+            ],
+            [
+              "비고(파싱 실패)",
+              "AI 원본 텍스트"
+            ],
+            [
+              "접수일시",
+              "현재 시각"
+            ]
+          ],
+          "h": "성공 / 실패 각각의 표시",
+          "w": "정상이면 접수방법 '이미지OCR', 실패하면 이름 '파싱실패'와 비고에 원본 텍스트를 남기고, 접수일시는 현재 시각입니다.",
+          "an": "실습 15 Step 4 코드"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "실습 15 워크플로우 순서를 맞추세요.",
+          "steps": [
+            "Manual Trigger",
+            "Google Gemini (Analyze Image)",
+            "Code (JSON 파싱)",
+            "Google Sheets (저장)",
+            "Gmail (확인 메일)"
+          ],
+          "h": "시작 → 추출 → 파싱 → 저장 → 안내",
+          "w": "Manual Trigger → Gemini → Code → Google Sheets → Gmail 순서입니다.",
+          "an": "실습 15 완성 워크플로우 구조"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 1,
+          "game": true,
+          "p": "실습 15 프롬프트에서 추출하도록 한 항목을 <b>모두</b> 고르세요.",
+          "o": [
+            "이름",
+            "연락처",
+            "이메일",
+            "희망과정",
+            "주민등록번호"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "JSON 틀에는 비고까지 5개 키가 있습니다.",
+          "w": "이름·연락처·이메일·희망과정·비고를 추출합니다. 주민등록번호는 요청하지 않습니다.",
+          "an": "실습 15 Step 3 프롬프트"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "AI 이미지 생성 홍보물",
+      "ref": "실습 16",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "실습 16 Gemini 노드의 Resource / Operation은?",
+          "o": [
+            "Image / Generate an Image",
+            "Image / Analyze Image",
+            "Message / Message a Model",
+            "Audio / Transcribe"
+          ],
+          "a": 0,
+          "h": "이미지를 '만드는' 기능입니다.",
+          "w": "이미지 생성은 Image / Generate an Image입니다. Analyze Image는 기존 이미지 분석입니다.",
+          "an": "실습 16 Step 2"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Gemini 이미지 생성을 쓰기 위한 사전 조건은?",
+          "o": [
+            "유료 n8n 플랜",
+            "OpenAI 키",
+            "Slack 연동",
+            "Google Cloud 결제 계정"
+          ],
+          "a": 3,
+          "h": "⚠️ 사전 조건 안내를 떠올려 보세요.",
+          "w": "Google Cloud 결제 계정이 연결되어 있어야 하며, 무료 티어에서는 제한될 수 있습니다.",
+          "an": "실습 16 ⚠️ 사전 조건"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "생성된 이미지는 노드 Output에 어떤 형태로 들어오나요?",
+          "o": [
+            "텍스트 URL",
+            "바이너리 데이터",
+            "JSON 배열",
+            "CSV"
+          ],
+          "a": 1,
+          "h": "파일 자체를 담는 데이터 형식입니다.",
+          "w": "이미지는 바이너리 데이터로 Output에 들어오며, Output 탭에서 미리보기할 수 있습니다.",
+          "an": "실습 16 Step 3"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "이미지 안의 글자 오류를 막는 프롬프트 팁은?",
+          "o": [
+            "해상도를 높인다",
+            "영어로만 쓴다",
+            "'텍스트 포함하지 않기' 명시",
+            "이미지 수를 늘린다"
+          ],
+          "a": 2,
+          "h": "글자는 나중에 디자인 도구에서 넣습니다.",
+          "w": "'텍스트 포함하지 않기'를 명시하고, 글자는 디자인 도구에서 따로 넣는 것이 품질이 좋습니다.",
+          "an": "실습 16 · 💡 프롬프트 팁"
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "실습 16에서 고른 이미지 생성 모델은?",
+          "o": [
+            "imagen-3.0-generate-002",
+            "gemini-2.0-flash",
+            "gpt-4o-mini",
+            "claude-sonnet-4"
+          ],
+          "a": 0,
+          "h": "이미지(image)라는 단어가 들어간 모델 이름입니다.",
+          "w": "Model은 imagen-3.0-generate-002(또는 사용 가능한 모델)입니다.",
+          "an": "실습 16 Step 2"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "결제 계정이 없으면 이 실습은 강사 데모로 진행한다.",
+          "a": true,
+          "h": "⚠️ 사전 조건의 마지막 문장입니다.",
+          "w": "맞습니다. 결제 계정이 없는 경우 강사 데모로 진행합니다.",
+          "an": "실습 16 ⚠️ 사전 조건"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "홍보물 글자는 AI 이미지 안에 바로 넣는 것이 품질이 가장 좋다.",
+          "a": false,
+          "h": "💡 프롬프트 팁을 떠올려 보세요.",
+          "w": "틀렸습니다. 이미지 속 텍스트는 오류가 잦아, 이미지만 생성하고 글자는 디자인 도구에서 넣는 것이 좋습니다.",
+          "an": "실습 16 · 💡 프롬프트 팁"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "생성 이미지 활용 방법과 노드를 연결하세요.",
+          "pairs": [
+            [
+              "이메일에 첨부해 발송",
+              "Gmail"
+            ],
+            [
+              "드라이브에 저장",
+              "Google Drive (Upload)"
+            ],
+            [
+              "팀 채널에 공유",
+              "Slack"
+            ]
+          ],
+          "h": "메일 / 저장소 / 메신저",
+          "w": "Gmail은 바이너리 첨부, Google Drive는 업로드, Slack은 파일 업로드 기능으로 활용합니다.",
+          "an": "실습 16 Step 3 · 활용 옵션"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "실습 16 워크플로우 순서를 맞추세요.",
+          "steps": [
+            "Manual Trigger",
+            "Edit Fields (과정 정보)",
+            "Google Gemini (Generate Image)",
+            "Gmail (홍보 이메일)"
+          ],
+          "h": "시작 → 정보 입력 → 생성 → 발송",
+          "w": "Manual Trigger → Edit Fields → Gemini 이미지 생성 → Gmail 순서입니다.",
+          "an": "실습 16 완성 워크플로우 구조"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "실습 16 이미지 생성 프롬프트에 넣은 조건을 <b>모두</b> 고르세요.",
+          "o": [
+            "과정명",
+            "대상",
+            "밝고 현대적인 분위기",
+            "미니멀 일러스트 스타일",
+            "수강료"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "과정 정보 2개 + 분위기 + 스타일 + 텍스트 제외",
+          "w": "과정명·대상·분위기·스타일, 그리고 '텍스트 포함하지 않기'를 넣었습니다. 수강료는 넣지 않습니다.",
+          "an": "실습 16 Step 2 프롬프트"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "PDF 교육 자료 분석",
+      "ref": "실습 17",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "PDF를 Google Drive에서 가져올 때 쓰는 Operation은?",
+          "o": [
+            "Upload File",
+            "Search",
+            "Download File",
+            "Share"
+          ],
+          "a": 2,
+          "h": "드라이브에서 파일을 '내려받는' 동작입니다.",
+          "w": "Google Drive 노드의 Download File로 PDF를 바이너리로 받아 다음 노드로 넘깁니다.",
+          "an": "실습 17 Step 2 · 방법 A"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "HTTP Request로 PDF를 받을 때 Response Format은?",
+          "o": [
+            "JSON",
+            "File",
+            "Text",
+            "String"
+          ],
+          "a": 1,
+          "h": "응답을 '파일'로 받아야 AI가 문서로 읽습니다.",
+          "w": "Method GET, URL 입력, Response Format: File로 받으면 바이너리 파일이 됩니다.",
+          "an": "실습 17 Step 2 · 방법 B"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "Anthropic 노드로 PDF를 분석하는 Resource / Operation은?",
+          "o": [
+            "Message / Message a Model",
+            "Image / Analyze Image",
+            "Prompt / Generate",
+            "Document / Analyze Document"
+          ],
+          "a": 3,
+          "h": "문서(Document)를 분석(Analyze)합니다.",
+          "w": "Document / Analyze Document이며, Gemini 노드도 같은 이름의 기능을 지원합니다.",
+          "an": "실습 17 Step 3-A"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "이전 노드가 받은 PDF를 AI 노드로 넘길 때 Input Type은?",
+          "o": [
+            "Binary",
+            "URL",
+            "Text",
+            "JSON"
+          ],
+          "a": 0,
+          "h": "다운로드한 파일 데이터 형식입니다.",
+          "w": "Input Type: Binary로 두면 이전 노드의 PDF 바이너리가 자동으로 전달됩니다.",
+          "an": "실습 17 Step 3-A"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "모델 선택 가이드에서 PDF 문서 분석 1순위로 추천한 모델은?",
+          "o": [
+            "Gemini",
+            "OpenAI",
+            "Claude",
+            "Whisper"
+          ],
+          "a": 2,
+          "h": "긴 문서 처리가 강점인 모델입니다.",
+          "w": "PDF 문서 분석은 Claude가 1순위(긴 문서 처리 최강), Gemini가 2순위입니다.",
+          "an": "모델 선택 가이드 표"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "분석 프롬프트로 PDF 내용을 바탕으로 한 복습 퀴즈(4지선다)도 만들 수 있다.",
+          "a": true,
+          "h": "프롬프트의 7번 항목입니다.",
+          "w": "맞습니다. 요약·목표·키워드·난이도 등과 함께 복습 퀴즈 3문항을 자동 생성하게 했습니다.",
+          "an": "실습 17 Step 3-A 프롬프트 · Step 5"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Gemini로 PDF를 분석한 결과의 표현식은 <code>$json.content[0].text</code>이다.",
+          "a": false,
+          "h": "Gemini 응답 경로는 가장 짧습니다.",
+          "w": "틀렸습니다. Gemini는 <code>$json.text</code>, Anthropic이 <code>$json.content[0].text</code>입니다.",
+          "an": "실습 17 Step 4 표"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "실습 17 Edit Fields 필드와 값을 연결하세요.",
+          "pairs": [
+            [
+              "분석결과(Anthropic)",
+              "{{ $json.content[0].text }}"
+            ],
+            [
+              "분석결과(Gemini)",
+              "{{ $json.text }}"
+            ],
+            [
+              "분석일시",
+              "{{ $now.toFormat('yyyy-MM-dd HH:mm') }}"
+            ],
+            [
+              "사용모델",
+              "claude-sonnet-4 또는 gemini-2.0-flash"
+            ]
+          ],
+          "h": "응답 경로는 모델마다 다르고, 날짜는 toFormat",
+          "w": "AI 노드에 따라 분석결과 표현식이 달라지고, 분석일시는 <code>$now.toFormat()</code>, 사용모델은 고정값입니다.",
+          "an": "실습 17 Step 4 표"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "실습 17 워크플로우 순서를 맞추세요.",
+          "steps": [
+            "Manual Trigger",
+            "Google Drive (PDF 다운로드)",
+            "Anthropic 또는 Gemini (Analyze Document)",
+            "Edit Fields",
+            "Google Sheets (저장)"
+          ],
+          "h": "시작 → 파일 → 분석 → 정리 → 저장",
+          "w": "Manual Trigger → Drive → Analyze Document → Edit Fields → Sheets(자료분석_로그) 순서입니다.",
+          "an": "실습 17 완성 워크플로우 구조"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "실습 17 분석 프롬프트가 요청한 항목을 <b>모두</b> 고르세요.",
+          "o": [
+            "문서 요약",
+            "주요 학습 목표",
+            "핵심 키워드",
+            "난이도 평가",
+            "저자 연락처"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "요청은 1~7번이며 예상 학습 시간·사전 지식·퀴즈도 포함됩니다.",
+          "w": "요약·학습 목표·키워드·난이도·예상 시간·사전 지식·복습 퀴즈를 요청합니다. 저자 연락처는 없습니다.",
+          "an": "실습 17 Step 3-A 프롬프트"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "수업 녹음 텍스트 변환·요약",
+      "ref": "실습 18",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "수업 녹음을 텍스트로 바꾸는 Gemini Operation은?",
+          "o": [
+            "Analyze Image",
+            "Transcribe a Recording",
+            "Generate an Image",
+            "Analyze Document"
+          ],
+          "a": 1,
+          "h": "'녹음을 받아 적다'",
+          "w": "Resource: Audio, Operation: Transcribe a Recording이 음성→텍스트(STT)입니다.",
+          "an": "실습 18 Step 2"
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "변환된 녹취록을 학습 노트로 요약하는 AI는?",
+          "o": [
+            "Gemini",
+            "Claude",
+            "Imagen",
+            "OpenAI"
+          ],
+          "a": 3,
+          "h": "6교시 구성표 '실습 18'의 사용 AI는 'Gemini + ○○'",
+          "w": "Gemini로 받아쓰고 OpenAI(gpt-4o-mini)로 구조화된 학습 노트를 만듭니다.",
+          "an": "실습 18 Step 3"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "Edit Fields에서 녹취록을 가져오는 표현식은?",
+          "o": [
+            "$('Google Gemini').first().json.text",
+            "$json.message.content",
+            "$json.text.content",
+            "$input.first()"
+          ],
+          "a": 0,
+          "h": "바로 앞은 OpenAI이므로 Gemini 노드를 이름으로 부릅니다.",
+          "w": "녹취록은 <code>$('Google Gemini').first().json.text</code>, 학습노트는 바로 앞 OpenAI의 <code>$json.message.content</code>입니다.",
+          "an": "실습 18 Step 4 표"
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "테스트용 오디오가 없을 때 가이드의 제안은?",
+          "o": [
+            "아무 음악 파일",
+            "유튜브 영상 주소",
+            "스마트폰 30초 녹음",
+            "텍스트 파일"
+          ],
+          "a": 2,
+          "h": "직접 말하는 것을 녹음합니다.",
+          "w": "스마트폰으로 30초 정도 말하는 것을 녹음해 Google Drive에 올려 씁니다.",
+          "an": "실습 18 Step 1 · 💡"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "학습 노트 요청 항목이 <b>아닌</b> 것은?",
+          "o": [
+            "수업 요약",
+            "출석부",
+            "핵심 포인트",
+            "복습 질문"
+          ],
+          "a": 1,
+          "h": "User 프롬프트의 1~5번을 떠올려 보세요.",
+          "w": "요약·핵심 포인트·용어 설명·복습 질문·다음 수업 준비를 요청합니다. 출석부는 없습니다.",
+          "an": "실습 18 Step 3 프롬프트"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "실습 18은 Gemini(음성 인식)와 OpenAI(요약)를 조합한다.",
+          "a": true,
+          "h": "6교시 구성표의 실습 18 '사용 AI'",
+          "w": "맞습니다. 각 모델의 강점(무료 STT, 가성비 요약)을 나눠 씁니다.",
+          "an": "7교시 전체 구성 · 실습 18"
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "OpenAI Whisper는 오디오 파일을 최대 100MB까지 받는다.",
+          "a": false,
+          "h": "주의사항의 파일 크기 제한을 떠올려 보세요.",
+          "w": "틀렸습니다. OpenAI Whisper는 오디오 최대 25MB입니다.",
+          "an": "n8n 2.12.3 멀티미디어 주의사항 2"
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "실습 18 Edit Fields 필드와 값을 연결하세요.",
+          "pairs": [
+            [
+              "녹취록",
+              "$('Google Gemini').first().json.text"
+            ],
+            [
+              "학습노트",
+              "$json.message.content"
+            ],
+            [
+              "생성일시",
+              "$now.toFormat('yyyy-MM-dd HH:mm')"
+            ]
+          ],
+          "h": "원문은 Gemini, 요약은 OpenAI, 시각은 toFormat",
+          "w": "녹취록은 Gemini 노드 참조, 학습노트는 OpenAI 응답, 생성일시는 Luxon 날짜 형식입니다.",
+          "an": "실습 18 Step 4 표"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "실습 18의 '실무 활용 시나리오' 순서를 맞추세요.",
+          "steps": [
+            "수업 녹음 파일을 Drive에 업로드",
+            "Google Drive Trigger로 자동 시작",
+            "텍스트 변환 & 요약",
+            "수강생 전원에게 학습 노트 발송"
+          ],
+          "h": "업로드 → 감지 → 변환·요약 → 발송",
+          "w": "녹음 업로드 → Drive Trigger → 변환·요약 → 학습 노트 이메일 자동 발송입니다.",
+          "an": "실습 18 Step 5 · 💡 실무 활용"
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 1,
+          "game": true,
+          "p": "주의사항에서 지원한다고 한 오디오 포맷을 <b>모두</b> 고르세요.",
+          "o": [
+            "MP3",
+            "WAV",
+            "FLAC",
+            "M4A",
+            "PSD"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "PSD는 이미지 편집 파일 형식입니다.",
+          "w": "오디오는 MP3·WAV·FLAC·M4A·OGG를 지원합니다.",
+          "an": "n8n 2.12.3 멀티미디어 주의사항 3"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "멀티모달 종합 파이프라인",
+      "ref": "실습 19",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "실습 19에서 판서 사진의 텍스트를 추출하는 AI는?",
+          "o": [
+            "Gemini",
+            "OpenAI",
+            "Claude",
+            "Whisper"
+          ],
+          "a": 0,
+          "h": "이미지 OCR 추천 1순위 모델입니다.",
+          "w": "Google Gemini의 Analyze Image로 칠판·화이트보드 사진의 텍스트와 다이어그램을 추출합니다.",
+          "an": "실습 19 Step 2"
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "판서 내용과 강사 메모를 하나로 합치는 노드는?",
+          "o": [
+            "Merge",
+            "Gmail",
+            "Code",
+            "Respond to Webhook"
+          ],
+          "a": 2,
+          "h": "템플릿 문자열로 '결합텍스트'를 만드는 노드입니다.",
+          "w": "Code 노드가 [판서 내용]과 [강사 메모]를 합친 결합텍스트를 만듭니다.",
+          "an": "실습 19 Step 3"
+        },
+        {
+          "id": "t5-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "Code 노드에서 처음 입력한 강사 메모를 참조하는 코드는?",
+          "o": [
+            "$json.text",
+            "$input.all()",
+            "$now",
+            "$('Edit Fields').first().json"
+          ],
+          "a": 3,
+          "h": "입력값은 맨 앞 Edit Fields 노드에 있습니다.",
+          "w": "<code>$('Edit Fields').first().json</code>으로 과정명·차시·강사메모를 가져오고, <code>$json.text</code>는 Gemini 추출 결과입니다.",
+          "an": "실습 19 Step 3 코드"
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "결합된 텍스트로 학습 자료를 생성하는 AI는?",
+          "o": [
+            "Gemini",
+            "OpenAI",
+            "Imagen",
+            "Whisper"
+          ],
+          "a": 1,
+          "h": "System을 '교육 콘텐츠 전문 에디터'로 지정한 노드입니다.",
+          "w": "OpenAI(gpt-4o-mini)가 판서+메모를 바탕으로 학습 자료를 만듭니다.",
+          "an": "실습 19 Step 4"
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "강사 메모 예시에서 Webhook을 무엇이라고 설명했나요?",
+          "o": [
+            "외부 이벤트를 수신하는 URL",
+            "데이터를 저장하는 시트",
+            "이메일 발송 도구",
+            "이미지 생성 모델"
+          ],
+          "a": 0,
+          "h": "메모의 핵심 포인트 1)",
+          "w": "강사 메모의 핵심 포인트 1)이 'Webhook은 외부 이벤트를 수신하는 URL'입니다.",
+          "an": "실습 19 Step 1 · 강사메모"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "실습 19는 이미지 분석 + 텍스트 처리 + AI 생성을 하나의 워크플로우에 조합한다.",
+          "a": true,
+          "h": "산출물 문장을 떠올려 보세요.",
+          "w": "맞습니다. 여러 AI 모델을 조합한 멀티모달 종합 파이프라인입니다.",
+          "an": "실습 19 Step 6 · 산출물"
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "실습 19의 결과는 시트에만 저장하고 수강생에게는 보내지 않는다.",
+          "a": false,
+          "h": "시나리오의 3번째 단계를 떠올려 보세요.",
+          "w": "틀렸습니다. Google Sheets에 저장하고 Gmail로 수강생에게 발송합니다.",
+          "an": "실습 19 시나리오 · Step 5"
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "실습 19 노드와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "Google Gemini",
+              "판서 텍스트 추출"
+            ],
+            [
+              "Code",
+              "판서 + 강사 메모 결합"
+            ],
+            [
+              "OpenAI",
+              "학습 자료 생성"
+            ],
+            [
+              "Gmail",
+              "수강생 발송"
+            ]
+          ],
+          "h": "추출 → 결합 → 생성 → 발송",
+          "w": "Gemini가 읽고, Code가 합치고, OpenAI가 만들고, Gmail이 보냅니다.",
+          "an": "실습 19 완성 워크플로우 구조"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "실습 19 시나리오 순서를 맞추세요.",
+          "steps": [
+            "강사가 판서 사진 + 메모 입력",
+            "Gemini가 판서 텍스트 추출",
+            "OpenAI가 학습 자료 생성",
+            "Sheets 저장 & 이메일 발송"
+          ],
+          "h": "입력 → 추출 → 생성 → 배포",
+          "w": "판서 사진·메모 입력 → Gemini 추출 → OpenAI 생성 → 저장·발송 순서입니다.",
+          "an": "실습 19 시나리오"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "OpenAI에 요청한 학습 자료 구성을 <b>모두</b> 고르세요.",
+          "o": [
+            "오늘의 학습 목표",
+            "핵심 개념 정리",
+            "핵심 용어 사전",
+            "복습 체크리스트",
+            "출석 현황"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "요청 항목은 1~6번이며 실습 요약·예습 포인트도 포함됩니다.",
+          "w": "학습 목표·개념 정리·실습 요약·용어 사전·복습 체크리스트·예습 포인트를 요청합니다. 출석 현황은 없습니다.",
+          "an": "실습 19 Step 4 프롬프트"
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "멀티미디어 노드 참조와 모델 선택",
+      "ref": "멀티미디어 AI 노드 참조표 · 모델 선택 가이드 · 주의사항",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "이미지 OCR 작업의 추천 1순위 모델은?",
+          "o": [
+            "Claude",
+            "OpenAI",
+            "Gemini",
+            "Whisper"
+          ],
+          "a": 2,
+          "h": "무료 + 빠른 속도",
+          "w": "이미지 OCR은 Gemini(무료·빠름)가 1순위, Claude가 2순위입니다.",
+          "an": "모델 선택 가이드 표"
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "음성→텍스트 작업의 2순위로 추천된 것은?",
+          "o": [
+            "OpenAI (Whisper)",
+            "Claude",
+            "Imagen",
+            "Gemini Flash"
+          ],
+          "a": 0,
+          "h": "OpenAI의 음성 인식 모델 이름입니다.",
+          "w": "음성→텍스트는 Gemini가 1순위(다국어 무료), OpenAI Whisper가 2순위입니다.",
+          "an": "모델 선택 가이드 표"
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Claude(Anthropic)에 올릴 수 있는 단일 파일 최대 크기는?",
+          "o": [
+            "20MB",
+            "32MB",
+            "25MB",
+            "2GB"
+          ],
+          "a": 1,
+          "h": "20MB는 Gemini 인라인, 25MB는 Whisper입니다.",
+          "w": "Claude는 단일 파일 최대 32MB입니다. Gemini 인라인 20MB(File API 2GB), Whisper 25MB입니다.",
+          "an": "n8n 2.12.3 멀티미디어 주의사항 2"
+        },
+        {
+          "id": "t6-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "OpenAI 노드에서 DALL-E 이미지 생성은 어떤 Resource / Operation인가요?",
+          "o": [
+            "Audio / Transcribe",
+            "Message / Send",
+            "Audio / Translate",
+            "Image / Generate"
+          ],
+          "a": 3,
+          "h": "이미지(Image) + 생성(Generate)",
+          "w": "OpenAI 노드의 Image / Generate가 DALL-E 이미지 생성이며 출력은 바이너리입니다.",
+          "an": "OpenAI 노드 참조표"
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "텍스트 요약 1순위 추천 모델과 이유로 알맞은 것은?",
+          "o": [
+            "Claude – 긴 문서",
+            "Gemini – 무료",
+            "OpenAI – 가성비",
+            "Whisper – 음성"
+          ],
+          "a": 2,
+          "h": "GPT-4o-mini의 장점입니다.",
+          "w": "텍스트 요약은 OpenAI(GPT-4o-mini 가성비)가 1순위, Claude가 2순위입니다.",
+          "an": "모델 선택 가이드 표"
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "n8n 2.x에서 바이너리 데이터는 인메모리가 아니라 filesystem 또는 database에 저장된다.",
+          "a": true,
+          "h": "주의사항 5번입니다.",
+          "w": "맞습니다. n8n 2.x는 바이너리를 filesystem 또는 database에 저장합니다.",
+          "an": "n8n 2.12.3 멀티미디어 주의사항 5"
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "파일 다운로드 노드와 AI 분석 노드 사이에는 바이너리 변환 노드를 꼭 넣어야 한다.",
+          "a": false,
+          "h": "주의사항 1번을 떠올려 보세요.",
+          "w": "틀렸습니다. 다운로드 → AI 분석 노드로 연결하면 바이너리가 자동 전달되어 별도 변환이 필요 없습니다.",
+          "an": "n8n 2.12.3 멀티미디어 주의사항 1"
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 3,
+          "game": false,
+          "p": "서비스와 파일 크기 제한을 연결하세요.",
+          "pairs": [
+            [
+              "Gemini (인라인)",
+              "20MB"
+            ],
+            [
+              "Claude",
+              "32MB"
+            ],
+            [
+              "OpenAI Whisper (오디오)",
+              "25MB"
+            ],
+            [
+              "Gemini File API",
+              "2GB"
+            ]
+          ],
+          "h": "가장 큰 값은 File API입니다.",
+          "w": "Gemini 인라인 20MB·File API 2GB, Claude 32MB, Whisper 25MB입니다.",
+          "an": "n8n 2.12.3 멀티미디어 주의사항 2"
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "7교시 실습 순서를 맞추세요.",
+          "steps": [
+            "실습 15 이미지 OCR 접수",
+            "실습 16 AI 이미지 생성",
+            "실습 17 PDF 분석·요약",
+            "실습 18 녹음 텍스트 변환",
+            "실습 19 멀티모달 파이프라인"
+          ],
+          "h": "이미지 → 이미지 → 문서 → 오디오 → 종합",
+          "w": "이미지 분석·생성 → 문서 → 오디오 → 종합 파이프라인 순서로 난도가 올라갑니다.",
+          "an": "7교시 전체 구성 표"
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "Gemini 노드에서 출력 참조가 <code>$json.text</code>인 Operation을 <b>모두</b> 고르세요.",
+          "o": [
+            "Analyze Image",
+            "Analyze Document",
+            "Transcribe a Recording",
+            "Message a Model",
+            "Generate an Image"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "결과가 '글'이면 text, '그림'이면 바이너리",
+          "w": "분석·받아쓰기·대화는 모두 <code>$json.text</code>이고, Generate an Image는 바이너리 이미지를 출력합니다.",
+          "an": "Google Gemini 노드 참조표"
+        }
+      ]
+    }
+  ]
+}

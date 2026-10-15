@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "bank.schema.json",
+  "title": "Quiz Bank — 문제은행",
+  "description": "자료 1개 = 은행 1개. 탭(10문항) 여러 개로 구성. 의미 검사(정답 범위·탭당 10문항·금지어 등)는 develop/validate.py가 담당.",
+  "type": "object",
+  "required": ["id", "title", "source", "salt", "tabs"],
+  "properties": {
+    "id": {"type": "string", "pattern": "^[a-z0-9-]+$", "description": "localStorage 네임스페이스. 바꾸면 학습 기록이 초기화됨"},
+    "code": {"type": "string", "maxLength": 6, "description": "결과 코드 앞머리 (예: M1)"},
+    "title": {"type": "string"},
+    "subtitle": {"type": "string"},
+    "course": {"type": "string", "description": "화면에 보이는 출처 표기"},
+    "source": {"type": "string", "description": "원본 자료 경로 (레포 루트 기준) 또는 파일명"},
+    "salt": {"type": "string", "description": "결과 코드 해시 salt"},
+    "version": {"type": "integer"},
+    "updated": {"type": "string", "format": "date"},
+    "legacy": {"type": "boolean", "description": "기존 워크시트 구성을 그대로 옮긴 은행. 탭당 10문항 규칙을 경고로만 검사 (04-voice-ai)"},
+    "tabs": {
+      "type": "array", "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "qs"],
+        "properties": {
+          "id": {"type": "string"},
+          "title": {"type": "string"},
+          "ref": {"type": "string", "description": "탭이 다루는 자료 위치 (예: 1-1 §2–3)"},
+          "qs": {"type": "array", "items": {"$ref": "#/$defs/question"}}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "question": {
+      "type": "object",
+      "required": ["id", "ty", "p", "w", "an"],
+      "properties": {
+        "id": {"type": "string", "description": "은행 안에서 고유. 오답노트·순위의 키 — 출제 후 바꾸지 말 것"},
+        "ty": {"enum": ["mc", "multi", "ox", "match", "order", "num"]},
+        "lv": {"enum": [1, 2, 3], "description": "1 기억 · 2 이해 · 3 적용"},
+        "game": {"type": "boolean", "description": "게임 모드 출제 여부 (mc/ox/multi만)"},
+        "p": {"type": "string", "description": "문제. <b>, <code> 허용"},
+        "h": {"type": "string", "description": "힌트(Hint 토글). 정답을 직접 말하지 않고 방향만. num은 계산식"},
+        "w": {"type": "string", "description": "해설. <b>, <code> 허용"},
+        "an": {"type": "string", "description": "근거 자료 위치"},
+        "o": {"type": "array", "items": {"type": "string"}, "description": "mc·multi 보기"},
+        "a": {"description": "mc: 보기 인덱스(int) · multi: 인덱스 배열 · ox: boolean · num: 숫자"},
+        "pairs": {"type": "array", "items": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 2},
+                  "description": "match: [[왼쪽, 오른쪽], ...] 올바른 짝으로 작성 — 화면에서 섞임"},
+        "steps": {"type": "array", "items": {"type": "string"}, "description": "order: 올바른 순서로 작성 — 화면에서 섞임"},
+        "unit": {"type": "string", "description": "num: 단위"},
+        "tol": {"type": "number", "description": "num: 허용 오차 (기본 1e-6)"}
+      },
+      "allOf": [
+        {"if": {"properties": {"ty": {"const": "mc"}}}, "then": {"required": ["o", "a"], "properties": {"a": {"type": "integer"}}}},
+        {"if": {"properties": {"ty": {"const": "multi"}}}, "then": {"required": ["o", "a"], "properties": {"a": {"type": "array", "items": {"type": "integer"}}}}},
+        {"if": {"properties": {"ty": {"const": "ox"}}}, "then": {"required": ["a"], "properties": {"a": {"type": "boolean"}}}},
+        {"if": {"properties": {"ty": {"const": "match"}}}, "then": {"required": ["pairs"]}},
+        {"if": {"properties": {"ty": {"const": "order"}}}, "then": {"required": ["steps"]}},
+        {"if": {"properties": {"ty": {"const": "num"}}}, "then": {"required": ["a"], "properties": {"a": {"type": "number"}}}}
+      ]
+    }
+  }
+}

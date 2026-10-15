@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>문제은행 · 전체 목록</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* Quiz Bank 디자인 토큰 v2
+   타이포 기준: AI_Voice day07 워크시트 (본문 15px / 행간 1.55, 요소 13~14px)
+   다크 팔레트: day07 워크시트(#0b1220 남색 + 앰버·틸 포인트) / 라이트: 같은 구조의 중립 팔레트
+   build.py가 이 파일을 엔진 <style> 맨 앞에 그대로 넣는다. */
+:root{
+  /* 타이포 */
+  --font:"Pretendard Variable","Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"JetBrains Mono","D2Coding",Consolas,"SF Mono",monospace;
+  --fs-base:15px;--lh:1.55;
+  --fs-h1:24px;--fs-h2:17px;--fs-q:15px;--fs-opt:14px;--fs-btn:13px;--fs-btn-pri:14px;
+  --fs-sm:13px;--fs-xs:12px;--fs-2xs:11px;--fs-ox:22px;
+  /* 형태 */
+  --r-sm:6px;--r:8px;--r-md:10px;--r-lg:12px;--maxw:880px;
+
+  /* 라이트 */
+  --bg:#F5F6F8;--panel:#FFFFFF;--raised:#FFFFFF;--field:#FFFFFF;
+  --ink:#141A26;--muted:#5A6375;--faint:#8A93A4;--line:#E2E6EC;--line-2:#CDD3DC;--soft:#F0F2F5;
+  --title:#141A26;--link:#0E8C80;--accent:#B7791F;
+  --ok:#15803D;--bad:#D23B32;--combo:#7C3AED;--gold:#B7891F;
+  --btn-bg:#FFFFFF;--btn-line:#D5DAE2;--pri-bg:#141A26;--pri-line:#141A26;--pri-ink:#FFFFFF;
+  --ty-mc:#0E8C80;--ty-multi:#7C3AED;--ty-ox:#64748B;--ty-match:#C2417A;--ty-order:#B7791F;--ty-num:#2563EB;
+  --timer-hi:#16A34A;--timer-mid:#D97706;--timer-lo:#DC2626;
+  --lv1:#16A34A;--lv2:#EAB308;--lv3:#DC2626;  /* 난이도 1·2·3 */
+  --shadow:0 1px 2px rgb(16 24 40 / .04);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0B1220;--panel:#111A2E;--raised:#0E1628;--field:#0A0F1C;
+  --ink:#DBE4F0;--muted:#8A9BB8;--faint:#5E6F8E;--line:#1F2B45;--line-2:#2A3A5C;--soft:#16203A;
+  --title:#F5B942;--link:#2DD4BF;--accent:#F5B942;
+  --ok:#4ADE80;--bad:#F87171;--combo:#C084FC;--gold:#F5B942;
+  --btn-bg:#172239;--btn-line:#2A3A5C;--pri-bg:#123D33;--pri-line:#2DD4BF;--pri-ink:#2DD4BF;
+  --ty-mc:#2DD4BF;--ty-multi:#C084FC;--ty-ox:#8A9BB8;--ty-match:#F472B6;--ty-order:#F5B942;--ty-num:#60A5FA;
+  --timer-hi:#4ADE80;--timer-mid:#F5B942;--timer-lo:#F87171;
+  --lv1:#4ADE80;--lv2:#FACC15;--lv3:#F87171;
+  --shadow:none;
+  color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0B1220;--panel:#111A2E;--raised:#0E1628;--field:#0A0F1C;
+  --ink:#DBE4F0;--muted:#8A9BB8;--faint:#5E6F8E;--line:#1F2B45;--line-2:#2A3A5C;--soft:#16203A;
+  --title:#F5B942;--link:#2DD4BF;--accent:#F5B942;
+  --ok:#4ADE80;--bad:#F87171;--combo:#C084FC;--gold:#F5B942;
+  --btn-bg:#172239;--btn-line:#2A3A5C;--pri-bg:#123D33;--pri-line:#2DD4BF;--pri-ink:#2DD4BF;
+  --ty-mc:#2DD4BF;--ty-multi:#C084FC;--ty-ox:#8A9BB8;--ty-match:#F472B6;--ty-order:#F5B942;--ty-num:#60A5FA;
+  --timer-hi:#4ADE80;--timer-mid:#F5B942;--timer-lo:#F87171;
+  --lv1:#4ADE80;--lv2:#FACC15;--lv3:#F87171;
+  --shadow:none;
+  color-scheme:dark;}
+@media (max-width:560px){:root{--fs-base:14.5px;--fs-h1:20px;--fs-h2:16px;--fs-q:14.5px;--fs-ox:20px}}
+
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:var(--fs-base);line-height:var(--lh);-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom,0px)}
+a{color:inherit}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px 56px}
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;height:calc(52px + env(safe-area-inset-top,0px));margin:0 -20px 22px;padding:env(safe-area-inset-top,0px) 20px 0;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.brand{font-size:var(--fs-xs);color:var(--muted);flex:1}
+.brand b{color:var(--ink);font-weight:600}
+.iconbtn{font:inherit;font-size:14px;border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);width:32px;height:32px;border-radius:var(--r);cursor:pointer;display:grid;place-items:center}
+h1{font-size:var(--fs-h1);line-height:1.3;margin:0 0 6px;letter-spacing:-.02em;font-weight:700;color:var(--title)}
+.sub{color:var(--muted);margin:0 0 14px;font-size:var(--fs-sm)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,140px));gap:8px;margin:0 0 22px}
+.stat{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);padding:8px 12px;min-width:0}
+@media (max-width:560px){.stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.stat{padding:7px 8px}.stat b{font-size:15px}}
+.stat b{display:block;font-size:18px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--title)}
+.stat span{font-size:var(--fs-2xs);color:var(--faint)}
+.stage{margin:0 0 26px}
+.stage>h2{font-size:var(--fs-h2);margin:0 0 10px;font-weight:650;display:flex;align-items:center;gap:8px}
+.stage>h2 .num{font-family:var(--mono);font-size:var(--fs-xs);color:var(--link);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:0 7px;font-weight:500}
+.course{margin:0 0 14px}
+.course h3{font-size:var(--fs-sm);color:var(--muted);font-weight:600;margin:0 0 8px}
+/* 카드: 웹 자유 배치 · 태블릿 3개 · 모바일 2개 */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+@media (max-width:1023px){.cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+.card{display:flex;flex-direction:column;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;text-decoration:none;color:var(--ink);box-shadow:var(--shadow);transition:border-color .15s}
+.card:hover{border-color:var(--link)}
+.card .code{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint)}
+.card .tt{font-weight:650;font-size:14px;line-height:1.45;word-break:keep-all}
+.card .st{font-size:var(--fs-xs);color:var(--muted);line-height:1.5}
+.card .meta{margin-top:auto;padding-top:8px;display:flex;justify-content:space-between;gap:8px;font-size:var(--fs-2xs);color:var(--faint);font-variant-numeric:tabular-nums}
+.card .bar{height:4px;background:var(--soft);border-radius:99px;overflow:hidden;margin-top:6px}
+.card .bar i{display:block;height:100%;background:var(--link);border-radius:99px}
+.card.done{border-color:color-mix(in srgb,var(--gold) 55%,var(--line))}
+.card .wn{color:var(--bad)}
+.empty{font-size:var(--fs-sm);color:var(--faint);border:1px dashed var(--line-2);border-radius:var(--r-md);padding:12px;text-align:center}
+.foot{font-size:var(--fs-2xs);color:var(--faint);margin-top:24px}
+@media (max-width:560px){.wrap{padding:0 16px 48px}.topbar{margin:0 -16px 18px;padding-left:16px;padding-right:16px}.card{padding:10px}.card .st{display:none}.card .tt{font-size:13px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <span class="brand">디지털노마드연구소 · <b>문제은행</b></span>
+    <button class="iconbtn" id="themeBtn" type="button" aria-label="라이트/다크 전환">🌓</button>
+  </header>
+  <main id="app"></main>
+</div>
+<script>
+(()=>{
+'use strict';
+const CAT={"stages":[{"num":"01","title":"AI 업무 활용","courses":[{"title":"생성형 AI + 노코드 업무 자동화","banks":[{"id":"ai-automation-m1","code":"M1","title":"모듈1 · AI와 업무 자동화 개론","subtitle":"AI 개념 · 프롬프트 R-C-T-F-C · 업무 진단과 AS-IS/TO-BE","href":"01-ai-work/ai-automation/module1.html","tabs":6,"qs":60},{"id":"ai-automation-m2","code":"M2","title":"모듈2 · 문서·커뮤니케이션 업무 효율화","subtitle":"문서 패턴(보고서·기획안·매뉴얼) · 회의록·요약 · 메일 톤과 템플릿","href":"01-ai-work/ai-automation/module2.html","tabs":5,"qs":50},{"id":"ai-automation-m3","code":"M3","title":"모듈3 · 스프레드시트·데이터 작업 자동화","subtitle":"엑셀 AI 분석 · 반복 보고서 템플릿 · 트리거–액션–LLM 자동화","href":"01-ai-work/ai-automation/module3.html","tabs":6,"qs":60}]},{"title":"AI 엑셀 실무","banks":[{"id":"ai-excel","code":"EX","title":"AI 엑셀 실무 · ChatGPT·Gemini로 하는 비즈니스 엑셀","subtitle":"함수 자동화 · 데이터 정제와 검증 · VBA 매크로","href":"01-ai-work/ai-excel/ai-excel.html","tabs":8,"qs":80}]},{"title":"Claude 활용 교육","banks":[{"id":"claude-edu-d1","code":"CE1","title":"Claude 활용 교육 1일차 · 수업 목표 구조화","subtitle":"LLM 원리와 환각 · Bloom 학습목표 · [교수 확인 필요] 명세서","href":"01-ai-work/claude-for-educators/day1.html","tabs":6,"qs":60},{"id":"claude-edu-d2","code":"CE2","title":"Claude 활용 교육 2일차 · 평가 문항 설계","subtitle":"타당도·신뢰도 · 매력적 오답 · 루브릭과 피드백","href":"01-ai-work/claude-for-educators/day2.html","tabs":5,"qs":50},{"id":"claude-edu-d3","code":"CE3","title":"Claude 활용 교육 3일차 · AI 활용 교수 프로토콜","subtitle":"학생 AI 신호등 규칙 · 바이브코딩 연습 도구 · AI 활용 교수 프로토콜","href":"01-ai-work/claude-for-educators/day3.html","tabs":6,"qs":60}]}]},{"num":"02","title":"개발 기초","courses":[{"title":"Git · GitHub 입문","banks":[{"id":"git-basics","code":"GIT","title":"Git · GitHub 입문 · 8교시 실습","subtitle":"커밋과 브랜치 · 충돌과 되돌리기 · GitHub 협업","href":"02-dev-basics/git/git.html","tabs":8,"qs":80}]},{"title":"비개발자 바이브코딩","banks":[{"id":"vibe-d1","code":"VC1","title":"바이브코딩 Day 1 · AI와 일하는 법 & AI 기초","subtitle":"AI 도구 비교 · 업무 문서 프롬프트 · AI 보안","href":"02-dev-basics/vibe-coding/day1.html","tabs":4,"qs":40},{"id":"vibe-d2","code":"VC2","title":"바이브코딩 Day 2 · 프롬프트 엔지니어링 마스터","subtitle":"CRISP 템플릿 · Few-Shot·CoT·페르소나 · 프롬프트 체이닝","href":"02-dev-basics/vibe-coding/day2.html","tabs":7,"qs":70},{"id":"vibe-d3","code":"VC3","title":"바이브코딩 Day 3 · AI 기반 바이브 코딩 실전","subtitle":"웹 앱 만들기 · 수정 요청과 디버깅 · 업무 도구 프로토타입","href":"02-dev-basics/vibe-coding/day3.html","tabs":5,"qs":50},{"id":"vibe-d4","code":"VC4","title":"바이브코딩 Day 4 · 결과물 공유 & 업무 활용 전략","subtitle":"발표·동료 평가 · 업무 적용 전략과 30일 플랜 · 페르소나·프롬프트 리파이닝","href":"02-dev-basics/vibe-coding/day4.html","tabs":6,"qs":60},{"id":"vibe-nb-basic","code":"VB","title":"바이브코딩 기본 노트북 · 세션 0~4","subtitle":"Claude×Colab 워크플로 · 추천·이미지·감성 AI · 시계열 예측","href":"02-dev-basics/vibe-coding/nb-basic.html","tabs":5,"qs":50},{"id":"vibe-nb-adv","code":"VA","title":"바이브코딩 중급 노트북 · Claude Code·시뮬레이터·사다리게임","subtitle":"CLAUDE.md·Plan 모드 · Canvas 인터랙션 · 알고리즘 프롬프트","href":"02-dev-basics/vibe-coding/nb-intermediate.html","tabs":4,"qs":40}]}]},{"num":"03","title":"n8n 자동화","courses":[{"title":"n8n + AI 교육 업무 자동화","banks":[{"id":"n8n-edu-p1","code":"NE1","title":"n8n 교육 자동화 1교시 · n8n 소개와 환경 구축","subtitle":"n8n Cloud 가입 · 첫 워크플로우 · 노드·엣지·JSON 핵심 개념","href":"03-n8n-automation/n8n-edu-agent/period1.html","tabs":4,"qs":40},{"id":"n8n-edu-p2","code":"NE2","title":"n8n 교육 자동화 2교시 · 핵심 노드와 데이터 연동","subtitle":"Google Sheets 읽기·쓰기 · Edit Fields·IF·Switch · Gmail 상태별 발송","href":"03-n8n-automation/n8n-edu-agent/period2.html","tabs":5,"qs":50},{"id":"n8n-edu-p3","code":"NE3","title":"n8n 교육 자동화 3교시 · 교육서비스업 자동화 ①","subtitle":"Webhook 수강 신청 처리 · 중복 체크와 응답 · Schedule 수업 리마인더","href":"03-n8n-automation/n8n-edu-agent/period3.html","tabs":4,"qs":40},{"id":"n8n-edu-p4","code":"NE4","title":"n8n 교육 자동화 4교시 · 교육서비스업 자동화 ②","subtitle":"피드백 수집과 Code 집계 · 만족도 경고 · 수업 자료 자동 배포","href":"03-n8n-automation/n8n-edu-agent/period4.html","tabs":4,"qs":40},{"id":"n8n-edu-p5","code":"NE5","title":"n8n 교육 자동화 5교시 · AI API 연동 & 프롬프트","subtitle":"OpenAI·Claude·Gemini 노드 · 응답 표현식 · 비용과 보안","href":"03-n8n-automation/n8n-edu-agent/period5.html","tabs":6,"qs":60},{"id":"n8n-edu-p6","code":"NE6","title":"n8n 교육 자동화 6교시 · AI 기반 교육서비스 자동화","subtitle":"Q&A 자동 응답 봇 · 피드백 AI 리포트 · 콘텐츠·이메일 생성","href":"03-n8n-automation/n8n-edu-agent/period6.html","tabs":6,"qs":60},{"id":"n8n-edu-p7","code":"NE7","title":"n8n 교육 자동화 7교시 · 멀티미디어 AI 활용","subtitle":"이미지 OCR·생성 · PDF·녹음 분석 · 멀티모달 파이프라인","href":"03-n8n-automation/n8n-edu-agent/period7.html","tabs":6,"qs":60}]},{"title":"n8n 블로그 자동 발행","banks":[{"id":"n8n-blog","code":"NB","title":"n8n 블로그 자동 발행 · 패션 블로그 자동화 4시간","subtitle":"Docker 자체 호스팅 · AI 글·룩북 이미지 생성 · WordPress 자동 초안","href":"03-n8n-automation/n8n-blog/n8n-blog.html","tabs":10,"qs":100}]}]},{"num":"04","title":"음성 AI","courses":[{"title":"음성 AI 전문가 과정 Day 1~7","banks":[{"id":"voice-d1","code":"V1","title":"음성 AI Day 1 · 음성 AI 첫걸음","subtitle":"ASR·TTS·Voice Agent · Colab 개발환경 · CER·RTF","href":"04-voice-ai/day01.html","tabs":1,"qs":15},{"id":"voice-d2","code":"V2","title":"음성 AI Day 2 · 디지털 오디오 기초","subtitle":"샘플링·나이퀴스트 · 양자화·채널 · 포맷·pydub 전처리","href":"04-voice-ai/day02.html","tabs":4,"qs":40},{"id":"voice-d3","code":"V3","title":"음성 AI Day 3 · 주파수 분석","subtitle":"배음·포먼트·DFT · 창 함수·STFT · Mel·MFCC","href":"04-voice-ai/day03.html","tabs":4,"qs":40},{"id":"voice-d4","code":"V4","title":"음성 AI Day 4 · 오디오 전처리","subtitle":"SNR·정규화·필터 · 스펙트럼 차감·Wiener · VAD·Silero","href":"04-voice-ai/day04.html","tabs":4,"qs":40},{"id":"voice-d5","code":"V5","title":"음성 AI Day 5 · 딥러닝 오디오 분류","subtitle":"Log-Mel 입력 · CNN·softmax·cross-entropy · 학습 루프·SpecAugment","href":"04-voice-ai/day05.html","tabs":4,"qs":40},{"id":"voice-d6","code":"V6","title":"음성 AI Day 6 · ASR 원리","subtitle":"CTC · Wav2Vec2 디코딩 · AED·Transducer·자기지도 학습","href":"04-voice-ai/day06.html","tabs":4,"qs":40},{"id":"voice-d7","code":"V7","title":"음성 AI Day 7 · Whisper 심층 분석","subtitle":"30초 창·특수 토큰 · 모델 선택·디코딩 옵션 · 환각 대응","href":"04-voice-ai/day07.html","tabs":4,"qs":40}]}]},{"num":"06","title":"AI 비전 · OpenVINO","courses":[{"title":"리눅스 → 파이썬 → OpenCV → OpenVINO 엣지 AI","banks":[{"id":"ov-linux","code":"LX","title":"리눅스 실습 노트 · 우분투로 배우는 리눅스 기본","subtitle":"리눅스·우분투 개념 · 14가지 핵심 명령어 실습 · 권한·프로세스·쉘 스크립트","href":"06-ai-openVino/01-linux.html","tabs":6,"qs":60},{"id":"ov-python","code":"PY","title":"파이썬 기초부터 이미지처리까지","subtitle":"파이썬 문법·클래스 · NumPy·Pandas · 이미지처리 이론","href":"06-ai-openVino/02-python.html","tabs":10,"qs":100},{"id":"ov-devenv","code":"ENV","title":"우분투 개발 환경 구축 · Python 3.11 · VS Code · OpenVINO","subtitle":"Python 3.11 설치 · 가상환경(venv) · OpenVINO 설치와 검증","href":"06-ai-openVino/03-dev-env.html","tabs":4,"qs":40},{"id":"ov-intro","code":"OV","title":"OpenVINO란 무엇인가","subtitle":"OpenVINO와 엣지 AI · OpenCV·PyTorch · LeRobot과 AI 에이전트","href":"06-ai-openVino/04-what-is-openvino.html","tabs":3,"qs":30},{"id":"ov-opencv","code":"CV","title":"OpenCV · 컴퓨터 비전 기초부터 객체 검출까지","subtitle":"이미지 데이터·색상 공간 · 필터링·모폴로지·윤곽선 · 비디오·객체 검출·DNN","href":"06-ai-openVino/05-opencv.html","tabs":9,"qs":90},{"id":"ov-runtime","code":"RT","title":"OpenVINO 심화와 비전 AI 프로젝트","subtitle":"추론 파이프라인·전후처리 · 디바이스 최적화·INT8 · 물류 자동 계수","href":"06-ai-openVino/06-runtime.html","tabs":8,"qs":80},{"id":"ov-bench","code":"BM","title":"CPU · GPU · NPU 속도 비교","subtitle":"디바이스 특성과 드라이버 · benchmark_app 측정 · Throughput·Latency 해석","href":"06-ai-openVino/07-device-benchmark.html","tabs":3,"qs":30}]}]},{"num":"07","title":"Physical AI · 자율주행","courses":[{"title":"Jetson → LLM·VLM → OpenCV·ROS → Pseudo-VLA → VLA (5일)","banks":[{"id":"pai-cpp","code":"PAC","title":"Physical AI · C++ 기초 · 메모리 · STL · CMake","subtitle":"값·참조·포인터 · STL 컨테이너 · CMake와 Python 연동","href":"07-physical-ai/03-cpp.html","tabs":9,"qs":90}]}]}],"built":"2026-10-16"};
+const app=document.getElementById('app');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function progress(b){
+  try{const s=JSON.parse(localStorage.getItem('qb:'+b.id+':v1')||'null');if(!s)return {done:0,wrong:0};
+    return {done:Object.keys(s.tabs||{}).length,wrong:Object.values(s.wrong||{}).filter(w=>!w.solved).length};}
+  catch(e){return {done:0,wrong:0};}
+}
+const banks=CAT.stages.flatMap(st=>st.courses.flatMap(c=>c.banks));
+const totalQ=banks.reduce((n,b)=>n+b.qs,0);
+const P=Object.fromEntries(banks.map(b=>[b.id,progress(b)]));
+const doneTabs=banks.reduce((n,b)=>n+P[b.id].done,0), allTabs=banks.reduce((n,b)=>n+b.tabs,0);
+const wrong=banks.reduce((n,b)=>n+P[b.id].wrong,0);
+app.innerHTML=`
+  <h1>📚 문제은행</h1>
+  <p class="sub">강의자료를 문제은행으로 바꿔 공부합니다. 과목을 골라 학습 모드 → 게임 모드로 이어 가세요.</p>
+  <div class="stats">
+    <div class="stat"><b>${banks.length}</b><span>문제은행</span></div>
+    <div class="stat"><b>${totalQ.toLocaleString()}</b><span>전체 문항</span></div>
+    <div class="stat"><b>${doneTabs}/${allTabs}</b><span>채점한 탭</span></div>
+    <div class="stat"><b>${wrong}</b><span>남은 오답</span></div>
+  </div>
+  ${CAT.stages.map(st=>`<section class="stage"><h2><span class="num">${esc(st.num)}</span>${esc(st.title)}</h2>
+    ${st.courses.map(c=>`<div class="course"><h3>${esc(c.title)}</h3>
+      ${c.banks.length?`<div class="cards">${c.banks.map(b=>{const p=P[b.id],pc=Math.round(p.done/b.tabs*100);
+        return `<a class="card${p.done===b.tabs?' done':''}" href="${esc(b.href)}">
+          <span class="code">${esc(b.code)}</span><span class="tt">${esc(b.title)}</span>
+          ${b.subtitle?`<span class="st">${esc(b.subtitle)}</span>`:''}
+          <span class="bar" aria-label="진행률 ${pc}%"><i style="width:${pc}%"></i></span>
+          <span class="meta"><span>${b.qs}문항 · ${b.tabs}탭</span><span>${p.done?`${p.done}/${b.tabs} 탭`:'미응시'}${p.wrong?` · <span class="wn">오답 ${p.wrong}</span>`:''}</span></span></a>`;}).join('')}</div>`
+        :'<div class="empty">준비 중</div>'}</div>`).join('')}
+  </section>`).join('')}
+  <p class="foot">진행률·오답은 이 브라우저에만 저장됩니다. · 갱신 ${esc(CAT.built)}</p>`;
+/* 테마 (문제은행 페이지와 같은 저장 키) */
+let theme=null;try{theme=localStorage.getItem('qb:theme');}catch(e){}
+const apply=()=>{if(theme)document.documentElement.dataset.theme=theme;else delete document.documentElement.dataset.theme;};apply();
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const dark=theme?theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  theme=dark?'light':'dark';try{localStorage.setItem('qb:theme',theme);}catch(e){}apply();});
+})();
+</script>
+</body>
+</html>

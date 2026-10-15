@@ -1,0 +1,1799 @@
+{
+  "id": "n8n-blog",
+  "code": "NB",
+  "title": "n8n 블로그 자동 발행 · 패션 블로그 자동화 4시간",
+  "subtitle": "Docker 자체 호스팅 · AI 글·룩북 이미지 생성 · WordPress 자동 초안",
+  "course": "03-n8n-automation / n8n-blog",
+  "source": "03-n8n-automation/n8n-blog/패션블로그자동화.md",
+  "salt": "n8n-blog",
+  "version": 1,
+  "updated": "2026-10-15",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "Docker 환경 준비",
+      "ref": "사전 준비 Step 1~3",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "이 과정에서 n8n·WordPress·DB를 내 PC에서 한 번에 실행하는 도구는?",
+          "o": [
+            "VirtualBox 가상 PC",
+            "Docker Desktop",
+            "Python 가상환경",
+            "Node.js 설치 파일"
+          ],
+          "a": 1,
+          "h": "컨테이너 3개를 한 번에 띄우는 도구입니다.",
+          "w": "Docker Desktop으로 MariaDB·WordPress·n8n 3개 서비스를 컨테이너로 실행합니다. 나머지는 이 과정에서 쓰지 않습니다.",
+          "an": "사전 준비 Step 2 · Docker Desktop 설치"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "Windows에 Docker Desktop을 설치할 때 <b>반드시</b> 체크하는 옵션은?",
+          "o": [
+            "Use Hyper-V only",
+            "Enable Kubernetes",
+            "Start on login only",
+            "Use WSL 2 instead of Hyper-V"
+          ],
+          "a": 3,
+          "h": "리눅스 하위 시스템(WSL)의 두 번째 버전입니다.",
+          "w": "설치 옵션에서 'Use WSL 2 instead of Hyper-V'는 반드시 체크합니다. 바로가기 추가는 선택입니다.",
+          "an": "사전 준비 Step 2 · 설치 옵션"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Windows에서 CPU 가상화가 '사용'인지 확인하는 위치는?",
+          "o": [
+            "작업 관리자 → 성능 → CPU",
+            "제어판 → 프로그램",
+            "설정 → 디스플레이",
+            "장치 관리자 → 마우스"
+          ],
+          "a": 0,
+          "h": "Ctrl + Shift + Esc로 여는 창의 '성능' 탭입니다.",
+          "w": "작업 관리자 → 성능 → CPU 우측 하단의 '가상화'가 '사용'이어야 합니다. '사용 안 함'이면 BIOS에서 켭니다.",
+          "an": "사전 준비 Step 1 · 가상화 활성화 확인"
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "docker-compose.yml의 들여쓰기 규칙으로 맞는 것은?",
+          "o": [
+            "탭 1번으로 통일",
+            "스페이스·탭 섞어도 됨",
+            "스페이스 2칸, 탭 금지",
+            "들여쓰기 없이 작성"
+          ],
+          "a": 2,
+          "h": "YAML은 공백에 매우 민감합니다. 탭 키는 쓰지 않습니다.",
+          "w": "YAML은 들여쓰기가 구조를 결정합니다. 공백 2칸으로 맞추고 탭(Tab)은 절대 쓰지 않습니다.",
+          "an": "사전 준비 Step 3-2 · 주의사항"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "docker-compose.yml로 실행되는 3개 서비스에 <b>포함되지 않는</b> 것은?",
+          "o": [
+            "MariaDB",
+            "Redis",
+            "WordPress",
+            "n8n"
+          ],
+          "a": 1,
+          "h": "DB, 블로그, 자동화 도구 3개입니다.",
+          "w": "YAML에는 wordpress_db(MariaDB), wordpress, n8n 3개 서비스만 있습니다. Redis는 없습니다.",
+          "an": "사전 준비 Step 3-2 · YAML 내용"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Docker 설치 확인은 <code>docker --version</code>과 <code>docker compose version</code> 두 명령으로 한다.",
+          "a": true,
+          "h": "설치 확인 — 터미널 명령 절을 떠올려 보세요.",
+          "w": "맞습니다. 두 명령이 각각 Docker와 Docker Compose 버전을 출력하면 정상 설치입니다.",
+          "an": "사전 준비 Step 2 · 설치 확인"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "'command not found'가 나오면 docker-compose.yml을 다시 작성해야 한다.",
+          "a": false,
+          "h": "이 에러는 파일이 아니라 프로그램 실행 상태와 관련 있습니다.",
+          "w": "틀렸습니다. Docker Desktop이 실행 중인지 확인하고, 안 되면 재부팅합니다. YAML과는 무관합니다.",
+          "an": "사전 준비 Step 2 · ⚠️ command not found"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "서비스와 역할(포트)을 연결하세요.",
+          "pairs": [
+            [
+              "wordpress",
+              "8080 포트 · 블로그 사이트"
+            ],
+            [
+              "n8n",
+              "5678 포트 · 워크플로우 편집"
+            ],
+            [
+              "wordpress_db",
+              "MariaDB · WordPress용 데이터베이스"
+            ]
+          ],
+          "h": "ports 설정의 앞 숫자가 내 PC에서 접속하는 포트입니다.",
+          "w": "WordPress는 8080, n8n은 5678로 접속하고, wordpress_db는 WordPress 글을 저장하는 MariaDB입니다.",
+          "an": "사전 준비 Step 3-2 · YAML"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "사전 준비 단계를 순서대로 정렬하세요.",
+          "steps": [
+            "시스템 요구사항 확인",
+            "Docker Desktop 설치",
+            "프로젝트 폴더·docker-compose.yml 작성",
+            "docker compose up -d 실행",
+            "WordPress 카테고리 구조 만들기"
+          ],
+          "h": "사양 확인 → 설치 → 파일 작성 → 실행 → 블로그 구조",
+          "w": "Step 1(사양) → 2(설치) → 3(YAML) → 4(실행·초기 설정) → 5(카테고리) 순서입니다.",
+          "an": "사전 준비 Step 1~5"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 1,
+          "game": true,
+          "p": "최소 사양에 해당하는 것을 <b>모두</b> 고르세요.",
+          "o": [
+            "RAM 8GB",
+            "저장공간 10GB 여유",
+            "CPU 가상화 지원",
+            "GPU 필수",
+            "RAM 32GB 이상"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "최소 사양 표의 '최소' 열만 보세요.",
+          "w": "최소 사양은 RAM 8GB(권장 16GB), 저장공간 10GB, 가상화 지원 CPU입니다. GPU나 32GB RAM은 요구하지 않습니다.",
+          "an": "사전 준비 Step 1 · 최소 사양"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "컨테이너 실행과 초기 설정",
+      "ref": "사전 준비 Step 4~6",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "컨테이너 3개를 백그라운드로 한 번에 실행하는 명령은?",
+          "o": [
+            "docker compose ps",
+            "docker compose stop",
+            "docker compose up -d",
+            "docker run n8n"
+          ],
+          "a": 2,
+          "h": "-d는 detached(백그라운드)라는 뜻입니다.",
+          "w": "프로젝트 폴더에서 <code>docker compose up -d</code>를 실행하면 DB·WordPress·n8n이 함께 뜹니다. ps는 상태 확인입니다.",
+          "an": "사전 준비 Step 4-1"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "컨테이너가 'Exit (1)' 상태일 때 원인을 확인하는 명령은?",
+          "o": [
+            "docker compose logs [이름]",
+            "docker compose down -v",
+            "docker --version",
+            "docker compose pull"
+          ],
+          "a": 0,
+          "h": "컨테이너가 남긴 기록(로그)을 봅니다.",
+          "w": "<code>docker compose logs [컨테이너명]</code>으로 원인을 봅니다. 대부분 포트 충돌이나 RAM 부족입니다.",
+          "an": "사전 준비 Step 4-2 · ❌ Exit (1)"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "WordPress 설치 화면에서 로컬 테스트이므로 반드시 체크하는 항목은?",
+          "o": [
+            "자동 업데이트",
+            "댓글 허용",
+            "이메일 알림",
+            "검색 엔진 방지"
+          ],
+          "a": 3,
+          "h": "아직 공개 사이트가 아니라는 점을 생각해 보세요.",
+          "w": "로컬 테스트용이므로 '검색 엔진 방지'를 반드시 체크합니다.",
+          "an": "사전 준비 Step 4-4 · 사이트 정보 입력"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "http://localhost:8080이 안 열리고 포트 충돌이 원인일 때 해결법은?",
+          "o": [
+            "n8n 컨테이너를 삭제",
+            "포트를 '8090:80'으로 바꿔 재실행",
+            "DB 비밀번호를 변경",
+            "브라우저를 바꾼다"
+          ],
+          "a": 1,
+          "h": "다른 프로그램이 8080을 쓰고 있다면 다른 번호를 씁니다.",
+          "w": "<code>docker compose ps</code>로 상태를 보고, 포트 충돌이면 '8090:80'으로 바꾼 뒤 <code>docker compose up -d</code>로 다시 실행합니다.",
+          "an": "사전 준비 Step 6 · 문제 1"
+        },
+        {
+          "id": "t2-05",
+          "ty": "num",
+          "lv": 2,
+          "game": false,
+          "p": "기본 '미분류'를 포함해, Step 5를 마친 뒤 카테고리 목록에 보여야 하는 카테고리는 모두 몇 개인가요?",
+          "a": 6,
+          "unit": "개",
+          "h": "계산식: 기본 카테고리 수 + 새로 추가한 카테고리 수",
+          "w": "기본 '미분류' 1개 + 트렌드·스타일링·리뷰·쇼핑가이드·룩북 5개 = 6개입니다.",
+          "an": "사전 준비 Step 5"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "WordPress 초기 비밀번호는 한 번만 표시되므로 따로 메모해 둔다.",
+          "a": true,
+          "h": "📝 비밀번호 메모 필수 안내를 떠올려 보세요.",
+          "w": "맞습니다. 초기 비밀번호는 한 번만 보이므로 메모장 등에 저장해 둡니다.",
+          "an": "사전 준비 Step 4-4 · 📝"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "카테고리 ID는 모든 환경에서 트렌드=2, 스타일링=3으로 항상 같다.",
+          "a": false,
+          "h": "⚠️ 환경마다 다를 수 있다는 경고가 있습니다.",
+          "w": "틀렸습니다. ID는 환경마다 다를 수 있으므로 본인 환경의 ID를 '편집' 링크 URL의 tag_ID에서 확인해 메모합니다.",
+          "an": "사전 준비 Step 5 · 카테고리 ID 메모"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "카테고리와 슬러그를 연결하세요.",
+          "pairs": [
+            [
+              "트렌드",
+              "trends"
+            ],
+            [
+              "스타일링",
+              "styling"
+            ],
+            [
+              "리뷰",
+              "reviews"
+            ],
+            [
+              "쇼핑가이드",
+              "shopping"
+            ],
+            [
+              "룩북",
+              "lookbook"
+            ]
+          ],
+          "h": "슬러그는 카테고리 뜻을 영문 소문자로 쓴 것입니다.",
+          "w": "trends·styling·reviews·shopping·lookbook이 각 카테고리의 슬러그입니다.",
+          "an": "사전 준비 Step 5 · 카테고리 표"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "WordPress 카테고리 하나를 추가하는 순서를 맞추세요.",
+          "steps": [
+            "'글 → 카테고리' 메뉴 열기",
+            "이름 입력",
+            "슬러그(영문 소문자) 입력",
+            "설명 입력",
+            "'새 카테고리 추가' 클릭"
+          ],
+          "h": "메뉴 → 이름 → 슬러그 → 설명 → 버튼",
+          "w": "메뉴를 연 뒤 이름 → 슬러그 → 설명을 입력하고 '새 카테고리 추가'를 누릅니다.",
+          "an": "사전 준비 Step 5"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 1,
+          "game": true,
+          "p": "사전 준비 완료(Step 6) 체크 항목을 <b>모두</b> 고르세요.",
+          "o": [
+            "3개 컨테이너 모두 Up",
+            "n8n 로그인 성공",
+            "카테고리 ID 메모",
+            "OpenAI $100 충전",
+            "WordPress 글 1개 발행"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "환경이 돌아가는지와 이후 실습에 필요한 정보만 확인합니다.",
+          "w": "컨테이너 Up, n8n·WordPress 접속, 카테고리 생성과 ID 메모가 체크 항목입니다. 충전이나 글 발행은 해당하지 않습니다.",
+          "an": "사전 준비 Step 6"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "Docker 내부 통신과 Credential",
+      "ref": "1교시 1-1~1-2",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "n8n 워크플로우 안에서 WordPress API를 호출할 때 쓰는 주소는?",
+          "o": [
+            "http://localhost:8080",
+            "http://wordpress",
+            "http://localhost:5678",
+            "http://127.0.0.1"
+          ],
+          "a": 1,
+          "h": "n8n 안에서 localhost는 n8n 자기 자신입니다.",
+          "w": "Docker 네트워크 안에서는 서비스 이름 <code>http://wordpress</code>로 접근합니다. localhost:8080은 내 브라우저용 주소입니다.",
+          "an": "1교시 1-1 · Docker 내부 통신"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "n8n 2.x에서 Schedule·Webhook Trigger를 실제로 동작시키는 것은?",
+          "o": [
+            "Save",
+            "Execute step",
+            "Duplicate",
+            "Publish"
+          ],
+          "a": 3,
+          "h": "Save는 초안 저장일 뿐입니다.",
+          "w": "Save는 초안 저장(Manual Trigger만 동작), Publish는 실제 배포로 Webhook·Schedule Trigger를 활성화합니다.",
+          "an": "1교시 1-1 · n8n 2.x 변경사항"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "n8n 2.x에서 날짜를 원하는 형식으로 바꾸는 함수는?",
+          "o": [
+            ".toFormat()",
+            ".format()",
+            ".toString()",
+            ".parse()"
+          ],
+          "a": 0,
+          "h": "'.format()이 아님'이라고 강조했습니다.",
+          "w": "n8n 2.x에서는 <code>.toFormat()</code>을 씁니다. 예: <code>$now.toFormat('yyyyMMdd-HHmm')</code>",
+          "an": "1교시 1-1 · 날짜 함수"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "OpenAI API 키를 만들 때 가장 주의할 점은?",
+          "o": [
+            "언제든 다시 볼 수 있다",
+            "n8n이 자동으로 가져온다",
+            "한 번만 표시되니 즉시 복사",
+            "결제 정보가 필요 없다"
+          ],
+          "a": 2,
+          "h": "⚠️ 키는 다시 볼 수 없어요!",
+          "w": "생성된 <code>sk-proj-...</code> 키는 한 번만 표시되므로 즉시 복사해 둡니다. 무료 크레딧 소진 후에는 결제 등록도 필요합니다.",
+          "an": "1교시 1-2 A · OpenAI 키 발급"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "무료 티어가 있어 이 과정에서 이미지 생성에 쓰는 AI는?",
+          "o": [
+            "OpenAI",
+            "Google Gemini",
+            "Anthropic Claude",
+            "Stable Diffusion"
+          ],
+          "a": 1,
+          "h": "AI Studio에서 키를 받는 서비스입니다.",
+          "w": "Gemini는 분당 15회·일 1500회 무료 티어가 있어 교육용으로 충분하고, 3교시 이미지 생성에 씁니다.",
+          "an": "1교시 1-2 B · 🎁 무료 티어"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "n8n 2.x의 Code 노드에서는 <code>process.env</code>를 쓸 수 있다.",
+          "a": false,
+          "h": "Code 노드는 격리된 환경에서 실행됩니다.",
+          "w": "틀렸습니다. Code 노드는 Task Runner에서 격리 실행되어 process.env를 쓸 수 없습니다.",
+          "an": "1교시 1-1 · Code 노드"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "이 과정은 OpenAI와 Gemini 2개 Credential이면 충분하고, Claude는 선택이다.",
+          "a": true,
+          "h": "C 항목 제목에 '(선택)'이 붙어 있습니다.",
+          "w": "맞습니다. OpenAI + Gemini면 충분하고 Anthropic Claude는 심화 학습자용 선택입니다.",
+          "an": "1교시 1-2 C"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "상황과 사용할 URL을 연결하세요.",
+          "pairs": [
+            [
+              "내가 브라우저로 WordPress 접속",
+              "http://localhost:8080"
+            ],
+            [
+              "n8n이 WordPress API 호출",
+              "http://wordpress"
+            ],
+            [
+              "내가 브라우저로 n8n 접속",
+              "http://localhost:5678"
+            ]
+          ],
+          "h": "브라우저는 집 밖, n8n은 같은 아파트 옆집입니다.",
+          "w": "브라우저는 localhost 주소를, n8n 안에서는 서비스 이름(wordpress)을 씁니다.",
+          "an": "1교시 1-1 · URL 표"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "OpenAI Credential을 등록하는 순서를 맞추세요.",
+          "steps": [
+            "'Create new secret key'로 키 발급",
+            "생성된 키 즉시 복사",
+            "n8n Credentials → Add credential",
+            "'OpenAI API' 선택 후 키 붙여넣기",
+            "Save 후 연결 성공 메시지 확인"
+          ],
+          "h": "발급 → 복사 → 추가 → 입력 → 확인",
+          "w": "OpenAI에서 키를 만들어 바로 복사하고, n8n에서 OpenAI API Credential에 붙여넣은 뒤 Save해 'Connection tested successfully'를 확인합니다.",
+          "an": "1교시 1-2 A · Step 1~2"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": false,
+          "p": "Docker 내부 통신 설명으로 맞는 것을 <b>모두</b> 고르세요.",
+          "o": [
+            "브라우저는 localhost:8080 필요",
+            "n8n은 서비스 이름만 알면 됨",
+            "n8n 안의 localhost는 n8n 자신",
+            "n8n 안에서도 localhost:8080 사용",
+            "서비스 이름으로는 접근 불가"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "아파트 비유: 집 밖 손님 vs 옆집 주민",
+          "w": "브라우저는 집 주소(localhost:8080)가, n8n은 호수 이름(wordpress)만 필요합니다. n8n 안에서 localhost는 n8n 자기 자신을 가리킵니다.",
+          "an": "1교시 1-1 · 💡 비유"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "실습 1 · 트렌드 아이디어 생성기",
+      "ref": "1교시 1-3",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "실습 1 워크플로우의 노드 구성으로 맞는 것은?",
+          "o": [
+            "Schedule → OpenAI → WordPress",
+            "Manual Trigger → Edit Fields → OpenAI → Code",
+            "Webhook → Code → Gemini",
+            "Manual Trigger → Gemini → IF"
+          ],
+          "a": 1,
+          "h": "4개 노드: 시작 → 입력값 → AI → 정리",
+          "w": "실습 1은 Manual Trigger → Edit Fields → OpenAI → Code(파싱 + 시즌 판별) 4개 노드입니다.",
+          "an": "1교시 1-3 · 워크플로우 구조"
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "User 메시지에서 이전 노드 값을 쓰려고 Expression 모드로 바꿀 때 누르는 것은?",
+          "o": [
+            "Execute step",
+            "Add Field",
+            "Pin data",
+            "fx 버튼"
+          ],
+          "a": 3,
+          "h": "Content 영역 위의 작은 버튼입니다.",
+          "w": "Content 위의 작은 fx 버튼을 누르면 Expression 모드로 바뀌어 <code>{{ }}</code> 치환이 작동합니다.",
+          "an": "1교시 1-3 Step 4-3"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>{{ $json.스타일 }}</code>이 가리키는 값은?",
+          "o": [
+            "바로 이전 노드 출력의 '스타일'",
+            "Edit Fields 첫 값만",
+            "전역 환경변수 '스타일'",
+            "Code 노드의 변수"
+          ],
+          "a": 0,
+          "h": "$json은 '직전 노드의 출력'입니다.",
+          "w": "<code>$json.스타일</code>은 바로 이전 노드 출력의 '스타일' 필드 값입니다.",
+          "an": "1교시 1-3 Step 4-3 · 💡 Expression"
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "실습 1 OpenAI 노드의 Temperature 0.7이 뜻하는 것은?",
+          "o": [
+            "응답 최대 길이",
+            "응답 대기 시간(초)",
+            "창의성과 일관성의 균형",
+            "아이디어 개수"
+          ],
+          "a": 2,
+          "h": "Output Randomness라는 옵션 이름을 떠올려 보세요.",
+          "w": "0.7은 창의성과 일관성의 균형으로 패션 콘텐츠에 적절한 값입니다.",
+          "an": "1교시 1-3 Step 4-4"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "실습 1을 8월에 실행하면 Code 노드가 판별하는 시즌은?",
+          "o": [
+            "봄",
+            "여름",
+            "가을",
+            "겨울"
+          ],
+          "a": 1,
+          "h": "3~5월, 6~8월, 9~11월, 나머지로 나눕니다.",
+          "w": "month가 6~8이면 '여름'입니다. 시즌은 현재 월을 읽어 자동 판별됩니다.",
+          "an": "1교시 1-3 Step 5-3 · 시즌 판별 코드"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "실습 1의 Code 노드는 아이디어를 예상인기도가 높은 순으로 정렬해 반환한다.",
+          "a": true,
+          "h": "코드의 마지막 부분 sort를 떠올려 보세요.",
+          "w": "맞습니다. 메타 정보를 붙인 뒤 예상인기도 내림차순으로 정렬합니다.",
+          "an": "1교시 1-3 Step 5-4"
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "'JSON.parse 에러'가 나면 Temperature를 0.9로 올리는 것이 해결책이다.",
+          "a": false,
+          "h": "더 무작위로 만들면 형식은 더 흐트러집니다.",
+          "w": "틀렸습니다. 'JSON 배열만 반환'을 System 프롬프트에 강조하고 Temperature를 0.5로 낮춥니다.",
+          "an": "1교시 체크포인트 · 문제 1"
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "OpenAI 노드 에러와 조치를 연결하세요.",
+          "pairs": [
+            [
+              "401 Unauthorized",
+              "Credential 확인"
+            ],
+            [
+              "Rate limit",
+              "1분 후 재시도"
+            ],
+            [
+              "Invalid model",
+              "모델명 확인"
+            ]
+          ],
+          "h": "인증 · 호출 한도 · 모델 이름 문제",
+          "w": "401은 인증(Credential), Rate limit은 호출 한도, Invalid model은 모델명 문제입니다.",
+          "an": "1교시 1-3 Step 4-5"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "실습 1 Code 노드의 처리 순서를 맞추세요.",
+          "steps": [
+            "AI 응답의 코드 펜스 제거",
+            "JSON 파싱",
+            "현재 월로 시즌 판별",
+            "아이디어에 시즌 정보 추가",
+            "예상인기도 순 정렬"
+          ],
+          "h": "정리 → 해석 → 판별 → 덧붙이기 → 정렬",
+          "w": "코드 펜스 제거 → JSON 파싱(실패 시 원본 반환) → 시즌 판별 → 메타 정보 추가 → 인기도순 정렬 → 아이템 반환 순서입니다.",
+          "an": "1교시 1-3 Step 5-4 · 코드 설명"
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "Code 노드가 각 아이디어에 추가하는 필드를 <b>모두</b> 고르세요.",
+          "o": [
+            "시즌",
+            "시즌컬러",
+            "추천키워드",
+            "품질점수",
+            "카테고리ID"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "실습 1은 아직 품질 체크나 WordPress 단계가 없습니다.",
+          "w": "번호·시즌·시즌무드·시즌컬러·추천키워드·생성일시·상태를 추가합니다. 품질점수와 카테고리ID는 2·3교시에 나옵니다.",
+          "an": "1교시 1-3 Step 5-3"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "패션 톤앤매너와 글 생성 흐름",
+      "ref": "2교시 2-1~2-2",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "좋은 패션 글의 5요소 중 '독자의 고민에서 시작'하는 요소는?",
+          "o": [
+            "시각적 묘사",
+            "공감 후크",
+            "트렌드 맥락",
+            "구매 가이드"
+          ],
+          "a": 1,
+          "h": "예: '출근 전 옷장 앞에서 30분씩 고민하시나요?'",
+          "w": "공감 후크는 독자의 고민으로 글을 엽니다. 나머지는 컬러·소재 묘사, 트렌드 배경, 구매처 안내입니다.",
+          "an": "2교시 2-1 · 5가지 요소"
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "'뚱뚱한 체형' 대신 권하는 표현은?",
+          "o": [
+            "통통한 체형",
+            "큰 체형",
+            "살집 있는 체형",
+            "볼륨감 있는 체형"
+          ],
+          "a": 3,
+          "h": "모든 체형을 긍정적으로 표현합니다.",
+          "w": "체형 부정적 표현을 피하고 '볼륨감 있는 체형'처럼 긍정적으로 씁니다.",
+          "an": "2교시 2-1 · 피해야 할 것"
+        },
+        {
+          "id": "t5-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Google이 패션 글에서 중시하는 E-E-A-T의 첫 E는?",
+          "o": [
+            "Experience(실착 경험)",
+            "Efficiency(효율)",
+            "Engagement(참여)",
+            "Editing(편집)"
+          ],
+          "a": 0,
+          "h": "AI 글에 본인이 직접 추가해야 하는 것입니다.",
+          "w": "E-E-A-T의 Experience는 실착 경험, Expertise는 전문성입니다. AI로 쓴 뒤 본인 경험을 꼭 추가합니다.",
+          "an": "2교시 2-1 · 💡 E-E-A-T"
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "실습 2에서 OpenAI #1이 만드는 것은?",
+          "o": [
+            "2000자 본문",
+            "룩북 이미지",
+            "SEO 메타 + 글 구조 JSON",
+            "WordPress 초안"
+          ],
+          "a": 2,
+          "h": "본문을 쓰기 전 '설계도'를 먼저 만듭니다.",
+          "w": "OpenAI #1은 meta_title·h2_sections 등 SEO 메타와 구조를 JSON으로, OpenAI #2가 본문을 씁니다.",
+          "an": "2교시 2-2 · 워크플로우 구조"
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "<code>$('Edit Fields').first().json.톤</code>을 쓰는 이유는?",
+          "o": [
+            "직전 노드 값만 쓰려고",
+            "여러 노드 건너 원본 입력 참조",
+            "톤 값을 덮어쓰려고",
+            "Edit Fields를 재실행하려고"
+          ],
+          "a": 1,
+          "h": "$json과 달리 특정 노드 이름을 지정합니다.",
+          "w": "특정 노드의 첫 아이템을 지정하므로, 중간에 OpenAI #1이 있어도 Edit Fields의 원본 '톤'을 가져옵니다.",
+          "an": "2교시 2-2 Step 4 · 💡"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "실습 2 Edit Fields의 '목표글자수'는 Type을 Number로 선택한다.",
+          "a": true,
+          "h": "숫자로 계산에 쓰이는 값입니다.",
+          "w": "맞습니다. 목표글자수만 Number이고 나머지 필드는 String입니다.",
+          "an": "2교시 2-2 Step 2-3"
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "본문 작성 OpenAI #2는 SEO 메타(0.6)보다 Temperature를 낮게 둔다.",
+          "a": false,
+          "h": "본문은 '더 창의적으로' 써야 합니다.",
+          "w": "틀렸습니다. 본문은 0.8로 더 높게 두고 Maximum Tokens 3000을 추가합니다.",
+          "an": "2교시 2-2 Step 4-5"
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "피해야 할 표현과 대체 표현을 연결하세요.",
+          "pairs": [
+            [
+              "짧은 다리",
+              "다리 라인을 보완하고 싶은 분"
+            ],
+            [
+              "이건 무조건 사야 해요",
+              "이런 스타일을 좋아하신다면 추천"
+            ],
+            [
+              "바이어스 컷 실루엣",
+              "몸에 자연스럽게 흐르는 컷"
+            ],
+            [
+              "이모지 5개+ 연속",
+              "섹션당 2~3개"
+            ]
+          ],
+          "h": "부정적 표현 · 강요 · 전문용어 · 과한 이모지",
+          "w": "체형은 긍정적으로, 구매는 권유형으로, 전문용어는 쉬운 말로, 이모지는 절제해서 씁니다.",
+          "an": "2교시 2-1 · 피해야 할 것 표"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "실습 2 워크플로우를 순서대로 정렬하세요.",
+          "steps": [
+            "Manual Trigger",
+            "Edit Fields (패션 주제 입력)",
+            "OpenAI #1 (SEO 메타·구조)",
+            "OpenAI #2 (본문 작성)",
+            "Code (품질 체크 + HTML)"
+          ],
+          "h": "입력 → 설계 → 본문 → 검사",
+          "w": "주제를 넣고 SEO 구조를 만든 뒤 본문을 쓰고, 마지막에 품질 체크와 HTML 변환을 합니다.",
+          "an": "2교시 2-2 · 워크플로우 구조"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "본문 System 프롬프트의 작성 규칙에 들어 있는 것을 <b>모두</b> 고르세요.",
+          "o": [
+            "가격대 3단계 구분",
+            "체형·상황별 조언",
+            "'오늘의 핵심 정리' 체크리스트",
+            "체형을 솔직하게 지적",
+            "추측성 정보 적극 활용"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "'피해야 할 것' 목록과 반대되는 보기를 걸러 내세요.",
+          "w": "가격대 3단계, 체형·상황별 조언, 핵심 정리 체크리스트가 규칙입니다. 체형 부정 표현과 추측성 정보는 피해야 할 것입니다.",
+          "an": "2교시 2-2 Step 4-3"
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "품질 체크 Code와 등급",
+      "ref": "2교시 Step 5~6",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "품질 등급 S(발행 추천)의 기준 점수는?",
+          "o": [
+            "80점 이상",
+            "70점 이상",
+            "90점 이상",
+            "100점만"
+          ],
+          "a": 2,
+          "h": "S → A → B 순으로 10점씩 내려갑니다.",
+          "w": "S 90+, A 80+, B 70+, C 70 미만입니다.",
+          "an": "2교시 Step 5-4 · 등급 체계"
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "품질 체크에서 글자수가 1500자 미만이면 몇 점 감점되나요?",
+          "o": [
+            "20점",
+            "10점",
+            "15점",
+            "5점"
+          ],
+          "a": 0,
+          "h": "기본 체크 중 가장 큰 감점입니다.",
+          "w": "charCount < 1500이면 20점, H2가 4개 미만이면 15점을 감점합니다.",
+          "an": "2교시 Step 5-3 · 점수 계산"
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "키워드 밀도가 몇 %를 넘으면 '키워드 남용'으로 감점되나요?",
+          "o": [
+            "0.5%",
+            "1%",
+            "5%",
+            "3%"
+          ],
+          "a": 3,
+          "h": "너무 낮아도(0.5% 미만), 너무 높아도 감점입니다.",
+          "w": "밀도 0.5% 미만은 '낮음', 3% 초과는 '남용'으로 각각 10점 감점합니다.",
+          "an": "2교시 Step 5-3"
+        },
+        {
+          "id": "t6-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "품질 체크 Code가 Markdown 본문을 HTML로 바꾸는 이유는?",
+          "o": [
+            "글자수를 줄이려고",
+            "WordPress에 바로 넣으려고",
+            "SEO 점수를 올리려고",
+            "이미지를 만들려고"
+          ],
+          "a": 1,
+          "h": "3교시에서 이 결과를 어디에 넣는지 떠올려 보세요.",
+          "w": "본문_HTML은 3교시 WordPress 노드의 Content에 그대로 들어갑니다.",
+          "an": "2교시 Step 5-4 · HTML 변환"
+        },
+        {
+          "id": "t6-05",
+          "ty": "num",
+          "lv": 3,
+          "game": false,
+          "p": "이슈가 '섹션 부족(H2 3개)'과 'CTA 없음' 두 가지뿐이라면 품질점수는 몇 점인가요?",
+          "a": 80,
+          "unit": "점",
+          "h": "계산식: 100 − 섹션 부족 감점 − CTA 없음 감점",
+          "w": "H2 4개 미만은 15점, CTA 없음은 5점 감점이므로 100 − 15 − 5 = 80점(A 등급)입니다.",
+          "an": "2교시 Step 5-3 · 점수 계산"
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "품질점수가 70점 이상이면 '통과'로 표시된다.",
+          "a": true,
+          "h": "통과여부 필드의 조건을 떠올려 보세요.",
+          "w": "맞습니다. score >= 70이면 '✅ 통과', 아니면 '❌ 재작성 필요'입니다.",
+          "an": "2교시 Step 5-3 · 통과여부"
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "이모지가 하나도 없어도 패션 블로그 품질 체크에서는 감점이 없다.",
+          "a": false,
+          "h": "이모지 0개와 20개 초과 모두 체크합니다.",
+          "w": "틀렸습니다. 이모지 0개면 '패션 블로그 권장'에 따라 5점 감점, 20개 초과도 5점 감점입니다.",
+          "an": "2교시 Step 5-3"
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "등급과 의미를 연결하세요.",
+          "pairs": [
+            [
+              "S",
+              "발행 추천"
+            ],
+            [
+              "A",
+              "소폭 수정 후 발행"
+            ],
+            [
+              "B",
+              "수정 필요"
+            ],
+            [
+              "C",
+              "재작성 필요"
+            ]
+          ],
+          "h": "점수가 높을수록 발행에 가깝습니다.",
+          "w": "S 발행 추천 · A 소폭 수정 후 발행 · B 수정 필요 · C 재작성 필요입니다.",
+          "an": "2교시 Step 5-3 · 등급 판정"
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "품질 등급을 높은 것부터 정렬하세요.",
+          "steps": [
+            "S (90점 이상)",
+            "A (80점 이상)",
+            "B (70점 이상)",
+            "C (70점 미만)"
+          ],
+          "h": "10점 단위로 내려갑니다.",
+          "w": "S → A → B → C 순서이며, B 이상이면 70점 이상으로 통과입니다.",
+          "an": "2교시 Step 5-4"
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "'패션 블로그 특화' 체크 항목을 <b>모두</b> 고르세요.",
+          "o": [
+            "가격대 언급",
+            "스타일링 팁 수",
+            "체형/상황별 팁",
+            "이미지 해상도",
+            "발행 시간대"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "본문 텍스트만으로 셀 수 있는 항목입니다.",
+          "w": "가격대·스타일링 팁·체형/상황별 팁·이모지·CTA·체크리스트가 특화 체크입니다. 이미지나 발행 시간은 보지 않습니다.",
+          "an": "2교시 Step 5-3 · 패션 블로그 특화 체크"
+        }
+      ]
+    },
+    {
+      "id": "t7",
+      "title": "룩북 이미지와 Application Password",
+      "ref": "3교시 3-1~3-2",
+      "qs": [
+        {
+          "id": "t7-01",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "카테고리 '쇼핑가이드'의 이미지 구도는?",
+          "o": [
+            "길거리 포토",
+            "flat lay (위에서 내려다보기)",
+            "무드보드 콜라주",
+            "인물 전신 에디토리얼"
+          ],
+          "a": 1,
+          "h": "아이템을 바닥에 펼쳐 놓고 찍는 방식입니다.",
+          "w": "쇼핑가이드는 아이템을 펼친 flat lay, 스타일링은 길거리, 트렌드는 무드보드, 리뷰는 제품 스튜디오, 룩북은 인물 전신입니다.",
+          "an": "3교시 3-1 · 💡 카테고리별 구도"
+        },
+        {
+          "id": "t7-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "이미지 프롬프트에 'NO text'를 넣는 이유는?",
+          "o": [
+            "파일 크기를 줄이려고",
+            "저작권 표시를 넣으려고",
+            "생성 속도를 높이려고",
+            "이미지 속 한글이 깨지지 않게"
+          ],
+          "a": 3,
+          "h": "이미지 AI는 글자를 잘 못 그립니다.",
+          "w": "이미지 안에 한글이 깨져 나오지 않도록 'NO text'를 반드시 넣습니다.",
+          "an": "3교시 3-1 · 💡 프롬프트 최적화 팁"
+        },
+        {
+          "id": "t7-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "이미지를 만드는 Google Gemini 노드의 Operation은?",
+          "o": [
+            "Generate an Image",
+            "Analyze",
+            "Message a model",
+            "Upload a File"
+          ],
+          "a": 0,
+          "h": "'Analyze'가 아닌 것을 찾으라고 했습니다.",
+          "w": "Resource Image, Operation 'Generate an Image', 모델 gemini-2.5-flash-image로 설정합니다.",
+          "an": "3교시 3-1 Step 3"
+        },
+        {
+          "id": "t7-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "로컬 HTTP에서 Application Password를 켜려면 wp-config.php에 무엇을 추가하나요?",
+          "o": [
+            "DB 비밀번호",
+            "HTTPS 인증서",
+            "application passwords 필터",
+            "새 관리자 계정"
+          ],
+          "a": 2,
+          "h": "add_filter( ... '__return_true' ) 한 줄입니다.",
+          "w": "WordPress는 기본적으로 HTTPS에서만 활성화되므로 <code>add_filter( 'wp_is_application_passwords_available', '__return_true' );</code>를 추가합니다.",
+          "an": "3교시 3-2 Step 1"
+        },
+        {
+          "id": "t7-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "n8n WordPress Credential의 Password 칸에 넣는 것은?",
+          "o": [
+            "WordPress 로그인 비밀번호",
+            "Application Password",
+            "OpenAI API 키",
+            "DB 비밀번호"
+          ],
+          "a": 1,
+          "h": "표의 '주의' 열: 일반 로그인 비밀번호 아님!",
+          "w": "프로필에서 만든 Application Password를 넣습니다. URL은 http://wordpress입니다.",
+          "an": "3교시 3-2 Step 3"
+        },
+        {
+          "id": "t7-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "이미지 AI에는 한국어보다 영어 프롬프트가 더 잘 작동한다.",
+          "a": true,
+          "h": "카테고리별 프롬프트가 어떤 언어로 쓰였는지 보세요.",
+          "w": "맞습니다. 그래서 이미지 프롬프트는 영어로 쓰고, 주제만 끼워 넣습니다.",
+          "an": "3교시 3-1 · 💡 팁"
+        },
+        {
+          "id": "t7-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Application Password가 유출되면 계정 비밀번호 전체를 바꾸는 수밖에 없다.",
+          "a": false,
+          "h": "'왜 필요한가' 설명을 떠올려 보세요.",
+          "w": "틀렸습니다. Application Password는 API 전용이라 유출돼도 해당 비밀번호만 개별 폐기할 수 있습니다.",
+          "an": "3교시 3-2 · 🎯 왜 필요한가"
+        },
+        {
+          "id": "t7-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "카테고리와 이미지 구도를 연결하세요.",
+          "pairs": [
+            [
+              "스타일링",
+              "길거리 포토"
+            ],
+            [
+              "트렌드",
+              "무드보드 콜라주"
+            ],
+            [
+              "리뷰",
+              "제품 스튜디오 샷"
+            ],
+            [
+              "룩북",
+              "인물 전신 에디토리얼"
+            ]
+          ],
+          "h": "글의 성격에 맞는 사진을 떠올려 보세요.",
+          "w": "카테고리마다 구도가 다르게 자동 선택되도록 Code_이미지프롬프트에 프롬프트를 나눠 두었습니다.",
+          "an": "3교시 3-1 · 💡 카테고리별 구도"
+        },
+        {
+          "id": "t7-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "wp-config.php를 수정하는 순서를 맞추세요.",
+          "steps": [
+            "WordPress 컨테이너 접속",
+            "nano 에디터 설치",
+            "wp-config.php 열기",
+            "'행복한 배포' 줄 위에 필터 추가",
+            "저장 후 wordpress 재시작"
+          ],
+          "h": "접속 → 도구 → 열기 → 수정 → 재시작",
+          "w": "<code>docker exec -it fashion_wordpress bash</code> → nano 설치 → 편집 → 필터 추가 → <code>docker compose restart wordpress</code> 순서입니다.",
+          "an": "3교시 3-2 Step 1"
+        },
+        {
+          "id": "t7-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "WordPress Credential 연결 실패 시 확인할 것을 <b>모두</b> 고르세요.",
+          "o": [
+            "URL이 http://wordpress인가",
+            "Username이 정확한가",
+            "Application Password인가",
+            "Gemini 키가 맞는가",
+            "Temperature가 0.7인가"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "WordPress 연결에 쓰이는 값만 고르세요.",
+          "w": "URL, Username, Application Password, 그리고 필터 추가 후 재시작 여부를 확인합니다. Gemini 키나 Temperature는 무관합니다.",
+          "an": "3교시 3-2 Step 3 · ❌ 연결 실패 시"
+        }
+      ]
+    },
+    {
+      "id": "t8",
+      "title": "초안 저장과 이미지 반영",
+      "ref": "3교시 3-3~3-4",
+      "qs": [
+        {
+          "id": "t8-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "WordPress 노드로 글을 저장할 때 Status 값은?",
+          "o": [
+            "publish",
+            "draft",
+            "private",
+            "pending"
+          ],
+          "a": 1,
+          "h": "AI 글은 바로 발행하지 않습니다.",
+          "w": "Status를 draft(초안)로 두고, 사람이 검토한 뒤 발행합니다.",
+          "an": "3교시 3-3 Step 2"
+        },
+        {
+          "id": "t8-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "n8n 기본 WordPress 노드로 이미지를 올릴 수 없는 이유는?",
+          "o": [
+            "이미지 용량 제한 때문에",
+            "Gemini가 PNG를 못 만들어서",
+            "Docker가 막아서",
+            "Post·Page·User만 지원해서"
+          ],
+          "a": 3,
+          "h": "Media 엔드포인트를 지원하는지 생각해 보세요.",
+          "w": "기본 WordPress 노드는 Post·Page·User만 지원하므로 /wp-json/wp/v2/media를 HTTP Request로 직접 호출합니다.",
+          "an": "3교시 3-4 · 📌 왜 별도 작업이 필요한가"
+        },
+        {
+          "id": "t8-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "이미지 업로드용 HTTP Request의 Body Content Type은?",
+          "o": [
+            "n8n Binary File",
+            "JSON",
+            "Form URLencoded",
+            "Raw Text"
+          ],
+          "a": 0,
+          "h": "이미지 '바이너리'를 그대로 보내야 합니다.",
+          "w": "Body Content Type을 n8n Binary File로, Input Data Field Name을 data로 둬야 이미지가 전송됩니다.",
+          "an": "3교시 3-4 Step 1-5"
+        },
+        {
+          "id": "t8-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "미디어 업로드 응답에서 글의 대표 이미지로 연결하는 필드는?",
+          "o": [
+            "source_url",
+            "slug",
+            "id",
+            "mime_type"
+          ],
+          "a": 2,
+          "h": "숫자 번호입니다.",
+          "w": "id는 Featured Media로, source_url은 본문 이미지 주소로 씁니다.",
+          "an": "3교시 3-4 Step 1-7 · 핵심 필드"
+        },
+        {
+          "id": "t8-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "업로드 시 'rest_upload_sideload_error'가 나는 원인은?",
+          "o": [
+            "Application Password 오타",
+            "Content-Type과 실제 형식 불일치",
+            "카테고리 ID 불일치",
+            "Temperature 과다"
+          ],
+          "a": 1,
+          "h": "헤더의 image/png와 실제 파일을 비교해 보세요.",
+          "w": "Content-Type 헤더와 실제 바이너리 형식이 다를 때 납니다. Gemini Output Binary 탭의 mimeType을 확인해 맞춥니다.",
+          "an": "3교시 체크포인트 · 문제 6"
+        },
+        {
+          "id": "t8-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "이미 만든 'My WordPress' Credential을 HTTP Request의 Basic Auth로 재사용할 수 있다.",
+          "a": false,
+          "h": "WordPress 노드 전용 Credential입니다.",
+          "w": "틀렸습니다. HTTP Request용으로 Basic Auth Credential(My WordPress Basic Auth)을 따로 만들어야 합니다.",
+          "an": "3교시 3-4 Step 1-3 · 💡"
+        },
+        {
+          "id": "t8-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "대표 이미지(Featured Media)는 본문 이미지와 별도로 지정해야 한다.",
+          "a": true,
+          "h": "글 목록 썸네일에 쓰이는 이미지입니다.",
+          "w": "맞습니다. 본문 img와 별개로 WordPress 노드의 Featured Media ID 필드에 미디어 ID를 넣습니다.",
+          "an": "3교시 3-4 Step 3-2 · Q3-3"
+        },
+        {
+          "id": "t8-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "업로드 응답 필드와 쓰임을 연결하세요.",
+          "pairs": [
+            [
+              "id",
+              "Featured Media ID"
+            ],
+            [
+              "source_url",
+              "본문 img 태그의 주소"
+            ],
+            [
+              "slug",
+              "미디어 파일명"
+            ]
+          ],
+          "h": "번호 · 주소 · 이름",
+          "w": "Code_미디어병합에서 id는 미디어ID, source_url은 미디어URL, slug는 미디어파일명으로 넘깁니다.",
+          "an": "3교시 3-4 Step 2-3"
+        },
+        {
+          "id": "t8-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "3교시 최종 워크플로우의 후반부 순서를 맞추세요.",
+          "steps": [
+            "Google Gemini (이미지 생성)",
+            "HTTP Request (Media 업로드)",
+            "Code_미디어병합 (img 삽입)",
+            "WordPress (Post + Featured Media)",
+            "Code_최종보고"
+          ],
+          "h": "만들기 → 올리기 → 끼우기 → 저장 → 보고",
+          "w": "이미지를 만들고, 미디어 라이브러리에 올린 뒤, 본문에 넣고 글을 저장하고, 최종 보고를 출력합니다.",
+          "an": "3교시 3-4 · 최종 워크플로우 구조"
+        },
+        {
+          "id": "t8-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "Code_미디어병합이 하는 일을 <b>모두</b> 고르세요.",
+          "o": [
+            "업로드 실패 시 에러 반환",
+            "H1 뒤에 figure 이미지 삽입",
+            "미디어ID를 다음 노드로 전달",
+            "이미지를 새로 생성",
+            "글을 바로 발행"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "이 노드는 '병합'만 합니다.",
+          "w": "업로드 실패를 막고, H1 뒤에 이미지 블록을 넣고, 미디어ID·URL을 WordPress 노드로 넘깁니다. 이미지 생성과 저장은 다른 노드가 합니다.",
+          "an": "3교시 3-4 Step 2-4"
+        }
+      ]
+    },
+    {
+      "id": "t9",
+      "title": "올인원 파이프라인과 스케줄",
+      "ref": "4교시 4-1~4-2",
+      "qs": [
+        {
+          "id": "t9-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "실습 4에서 Edit Fields에 남기는 입력 필드는?",
+          "o": [
+            "주제",
+            "카테고리",
+            "키워드",
+            "목표글자수"
+          ],
+          "a": 1,
+          "h": "나머지는 AI가 자동으로 만듭니다.",
+          "w": "카테고리 하나만 남기고, 주제·키워드 등은 아이디어 생성 단계에서 자동으로 정해집니다.",
+          "an": "4교시 4-1 Step 2"
+        },
+        {
+          "id": "t9-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "품질 게이트로 쓰는 노드와 조건은?",
+          "o": [
+            "IF: 글자수 ≥ 3000",
+            "Switch: 카테고리별",
+            "Code: 등급 S만",
+            "IF: 품질점수 ≥ 70"
+          ],
+          "a": 3,
+          "h": "B 등급 이상이면 통과입니다.",
+          "w": "IF_품질게이트는 <code>{{ $json.품질점수 }}</code>가 70 이상(larger or equal)인지 검사합니다.",
+          "an": "4교시 4-1 Step 7"
+        },
+        {
+          "id": "t9-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Code_아이디어선택이 5개 아이디어 중 하나를 고르는 기준은?",
+          "o": [
+            "예상인기도가 가장 높은 것",
+            "제목이 가장 긴 것",
+            "첫 번째 아이디어",
+            "무작위 선택"
+          ],
+          "a": 0,
+          "h": "실습 1의 정렬 기준과 같습니다.",
+          "w": "예상인기도로 정렬한 뒤 첫 번째(최고) 아이디어를 고르고, 나머지는 후보아이디어로 보관합니다.",
+          "an": "4교시 4-1 Step 5"
+        },
+        {
+          "id": "t9-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "요일별 로테이션 Code가 주말에 반환하는 값과 효과는?",
+          "o": [
+            "'트렌드' → 정상 실행",
+            "null → 오류 발생",
+            "빈 배열 → 워크플로우 중단",
+            "'룩북' → 정상 실행"
+          ],
+          "a": 2,
+          "h": "dayMap에 0(일)과 6(토)이 없습니다.",
+          "w": "주말에는 <code>return []</code>로 빈 배열을 반환해 워크플로우가 자연스럽게 멈춥니다.",
+          "an": "4교시 4-2 Step 2"
+        },
+        {
+          "id": "t9-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Schedule Trigger가 실제로 매일 실행되게 하려면?",
+          "o": [
+            "Execute step을 누른다",
+            "워크플로우를 Active(Publish)로",
+            "Save만 한다",
+            "Credential을 새로 만든다"
+          ],
+          "a": 1,
+          "h": "1교시의 Save vs Publish를 떠올려 보세요.",
+          "w": "Inactive 토글을 Active(Publish)로 바꾸고, Docker 컨테이너가 계속 실행 중이어야 합니다.",
+          "an": "4교시 4-2 Step 3"
+        },
+        {
+          "id": "t9-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "PC가 꺼져 있어도 Docker의 Schedule Trigger는 계속 실행된다.",
+          "a": false,
+          "h": "Docker는 내 PC 안에서 돌아갑니다.",
+          "w": "틀렸습니다. PC가 꺼지면 Schedule도 멈춥니다. 24시간 운영은 VPS(클라우드 서버)로 옮겨야 합니다.",
+          "an": "4교시 4-2 · ⚠️ 중요"
+        },
+        {
+          "id": "t9-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "품질점수가 70점 미만이면 FALSE 분기에서 '재작성 필요' 로그를 남긴다.",
+          "a": true,
+          "h": "IF 노드의 두 출력을 떠올려 보세요.",
+          "w": "맞습니다. FALSE 분기의 Code_재작성필요가 주제·점수·이슈·권장조치를 기록합니다.",
+          "an": "4교시 4-1 Step 9"
+        },
+        {
+          "id": "t9-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "요일과 자동 선택되는 카테고리를 연결하세요.",
+          "pairs": [
+            [
+              "월",
+              "트렌드"
+            ],
+            [
+              "화",
+              "스타일링"
+            ],
+            [
+              "수",
+              "리뷰"
+            ],
+            [
+              "목",
+              "쇼핑가이드"
+            ],
+            [
+              "금",
+              "룩북"
+            ]
+          ],
+          "h": "사전 준비에서 만든 카테고리 순서와 같습니다.",
+          "w": "dayMap은 월 트렌드 · 화 스타일링 · 수 리뷰 · 목 쇼핑가이드 · 금 룩북입니다.",
+          "an": "4교시 4-2 Step 2"
+        },
+        {
+          "id": "t9-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "실습 4 파이프라인 앞부분을 순서대로 정렬하세요.",
+          "steps": [
+            "Edit Fields (카테고리)",
+            "Code_시즌판별",
+            "OpenAI (아이디어 5개)",
+            "Code_아이디어선택",
+            "OpenAI (SEO 구조)"
+          ],
+          "h": "입력 → 시즌 → 아이디어 → 선택 → 구조",
+          "w": "카테고리를 받아 시즌을 판별하고, 아이디어 5개 중 최고 1개를 골라 SEO 구조를 만듭니다.",
+          "an": "4교시 4-1 · 완성 워크플로우 구조"
+        },
+        {
+          "id": "t9-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "Code_시즌판별이 출력하는 정보를 <b>모두</b> 고르세요.",
+          "o": [
+            "시즌",
+            "시즌키워드",
+            "시즌이벤트",
+            "품질점수",
+            "대표이미지 URL"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "아직 글도 이미지도 만들기 전 단계입니다.",
+          "w": "카테고리·시즌·시즌키워드·시즌이벤트·생성일시를 출력합니다. 품질점수와 이미지는 이후 단계에서 생깁니다.",
+          "an": "4교시 4-1 Step 3"
+        }
+      ]
+    },
+    {
+      "id": "t10",
+      "title": "운영 노하우와 핵심 정리",
+      "ref": "4교시 4-3 · 핵심 정리 · 치트시트",
+      "qs": [
+        {
+          "id": "t10-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "패션 블로그 운영 5계명의 1번은?",
+          "o": [
+            "매일 3개 발행",
+            "Draft 저장 필수",
+            "이미지는 실사만",
+            "SEO는 수동 체크"
+          ],
+          "a": 1,
+          "h": "AI 글을 바로 발행하지 않는다는 원칙입니다.",
+          "w": "1. Draft 저장 필수 · 2. E-E-A-T · 3. 시즌 타이밍 · 4. 다양한 체형 표현 · 5. API 비용 감시입니다.",
+          "an": "4교시 4-3 · 운영 5계명"
+        },
+        {
+          "id": "t10-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "검색 유입을 극대화하려면 시즌 글을 언제 발행해야 하나요?",
+          "o": [
+            "시즌 시작 당일",
+            "시즌 중간",
+            "시즌이 끝난 직후",
+            "시즌 시작 1~2개월 전"
+          ],
+          "a": 3,
+          "h": "사람들은 미리 검색합니다.",
+          "w": "시즌 시작 1~2개월 전에 발행해야 검색 유입이 극대화됩니다.",
+          "an": "4교시 4-3 · 운영 5계명 3"
+        },
+        {
+          "id": "t10-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "월 20~30개 글 기준 예상 총비용은?",
+          "o": [
+            "월 $5~8",
+            "월 $50~80",
+            "완전 무료",
+            "월 $200"
+          ],
+          "a": 0,
+          "h": "Docker·n8n·WordPress는 무료, Gemini는 무료 티어입니다.",
+          "w": "OpenAI 비용 약 $5~8만 듭니다. 대신 월 60~100시간을 절감합니다.",
+          "an": "4교시 4-3 · 💰 예상 비용"
+        },
+        {
+          "id": "t10-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "모든 데이터를 지우므로 절대 치면 안 되는 명령은?",
+          "o": [
+            "docker compose down",
+            "docker compose stop",
+            "docker compose down -v",
+            "docker compose restart"
+          ],
+          "a": 2,
+          "h": "-v는 볼륨(데이터)까지 지웁니다.",
+          "w": "<code>docker compose down -v</code>는 볼륨까지 삭제합니다. down·stop은 데이터를 유지합니다.",
+          "an": "Docker 기본 명령어 치트시트"
+        },
+        {
+          "id": "t10-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "핵심 정리에서 OpenAI 응답 텍스트를 가리키는 Expression은?",
+          "o": [
+            "{{ $json.text }}",
+            "{{ $json.message.content }}",
+            "{{ $json.content[0].text }}",
+            "{{ $now.toFormat() }}"
+          ],
+          "a": 1,
+          "h": "Gemini·Claude 응답 형식과 구분해 보세요.",
+          "w": "OpenAI는 <code>$json.message.content</code>, Gemini는 <code>$json.text</code>, Claude는 <code>$json.content[0].text</code>입니다.",
+          "an": "4시간 학습 핵심 정리 · 핵심 Expression"
+        },
+        {
+          "id": "t10-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "워크플로우를 JSON으로 내보내려면 ⋮ 메뉴의 Download를 누른다.",
+          "a": true,
+          "h": "교육 산출물 절의 내보내기 방법입니다.",
+          "w": "맞습니다. 가져올 때는 Create Workflow 드롭다운의 'Import from File'을 씁니다.",
+          "an": "교육 산출물 · 워크플로우 내보내기"
+        },
+        {
+          "id": "t10-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Gemini 이미지가 상업 사용 가능하니, 실제 브랜드 제품 사진도 허가 없이 쓸 수 있다.",
+          "a": false,
+          "h": "FAQ Q3의 '단,' 뒤 문장을 보세요.",
+          "w": "틀렸습니다. Gemini 생성 이미지는 상업 사용이 가능하지만, 실제 브랜드 제품 사진은 별도 허가가 필요합니다.",
+          "an": "자주 묻는 질문 Q3"
+        },
+        {
+          "id": "t10-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "운영 주기와 할 일을 연결하세요.",
+          "pairs": [
+            [
+              "매일",
+              "초안 검토 후 발행"
+            ],
+            [
+              "주간",
+              "트렌드 키워드 업데이트"
+            ],
+            [
+              "월간",
+              "API 비용 확인"
+            ]
+          ],
+          "h": "짧은 주기일수록 일상 업무입니다.",
+          "w": "매일 초안 검토·에러 확인, 주간 키워드·경쟁 블로그 분석, 월간 API 비용·Docker 업그레이드입니다.",
+          "an": "4교시 4-3 · 운영 체크리스트"
+        },
+        {
+          "id": "t10-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "자동 생성된 초안을 발행하기까지의 순서를 맞추세요.",
+          "steps": [
+            "검토 URL로 내용 확인",
+            "본인 실착 경험 1~2단락 추가",
+            "AI 이미지 적절성 확인",
+            "발행 버튼 클릭"
+          ],
+          "h": "확인 → 보강 → 이미지 → 발행",
+          "w": "최종 보고의 '다음단계' 순서입니다. 사람의 경험을 더해야 E-E-A-T를 충족합니다.",
+          "an": "3교시 3-3 Step 4 · 다음단계"
+        },
+        {
+          "id": "t10-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "'핵심 개념 Top 5'에 들어 있는 것을 <b>모두</b> 고르세요.",
+          "o": [
+            "Docker 내부 통신",
+            "Expression",
+            "Credential",
+            "RSS 트렌드 수집",
+            "MCP 연동"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "RSS·MCP는 후속 과정(6·8시간) 내용입니다.",
+          "w": "Top 5는 Docker 내부 통신 · Expression · Code 노드 · IF 노드 · Credential입니다. RSS·MCP는 다음 단계 학습입니다.",
+          "an": "4시간 학습 핵심 정리 · 핵심 개념 Top 5"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,551 @@
+{
+  "id": "ov-bench",
+  "code": "BM",
+  "title": "CPU · GPU · NPU 속도 비교",
+  "subtitle": "디바이스 특성과 드라이버 · benchmark_app 측정 · Throughput·Latency 해석",
+  "course": "06-ai-openVino",
+  "source": "06-ai-openVino/CPU_GPU_NPU_속도비교_가이드.pdf",
+  "salt": "ov-bench",
+  "version": 1,
+  "updated": "2026-10-15",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "디바이스 이해와 드라이버 준비",
+      "ref": "01–03 (p.3–8)",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "별도 드라이버 없이 항상 쓸 수 있는 OpenVINO의 기본 디바이스는?",
+          "o": [
+            "GPU",
+            "NPU",
+            "CPU",
+            "TPU"
+          ],
+          "a": 2,
+          "h": "비교표 '비고' 열에 '기본값'이라고 적힌 장치입니다.",
+          "w": "CPU는 어떤 모델이든 실행할 수 있고 별도 드라이버 없이 항상 사용 가능한 기본값입니다.",
+          "an": "01 · CPU·GPU·NPU 비교표 (p.3)"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "저전력 AI 추론에 특화된 전용 연산 장치는?",
+          "o": [
+            "NPU",
+            "CPU",
+            "GPU",
+            "SSD"
+          ],
+          "a": 0,
+          "h": "Neural Processing Unit의 약자입니다.",
+          "w": "NPU는 저전력 AI 추론에 특화된 장치로, 최신 Intel Core Ultra 등 일부 기종에만 탑재됩니다.",
+          "an": "01 · CPU·GPU·NPU 비교표 (p.3)"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "실시간 서비스에서 디바이스를 고를 때 가장 중요하게 보는 지표는?",
+          "o": [
+            "처리량",
+            "지연시간",
+            "디스크 용량",
+            "모델 파일 크기"
+          ],
+          "a": 1,
+          "h": "요청 하나에 걸리는 시간입니다.",
+          "w": "실시간 서비스는 지연시간(Latency)이 짧은 디바이스가 유리합니다. 대량 처리는 처리량(Throughput)을 봅니다.",
+          "an": "01 · 왜 디바이스별 속도를 비교해야 하나 (p.4)"
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "GPU 드라이버 설치 후 현재 사용자를 추가하는 그룹은?",
+          "o": [
+            "sudo",
+            "video",
+            "docker",
+            "render"
+          ],
+          "a": 3,
+          "h": "usermod -aG ○○○○○ $USER",
+          "w": "sudo usermod -aG render $USER 로 render 그룹에 추가하며, 로그아웃 후 다시 로그인해야 적용됩니다.",
+          "an": "02 · GPU 드라이버 설치 (p.6)"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "NPU 드라이버(.deb 세 개)를 내려받는 곳은?",
+          "o": [
+            "PyPI의 openvino 패키지",
+            "linux-npu-driver Releases",
+            "VS Code 확장 마켓",
+            "deadsnakes PPA"
+          ],
+          "a": 1,
+          "h": "github.com/intel/○○○○○-npu-driver",
+          "w": "github.com/intel/linux-npu-driver 의 Releases 페이지에서 compiler / fw / level-zero 세 파일을 내려받아 설치합니다.",
+          "an": "02 · NPU 드라이버 설치 (p.7)"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "GPU 사용을 위해 render 그룹에 추가한 뒤에는 로그아웃 후 다시 로그인해야 적용된다.",
+          "a": true,
+          "h": "NOTE 상자를 떠올려 보세요.",
+          "w": "맞습니다. 그룹 변경은 로그아웃 후 다시 로그인해야 적용됩니다.",
+          "an": "02 · GPU 드라이버 설치 NOTE (p.6)"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "NPU가 없는 시스템에서는 NPU 드라이버 설치 단계를 건너뛰어도 된다.",
+          "a": true,
+          "h": "NPU는 일부 최신 프로세서에만 탑재됩니다.",
+          "w": "맞습니다. NPU가 없는 시스템이라면 이 단계는 건너뛰어도 됩니다.",
+          "an": "02 · NPU 드라이버 설치 NOTE (p.7)"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "OS에서 하드웨어를 확인하는 명령과 용도를 연결하세요.",
+          "pairs": [
+            [
+              "lscpu | grep \"Model name\"",
+              "CPU 모델명 확인"
+            ],
+            [
+              "lspci | grep -i vga",
+              "내장·외장 그래픽 확인"
+            ],
+            [
+              "lspci | grep -i \"neural\\|npu\"",
+              "NPU 장치 확인"
+            ]
+          ],
+          "h": "lscpu는 CPU, lspci는 PCI 장치(그래픽·NPU)입니다.",
+          "w": "lscpu | grep \"Model name\"은 CPU 모델명, lspci | grep -i vga는 그래픽 장치, lspci | grep -i \"neural\\|npu\"는 NPU 장치 확인입니다.",
+          "an": "03 · OS 차원에서 먼저 확인하기 (p.8)"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "속도 비교 가이드의 전체 진행 순서를 맞추세요.",
+          "steps": [
+            "CPU·GPU·NPU 차이 이해",
+            "GPU·NPU 드라이버 준비",
+            "OpenVINO로 디바이스 확인",
+            "benchmark_app으로 속도 측정",
+            "Throughput·Latency 결과 해석"
+          ],
+          "h": "이해 → 준비 → 확인 → 측정 → 해석",
+          "w": "디바이스 개념 이해 → 드라이버 준비 → OpenVINO로 디바이스 확인 → 속도 측정 → 결과 해석 순서입니다.",
+          "an": "목차 (p.2)"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "디바이스별 속도를 직접 비교해야 하는 관점으로 제시된 것을 <b>모두</b> 고르세요.",
+          "o": [
+            "응답 속도",
+            "처리량",
+            "전력·발열",
+            "가용성",
+            "모니터 해상도"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "p.4의 네 상자입니다.",
+          "w": "응답 속도(Latency), 처리량(Throughput), 전력·발열, 가용성(CPU는 항상 대안) 네 가지 관점이 제시됩니다.",
+          "an": "01 · 왜 디바이스별 속도를 비교해야 하나 (p.4)"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "디바이스 확인과 benchmark_app 측정",
+      "ref": "04–06 (p.9–16)",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "각 디바이스의 실제 제품명을 확인할 때 <code>core.get_property()</code>에 넘기는 속성 이름은?",
+          "o": [
+            "DEVICE_ID",
+            "FULL_DEVICE_NAME",
+            "MODEL_NAME",
+            "CPU_INFO"
+          ],
+          "a": 1,
+          "h": "'전체 장치 이름'이라는 뜻의 대문자 속성입니다.",
+          "w": "core.get_property(device, \"FULL_DEVICE_NAME\")으로 'CPU: 13th Gen Intel(R) Core(TM) i7-1360P'처럼 제품명을 확인합니다.",
+          "an": "04 · 디바이스 상세 이름 확인하기 (p.10)"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "비교용 모델을 OpenVINO IR로 내보낼 때 설치하는 라이브러리는?",
+          "o": [
+            "ultralytics",
+            "opencv-python",
+            "torchvision",
+            "onnxruntime"
+          ],
+          "a": 0,
+          "h": "YOLO 모델을 제공하는 라이브러리입니다.",
+          "w": "pip install ultralytics 후 YOLO('yolo26n.pt').export(format='openvino')로 IR 모델을 만듭니다.",
+          "an": "05 · 비교용 모델 준비하기 (p.12)"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "YOLO 모델을 OpenVINO로 내보내면 생기는 IR 모델 파일 형태는?",
+          "o": [
+            ".pt / .pth",
+            ".onnx / .json",
+            ".h5 / .pb",
+            ".xml / .bin"
+          ],
+          "a": 3,
+          "h": "모델 구조 파일과 가중치 파일 한 쌍입니다.",
+          "w": "yolo26n_openvino_model/ 폴더에 .xml/.bin 형태의 OpenVINO IR 모델이 생성됩니다.",
+          "an": "05 · 비교용 모델 준비하기 NOTE (p.12)"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>benchmark_app</code>에서 실행할 디바이스를 지정하는 옵션은?",
+          "o": [
+            "-m",
+            "-t",
+            "-d",
+            "-hint"
+          ],
+          "a": 2,
+          "h": "device의 첫 글자입니다.",
+          "w": "-d CPU / GPU / NPU 로 디바이스를 지정합니다. -m은 모델 경로, -t는 실행 시간입니다.",
+          "an": "06 · benchmark_app이란 (p.13)"
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "디바이스별 측정을 공정하게 비교하려면 어떻게 실행해야 하나요?",
+          "o": [
+            "디바이스마다 다른 모델 사용",
+            "같은 모델·옵션에서 디바이스만 변경",
+            "GPU만 throughput 힌트 사용",
+            "실행 시간을 매번 바꿈"
+          ],
+          "a": 1,
+          "h": "GPU 측정 NOTE의 '핵심'입니다.",
+          "w": "CPU 결과와 같은 모델·같은 옵션으로 디바이스만 바꿔서 실행하는 것이 핵심입니다.",
+          "an": "06 · GPU 측정 NOTE (p.15)"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>core.available_devices</code> 결과는 시스템에 따라 ['CPU'] 또는 ['CPU', 'GPU', 'NPU']처럼 다르게 나온다.",
+          "a": true,
+          "h": "check_devices.py의 주석 예시를 떠올려 보세요.",
+          "w": "맞습니다. 탑재된 하드웨어와 드라이버 상태에 따라 목록이 달라집니다.",
+          "an": "04 · 디바이스 목록 확인하기 (p.9)"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "NPU가 없거나 드라이버가 인식되지 않아도 <code>-d NPU</code> 벤치마크는 CPU로 대신 실행된다.",
+          "a": false,
+          "h": "NPU 측정 NOTE: 이 명령은 어떻게 되나요?",
+          "w": "틀렸습니다. NPU가 없거나 드라이버가 인식되지 않으면 이 명령은 오류를 냅니다. 먼저 available_devices에 NPU가 있는지 확인합니다.",
+          "an": "06 · NPU 측정 NOTE (p.16)"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "benchmark_app 옵션과 의미를 연결하세요.",
+          "pairs": [
+            [
+              "-m <경로>",
+              "벤치마크할 모델(.xml) 경로"
+            ],
+            [
+              "-d CPU / GPU / NPU",
+              "실행할 디바이스"
+            ],
+            [
+              "-hint latency",
+              "지연시간 최소화"
+            ],
+            [
+              "-hint throughput",
+              "처리량 최대화"
+            ],
+            [
+              "-t 10",
+              "실행 시간(초)"
+            ]
+          ],
+          "h": "m=model, d=device, t=time",
+          "w": "-m은 모델(.xml) 경로, -d는 디바이스, -hint latency는 지연 최소화, -hint throughput은 처리량 최대화, -t는 실행 시간(초)입니다.",
+          "an": "06 · benchmark_app이란 (p.13)"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "디바이스 확인부터 측정까지의 실습 순서를 맞추세요.",
+          "steps": [
+            "check_devices.py로 장치 목록 확인",
+            "ultralytics로 IR 모델 내보내기",
+            "benchmark_app -d CPU 측정",
+            "같은 옵션으로 -d GPU 측정",
+            "같은 옵션으로 -d NPU 측정"
+          ],
+          "h": "확인 → 모델 → 측정",
+          "w": "available_devices로 장치를 확인하고, 비교용 모델을 IR로 만든 뒤 benchmark_app으로 CPU·GPU·NPU를 차례로 측정합니다.",
+          "an": "04–06 (p.9–16)"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "GPU나 NPU가 장치 목록에 보이지 않을 때 흔한 원인을 <b>모두</b> 고르세요.",
+          "o": [
+            "드라이버 미설치",
+            "재로그인·재부팅 필요",
+            "모델이 FP32라서",
+            "가상환경 이름이 .venv라서"
+          ],
+          "a": [
+            0,
+            1
+          ],
+          "h": "TIP: 드라이버와 권한 적용입니다.",
+          "w": "드라이버가 설치되지 않았거나, 그룹 권한 적용을 위한 재로그인·재부팅이 필요한 경우가 많습니다.",
+          "an": "04 · 직접 해보기 TIP (p.11)"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "결과 해석과 실전 팁",
+      "ref": "07–09 (p.17–20)",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "1초에 몇 장(FPS)을 처리할 수 있는지를 나타내는 지표는?",
+          "o": [
+            "Throughput",
+            "Latency",
+            "Precision",
+            "Batch"
+          ],
+          "a": 0,
+          "h": "'처리량'의 영어 이름입니다.",
+          "w": "Throughput(처리량)은 1초에 처리하는 장수(FPS)로, 클수록 더 많이·빨리 처리합니다.",
+          "an": "07 · 결과 읽는 법 (p.17)"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "카메라 앱처럼 실시간 응답이 중요할 때 고를 <code>benchmark_app</code> 힌트는?",
+          "o": [
+            "-hint throughput",
+            "-t 10",
+            "-hint latency",
+            "-d CPU"
+          ],
+          "a": 2,
+          "h": "응답 속도 = 지연시간",
+          "w": "응답 속도가 중요하면 -hint latency, 대량 처리가 중요하면 -hint throughput을 씁니다.",
+          "an": "09 · 실전 팁 2 (p.19)"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "GPU·NPU가 특히 유리한 모델 정밀도는?",
+          "o": [
+            "FP64",
+            "FP32만",
+            "문자열",
+            "FP16·INT8"
+          ],
+          "a": 3,
+          "h": "실전 팁 1: 정밀도가 속도를 좌우합니다.",
+          "w": "FP32/FP16/INT8 중 GPU·NPU는 FP16·INT8에서 특히 유리합니다.",
+          "an": "09 · 실전 팁 1 (p.19)"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "첫 번째 측정값만 믿지 말고 여러 번 측정해 평균을 내라는 이유는?",
+          "o": [
+            "모델이 매번 바뀌어서",
+            "첫 실행에 컴파일 시간이 포함돼서",
+            "GPU가 첫 회만 꺼져 있어서",
+            "평균이 항상 더 작아서"
+          ],
+          "a": 1,
+          "h": "첫 실행에는 '컴파일' 과정이 끼어 있을 수 있습니다.",
+          "w": "첫 실행에는 컴파일 시간이 포함될 수 있으므로 두세 번 반복 측정해 평균을 보는 것이 정확합니다.",
+          "an": "09 · 실전 팁 4 (p.19)"
+        },
+        {
+          "id": "t3-05",
+          "ty": "num",
+          "lv": 2,
+          "game": false,
+          "p": "compare_devices.py는 디바이스마다 추론을 몇 번 반복해 걸린 시간을 재나요?",
+          "a": 50,
+          "unit": "회",
+          "h": "계산식: for _ in range(N) 의 N = 반복 횟수",
+          "w": "for _ in range(50)로 50회 반복 추론한 시간을 재고 '디바이스: ○초 / 50회'로 출력합니다. 한 번만 재면 편차가 커서 여러 번 반복합니다.",
+          "an": "08 · 파이썬 코드로 직접 시간 측정하기 (p.18)"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Latency(지연시간)는 숫자가 작을수록 사용자가 더 빠르게 결과를 받는다.",
+          "a": true,
+          "h": "Latency = 요청 하나의 처리 시간(ms)",
+          "w": "맞습니다. Latency는 요청 하나를 처리하는 시간이라 작을수록 빠릅니다.",
+          "an": "07 · 결과 읽는 법 (p.17)"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "CPU만 있는 시스템에서는 OpenVINO 속도 비교와 추론을 할 수 없다.",
+          "a": false,
+          "h": "마지막 페이지의 메시지를 떠올려 보세요.",
+          "w": "틀렸습니다. CPU만 있어도 전혀 문제없습니다. GPU·NPU는 있으면 더 빨라지는 선택지일 뿐입니다.",
+          "an": "마무리 (p.20)"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "상황과 우선해서 볼 지표·선택을 연결하세요.",
+          "pairs": [
+            [
+              "실시간 카메라 앱",
+              "Latency(지연시간)"
+            ],
+            [
+              "대량 이미지 일괄 처리",
+              "Throughput(처리량)"
+            ],
+            [
+              "노트북 배터리·발열",
+              "NPU 활용"
+            ],
+            [
+              "GPU·NPU가 없는 환경",
+              "CPU로 대체"
+            ]
+          ],
+          "h": "실시간 = 지연, 대량 = 처리량, 배터리 = NPU",
+          "w": "실시간 응답은 Latency, 대량 일괄 처리는 Throughput, 노트북 배터리·발열은 NPU 활용, 장치가 없을 때의 대안은 CPU입니다.",
+          "an": "01 · 왜 비교해야 하나 (p.4) · 09 · 실전 팁 (p.19)"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "compare_devices.py가 디바이스 하나를 측정하는 순서를 맞추세요.",
+          "steps": [
+            "core.read_model()로 모델 읽기",
+            "core.compile_model(model, device)",
+            "start = time.time() 기록",
+            "50회 반복 추론",
+            "경과 시간 출력"
+          ],
+          "h": "읽기 → 컴파일 → 시간 재기 → 출력",
+          "w": "모델을 읽고 디바이스별로 컴파일한 뒤, 시작 시각을 기록하고 50회 추론해 걸린 시간을 출력합니다.",
+          "an": "08 · 파이썬 코드로 직접 시간 측정하기 (p.18)"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "실전 팁으로 제시된 내용을 <b>모두</b> 고르세요.",
+          "o": [
+            "정밀도가 속도를 좌우",
+            "목적에 맞는 hint 선택",
+            "발열·배터리 고려",
+            "여러 번 측정해 평균",
+            "첫 측정값만 사용"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "p.19의 네 가지 팁입니다.",
+          "w": "정밀도가 속도를 좌우하고, 목적에 맞게 hint를 고르며, 발열·배터리를 고려하고, 여러 번 측정해 평균을 내라는 네 가지입니다.",
+          "an": "09 · 실전 팁 (p.19)"
+        }
+      ]
+    }
+  ]
+}

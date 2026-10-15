@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Physical AI · C++ 기초 · 메모리 · STL · CMake · 문제은행</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* Quiz Bank 디자인 토큰 v2
+   타이포 기준: AI_Voice day07 워크시트 (본문 15px / 행간 1.55, 요소 13~14px)
+   다크 팔레트: day07 워크시트(#0b1220 남색 + 앰버·틸 포인트) / 라이트: 같은 구조의 중립 팔레트
+   build.py가 이 파일을 엔진 <style> 맨 앞에 그대로 넣는다. */
+:root{
+  /* 타이포 */
+  --font:"Pretendard Variable","Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"JetBrains Mono","D2Coding",Consolas,"SF Mono",monospace;
+  --fs-base:15px;--lh:1.55;
+  --fs-h1:24px;--fs-h2:17px;--fs-q:15px;--fs-opt:14px;--fs-btn:13px;--fs-btn-pri:14px;
+  --fs-sm:13px;--fs-xs:12px;--fs-2xs:11px;--fs-ox:22px;
+  /* 형태 */
+  --r-sm:6px;--r:8px;--r-md:10px;--r-lg:12px;--maxw:880px;
+
+  /* 라이트 */
+  --bg:#F5F6F8;--panel:#FFFFFF;--raised:#FFFFFF;--field:#FFFFFF;
+  --ink:#141A26;--muted:#5A6375;--faint:#8A93A4;--line:#E2E6EC;--line-2:#CDD3DC;--soft:#F0F2F5;
+  --title:#141A26;--link:#0E8C80;--accent:#B7791F;
+  --ok:#15803D;--bad:#D23B32;--combo:#7C3AED;--gold:#B7891F;
+  --btn-bg:#FFFFFF;--btn-line:#D5DAE2;--pri-bg:#141A26;--pri-line:#141A26;--pri-ink:#FFFFFF;
+  --ty-mc:#0E8C80;--ty-multi:#7C3AED;--ty-ox:#64748B;--ty-match:#C2417A;--ty-order:#B7791F;--ty-num:#2563EB;
+  --timer-hi:#16A34A;--timer-mid:#D97706;--timer-lo:#DC2626;
+  --lv1:#16A34A;--lv2:#EAB308;--lv3:#DC2626;  /* 난이도 1·2·3 */
+  --shadow:0 1px 2px rgb(16 24 40 / .04);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0B1220;--panel:#111A2E;--raised:#0E1628;--field:#0A0F1C;
+  --ink:#DBE4F0;--muted:#8A9BB8;--faint:#5E6F8E;--line:#1F2B45;--line-2:#2A3A5C;--soft:#16203A;
+  --title:#F5B942;--link:#2DD4BF;--accent:#F5B942;
+  --ok:#4ADE80;--bad:#F87171;--combo:#C084FC;--gold:#F5B942;
+  --btn-bg:#172239;--btn-line:#2A3A5C;--pri-bg:#123D33;--pri-line:#2DD4BF;--pri-ink:#2DD4BF;
+  --ty-mc:#2DD4BF;--ty-multi:#C084FC;--ty-ox:#8A9BB8;--ty-match:#F472B6;--ty-order:#F5B942;--ty-num:#60A5FA;
+  --timer-hi:#4ADE80;--timer-mid:#F5B942;--timer-lo:#F87171;
+  --lv1:#4ADE80;--lv2:#FACC15;--lv3:#F87171;
+  --shadow:none;
+  color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0B1220;--panel:#111A2E;--raised:#0E1628;--field:#0A0F1C;
+  --ink:#DBE4F0;--muted:#8A9BB8;--faint:#5E6F8E;--line:#1F2B45;--line-2:#2A3A5C;--soft:#16203A;
+  --title:#F5B942;--link:#2DD4BF;--accent:#F5B942;
+  --ok:#4ADE80;--bad:#F87171;--combo:#C084FC;--gold:#F5B942;
+  --btn-bg:#172239;--btn-line:#2A3A5C;--pri-bg:#123D33;--pri-line:#2DD4BF;--pri-ink:#2DD4BF;
+  --ty-mc:#2DD4BF;--ty-multi:#C084FC;--ty-ox:#8A9BB8;--ty-match:#F472B6;--ty-order:#F5B942;--ty-num:#60A5FA;
+  --timer-hi:#4ADE80;--timer-mid:#F5B942;--timer-lo:#F87171;
+  --lv1:#4ADE80;--lv2:#FACC15;--lv3:#F87171;
+  --shadow:none;
+  color-scheme:dark;}
+@media (max-width:560px){:root{--fs-base:14.5px;--fs-h1:20px;--fs-h2:16px;--fs-q:14.5px;--fs-ox:20px}}
+
+/* ── 기본 ───────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:110px;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:var(--fs-base);line-height:var(--lh);
+  -webkit-font-smoothing:antialiased;letter-spacing:-.003em;padding-bottom:env(safe-area-inset-bottom,0px)}
+a{color:inherit}
+b,strong{font-weight:650}
+code{font-family:var(--mono);font-size:.88em;color:var(--link);background:var(--soft);padding:1px 5px;border-radius:4px}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px 56px}
+.muted{color:var(--muted)}
+/* 상단 바 */
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;height:calc(52px + env(safe-area-inset-top,0px));margin:0 -20px 22px;padding:env(safe-area-inset-top,0px) 20px 0;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.brand{font-size:var(--fs-xs);color:var(--muted);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;letter-spacing:.01em}
+.brand b{color:var(--ink);font-weight:600}
+.iconbtn{font:inherit;font-size:14px;border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);width:32px;height:32px;border-radius:var(--r);cursor:pointer;flex:0 0 auto;display:grid;place-items:center}
+.iconbtn:hover{border-color:var(--muted)}
+/* 제목 */
+h1{font-size:var(--fs-h1);line-height:1.3;margin:0 0 6px;letter-spacing:-.02em;font-weight:700;color:var(--title)}
+h2{font-size:var(--fs-h2);line-height:1.4;margin:0;font-weight:650;letter-spacing:-.01em}
+.ph{font-size:14px;color:var(--muted);font-weight:600;margin:0 0 10px;letter-spacing:0}
+.sh{font-size:var(--fs-sm);color:var(--muted);font-weight:600;margin:16px 0 6px}
+.sub{color:var(--muted);margin:0 0 4px}
+.meta{font-size:var(--fs-xs);color:var(--faint);margin:0 0 18px;font-family:var(--mono);letter-spacing:-.01em}
+.crumbs{display:flex;gap:8px;align-items:center;margin-bottom:12px;font-size:var(--fs-sm);color:var(--faint)}
+.crumbs a{text-decoration:none;color:var(--muted)}
+.crumbs a:hover{color:var(--ink)}
+.part{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--link);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:1px 7px;white-space:nowrap;max-width:100%;font-weight:500;letter-spacing:0}
+.tabhead .part,.ngroup .part{white-space:normal;overflow-wrap:anywhere}  /* 긴 자료 위치(예: voice-ai 교시 라벨)는 줄바꿈 */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.center{text-align:center}
+.note-sm{font-size:var(--fs-sm);color:var(--muted)}
+.lbl{display:block;font-size:var(--fs-xs);color:var(--muted);margin-bottom:2px}
+/* 버튼 */
+.btn{font:inherit;font-size:var(--fs-btn);display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);
+  padding:7px 12px;border-radius:var(--r);cursor:pointer;text-decoration:none;min-height:34px;line-height:1.3;white-space:nowrap;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--pri-bg);color:var(--pri-ink);border-color:var(--pri-line);font-weight:650;font-size:var(--fs-btn-pri);padding:8px 18px}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.locked{opacity:.5}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,var(--btn-line))}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn .cnt{font-family:var(--mono);font-size:var(--fs-2xs);background:var(--bad);color:#fff;border-radius:99px;padding:0 6px;min-width:18px;line-height:16px;text-align:center}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0}
+button:focus-visible,a:focus-visible,input:focus-visible,.opt:focus-within{outline:2px solid var(--link);outline-offset:2px}
+/* 입력 */
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;max-width:300px}
+.field label{font-size:var(--fs-xs);color:var(--muted)}
+.field input{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--field);color:var(--ink)}
+.field input::placeholder{color:var(--faint)}
+/* 진행 바 */
+.bar{flex:1;height:4px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bar>div{height:100%;width:0;background:var(--link);transition:width .25s}
+.progress{position:sticky;top:calc(52px + env(safe-area-inset-top,0px));z-index:5;background:var(--bg);padding:8px 0;margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.progress span,.homeprog span{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.homeprog{display:flex;align-items:center;gap:12px;margin:2px 0 16px}
+/* 홈 탭 카드 */
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:6px}
+.tcard{display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;text-decoration:none;color:var(--ink);transition:border-color .15s;box-shadow:var(--shadow)}
+.tcard:hover{border-color:var(--line-2)}
+.tcard .tn{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint)}
+.tcard .tt{font-weight:600;font-size:14px;line-height:1.45}
+.tcard .ts{margin-top:auto;padding-top:8px;font-size:var(--fs-xs);color:var(--faint);display:flex;justify-content:space-between;align-items:center;font-family:var(--mono)}
+.tcard.done .ts b{color:var(--ok);font-weight:600}
+.tcard.perfect{border-color:color-mix(in srgb,var(--gold) 55%,var(--line))}
+.lockmsg{font-size:var(--fs-xs);color:var(--faint);margin:-6px 0 16px}
+/* 탭 바 */
+/* 학습 탭 선택: 웹(≥1024) 자유 배치 · 태블릿(560~1023) 3개 · 모바일(<560) 2개 */
+.tabbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+@media (max-width:1023px){.tabbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tabchip{min-width:0;display:flex;align-items:center;gap:6px;font-size:var(--fs-btn);padding:6px 10px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);text-decoration:none;color:var(--ink);line-height:1.35;word-break:keep-all}
+.tabchip .tl{min-width:0}
+.tabchip .qc{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--muted);white-space:nowrap;margin-left:auto}
+.tabchip[aria-selected="true"] .qc{color:var(--link)}
+.tabchip .sc{white-space:nowrap}
+.btn .qc{font-family:var(--mono);font-weight:500;opacity:.85}
+.tabchip b{font-family:var(--mono);font-weight:600;color:var(--faint)}
+.tabchip:hover{border-color:var(--muted)}
+.tabchip[aria-selected="true"]{border-color:var(--link);color:var(--link);background:color-mix(in srgb,var(--link) 9%,var(--btn-bg))}
+.tabchip[aria-selected="true"] b{color:var(--link)}
+.tabchip .sc{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--ok)}
+.tabchip.sum{border-color:color-mix(in srgb,var(--gold) 60%,var(--btn-line));color:var(--gold)}
+.tabhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 2px}
+.tabhead h2{color:var(--title)}
+/* 문항 카드 */
+.q{background:var(--raised);border:1px solid var(--line);border-left:3px solid var(--tc);border-radius:var(--r-md);padding:12px 14px;margin:0 0 10px;box-shadow:var(--shadow)}
+.q.correct{border-color:color-mix(in srgb,var(--ok) 45%,var(--line));border-left-color:var(--ok)}
+.q.wrong{border-color:color-mix(in srgb,var(--bad) 45%,var(--line));border-left-color:var(--bad)}
+.qhead{display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap}
+.qn{font-family:var(--mono);font-size:var(--fs-xs);color:var(--faint);font-weight:500}
+.tbadge{font-size:var(--fs-2xs);font-weight:600;padding:0 7px;line-height:18px;border-radius:var(--r-sm);color:var(--tc);border:1px solid color-mix(in srgb,var(--tc) 45%,transparent);background:color-mix(in srgb,var(--tc) 8%,transparent);white-space:nowrap}
+/* 난이도: 점 1 녹색 · 점 2 노랑 · 점 3 빨강 (쉬움 ●○○ / 보통 ●●○ / 어려움 ●●●) + 글자 */
+.lv{display:inline-flex;align-items:center;gap:4px;line-height:1}
+.lv .dots{font-size:9px;letter-spacing:1px}
+.lv i{font-style:normal}
+.lv .d1{color:var(--lv1)} .lv .d2{color:var(--lv2)} .lv .d3{color:var(--lv3)} .lv .off{color:var(--line-2)}
+.lv em{font-style:normal;font-size:var(--fs-2xs);font-weight:600}
+.lv1 em{color:var(--lv1)} .lv2 em{color:color-mix(in srgb,var(--lv2) 80%,var(--ink))} .lv3 em{color:var(--lv3)}
+.verdict{margin-left:auto;font-weight:650;font-size:var(--fs-xs)}
+.correct .verdict{color:var(--ok)} .wrong .verdict{color:var(--bad)}
+.qsrc{margin-left:auto;font-size:var(--fs-2xs);color:var(--faint)}
+.qt{font-size:var(--fs-q);font-weight:500;margin:4px 0 8px}
+.guide{font-size:var(--fs-xs);color:var(--faint);margin:-4px 0 8px}
+.opts{display:grid;gap:6px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r);cursor:pointer;background:var(--panel);font-size:var(--fs-opt);transition:border-color .12s,background .12s}
+.opt:hover{border-color:var(--line-2)}
+.opt input{margin:4px 0 0;accent-color:var(--link);flex:0 0 auto;width:14px;height:14px}
+.opt:has(input:checked){border-color:var(--link);background:color-mix(in srgb,var(--link) 7%,var(--panel))}
+.opt.ans{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--panel))}
+.opt.miss{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 9%,var(--panel))}
+.ox{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:360px}
+.ox button{font:inherit;font-size:var(--fs-ox);font-weight:700;padding:8px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);cursor:pointer;line-height:1.3}
+.ox button:hover{border-color:var(--muted)}
+.ox button[aria-pressed="true"]{border-color:var(--link);color:var(--link);background:color-mix(in srgb,var(--link) 10%,var(--btn-bg))}
+.ox button.ans{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,var(--btn-bg));color:var(--ok)}
+.ox button.miss{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--btn-bg));color:var(--bad)}
+/* 짝 맞추기 */
+.match{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 14px}
+.mcol{display:flex;flex-direction:column;gap:6px}
+.mitem{font:inherit;font-size:var(--fs-opt);text-align:left;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--ink);padding:7px 10px;cursor:pointer;min-height:38px;display:flex;align-items:center;gap:8px;line-height:1.45}
+.mitem:hover{border-color:var(--line-2)}
+.mitem .tag{flex:0 0 auto;width:20px;height:20px;border-radius:var(--r-sm);border:1px dashed var(--line-2);display:grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);font-weight:600}
+.mitem.linked{border-color:color-mix(in srgb,var(--pc) 70%,var(--line))}
+.mitem.linked .tag{border:0;background:var(--pc);color:var(--bg)}
+.mitem.sel{border-color:var(--link);box-shadow:0 0 0 3px color-mix(in srgb,var(--link) 18%,transparent)}
+.mitem.okm{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--panel))}
+.mitem.nom{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--panel))}
+.mleft .mitem{font-weight:600}
+/* 순서 */
+.olist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.oitem{font:inherit;font-size:var(--fs-opt);text-align:left;width:100%;display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--ink);cursor:pointer;transition:border-color .12s,background .12s}
+.oitem:hover{border-color:var(--line-2)}
+.oitem .num{width:22px;height:22px;border-radius:50%;border:1px dashed var(--line-2);display:grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);font-weight:600;color:var(--muted);flex:0 0 auto}
+.oitem.on{border-color:var(--link);background:color-mix(in srgb,var(--link) 7%,var(--panel))}
+.oitem.on .num{border:0;background:var(--link);color:var(--bg)}
+.oitem .txt{flex:1;line-height:1.45}
+.oitem .ofix{flex:0 0 auto;font-size:var(--fs-2xs);color:var(--ok);font-weight:600}
+.oitem.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--panel))}
+.oitem.ok .num{background:var(--ok)}
+.oitem.no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--panel))}
+.oitem.no.on .num{background:var(--bad)}
+.numrow{display:flex;align-items:center;gap:8px;font-size:var(--fs-opt)}
+.numrow input{font-family:var(--mono);font-size:14px;width:120px;padding:6px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--field);color:var(--ink);text-align:right}
+.numrow input.ans{border-color:var(--ok)} .numrow input.miss{border-color:var(--bad)}
+.locked .mitem,.locked .ox button,.locked .opt{pointer-events:none}
+.locked .oitem{pointer-events:none}
+.opt .onum{flex:0 0 auto;min-width:18px;height:18px;padding:0 4px;border-radius:var(--r-sm);border:1px solid var(--line-2);display:inline-grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);color:var(--muted);margin-top:1px}
+.opt:has(input:checked) .onum{border-color:var(--link);color:var(--link)}
+.opt.ans .onum{border-color:var(--ok);color:var(--ok)} .opt.miss .onum{border-color:var(--bad);color:var(--bad)}
+/* 힌트 토글 (빨간색 = Hint) */
+.hintwrap{margin:-2px 0 8px}
+.hintbtn{font:inherit;font-size:var(--fs-xs);font-weight:650;display:inline-flex;align-items:center;gap:4px;color:var(--bad);background:color-mix(in srgb,var(--bad) 7%,transparent);border:1px solid color-mix(in srgb,var(--bad) 40%,transparent);border-radius:var(--r-sm);padding:2px 9px;cursor:pointer;line-height:1.5}
+.hintbtn:hover{background:color-mix(in srgb,var(--bad) 13%,transparent)}
+.hintbtn .caret{font-size:.85em}
+.hint{margin-top:6px;padding:6px 10px;border-left:3px solid var(--bad);background:color-mix(in srgb,var(--bad) 6%,transparent);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:var(--fs-sm);color:var(--ink)}
+/* 해설 */
+.exp{margin-top:10px;padding:2px 0 2px 10px;border-left:3px solid var(--line-2);font-size:var(--fs-sm);color:var(--muted)}
+.correct .exp{border-left-color:color-mix(in srgb,var(--ok) 55%,var(--line))}
+.wrong .exp{border-left-color:color-mix(in srgb,var(--bad) 55%,var(--line))}
+.exp p{margin:0 0 3px}
+.exp b{color:var(--ink);font-weight:650;margin-right:4px}
+.an{font-family:var(--mono);color:var(--link);font-size:var(--fs-xs);margin:4px 0 0}
+.mine{color:var(--bad)}
+.onlywrong .q.correct{display:none}
+.warn{color:var(--bad);font-size:var(--fs-sm);min-height:1.3em;margin:4px 0 0}
+/* 결과 */
+.score{font-family:var(--mono);font-size:32px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--title);letter-spacing:-.02em}
+.score small{font-family:var(--font);font-size:14px;color:var(--muted);font-weight:400;letter-spacing:0}
+.score.xl{font-size:44px}
+.msg{margin:6px 0 10px;color:var(--muted);font-size:var(--fs-sm)}
+.bd{display:grid;gap:7px;margin:6px 0}
+.bd div{display:grid;grid-template-columns:minmax(90px,190px) 1fr 44px;gap:10px;align-items:center;font-size:var(--fs-sm)}
+.bd .b{height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bd .b i{display:block;height:100%;background:var(--tc,var(--link));border-radius:99px}
+.bd span:last-child{text-align:right;font-family:var(--mono);font-size:var(--fs-xs);color:var(--muted)}
+.rcode{font-family:var(--mono);font-size:16px;font-weight:600;letter-spacing:.06em;color:var(--accent);background:var(--soft);padding:2px 8px;border-radius:var(--r-sm)}
+/* 오답노트 · 해설지 */
+.ngroup{margin:18px 0 8px;font-size:14px;font-weight:650;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ngroup .ref{font-family:var(--mono);font-size:var(--fs-2xs);font-weight:400;color:var(--faint)}
+.note{background:var(--raised);border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:var(--r-md);padding:12px 14px;margin-bottom:10px}
+.note.solved{border-left-color:var(--ok)}
+.note .qt{margin:0 0 8px}
+.note dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0;font-size:var(--fs-sm)}
+.note dt{color:var(--faint)}
+.note dd{margin:0}
+.note .foot{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font-size:var(--fs-xs);color:var(--faint);font-family:var(--mono)}
+.note .foot span:first-child{color:var(--link)}
+details.more{margin-top:14px;font-size:var(--fs-sm)}
+details.more summary{cursor:pointer;color:var(--muted);padding:4px 0}
+.keyitem{padding:10px 0;border-bottom:1px solid var(--line)}
+.keyitem .kq{font-weight:500;font-size:14px}
+.keyitem .ka{margin:4px 0 2px;color:var(--ok);font-weight:600;font-size:var(--fs-sm)}
+.keyitem .kw{font-size:var(--fs-sm);color:var(--muted);margin:0}
+.keylock{padding:12px;border:1px dashed var(--line-2);border-radius:var(--r-md);color:var(--faint);text-align:center;margin:8px 0;font-size:var(--fs-sm)}
+.printhead{display:none}
+/* 게임 */
+.game{max-width:620px;margin:0 auto}
+.gpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.gcard{display:flex;flex-direction:column;gap:4px;min-height:120px;padding:14px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--panel);color:var(--ink);text-decoration:none;transition:border-color .15s,background .15s}
+a.gcard:hover{border-color:var(--link);background:color-mix(in srgb,var(--link) 6%,var(--panel))}
+.gcard .gn{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint);letter-spacing:.05em}
+.gcard b{font-size:15px}
+.gcard .gd{font-size:var(--fs-xs);color:var(--muted);line-height:1.5}
+.gcard.soon{border-style:dashed;opacity:.6;cursor:not-allowed}
+@media (max-width:560px){.gpick{gap:6px}.gcard{min-height:84px;padding:10px 8px;align-items:center;text-align:center;justify-content:center}.gcard b{font-size:13px;word-break:keep-all}.gcard .gd{display:none}}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 14px}
+.chip{font:inherit;font-size:var(--fs-btn);padding:6px 12px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);cursor:pointer;min-height:32px}
+.chip:hover{border-color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--link);color:var(--link);background:color-mix(in srgb,var(--link) 9%,var(--btn-bg));font-weight:600}
+.chip:disabled{opacity:.4;cursor:not-allowed}
+.rules{font-size:var(--fs-xs);color:var(--muted);border-left:3px solid var(--line-2);padding:2px 0 2px 10px;margin:4px 0 16px}
+.rules p{margin:0 0 2px}
+.play{display:flex;flex-direction:column;min-height:calc(100dvh - 130px)}
+.hud{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:var(--fs-sm);color:var(--muted);margin-bottom:8px}
+.hud .pts{font-size:18px;font-weight:600;color:var(--title)}
+.combo{font-family:var(--font);font-size:var(--fs-xs);padding:2px 9px;border-radius:var(--r-sm);border:1px solid var(--line-2);color:var(--muted)}
+.combo.hot{border-color:var(--combo);color:var(--combo);background:color-mix(in srgb,var(--combo) 12%,transparent)}
+.timer{height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
+.timer>div{height:100%;width:100%;background:var(--timer-hi);border-radius:99px}
+.timer.mid>div{background:var(--timer-mid)}
+.timer.lo>div{background:var(--timer-lo)}
+.timer.out{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.tleft{font-family:var(--mono);font-size:var(--fs-xs);color:var(--faint);text-align:right;font-variant-numeric:tabular-nums;margin:4px 0 12px;min-height:1.2em}
+.gtype{font-size:var(--fs-2xs);color:var(--faint);margin-bottom:4px;letter-spacing:.02em}
+.gq{font-size:18px;font-weight:600;line-height:1.5;margin:0 0 16px;letter-spacing:-.01em}
+.gbottom{margin-top:4px}
+.gopts{display:grid;gap:8px}
+.gopt{font:inherit;font-size:var(--fs-opt);text-align:left;display:flex;gap:12px;align-items:center;padding:10px 14px;min-height:46px;border:1px solid var(--btn-line);border-radius:var(--r-md);background:var(--panel);color:var(--ink);cursor:pointer;transition:background .12s,border-color .12s;line-height:1.45}
+.gopt:hover{border-color:var(--muted)}
+.gopt kbd{flex:0 0 auto;width:22px;height:22px;border-radius:var(--r-sm);border:1px solid var(--line-2);display:grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint)}
+.gopt[aria-pressed="true"]{border-color:var(--link);background:color-mix(in srgb,var(--link) 9%,var(--panel))}
+.gopt.ans{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--panel))}
+.gopt.miss{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--panel))}
+.gox{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gox .gopt{justify-content:center;font-size:28px;font-weight:700;min-height:76px}
+.gfloat{text-align:center;font-weight:650;font-size:16px;min-height:1.6em;margin-top:10px;font-family:var(--mono)}
+.gfloat.ok{color:var(--ok)} .gfloat.no{color:var(--bad)}
+.gfloat.pop{animation:pop .45s ease-out}
+@keyframes pop{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+.gsub{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px}
+.board{width:100%;border-collapse:collapse;font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
+.board th,.board td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.board th{font-size:var(--fs-xs);color:var(--faint);font-weight:500}
+.board .r{text-align:right;font-family:var(--mono)}
+.board tr.me td{background:color-mix(in srgb,var(--combo) 12%,transparent);font-weight:600}
+.bignum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 2px}
+.bignum div{border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;text-align:left}
+.bignum b{display:block;font-family:var(--mono);font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+.bignum span{font-size:var(--fs-2xs);color:var(--faint)}
+/* 토스트 */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(16px);background:var(--panel);color:var(--ink);border:1px solid var(--line-2);
+  padding:8px 14px;border-radius:var(--r);font-size:var(--fs-sm);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:calc(100% - 32px);box-shadow:0 6px 24px rgb(0 0 0 / .18)}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+/* 문제풀이 페이지(학습·오답 재도전): 탭 제목(h2)을 뺀 모든 글자 10px — 사용자 지정 */
+/* 문제풀이·오답노트·해설지 공통: 제목(h1·h2·탭 묶음 제목)을 뺀 글자 10px, 문제 11px, 자간 +0.03em, 행간 1.7 */
+.sheet,.sheet :where(*:not(h1,h2,.ngroup,.ngroup *)){font-size:10px!important;letter-spacing:.03em!important}  /* :where = 명시도 0 → 아래 11px 규칙이 이김 */
+.sheet :is(.qt,.opt,.exp,.exp p,.guide,.mitem,.oitem .txt,.hint,.warn,.msg,.sub,.note dt,.note dd,.note .foot,.kq,.ka,.kw,.keylock){line-height:1.7!important}
+.sheet :is(.qt,.kq),.sheet :is(.qt,.kq) *{font-size:11px!important}  /* 문제 문장만 11px */
+/* 한글이 섞인 숫자 요소는 mono 대신 본문 글꼴 + 고정폭 숫자 (mono 한글 자간이 벌어짐) */
+.meta,.tcard .tn,.tcard .ts,.progress span,.homeprog span,.note .foot,.an,.hud,.tleft,.gfloat,.bignum b{font-family:var(--font);font-variant-numeric:tabular-nums;letter-spacing:0}
+/* ── 반응형 ─────────────────────────────────────── */
+@media (max-width:560px){
+  .wrap{padding:0 16px 48px}
+  .topbar{margin:0 -16px 18px;padding-left:16px;padding-right:16px}
+  /* 홈 탭 카드: 모바일에서도 한 줄 3개 (사용자 지정) */
+  .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .tcard{padding:8px 9px;gap:2px}
+  .tcard .tn{font-size:10px}
+  .tcard .tt{font-size:12px;line-height:1.35;word-break:keep-all}
+  .tcard .ts{flex-direction:column;align-items:flex-start;gap:0;padding-top:6px;font-size:10px}
+  .tabbar{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  .tabchip{padding:6px 8px;gap:4px}
+  .q{padding:12px}
+  .match{grid-template-columns:1fr}
+  .mright{margin-top:6px;padding-top:8px;border-top:1px dashed var(--line-2)}
+  .btn,.chip{min-height:40px}
+  .actions .btn{flex:1 1 calc(50% - 8px)}
+  .actions .btn.primary{flex-basis:100%}
+  .ox{max-width:none}
+  .ox button{min-height:48px}
+  .oitem{min-height:40px}
+  .bd div{grid-template-columns:96px 1fr 40px}
+  .bignum{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .field{max-width:none}
+  /* 게임: 보기를 엄지 영역(화면 아래)으로 */
+  .play .gtop{position:sticky;top:calc(52px + env(safe-area-inset-top,0px));background:var(--bg);padding:6px 0 0;z-index:4}
+  .play .gbottom{margin-top:auto;padding-top:12px}
+  .gq{font-size:17px}
+  .gopt{min-height:50px}
+  .board th:nth-child(6),.board td:nth-child(6){display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{
+  :root{--bg:#fff;--panel:#fff;--raised:#fff;--ink:#000;--muted:#333;--faint:#555;--line:#bbb;--line-2:#999;--soft:#f1f1f1;--title:#000;--link:#055}
+  body{background:#fff;color:#000;font-size:12.5px}
+  .noprint,.topbar,.actions,.tabbar,.progress,.toast{display:none!important}
+  .printhead{display:block;margin-bottom:12px;font-size:12px}
+  .q,.note,.keyitem{break-inside:avoid;box-shadow:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar noprint">
+    <a class="brand" href="../index.html" title="전체 문제은행 목록">디지털노마드연구소 · <b>문제은행</b></a>
+    <button class="iconbtn" id="themeBtn" type="button" aria-label="라이트/다크 전환">🌓</button>
+  </header>
+  <main id="app"></main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="sr" id="live" aria-live="polite"></div>
+<script>
+(()=>{
+'use strict';
+const BANK={"id":"pai-cpp","code":"PAC","title":"Physical AI · C++ 기초 · 메모리 · STL · CMake","subtitle":"값·참조·포인터 · STL 컨테이너 · CMake와 Python 연동","course":"07 · Physical AI","source":"07-NEPES_physicalAI_자율주행자동차/03.C++/*.ipynb","salt":"pai-cpp","version":1,"updated":"2026-10-15","tabs":[{"id":"t1","title":"C++ 컴파일과 변수·타입","ref":"01_cpp_basics §1–2","qs":[{"id":"t1-01","ty":"mc","lv":1,"game":true,"p":"<code>g++<\/code> 명령에서 생성할 실행 파일 이름을 정하는 옵션은?","o":["-std=c++17","-Wall","-o app","-Wpedantic"],"a":2,"h":"output(출력)의 머리글자를 떠올려 보세요.","w":"<code>-o app<\/code>이 실행 파일 이름입니다. <code>-std=c++17<\/code>은 언어 버전, <code>-Wall<\/code>·<code>-Wpedantic<\/code>은 경고 옵션입니다.","an":"01_cpp_basics · 1. 소스에서 실행 파일까지"},{"id":"t1-02","ty":"mc","lv":2,"game":true,"p":"선언만 있고 정의가 없거나 라이브러리를 연결하지 않았을 때 주로 오류가 나는 단계는?","o":["전처리","컴파일","링크","실행"],"a":2,"h":"<code>undefined reference<\/code> 오류는 목적 파일과 심볼을 연결하는 단계에서 납니다.","w":"링크는 목적 파일과 라이브러리의 심볼을 연결해 실행 파일을 만듭니다. 문법·타입 문제는 주로 컴파일 오류로 나타납니다.","an":"01_cpp_basics · 번역 단계와 오류의 위치"},{"id":"t1-03","ty":"mc","lv":2,"game":true,"p":"C++에서 <code>7 / 2<\/code>의 결과는?","o":["3","3.5","4","3.0"],"a":0,"h":"두 피연산자가 모두 정수이면 어떤 나눗셈이 될까요?","w":"두 피연산자가 모두 정수이면 정수 나눗셈을 해서 소수부가 버려집니다. 실수 결과가 필요하면 하나를 <code>double<\/code>로 만듭니다(<code>7.0 / 2<\/code> = 3.5).","an":"01_cpp_basics · 45초 예측"},{"id":"t1-04","ty":"mc","lv":1,"game":true,"p":"컴파일 오류가 여러 개 나왔을 때 가장 먼저 고칠 것은?","o":["마지막 오류","가장 위의 첫 오류","경고 메시지","CalledProcessError 줄"],"a":1,"h":"뒤의 오류는 앞 문제 때문에 연쇄적으로 생겼을 수 있습니다.","w":"가장 위의 첫 오류부터 고칩니다. 노트북 마지막의 <code>CalledProcessError<\/code>만 읽지 말고 그 위 컴파일러의 첫 오류를 찾습니다.","an":"01_cpp_basics · 1. 소스에서 실행 파일까지"},{"id":"t1-05","ty":"num","lv":3,"game":false,"p":"영화표 결제 계산기: 한 장 12,000원 × 3장, 회원이고 30,000원 이상이면 10% 할인합니다. 최종 결제액은 몇 원인가요?","a":32400,"unit":"원","h":"계산식: 결제 전 = 12000 × 3, 할인액 = 결제 전 × 10 / 100, 최종 = 결제 전 − 할인액","w":"결제 전 36,000원, 할인액 3,600원, 최종 32,400원입니다. 정수 계산에서는 곱한 뒤 100으로 나눕니다.","an":"01_cpp_basics · 6. 종합 실습 — 영화표 결제 계산기"},{"id":"t1-06","ty":"ox","lv":1,"game":true,"p":"<code>const<\/code> 변수는 초기화한 뒤 그 이름으로 값을 바꿀 수 없다.","a":true,"h":"<code>const double temperature{23.5};<\/code>의 마지막 약속을 떠올려 보세요.","w":"맞습니다. <code>const<\/code>는 초기화 뒤 이 이름을 통해 값을 바꾸지 않겠다는 약속입니다.","an":"01_cpp_basics · C++ 한 줄을 읽는 순서"},{"id":"t1-07","ty":"ox","lv":2,"game":true,"p":"컴파일이 성공하고 종료 코드가 0이면 계산 결과도 정답이다.","a":false,"h":"빌드 성공은 시작점일 뿐입니다.","w":"틀렸습니다. 종료 코드 0은 정상 종료일 뿐 계산이 옳다는 보장이 아닙니다. 기대 출력과 비교해야 합니다.","an":"01_cpp_basics · 출력과 컴파일 로그를 구분하기"},{"id":"t1-08","ty":"match","lv":1,"game":false,"p":"C++ 타입과 값의 예를 연결하세요.","pairs":[["int","42"],["double","3.14"],["bool","true"],["char","'A'"],["std::string","\"C++\""]],"h":"문자 하나는 작은따옴표, 문자열은 큰따옴표입니다.","w":"int는 정수, double은 실수, bool은 참·거짓, char는 문자 하나, std::string은 문자열(<code>&lt;string&gt;<\/code> 필요)입니다.","an":"01_cpp_basics · 2. 변수, 타입, 초기화"},{"id":"t1-09","ty":"order","lv":2,"game":false,"p":"C++ 빌드가 개념적으로 거치는 순서대로 정렬하세요.","steps":["전처리 (#include·매크로 펼치기)","컴파일 (목적 파일 생성)","링크 (심볼 연결)","실행 파일 완성"],"h":"번역 단위를 먼저 만들고, 각각 번역한 뒤 연결합니다.","w":"전처리 → 컴파일 → 링크 순서로 실행 파일이 만들어집니다.","an":"01_cpp_basics · 번역 단계와 오류의 위치"},{"id":"t1-10","ty":"multi","lv":2,"game":true,"p":"이 과정의 <code>g++<\/code> 명령에서 실수를 조기에 찾는 경고 옵션을 <b>모두<\/b> 고르세요.","o":["-Wall","-Wextra","-Wpedantic","-o","-std=c++17"],"a":[0,1,2],"h":"W로 시작하는 옵션들입니다.","w":"<code>-Wall -Wextra -Wpedantic<\/code>이 경고 옵션입니다. <code>-o<\/code>는 출력 이름, <code>-std=c++17<\/code>은 언어 버전입니다.","an":"01_cpp_basics · 1. 소스에서 실행 파일까지"}]},{"id":"t2","title":"조건문·반복문과 결제 계산","ref":"01_cpp_basics §3–6","qs":[{"id":"t2-01","ty":"mc","lv":1,"game":true,"p":"Python의 <code>and<\/code>에 대응하는 C++ 논리 연산자는?","o":["||","&&","!","&"],"a":1,"h":"Python and / or / not ↔ C++ 두 글자 연산자들","w":"<code>&amp;&amp;<\/code>는 and, <code>||<\/code>는 or, <code>!<\/code>는 not입니다.","an":"01_cpp_basics · 3. 조건문"},{"id":"t2-02","ty":"mc","lv":2,"game":true,"p":"성적처럼 경계가 있는 <code>if–else if<\/code> 사슬은 어떤 순서로 검사해야 하나요?","o":["높은 기준부터","낮은 기준부터","아무 순서나","같은 기준만"],"a":0,"h":"84점이 먼저 만난 '>= 60' 분기에서 끝나면 어떻게 될까요?","w":"넓은 조건을 먼저 두면 좁은 조건이 실행될 기회를 잃으므로 높은 값부터 검사합니다. 하나의 사슬에서는 정확히 한 분기만 실행됩니다.","an":"01_cpp_basics · 3. 조건문 · 예제 코드 해설 1"},{"id":"t2-03","ty":"mc","lv":2,"game":true,"p":"countdown 예제에서 <code>while<\/code> 반복을 끝내는 핵심은?","o":["조건 값을 바꾸는 --countdown","std::cout 출력","중괄호 생략","세미콜론"],"a":0,"h":"조건에 쓰는 값이 종료 방향으로 바뀌어야 합니다.","w":"<code>--countdown<\/code>이 상태를 줄여 조건을 거짓으로 만듭니다. 빠뜨리면 무한 반복이 됩니다. <code>std::cout<\/code>은 상태를 바꾸지 않습니다.","an":"01_cpp_basics · 예제 코드 해설 2"},{"id":"t2-04","ty":"mc","lv":3,"game":true,"p":"정수 계산에서 <code>discount_percent / 100<\/code>(=10/100)을 먼저 계산하면?","o":["정확한 할인액","컴파일 오류","실수로 자동 변환","0이 되어 할인 0"],"a":3,"h":"정수끼리 나누면 소수부가 어떻게 될까요?","w":"10/100은 정수 나눗셈으로 0이 되므로 할인액도 0입니다. 곱한 뒤 나눕니다: <code>subtotal * discount_percent / 100<\/code>.","an":"01_cpp_basics · 정답 해설"},{"id":"t2-05","ty":"mc","lv":2,"game":true,"p":"1부터 10까지 반복하며 짝수만 더하는 예제의 첫 출력 합계는?","o":["25","30","55","20"],"a":1,"h":"2 + 4 + 6 + 8 + 10","w":"<code>number % 2 == 0<\/code>인 2, 4, 6, 8, 10만 더해 누적값이 0→2→6→12→20→30이 됩니다.","an":"01_cpp_basics · 예제 코드 해설 2"},{"id":"t2-06","ty":"ox","lv":1,"game":true,"p":"<code>break<\/code>는 현재 회차만 건너뛰고 반복을 계속한다.","a":false,"h":"반복 전체를 끝내는 것과 현재 회차만 건너뛰는 것을 구분하세요.","w":"틀렸습니다. <code>break<\/code>는 반복 전체를 끝내고, <code>continue<\/code>가 현재 회차만 건너뜁니다.","an":"01_cpp_basics · 4. 반복문"},{"id":"t2-07","ty":"ox","lv":1,"game":true,"p":"범위 기반 <code>for<\/code>는 컨테이너의 값을 순서대로 읽을 때 잘 맞는다.","a":true,"h":"<code>for (const int score : scores)<\/code>","w":"맞습니다. 횟수·인덱스가 중요하면 전통적인 for, 컨테이너 값을 순서대로 읽으면 범위 기반 for가 잘 맞습니다.","an":"01_cpp_basics · 4. 반복문"},{"id":"t2-08","ty":"match","lv":2,"game":false,"p":"상황에 알맞은 반복문을 연결하세요.","pairs":[["횟수와 인덱스가 중요","전통적인 for"],["컨테이너 값을 순서대로 읽기","범위 기반 for"],["종료 시점을 조건으로 표현","while"]],"h":"인덱스·컨테이너·조건 세 키워드로 구분합니다.","w":"횟수·인덱스는 전통적인 for, 컨테이너 순회는 범위 기반 for, 조건으로 끝나는 반복은 while입니다.","an":"01_cpp_basics · 4. 반복문"},{"id":"t2-09","ty":"order","lv":2,"game":false,"p":"영화표 결제 계산기의 데이터 흐름을 순서대로 정렬하세요.","steps":["subtotal(결제 전 금액) 계산","조건이 참이면 discount 계산","final_price 계산","세 결과 출력"],"h":"TODO 1 → TODO 2 → TODO 3 → 출력","w":"할인 전 금액 → 조건부 할인액 → 최종 금액 → 출력 순서입니다. discount는 조건문 밖에서 0으로 초기화되어 조건이 거짓이면 0이 유지됩니다.","an":"01_cpp_basics · 실습 목적과 TODO 구현 명세"},{"id":"t2-10","ty":"multi","lv":2,"game":true,"p":"영화표 계산기의 완료 기준을 <b>모두<\/b> 고르세요.","o":["결제 전 36000원","할인액 3600원","최종 결제액 32400원","할인을 두 번 적용","경고는 무시해도 됨"],"a":[0,1,2],"h":"할인은 한 번만, 경고 없이 빌드해야 합니다.","w":"36000 / 3600 / 32400 출력이 기준입니다. 할인은 합계에 한 번만 적용하고 <code>-Wall -Wextra -Wpedantic<\/code> 경고도 없어야 합니다.","an":"01_cpp_basics · 완료 기준"}]},{"id":"t3","title":"함수와 값·참조 전달","ref":"02_functions_classes §1–2","qs":[{"id":"t3-01","ty":"mc","lv":1,"game":true,"p":"반환할 값이 없는 함수의 반환 타입은?","o":["int","auto","void","bool"],"a":2,"h":"'비어 있음'을 뜻하는 영어 단어입니다.","w":"반환값이 없으면 <code>void<\/code>를 씁니다.","an":"02_functions_classes · 1. 함수: 입력 → 처리 → 반환"},{"id":"t3-02","ty":"mc","lv":2,"game":true,"p":"함수 오버로딩이 허용되려면 무엇이 달라야 하나요?","o":["반환 타입만","매개변수 개수 또는 타입","함수 이름","주석"],"a":1,"h":"호출할 때 컴파일러가 구분할 수 있어야 합니다.","w":"오버로딩은 매개변수의 개수 또는 타입이 달라야 합니다. 반환 타입만 다르면 호출 시 구분할 수 없어 허용되지 않습니다.","an":"02_functions_classes · 선언 순서와 오버로딩"},{"id":"t3-03","ty":"mc","lv":2,"game":true,"p":"큰 <code>std::string<\/code>을 복사 없이 읽기만 할 때 알맞은 매개변수는?","o":["std::string","std::string&","const std::string&","std::string*"],"a":2,"h":"복사도 피하고 변경도 막는 형태입니다.","w":"<code>const T&amp;<\/code>는 '복사 비용은 피하지만 값을 바꾸지 않는다'는 계약입니다.","an":"02_functions_classes · 2. 값, 참조, const 참조 전달"},{"id":"t3-04","ty":"mc","lv":2,"game":true,"p":"<code>count{3}<\/code>에 <code>add_one_copy(count)<\/code>, <code>add_one_ref(count)<\/code>를 차례로 호출하면 마지막 count는?","o":["4","3","5","6"],"a":0,"h":"복사본만 바뀌는 호출과 원본이 바뀌는 호출을 나눠 보세요.","w":"첫 호출은 복사본만 4가 되고, 두 번째 참조 호출이 원본을 1 늘려 4가 됩니다. 시그니처의 <code>&amp;<\/code> 하나가 상태 변경 여부를 결정합니다.","an":"02_functions_classes · 45초 예측"},{"id":"t3-05","ty":"mc","lv":2,"game":true,"p":"<code>add_bonus(int&amp; score, int bonus)<\/code>의 <code>int&amp;<\/code>를 <code>int<\/code>로 바꾸면?","o":["컴파일 오류","main의 score가 바뀌지 않음","score가 두 배가 됨","런타임 오류"],"a":1,"h":"컴파일은 됩니다. 무엇이 복사될까요?","w":"컴파일 오류가 아니라 복사본만 바뀌고 <code>main()<\/code>의 score는 그대로 남습니다. 호출자 상태를 바꿔야 하는지에 따라 값/참조를 고릅니다.","an":"02_functions_classes · 예제 코드 해설 1"},{"id":"t3-06","ty":"ox","lv":1,"game":true,"p":"<code>return total;<\/code>과 <code>std::cout &lt;&lt; total;<\/code>은 같은 역할을 한다.","a":false,"h":"하나는 호출자에게, 하나는 화면에 전달합니다.","w":"틀렸습니다. <code>return<\/code>은 호출자에게 값을 돌려주고 <code>std::cout<\/code>은 화면에 글자를 남깁니다. 출력만 한 결과는 다른 계산에 바로 쓸 수 없습니다.","an":"02_functions_classes · 함수 호출과 전달 방식을 상자로 그리기"},{"id":"t3-07","ty":"ox","lv":2,"game":true,"p":"함수가 지역 변수의 참조나 포인터를 반환하면 위험하다.","a":true,"h":"함수가 끝나면 지역 변수는 어떻게 될까요?","w":"맞습니다. 함수 종료 후 대상이 사라져 dangling 참조·포인터가 됩니다.","an":"02_functions_classes · 자주 하는 실수"},{"id":"t3-08","ty":"match","lv":2,"game":false,"p":"매개변수 형태와 의미를 연결하세요.","pairs":[["void f(int value)","복사본 전달"],["void f(int& value)","원본의 별칭(변경 가능)"],["void f(const std::string& text)","읽기 전용 별칭"]],"h":"& 유무와 const 유무를 보세요.","w":"값 전달은 복사, <code>T&amp;<\/code>는 원본 별칭, <code>const T&amp;<\/code>는 읽기 전용 별칭입니다.","an":"02_functions_classes · 2. 값, 참조, const 참조 전달"},{"id":"t3-09","ty":"order","lv":2,"game":false,"p":"예제 <code>01_functions.cpp<\/code>의 <code>main()<\/code> 값 흐름을 순서대로 정렬하세요.","steps":["add(40, 35)가 75를 반환","add_bonus로 score가 80으로 변경","make_result가 결과 문자열 생성","std::cout으로 출력"],"h":"계산 → 원본 변경 → 문자열 만들기 → 출력","w":"add가 75를 반환하고, 참조 매개변수의 add_bonus가 원본을 80으로 바꾼 뒤, make_result가 문자열을 만들어 출력합니다.","an":"02_functions_classes · 예제 코드 해설 1"},{"id":"t3-10","ty":"multi","lv":1,"game":true,"p":"<code>int rectangle_area(int width, int height)<\/code>에 대한 설명으로 맞는 것을 <b>모두<\/b> 고르세요.","o":["앞의 int는 반환 타입","rectangle_area는 함수 이름","괄호 안은 매개변수 목록","return은 화면 출력","함수 정의 끝에 반드시 ;"],"a":[0,1,2],"h":"반환 타입 · 이름 · 매개변수 순서입니다.","w":"맨 앞 int는 반환 타입, 그다음 함수 이름, 괄호 안은 매개변수 목록입니다. <code>return<\/code>은 호출한 곳으로 결과를 전달합니다.","an":"02_functions_classes · 1. 함수: 입력 → 처리 → 반환"}]},{"id":"t4","title":"구조체·클래스와 불변식","ref":"02_functions_classes §3–6","qs":[{"id":"t4-01","ty":"mc","lv":1,"game":false,"p":"<code>struct<\/code>와 <code>class<\/code>의 기본 접근 권한은?","o":["둘 다 public","struct public · class private","struct private · class public","둘 다 private"],"a":1,"h":"데이터 묶음은 struct, 규칙을 지키는 객체는 class로 시작합니다.","w":"기본 접근 권한만 다릅니다. struct는 public, class는 private입니다.","an":"02_functions_classes · 4. 클래스: 유효한 상태를 지키는 경계"},{"id":"t4-02","ty":"mc","lv":2,"game":true,"p":"멤버 함수 뒤의 <code>const<\/code>(예: <code>int balance() const<\/code>)의 의미는?","o":["반환값이 상수","객체 상태를 바꾸지 않음","매개변수가 상수","함수 이름 고정"],"a":1,"h":"조회 함수와 변경 함수를 구분하는 표시입니다.","w":"뒤쪽 const는 이 멤버 함수가 객체 상태를 바꾸지 않는다는 뜻입니다. 빠뜨리면 const 객체·참조로 호출할 수 없습니다.","an":"02_functions_classes · 객체를 '상태 + 허용된 행동'으로 보기"},{"id":"t4-03","ty":"mc","lv":2,"game":true,"p":"인자 하나짜리 생성자에 <code>explicit<\/code>을 자주 붙이는 이유는?","o":["암시적 변환 방지","속도 향상","상속 허용","메모리 절약"],"a":0,"h":"의도하지 않은 자동 형변환을 막습니다.","w":"<code>explicit<\/code>은 의도하지 않은 암시적 변환을 막습니다.","an":"02_functions_classes · 4. 클래스"},{"id":"t4-04","ty":"mc","lv":3,"game":true,"p":"클래스 멤버가 초기화되는 순서는?","o":["초기화 목록에 적은 순서","알파벳 순서","생성자 호출 순서","클래스에 선언된 순서"],"a":3,"h":"초기화 목록의 순서가 아닙니다.","w":"멤버는 초기화 목록 순서가 아니라 클래스에 선언된 순서로 초기화됩니다. 멤버 간 의존이 있으면 선언 순서도 계약의 일부입니다.","an":"02_functions_classes · 객체 수명과 멤버 초기화 순서"},{"id":"t4-05","ty":"num","lv":3,"game":false,"p":"장바구니: 12,000원 책 2권과 1,000원 연필 3개를 담고, 회원이며 20,000원 이상이면 10% 할인합니다. 최종 금액은 몇 원인가요?","a":24300,"unit":"원","h":"계산식: 합계 = 12000 × 2 + 1000 × 3, 최종 = 합계 − 합계 × 10 / 100","w":"수량 5개, 할인 전 27,000원, 회원 10% 할인으로 24,300원입니다.","an":"02_functions_classes · 정답 해설"},{"id":"t4-06","ty":"ox","lv":1,"game":true,"p":"객체가 항상 지켜야 하는 규칙을 불변식(invariant)이라고 한다.","a":true,"h":"개수와 금액이 서로 맞아야 하는 규칙 같은 것입니다.","w":"맞습니다. 멤버 함수는 입력을 먼저 검사하고 유효할 때 관련 상태를 함께 변경해 불변식을 지킵니다.","an":"02_functions_classes · 객체를 '상태 + 허용된 행동'으로 보기"},{"id":"t4-07","ty":"ox","lv":2,"game":true,"p":"잘못된 수량이 들어오면 개수만 늘리고 금액은 그대로 두어도 된다.","a":false,"h":"item_count_와 total_price_는 함께 움직여야 합니다.","w":"틀렸습니다. 두 상태가 서로 맞지 않게 됩니다. 유효하지 않은 상품은 상태를 전혀 바꾸지 않아야 합니다.","an":"02_functions_classes · 실습 목적과 TODO 구현 명세"},{"id":"t4-08","ty":"match","lv":2,"game":false,"p":"장바구니 실습의 이름과 책임을 연결하세요.","pairs":[["Product","이름·가격 데이터 묶음"],["line_total","한 상품 줄의 금액 계산"],["ShoppingCart::add","장바구니 상태 갱신"],["discounted_total","최종 할인 적용"]],"h":"데이터 · 계산 · 상태 · 할인 네 역할입니다.","w":"Product는 데이터를 묶고, line_total은 한 줄 금액, add는 상태 갱신, discounted_total은 최종 할인을 담당합니다.","an":"02_functions_classes · 정답 해설"},{"id":"t4-09","ty":"order","lv":2,"game":false,"p":"장바구니 TODO의 권장 구현 순서대로 정렬하세요.","steps":["TODO 1 line_total","TODO 3·4 조회 함수","TODO 2 add","TODO 5 discounted_total"],"h":"한 줄 계산 → 관찰 통로 → 상태 갱신 → 할인","w":"한 줄 계산을 먼저 완성하고, 조회 함수로 상태를 볼 통로를 만든 뒤, add로 상태를 갱신하고, 마지막에 할인을 연결합니다.","an":"02_functions_classes · TODO별 입력·출력·수정 범위"},{"id":"t4-10","ty":"multi","lv":2,"game":true,"p":"<code>discounted_total<\/code>의 결과로 맞는 것을 <b>모두<\/b> 고르세요.","o":["19,999원 회원 → 19,999원","20,000원 회원 → 18,000원","20,000원 비회원 → 20,000원","20,000원 비회원 → 18,000원","19,999원 회원 → 17,999원"],"a":[0,1,2],"h":"회원이면서 20,000원 '이상'일 때만 할인됩니다.","w":"할인 조건은 회원이면서 20,000원 이상입니다. 19,999원은 할인되지 않고, 비회원도 할인되지 않습니다.","an":"02_functions_classes · 완료 기준"}]},{"id":"t5","title":"컨테이너·포인터·CMake 입문","ref":"03_memory_stl_cmake","qs":[{"id":"t5-01","ty":"mc","lv":1,"game":true,"p":"길이를 바꿀 수 있는 연속 배열 컨테이너는?","o":["array","tuple","vector","map"],"a":2,"h":"push_back으로 크기가 늘어납니다.","w":"<code>vector<\/code>는 길이를 바꿀 수 있는 연속 배열, <code>array&lt;T,N&gt;<\/code>는 크기가 타입에 고정됩니다.","an":"03_memory_stl_cmake · 1. 자료구조를 고르는 기준"},{"id":"t5-02","ty":"mc","lv":2,"game":true,"p":"키 순서로 순회하는 컨테이너는?","o":["unordered_map","map","vector","queue"],"a":1,"h":"해시 기반은 순서를 보장하지 않습니다.","w":"<code>map<\/code>은 키 순서로 순회하고 <code>unordered_map<\/code>은 순서를 보장하지 않습니다.","an":"03_memory_stl_cmake · 1. 자료구조를 고르는 기준"},{"id":"t5-03","ty":"mc","lv":2,"game":true,"p":"CMake의 configure 단계 명령은?","o":["cmake --build ...","cmake -S ... -B ...","ctest --test-dir ...","make install"],"a":1,"h":"소스(-S)와 빌드(-B) 폴더를 지정합니다.","w":"<code>cmake -S … -B …<\/code>가 configure(규칙 준비), <code>cmake --build …<\/code>가 build(컴파일·링크)입니다.","an":"03_memory_stl_cmake · 3. CMake는 빌드 대상을 연결합니다"},{"id":"t5-04","ty":"mc","lv":2,"game":true,"p":"CTest의 역할로 알맞은 것은?","o":["C++ 전용 컴파일러","헤더 검색 도구","링커","검사 프로그램 실행 도구"],"a":3,"h":"특별한 컴파일러가 아닙니다.","w":"CTest는 빌드된 검사 프로그램을 실행하고 종료 코드를 수집하는 테스트 실행 도구입니다.","an":"03_memory_stl_cmake · CMake 파일을 의존 그래프로 읽기"},{"id":"t5-05","ty":"mc","lv":3,"game":true,"p":"센서 입력 {20, 30, 25}, 기준 30일 때 <code>summarize<\/code>의 결과 Summary{count, mean, alarm}는?","o":["{3, 25.0, true}","{3, 25.0, false}","{3, 30.0, true}","{2, 25.0, true}"],"a":0,"h":"경보는 평균이 아니라 '하나라도 기준 이상'인지로 정합니다.","w":"개수 3, 평균 25.0이고, 30인 값 하나가 기준에 도달했으므로 alarm은 true입니다.","an":"03_memory_stl_cmake · 4. 수업 핵심 TODO — 센서 통계"},{"id":"t5-06","ty":"ox","lv":1,"game":true,"p":"<code>operator[]<\/code>는 <code>at()<\/code>처럼 범위를 검사하고 예외를 던진다.","a":false,"h":"범위를 검사하는 쪽은 하나뿐입니다.","w":"틀렸습니다. <code>at()<\/code>은 범위 밖 접근에 예외를 던지지만 <code>[]<\/code>는 같은 방식으로 검사하지 않습니다.","an":"03_memory_stl_cmake · 1. 자료구조를 고르는 기준"},{"id":"t5-07","ty":"ox","lv":2,"game":true,"p":"<code>const T*<\/code>는 그 포인터로 값을 바꾸지 못하게 할 뿐 메모리 수명을 연장하지 않는다.","a":true,"h":"읽기 전용 접근과 수명은 별개입니다.","w":"맞습니다. 접근 수단이 있다고 소유권이나 수명이 생기는 것은 아닙니다.","an":"03_memory_stl_cmake · 2. 주소·참조·포인터와 수명"},{"id":"t5-08","ty":"match","lv":2,"game":false,"p":"CMake 선언과 역할을 연결하세요.","pairs":[["add_library(stats STATIC ...)","정적 라이브러리 선언"],["add_executable","실행 파일 선언"],["target_link_libraries","실행 파일과 라이브러리 연결"],["target_include_directories PUBLIC","소비 target에도 헤더 경로 전달"]],"h":"만들기(라이브러리·실행 파일)와 연결하기(링크·헤더)를 구분하세요.","w":"add_library는 라이브러리, add_executable은 실행 파일, target_link_libraries는 링크 관계, PUBLIC include 경로는 소비자에게도 전달됩니다.","an":"03_memory_stl_cmake · 3. CMake는 빌드 대상을 연결합니다"},{"id":"t5-09","ty":"order","lv":2,"game":false,"p":"센서 통계 실습의 흐름을 순서대로 정렬하세요.","steps":["stats.cpp TODO 수정·저장","configure","build","CTest","개수·평균·경보 결과 해석"],"h":"규칙 준비 → 실행물 생성 → 결과 검증","w":"저장 → configure(규칙 준비) → build(컴파일·링크) → CTest(검증) → 결과 해석 순서입니다. 빌드 성공만으로 정답이라고 결론 내리지 않습니다.","an":"03_memory_stl_cmake · 이 실습은 무엇을 위한 것인가요?"},{"id":"t5-10","ty":"multi","lv":2,"game":true,"p":"동적 배열 예제(<code>values<\/code>, <code>view<\/code>, <code>owned<\/code>)에 대한 설명으로 맞는 것을 <b>모두<\/b> 고르세요.","o":["values는 delete[]를 한 번 수행","view는 해제하면 안 됨","owned(vector)는 자동 정리","view도 delete[] 해야 함","delete[] 후에도 읽어도 안전"],"a":[0,1,2],"h":"소유 포인터 · 비소유 포인터 · RAII 컨테이너를 구분하세요.","w":"소유 포인터 values만 delete[]를 정확히 한 번 하고, 비소유 view는 해제하지 않으며, vector는 범위 종료 시 자동 정리됩니다. 해제 후 접근은 정의되지 않은 동작입니다.","an":"03_memory_stl_cmake · 같은 count를 바라보는 세 방법"}]},{"id":"t6","title":"공유 라이브러리와 Python ctypes","ref":"04_shared_library_python","qs":[{"id":"t6-01","ty":"mc","lv":1,"game":true,"p":"C++ 함수를 C 형태 이름으로 외부에 노출하는 선언은?","o":["extern \"C\"","namespace","static","inline"],"a":0,"h":"C++의 이름 변형(mangling)을 피합니다.","w":"<code>extern \"C\"<\/code>는 함수 몸체를 C로 바꾸는 것이 아니라 외부 심볼 이름을 C 호환 방식으로 공개합니다.","an":"04_shared_library_python · 1. .so와 C ABI"},{"id":"t6-02","ty":"mc","lv":2,"game":true,"p":"<code>sensor_mean<\/code>이 반환하는 0의 의미는?","o":["평균이 0","계산 성공","빈 입력","비유한 입력"],"a":1,"h":"반환값은 평균이 아니라 상태 코드입니다.","w":"반환값은 상태 코드이며 0은 성공입니다. 평균은 <code>*out_mean<\/code>에 기록됩니다.","an":"04_shared_library_python · 정답 해설"},{"id":"t6-03","ty":"mc","lv":2,"game":true,"p":"공유 라이브러리의 동적 심볼 표에서 <code>sensor_mean<\/code>을 확인하는 명령은?","o":["nm -D libsensor.so","ldd libsensor.so","cmake --build","ctest"],"a":0,"h":"동적(Dynamic) 심볼 옵션을 붙입니다.","w":"<code>nm -D<\/code>로 동적 심볼을 봅니다. 보이면 Python 로더가 이름으로 함수를 찾을 수 있지만, 계산이 맞다는 뜻은 아닙니다.","an":"04_shared_library_python · 빌드 로그와 nm -D 결과 읽기"},{"id":"t6-04","ty":"mc","lv":2,"game":true,"p":"ctypes에서 C++ <code>size_t<\/code>에 맞춰 지정하는 타입은?","o":["c_int","c_double","c_size_t","c_char_p"],"a":2,"h":"이름이 그대로 대응합니다.","w":"<code>double*<\/code>는 <code>POINTER(c_double)<\/code>, <code>size_t<\/code>는 <code>c_size_t<\/code>, 상태 int는 <code>c_int<\/code>입니다.","an":"04_shared_library_python · 4. ctypes에서 자료형 지정"},{"id":"t6-05","ty":"mc","lv":3,"game":true,"p":"<code>.so<\/code>를 재빌드한 뒤 새 코드를 확실히 사용하려면?","o":["같은 커널에서 다시 import","새 프로세스나 커널 재시작","소스 파일만 저장","configure만 실행"],"a":1,"h":"이미 로드된 라이브러리는 그대로 남아 있을 수 있습니다.","w":"한 번 로드한 <code>.so<\/code>는 같은 경로로 재빌드해도 바뀐다고 보장할 수 없어 새 Python 프로세스나 커널 재시작 후 로드합니다.","an":"04_shared_library_python · 6. 재빌드·재생성과 흔한 문제"},{"id":"t6-06","ty":"ox","lv":1,"game":true,"p":"실패 상태 코드를 받았어도 <code>out_mean<\/code>의 값은 평균으로 써도 된다.","a":false,"h":"상태 코드를 먼저 검사합니다.","w":"틀렸습니다. 성공했을 때만 출력 공간을 읽습니다. 실패 시 출력은 예전 값 그대로 보존됩니다.","an":"04_shared_library_python · 이 실습은 무엇을 위한 것인가요?"},{"id":"t6-07","ty":"ox","lv":2,"game":true,"p":"C++은 포인터만 보고 배열 길이를 알 수 없어 길이를 별도로 전달한다.","a":true,"h":"<code>const double* values, size_t n<\/code>","w":"맞습니다. 포인터와 길이는 하나의 계약이며 Python wrapper가 만든 길이를 전달합니다.","an":"04_shared_library_python · 함수 선언을 한 조각씩 읽기"},{"id":"t6-08","ty":"match","lv":2,"game":false,"p":"<code>sensor_mean<\/code>의 상태 코드와 의미를 연결하세요.","pairs":[["0","성공"],["1","null 포인터 또는 빈 입력"],["2","비유한 입력 또는 합계"]],"h":"검사 순서: 인자 → 유한성 → 결과 기록","w":"0은 성공, 1은 null/빈 입력, 2는 NaN·Inf 같은 비유한 입력이나 합계 overflow입니다.","an":"04_shared_library_python · 1. .so와 C ABI"},{"id":"t6-09","ty":"order","lv":2,"game":false,"p":"Python에서 C++ 평균 함수를 호출하는 경로를 순서대로 정렬하세요.","steps":["Python 리스트를 c_double 배열로 복사","주소·길이·결과 주소로 sensor_mean 호출","상태 코드 확인","성공 시 output.value 반환"],"h":"변환 → 호출 → 상태 확인 → 결과 읽기","w":"wrapper가 C 배열을 만들고, 주소·길이·결과 주소를 넘겨 호출한 뒤, 상태 코드를 검사하고 성공일 때만 결과를 읽습니다.","an":"04_shared_library_python · Python wrapper를 위에서 아래로 추적하기"},{"id":"t6-10","ty":"multi","lv":2,"game":true,"p":"ABI 테스트가 확인하는 항목을 <b>모두<\/b> 고르세요.","o":["빈 배열·NaN·Inf 입력","null 포인터","실패 시 출력 보존","GPU 사용 여부","C++이 2배 빠른지"],"a":[0,1,2],"h":"속도가 아니라 언어 경계의 계약을 검사합니다.","w":"정상·빈·비유한 입력, null 포인터, 실패 원자성(출력 보존), 입력 보존, ABI 모양을 확인합니다. 속도 비교는 목적이 아닙니다.","an":"04_shared_library_python · ABI 테스트가 확인하는 경계"}]},{"id":"t7","title":"STL 컨테이너 (자습)","ref":"90_selfstudy_stl","qs":[{"id":"t7-01","ty":"mc","lv":1,"game":true,"p":"Python <code>list<\/code>의 기본 대응 C++ 컨테이너는?","o":["std::list","std::vector","std::array","std::deque"],"a":1,"h":"이름이 같은 std::list는 연결 리스트입니다.","w":"기본 대응은 <code>std::vector<\/code>입니다. <code>std::list<\/code>는 노드가 흩어진 연결 리스트로 임의 인덱싱을 제공하지 않습니다.","an":"90_selfstudy_stl · 1. Python에서 무엇으로 옮길까?"},{"id":"t7-02","ty":"mc","lv":2,"game":true,"p":"<code>queue.pop()<\/code>의 동작은?","o":["맨 앞 값을 반환하고 제거","제거만 하고 값을 반환하지 않음","맨 뒤 값을 제거","큐를 모두 비움"],"a":1,"h":"그래서 front()를 먼저 읽어 둡니다.","w":"<code>pop()<\/code>은 제거만 하고 값을 반환하지 않습니다. <code>front()<\/code>로 먼저 복사해 둡니다.","an":"90_selfstudy_stl · 5. std::queue"},{"id":"t7-03","ty":"mc","lv":2,"game":true,"p":"<code>unordered_map<\/code>에서 없는 키에 <code>operator[]<\/code>를 쓰면?","o":["예외 발생","end() 반환","기본값 항목을 새로 삽입","컴파일 오류"],"a":2,"h":"조회만 하려다 데이터가 바뀔 수 있습니다.","w":"<code>[]<\/code>는 없는 키에 기본값 항목을 새로 삽입합니다. <code>at<\/code>은 예외, <code>find<\/code>는 삽입 없이 존재 여부만 확인합니다.","an":"90_selfstudy_stl · 4. unordered_map과 map"},{"id":"t7-04","ty":"mc","lv":2,"game":true,"p":"<code>for (auto value : values) { value *= 10; }<\/code> 실행 후 원본 {1, 2, 3}은?","o":["{10, 20, 30}","컴파일 오류","{0, 0, 0}","{1, 2, 3}"],"a":3,"h":"<code>auto value<\/code>는 각 원소의 무엇일까요?","w":"<code>auto value<\/code>는 복사본이라 원본은 그대로입니다. 바꾸려면 <code>auto&amp;<\/code>, 읽기만 하려면 <code>const auto&amp;<\/code>를 씁니다.","an":"90_selfstudy_stl · 45초 예측"},{"id":"t7-05","ty":"mc","lv":3,"game":true,"p":"서점 주문 처리에서 A-102(연필 12개 요청, 연필 재고 10)는 어떻게 처리되나요?","o":["재고 부족 거절","처리 완료","없는 상품 거절","부분 처리"],"a":0,"h":"상품은 있지만 요청이 재고보다 큽니다.","w":"재고 부족으로 거절되고 재고는 그대로 남아 다음 A-103(연필 7개)이 성공합니다. 부분 처리는 하지 않습니다.","an":"90_selfstudy_stl · 8. 종합 실습 — 서점 주문 FIFO 처리"},{"id":"t7-06","ty":"ox","lv":1,"game":true,"p":"<code>std::sort<\/code>는 정렬된 새 컨테이너를 반환한다.","a":false,"h":"제자리(in-place)에서 동작합니다.","w":"틀렸습니다. <code>sort<\/code>는 원본 순서를 제자리에서 바꿉니다. 원본 순서를 유지하려면 먼저 복사합니다.","an":"90_selfstudy_stl · 예제 코드 해설 1"},{"id":"t7-07","ty":"ox","lv":2,"game":true,"p":"<code>vector<\/code>가 재할당하면 기존 원소를 가리키던 반복자·포인터·참조가 무효가 될 수 있다.","a":true,"h":"용량을 늘리며 메모리를 옮기면 어떻게 될까요?","w":"맞습니다. 변경이 끝난 뒤 <code>begin()<\/code>/<code>find()<\/code>로 다시 얻어야 합니다.","an":"90_selfstudy_stl · 반복자·참조 무효화"},{"id":"t7-08","ty":"match","lv":1,"game":false,"p":"Python의 의도와 C++의 기본 선택을 연결하세요.","pairs":[["list (크기가 변하는 목록)","std::vector"],["같은 타입·고정 길이","std::array"],["dict (키–값)","std::unordered_map"],["FIFO 대기열","std::queue"]],"h":"목록 · 고정 길이 · 키–값 · 대기열","w":"list→vector, 고정 길이→array, dict→unordered_map(정렬이 필요하면 map), FIFO→queue입니다.","an":"90_selfstudy_stl · 1. Python에서 무엇으로 옮길까?"},{"id":"t7-09","ty":"order","lv":2,"game":false,"p":"<code>queue<\/code>에서 값을 안전하게 꺼내는 순서대로 정렬하세요.","steps":["empty()로 비었는지 확인","front()로 앞 값 복사","pop()으로 제거","복사한 값 처리"],"h":"빈 큐에서 front()·pop()을 부르면 안 됩니다.","w":"비었는지 확인 → 앞 값 복사 → 제거 → 처리 순서입니다. 작업 한 건을 정확히 한 번 제거해야 무한 반복이나 건너뛰기를 피합니다.","an":"90_selfstudy_stl · 예제 코드 해설 2"},{"id":"t7-10","ty":"multi","lv":2,"game":true,"p":"서점 주문 실습의 기대 결과로 맞는 것을 <b>모두<\/b> 고르세요.","o":["성공 주문 A-101·A-103","노트 재고 3","연필 재고 3","A-104 재고 부족 거절","판매 품목 수 3"],"a":[0,1,2],"h":"A-104는 지우개(없는 상품)입니다.","w":"성공은 A-101·A-103, 노트·연필 재고는 각각 3, 판매 품목은 2개입니다. A-104는 '없는 상품'으로 거절됩니다.","an":"90_selfstudy_stl · 기대 결과"}]},{"id":"t8","title":"포인터와 메모리 수명 (자습)","ref":"91_selfstudy_memory","qs":[{"id":"t8-01","ty":"mc","lv":1,"game":true,"p":"식에서 <code>&amp;score<\/code>가 뜻하는 것은?","o":["score의 값","score의 주소","포인터 타입","참조 선언"],"a":1,"h":"'주소 얻기' 연산자입니다.","w":"식의 <code>&amp;score<\/code>는 주소 얻기, 식의 <code>*ptr<\/code>은 역참조, 선언의 <code>int*<\/code>는 포인터 타입입니다.","an":"91_selfstudy_memory · 1. 값, 주소, 포인터"},{"id":"t8-02","ty":"mc","lv":2,"game":true,"p":"<code>const int* p<\/code>의 의미는?","o":["포인터 재지정 금지","이 포인터로 값 변경 금지","값과 주소 모두 고정","null 금지"],"a":1,"h":"const가 * 의 왼쪽에 있습니다.","w":"const가 *의 왼쪽이면 가리키는 값이 읽기 전용이고, 오른쪽(<code>int* const<\/code>)이면 포인터 자체가 고정됩니다.","an":"91_selfstudy_memory · 포인터에도 타입과 const가 있다"},{"id":"t8-03","ty":"mc","lv":2,"game":true,"p":"<code>new[]<\/code>로 만든 배열을 해제하는 연산은?","o":["delete","free","delete[]","nullptr 대입"],"a":2,"h":"new ↔ delete, new[] ↔ ?","w":"<code>new[]<\/code>는 <code>delete[]<\/code>와 짝지어야 합니다. 바꾸어 쓰면 정의되지 않은 동작입니다.","an":"91_selfstudy_memory · 4. 자동 수명과 동적 수명"},{"id":"t8-04","ty":"mc","lv":2,"game":true,"p":"RAII에서 자원이 정리되는 시점은?","o":["프로그램 종료 시","직접 delete 호출 시","sanitizer 실행 시","소유 객체 수명 종료 시"],"a":3,"h":"Resource Acquisition Is Initialization","w":"RAII는 객체가 자원을 얻고 그 객체의 수명이 끝날 때 소멸자가 정리합니다. 중간 return·예외에도 정리가 빠지지 않습니다.","an":"91_selfstudy_memory · RAII가 직접 new/delete보다 안전한 이유"},{"id":"t8-05","ty":"num","lv":3,"game":false,"p":"동적 센서 버퍼 {18.5, 21.0, 19.5, 22.0, 20.0}의 평균은?","a":20.2,"unit":"","h":"계산식: (18.5 + 21.0 + 19.5 + 22.0 + 20.0) ÷ 5","w":"합계 101을 5로 나눠 평균 20.2입니다. 최솟값은 18.5입니다.","an":"91_selfstudy_memory · 기대 결과"},{"id":"t8-06","ty":"ox","lv":1,"game":true,"p":"참조는 <code>nullptr<\/code>를 가질 수 있고 다른 대상으로 재지정할 수 있다.","a":false,"h":"포인터와 참조의 차이표를 떠올리세요.","w":"틀렸습니다. 정상적인 참조는 항상 객체를 가리키고 초기화 후 다른 대상으로 바뀌지 않습니다. 둘 다 가능한 것은 포인터입니다.","an":"91_selfstudy_memory · 2. 참조"},{"id":"t8-07","ty":"ox","lv":2,"game":true,"p":"<code>delete[]<\/code> 뒤 <code>nullptr<\/code> 대입은 같은 주소를 복사해 둔 다른 포인터까지 고쳐 주지 않는다.","a":true,"h":"nullptr는 그 변수 하나의 상태만 바꿉니다.","w":"맞습니다. 해제된 배열의 모든 별칭은 더 이상 사용하면 안 됩니다.","an":"91_selfstudy_memory · 저장 공간과 객체 수명은 다르다"},{"id":"t8-08","ty":"match","lv":2,"game":false,"p":"대표 수명 오류와 설명을 연결하세요.","pairs":[["memory leak","소유 포인터를 잃어 해제할 수 없음"],["dangling pointer","대상이 사라졌는데 주소만 남음"],["double delete","이미 해제한 메모리를 다시 해제"]],"h":"새는 것 · 매달린 것 · 두 번 지우는 것","w":"누수는 해제 기회를 잃음, dangling은 사라진 대상을 가리킴, double delete는 두 번 해제입니다. 모두 정의되지 않은 동작으로 이어질 수 있습니다.","an":"91_selfstudy_memory · 5. 세 가지 대표 수명 오류"},{"id":"t8-09","ty":"order","lv":2,"game":false,"p":"sanitizer 보고서를 읽는 순서대로 정렬하세요.","steps":["첫 ERROR / runtime error 확인","READ·WRITE of size 확인","자신의 소스가 처음 나오는 위치 찾기","할당·해제 위치 비교"],"h":"문제 종류 → 읽기/쓰기 → 내 코드 위치 → 수명 순서","w":"첫 오류로 종류를 알고, 읽기/쓰기를 구분하고, 자신의 소스 위치를 찾은 뒤, 할당·해제 위치를 비교합니다.","an":"91_selfstudy_memory · sanitizer 보고서를 읽는 순서"},{"id":"t8-10","ty":"multi","lv":2,"game":true,"p":"직접 <code>new<\/code>/<code>delete<\/code> 대신 우선 검토할 RAII 타입을 <b>모두<\/b> 고르세요.","o":["std::vector","std::unique_ptr","std::array","malloc","new[]"],"a":[0,1,2],"h":"자동 정리를 해 주는 표준 타입입니다.","w":"여러 원소는 vector, 고정 길이는 array, 단일 객체의 독점 소유는 unique_ptr를 먼저 검토합니다.","an":"91_selfstudy_memory · RAII가 직접 new/delete보다 안전한 이유"}]},{"id":"t9","title":"CMake 빌드 시스템 (자습)","ref":"92_selfstudy_cmake","qs":[{"id":"t9-01","ty":"mc","lv":1,"game":true,"p":"라이브러리의 공개 헤더 include 경로를 <code>PUBLIC<\/code>으로 두는 이유는?","o":["라이브러리만 쓰므로","링크하는 앱·테스트도 필요","빌드 속도 향상","경고 끄기"],"a":1,"h":"헤더를 include하는 쪽이 라이브러리 하나뿐일까요?","w":"라이브러리 자신뿐 아니라 링크하는 앱과 테스트도 그 헤더를 include해야 하므로 PUBLIC입니다.","an":"92_selfstudy_cmake · 3. 사용 요구사항과 PUBLIC/PRIVATE"},{"id":"t9-02","ty":"mc","lv":2,"game":true,"p":"테스트 실행 파일만 만들고 <code>add_test<\/code>를 빠뜨리면?","o":["CTest가 테스트를 못 찾음","자동으로 등록됨","빌드 실패","링크 오류"],"a":0,"h":"add_test는 실행 방법을 CTest에 등록합니다.","w":"<code>add_test<\/code>를 빠뜨리면 CTest가 테스트를 찾지 못합니다. 0개 실행은 통과 증거가 아닙니다.","an":"92_selfstudy_cmake · 흔한 실수"},{"id":"t9-03","ty":"mc","lv":2,"game":true,"p":"이 target을 사용하는 소비자에게만 필요한 설정의 범위 키워드는?","o":["PRIVATE","PUBLIC","STATIC","INTERFACE"],"a":3,"h":"자신 · 자신과 소비자 · 소비자만","w":"PRIVATE는 자신만, PUBLIC은 자신과 소비자, INTERFACE는 소비자에게만 필요한 설정입니다.","an":"92_selfstudy_cmake · 3. 사용 요구사항과 PUBLIC/PRIVATE"},{"id":"t9-04","ty":"mc","lv":2,"game":true,"p":"<code>median(std::vector&lt;double&gt; values)<\/code>가 벡터를 값으로 받는 이유는?","o":["속도 향상","복사본만 정렬해 원본 보존","예외 방지","링크 오류 방지"],"a":1,"h":"정렬이 필요한데 호출자의 순서는 지켜야 합니다.","w":"값으로 받은 복사본만 정렬하므로 호출자의 원래 순서가 유지됩니다.","an":"92_selfstudy_cmake · TODO 계약"},{"id":"t9-05","ty":"mc","lv":3,"game":true,"p":"{8, 3, 5, 4}의 중앙값은?","o":["5.0","4.0","3.5","4.5"],"a":3,"h":"정렬 후 개수가 짝수이면 가운데 두 값의 평균입니다.","w":"정렬하면 {3, 4, 5, 8}이고 가운데 4와 5의 평균인 4.5입니다. 평균은 5.0입니다.","an":"92_selfstudy_cmake · TODO 계약"},{"id":"t9-06","ty":"ox","lv":1,"game":true,"p":"CTest가 오류 없이 끝났지만 테스트가 0개라면 통과 증거가 된다.","a":false,"h":"검사가 실행되지 않았습니다.","w":"틀렸습니다. 테스트 활성화·등록과 빌드 디렉터리를 확인해야 합니다.","an":"92_selfstudy_cmake · 이 실습은 무엇을 위한 것인가요?"},{"id":"t9-07","ty":"ox","lv":2,"game":true,"p":"CMakeLists.txt에 새 target을 추가했다면 configure를 다시 실행한다.","a":true,"h":"빌드 그래프를 다시 만들어야 합니다.","w":"맞습니다. 새 target 선언 뒤에는 configure를 다시 실행해 빌드 그래프를 갱신합니다.","an":"92_selfstudy_cmake · 바로 아래 CMake TODO"},{"id":"t9-08","ty":"match","lv":2,"game":false,"p":"실패 위치와 먼저 확인할 것을 연결하세요.","pairs":[["configure","add_library·add_executable의 경로"],["library compile","include 경로와 구현 파일"],["link","target_link_libraries와 함수 서명"],["CTest","실패 테스트 출력과 구현 로직"]],"h":"어떤 target을 만드는 중이었는지 보면 범위가 줄어듭니다.","w":"configure는 경로·문법, compile은 include·구현, link는 연결·서명, CTest는 계약 불만족을 먼저 확인합니다.","an":"92_selfstudy_cmake · target 중심으로 오류 범위를 좁히기"},{"id":"t9-09","ty":"order","lv":2,"game":false,"p":"CMake 프로젝트의 검증 흐름을 순서대로 정렬하세요.","steps":["CMakeLists 저장","configure로 그래프 생성","build로 컴파일·링크","앱 직접 실행","CTest로 등록된 테스트 실행"],"h":"규칙 준비 → 실행물 생성 → 실행 → 테스트","w":"저장 → configure → build → 앱 실행 → CTest 순서입니다. 각 단계의 성공은 다음 단계의 성공을 보장하지 않습니다.","an":"92_selfstudy_cmake · TODO 계약, 권장 순서"},{"id":"t9-10","ty":"multi","lv":2,"game":true,"p":"include 경로 범위에 대한 설명으로 맞는 것을 <b>모두<\/b> 고르세요.","o":["PRIVATE: 이 target 빌드에만","PUBLIC: 자신과 소비자 모두","INTERFACE: 소비자에게만","PUBLIC: 소비자에게만","PRIVATE: 소비자에게만"],"a":[0,1,2],"h":"세 키워드의 전파 범위입니다.","w":"PRIVATE는 자신만, PUBLIC은 자신과 소비자, INTERFACE는 소비자에게만 사용 요구사항을 전달합니다.","an":"92_selfstudy_cmake · 3. 사용 요구사항과 PUBLIC/PRIVATE"}]}]};
+const app=document.getElementById('app');
+if(!BANK){app.innerHTML='<p>문제은행 데이터가 없습니다. <code>python develop/build.py</code>로 빌드한 파일을 여세요.</p>';return;}
+
+/* ── 상수 · 인덱스 ─────────────────────── */
+const TYPES={mc:['객관식','--ty-mc'],multi:['복수 선택','--ty-multi'],ox:['O / X','--ty-ox'],match:['짝 맞추기','--ty-match'],order:['순서 맞추기','--ty-order'],num:['계산','--ty-num']};
+const GUIDE={mc:'알맞은 답을 하나 고르세요.',multi:'알맞은 것을 모두 고르세요.',ox:'맞으면 O, 틀리면 X를 고르세요.',
+  match:'왼쪽 항목을 누른 뒤 짝이 되는 오른쪽 항목을 누르세요. 연결된 항목을 다시 누르면 풀립니다.',
+  order:'첫 번째부터 순서대로 클릭하세요. 번호가 붙은 항목을 다시 누르면 그 번호부터 뒤 번호가 지워집니다.',num:'숫자만 입력하세요.'};
+/* 게임 모드 목록 — 새 게임은 여기에 항목을 추가한다 (설정·출제 유형·규칙 문구를 모드별로) */
+const GAME_MODES={
+  timeattack:{title:'⚡ 타임어택',desc:'제한시간 안에 풀수록 점수가 커집니다. 시간이 다 되면 오답!',
+    types:['mc','ox','multi'],times:[5,7,10,15],defaultTime:10},
+};
+// 게임 선택 화면의 버튼 3칸: 모드 id 또는 null(준비 중). 새 게임을 만들면 null 자리에 id를 넣는다.
+const GAME_SLOTS=['timeattack',null,null];
+const PAL=['--ty-mc','--ty-order','--ty-match','--ty-num','--ty-multi'];
+const LETTER='ABCDEFGH';
+const TABS=BANK.tabs, QMAP={}, QTAB={};
+TABS.forEach((t,ti)=>{t.idx=ti;t.qs.forEach(q=>{QMAP[q.id]=q;QTAB[q.id]=t;});});
+const ALLQ=TABS.flatMap(t=>t.qs);
+const RM=matchMedia('(prefers-reduced-motion: reduce)');
+
+/* ── 저장소 (실패해도 동작) ─────────────── */
+const KEY='qb:'+BANK.id+':v1';
+const blank=()=>({name:'',tabs:{},wrong:{},board:[],drafts:{}});  // drafts: 채점 전 탭별 풀던 답
+let S=blank();
+try{const raw=localStorage.getItem(KEY);if(raw)S=Object.assign(blank(),JSON.parse(raw));}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+const gameUnlocked=()=>Object.keys(S.tabs).length>0;
+const allGraded=()=>TABS.every(t=>S.tabs[t.id]);
+
+/* 순위 저장소 — 공유 순위로 바꿀 때 이 객체만 교체 */
+// 순위는 같은 조건(게임 모드 + 풀이 시간)끼리만 비교한다. key = 'timeattack:10'
+const boardKey=r=>`${r.mode||'timeattack'}:${r.time||'-'}`;
+const Leaderboard={
+  load(key){return S.board.filter(r=>boardKey(r)===key).sort((a,b)=>b.score-a.score||b.rate-a.rate||a.at-b.at);},
+  add(rec){S.board.push(rec);
+    const list=this.load(boardKey(rec)), rank=list.findIndex(r=>r.id===rec.id)+1;
+    // 조건별 상위 50개만 보관
+    const keep=new Set(Object.values(S.board.reduce((m,r)=>{(m[boardKey(r)]=m[boardKey(r)]||[]).push(r);return m;},{}))
+      .flatMap(l=>l.sort((a,b)=>b.score-a.score||b.rate-a.rate||a.at-b.at).slice(0,50)).map(r=>r.id));
+    S.board=S.board.filter(r=>keep.has(r.id));save();return rank;}
+};
+
+/* ── 유틸 ──────────────────────────────── */
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const strip=s=>String(s??'').replace(/<[^>]+>/g,'');
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
+const range=n=>[...Array(n).keys()];
+const derange=n=>{if(n<2)return range(n);let s;do{s=shuffle(range(n));}while(s.every((v,i)=>v===i));return s;};
+const sortN=a=>a.slice().sort((x,y)=>x-y);
+const today=()=>new Date().toLocaleDateString('ko-KR');
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+function hash(s){let h=5381;for(const c of s)h=((h<<5)+h+c.codePointAt(0))>>>0;return h.toString(36).toUpperCase().padStart(6,'0').slice(-6);}
+function letter(p){return p>=90?'A':p>=80?'B':p>=70?'C':p>=60?'D':'F';}
+let toastT;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200);}
+function say(msg){const l=document.getElementById('live');l.textContent='';setTimeout(()=>l.textContent=msg,30);}
+async function copy(text){
+  try{await navigator.clipboard.writeText(text);toast('📋 클립보드에 복사했습니다');return;}catch(e){}
+  const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0;top:0';document.body.appendChild(ta);ta.select();
+  let ok=false;try{ok=document.execCommand('copy');}catch(e){}ta.remove();
+  toast(ok?'📋 클립보드에 복사했습니다':'복사하지 못했습니다. 인쇄 기능을 이용하세요.');
+}
+
+/* ── 채점 · 답 표시 ───────────────────── */
+function isCorrect(q,a){
+  if(a==null)return false;
+  switch(q.ty){
+    case 'mc':case 'ox':return a===q.a;
+    case 'multi':{if(!Array.isArray(a)||a.length!==q.a.length)return false;const x=sortN(a),y=sortN(q.a);return x.every((v,i)=>v===y[i]);}
+    case 'match':return q.pairs.every((_,i)=>a[i]===i);
+    case 'order':return a.length===q.steps.length&&a.every((v,i)=>v===i);
+    case 'num':return String(a).trim()!==''&&Math.abs(Number(a)-q.a)<=(q.tol??1e-6);
+  }
+  return false;
+}
+function correctText(q){
+  switch(q.ty){
+    case 'mc':return q.o[q.a];
+    case 'multi':return q.a.map(i=>q.o[i]).join(', ');
+    case 'ox':return q.a?'O':'X';
+    case 'match':return q.pairs.map(p=>p[0]+' → '+p[1]).join(' / ');
+    case 'order':return q.steps.join(' → ');
+    case 'num':return q.a+(q.unit||'');
+  }
+}
+function answerText(q,a){
+  if(a==null)return '(미응답)';
+  switch(q.ty){
+    case 'mc':return q.o[a]??'(미응답)';
+    case 'multi':return a.length?sortN(a).map(i=>q.o[i]).join(', '):'(미응답)';
+    case 'ox':return a?'O':'X';
+    case 'match':return q.pairs.map((p,i)=>p[0]+' → '+(a[i]!=null?q.pairs[a[i]][1]:'?')).join(' / ');
+    case 'order':return a.map(i=>q.steps[i]).join(' → ');
+    case 'num':return a+(q.unit||'');
+  }
+}
+
+/* ── 오답노트 ──────────────────────────── */
+function addWrong(id,ans){const w=S.wrong[id]||{n:0};w.n++;w.last=ans;w.at=Date.now();w.solved=false;S.wrong[id]=w;}
+function markSolved(id){if(S.wrong[id]&&!S.wrong[id].solved){S.wrong[id].solved=true;S.wrong[id].at=Date.now();}}
+const wrongList=solved=>Object.keys(S.wrong).filter(id=>QMAP[id]&&!!S.wrong[id].solved===solved)
+  .sort((a,b)=>QTAB[a].idx-QTAB[b].idx||ALLQ.indexOf(QMAP[a])-ALLQ.indexOf(QMAP[b]));
+
+/* ── 문항 풀이 상태(학습·재도전 공용) ───── */
+let cur=null;  // {mode,list,ans,touched,msel,shuf,graded,armed,tab}
+function newSheet(mode,list,tab){
+  const c={mode,list,tab,ans:{},touched:new Set(),msel:{},shuf:{},hints:new Set(),graded:false,armed:false,onlyWrong:false};
+  list.forEach(q=>{
+    if(q.ty==='match')c.shuf[q.id]=derange(q.pairs.length);
+    if(q.ty==='order')c.shuf[q.id]=derange(q.steps.length);  // 화면 배치(고정). 답 = 클릭한 순서의 단계 인덱스 배열
+  });
+  return c;
+}
+const answered=q=>isAnswered(q,cur.ans[q.id]);
+function isAnswered(q,a){
+  switch(q.ty){
+    case 'mc':return Number.isInteger(a);
+    case 'ox':return typeof a==='boolean';
+    case 'multi':return Array.isArray(a)&&a.length>0;
+    case 'match':return !!a&&Object.keys(a).length===q.pairs.length;
+    case 'order':return Array.isArray(a)&&a.length===q.steps.length;
+    case 'num':return a!=null&&String(a).trim()!==''&&!isNaN(Number(a));
+  }
+}
+const finalAns=q=>answered(q)?cur.ans[q.id]:null;
+
+function cardHTML(q,n){
+  const [label,color]=TYPES[q.ty];
+  const g=cur.graded, a=cur.ans[q.id], fa=finalAns(q), ok=g&&isCorrect(q,fa);
+  const lock=g?' disabled':'';
+  let body='';
+  if(q.ty==='mc'||q.ty==='multi'){
+    const multi=q.ty==='multi', mine=multi?(a||[]):[a];
+    body='<div class="opts">'+q.o.map((o,i)=>{
+      const right=multi?q.a.includes(i):q.a===i, picked=mine.includes(i);
+      const cls=g?(right?' ans':picked?' miss':''):'';
+      return `<label class="opt${cls}"><span class="onum">${i+1}</span><input type="${multi?'checkbox':'radio'}" name="r-${q.id}" data-act="${multi?'tick':'pick'}" data-q="${q.id}" data-i="${i}"${picked?' checked':''}${lock}><span>${esc(o)}</span></label>`;
+    }).join('')+'</div>';
+  }else if(q.ty==='ox'){
+    body='<div class="ox">'+[true,false].map(v=>{
+      const cls=g?(q.a===v?' ans':a===v?' miss':''):'';
+      return `<button type="button" class="${cls.trim()}" data-act="ox" data-q="${q.id}" data-v="${v?1:0}" data-fk="${q.id}-ox${v?1:0}" aria-pressed="${a===v}" aria-label="${v?'맞다 O':'틀리다 X'}"${lock}>${v?'O':'X'}</button>`;
+    }).join('')+'</div>';
+  }else if(q.ty==='match'){
+    const m=a||{}, sel=cur.msel[q.id], linkedBy={};
+    Object.entries(m).forEach(([l,r])=>linkedBy[r]=+l);
+    const left=q.pairs.map((p,i)=>{
+      const linked=m[i]!=null, cls=(linked?' linked':'')+(sel===i?' sel':'')+(g?(m[i]===i?' okm':' nom'):'');
+      return `<button type="button" class="mitem${cls}" style="--pc:var(${PAL[i%PAL.length]})" data-act="ml" data-q="${q.id}" data-i="${i}" data-fk="${q.id}-l${i}"${lock}><span class="tag">${LETTER[i]}</span>${esc(p[0])}</button>`;
+    }).join('');
+    const right=cur.shuf[q.id].map(j=>{
+      const by=linkedBy[j], linked=by!=null, cls=(linked?' linked':'')+(g&&linked?(by===j?' okm':' nom'):'');
+      return `<button type="button" class="mitem${cls}" style="--pc:var(${linked?PAL[by%PAL.length]:'--line'})" data-act="mr" data-q="${q.id}" data-j="${j}" data-fk="${q.id}-r${j}"${lock}><span class="tag">${linked?LETTER[by]:''}</span>${esc(q.pairs[j][1])}</button>`;
+    }).join('');
+    body=`<div class="match"><div class="mcol mleft">${left}</div><div class="mcol mright">${right}</div></div>`;
+  }else if(q.ty==='order'){
+    const seq=a||[], full=seq.length===q.steps.length;
+    body='<div class="olist">'+(cur.shuf[q.id]||range(q.steps.length)).map(si=>{
+      const pos=seq.indexOf(si), on=pos>=0;
+      const cls=(on?' on':'')+(g?(pos===si?' ok':' no'):'');
+      const fix=g&&pos!==si?`<span class="ofix">정답 ${si+1}</span>`:'';
+      return `<button type="button" class="oitem${cls}" data-act="ord" data-q="${q.id}" data-s="${si}" data-fk="${q.id}-o${si}" aria-pressed="${on}"${lock}>`+
+        `<span class="num">${on?pos+1:''}</span><span class="txt">${esc(q.steps[si])}</span>${fix}</button>`;
+    }).join('')+'</div>'+(g&&!full?'<p class="guide">(순서를 끝까지 매기지 않아 미응답 처리)</p>':'');
+  }else if(q.ty==='num'){
+    const cls=g?(ok?'ans':'miss'):'';
+    body=`<div class="numrow"><input class="${cls}" type="text" inputmode="decimal" data-act="num" data-q="${q.id}" value="${esc(a??'')}" aria-label="숫자 답"${lock}><span>${esc(q.unit||'')}</span></div>`;
+  }
+  const numAns=q.ty==='mc'?`${q.a+1}번 · `:q.ty==='multi'?q.a.map(i=>i+1).join('·')+'번 · ':'';
+  const exp=g?`<div class="exp"><p><b>정답</b> ${numAns}${esc(correctText(q))}</p>${ok?'':`<p class="mine">내 답: ${esc(answerText(q,fa))}</p>`}<p>${q.w}</p><p class="an">📖 자료 위치: ${esc(q.an)}</p></div>`:'';
+  const src=cur.mode==='retry'?`<span class="qsrc">${QTAB[q.id].idx+1}. ${esc(QTAB[q.id].title)}</span>`:'';
+  return `<article class="q${g?(ok?' correct':' wrong')+' locked':''}" id="card-${q.id}" data-n="${n}" style="--tc:var(${color})">`+
+    `<div class="qhead"><span class="qn">Q${n}</span><span class="tbadge">${label}</span>${lvHTML(q.lv)}${src}${g?`<span class="verdict">${ok?'✓ 정답':'✗ 오답'}</span>`:''}</div>`+
+    `<div class="qt">${q.p}</div>${hintHTML(q)}${g?'':`<p class="guide">${GUIDE[q.ty]}</p>`}${body}${exp}</article>`;
+}
+const LV_NAME=['쉬움','보통','어려움'];
+function lvHTML(lv){
+  lv=lv||1;
+  const dots=[1,2,3].map(k=>k<=lv?`<i class="d${k}">●</i>`:'<i class="off">○</i>').join('');
+  return `<span class="lv lv${lv}" title="난이도 ${LV_NAME[lv-1]}"><span class="dots" aria-hidden="true">${dots}</span><em>${LV_NAME[lv-1]}</em></span>`;
+}
+function hintHTML(q){
+  if(!q.h)return '';
+  const open=cur.hints.has(q.id), label=q.ty==='num'?'Hint · 계산식':'Hint';
+  return `<div class="hintwrap"><button type="button" class="hintbtn" data-act="hint" data-q="${q.id}" data-fk="${q.id}-hint" aria-expanded="${open}" aria-controls="hint-${q.id}">`+
+    `<span class="caret" aria-hidden="true">${open?'▾':'▸'}</span>${label}</button>`+
+    (open?`<div class="hint" id="hint-${q.id}">${q.h}</div>`:'')+`</div>`;
+}
+function refreshCard(q){
+  const el=document.getElementById('card-'+q.id);if(!el)return;
+  const fk=document.activeElement&&document.activeElement.dataset?document.activeElement.dataset.fk:null;
+  el.outerHTML=cardHTML(q,el.dataset.n);
+  if(fk){const f=app.querySelector(`[data-fk="${fk}"]`);if(f&&!f.disabled)f.focus();}
+  updateProgress();
+}
+const pad2=n=>String(n).padStart(2,'0');
+const fmtCnt=(n,t)=>`(${pad2(n)}/${pad2(t)})`;
+// 탭별 푼 문항 수: 지금 보는 탭 → 화면 상태, 그 외 → 풀던 답(drafts) → 채점 기록
+function tabAnswered(t){
+  const src=cur&&cur.mode==='study'&&cur.tab===t?cur.ans:(S.drafts[t.id]||(S.tabs[t.id]&&S.tabs[t.id].answers)||{});
+  return t.qs.filter(q=>isAnswered(q,src[q.id])).length;
+}
+function updateProgress(){
+  const p=document.getElementById('pbar');if(!p||!cur)return;
+  const n=cur.list.filter(answered).length, cnt=fmtCnt(n,cur.list.length);
+  p.style.width=pct(n,cur.list.length)+'%';
+  document.getElementById('ptxt').textContent=`${n} / ${cur.list.length} 응답`;
+  const g=document.getElementById('gradeCnt');if(g)g.textContent=cnt;
+  if(cur.mode==='study'){
+    const c=document.getElementById('qc-'+cur.tab.id);if(c)c.textContent=cnt;
+    if(!cur.graded){  // 풀던 답 저장 → 탭을 옮겨도 유지
+      if(n||Object.keys(cur.ans).some(k=>{const v=cur.ans[k];return Array.isArray(v)?v.length:v&&typeof v==='object'?Object.keys(v).length:v!=null&&v!=='';}))
+        S.drafts[cur.tab.id]=JSON.parse(JSON.stringify(cur.ans));
+      else delete S.drafts[cur.tab.id];
+      save();
+    }
+  }
+}
+
+/* 학습 화면 상호작용 */
+function onSheetClick(el){
+  const q=QMAP[el.dataset.q];if(!q)return;
+  if(el.dataset.act==='hint'){cur.hints.has(q.id)?cur.hints.delete(q.id):cur.hints.add(q.id);refreshCard(q);return;}  // 채점 후에도 열고 닫기 가능
+  if(cur.graded)return;
+  const act=el.dataset.act;
+  if(act==='ox'){cur.ans[q.id]=el.dataset.v==='1';}
+  else if(act==='ml'){
+    const i=+el.dataset.i, m=cur.ans[q.id]||(cur.ans[q.id]={});
+    if(m[i]!=null){delete m[i];cur.msel[q.id]=null;}
+    else cur.msel[q.id]=cur.msel[q.id]===i?null:i;
+  }else if(act==='mr'){
+    const j=+el.dataset.j, m=cur.ans[q.id]||(cur.ans[q.id]={}), sel=cur.msel[q.id];
+    const by=Object.keys(m).find(l=>m[l]===j);
+    if(by!=null)delete m[by];
+    if(sel!=null){m[sel]=j;cur.msel[q.id]=null;}
+  }else if(act==='ord'){
+    const si=+el.dataset.s, seq=cur.ans[q.id]||(cur.ans[q.id]=[]), pos=seq.indexOf(si);
+    if(pos>=0)seq.length=pos;  // 1번을 누르면 전부 리셋, 2번을 누르면 1번은 남고 2번부터 삭제
+    else seq.push(si);
+  }else return;
+  cur.armed=false;
+  refreshCard(q);
+}
+function onSheetChange(el){
+  const q=QMAP[el.dataset.q];if(!q||cur.graded)return;
+  if(el.dataset.act==='pick')cur.ans[q.id]=+el.dataset.i;
+  else if(el.dataset.act==='tick'){
+    cur.ans[q.id]=[...app.querySelectorAll(`input[data-act="tick"][data-q="${q.id}"]:checked`)].map(x=>+x.dataset.i);
+  }
+  cur.armed=false;updateProgress();
+}
+function onSheetInput(el){
+  if(el.dataset.act==='num'&&!cur.graded){cur.ans[el.dataset.q]=el.value;cur.armed=false;updateProgress();}
+}
+
+/* ── 화면: 홈 ──────────────────────────── */
+function viewHome(){
+  const done=TABS.filter(t=>S.tabs[t.id]).length, open=wrongList(false).length, unlocked=gameUnlocked();
+  const firstTodo=(TABS.find(t=>!S.tabs[t.id])||TABS[0]).id;
+  app.innerHTML=`
+  <nav class="crumbs"><a href="../index.html">← 전체 문제은행</a></nav>
+  <h1>${esc(BANK.title)}</h1>
+  ${BANK.subtitle?`<p class="sub">${esc(BANK.subtitle)}</p>`:''}
+  <p class="meta">${ALLQ.length}문항 · ${TABS.length}탭 · 출처 ${esc(BANK.course||BANK.source)}${BANK.updated?' · '+esc(BANK.updated):''}</p>
+  <div class="field"><label for="nm">이름 (결과 코드·순위에 사용)</label><input id="nm" data-act="name" autocomplete="nickname" maxlength="20" value="${esc(S.name)}" placeholder="이름 또는 닉네임"></div>
+  <div class="homeprog"><div class="bar"><div style="width:${pct(done,TABS.length)}%"></div></div><span>${done} / ${TABS.length} 탭 채점 완료</span></div>
+  <div class="grid">${TABS.map((t,i)=>{const r=S.tabs[t.id];
+    return `<a class="tcard${r?' done':''}${r&&r.score===r.total?' perfect':''}" href="#study/${t.id}">
+      <span class="tn">탭 ${i+1} · ${esc(t.ref||'')}</span><span class="tt">${esc(t.title)}</span>
+      <span class="ts">${t.qs.length}문항 ${r?`<b>✓ ${r.score}/${r.total}${r.score===r.total?' ⭐':''}</b>`:'<span>미응시</span>'}</span></a>`;}).join('')}
+  </div>
+  <div class="actions">
+    <a class="btn primary" href="#study/${firstTodo}">📘 학습 시작</a>
+    <a class="btn${unlocked?'':' locked'}" href="#game">⚡ 게임 모드${unlocked?'':' 🔒'}</a>
+    <a class="btn" href="#notes">📒 오답노트${open?` <span class="cnt">${open}</span>`:''}</a>
+    <a class="btn${unlocked?'':' locked'}" href="#key">📄 해설지${unlocked?'':' 🔒'}</a>
+    ${allGraded()?'<a class="btn" href="#summary">★ 종합 결과</a>':''}
+  </div>
+  ${unlocked?'':'<p class="lockmsg">🔒 게임 모드와 해설지는 탭 하나를 채점하면 열립니다.</p>'}
+  <details class="more noprint"><summary>기록 관리</summary>
+    <p class="note-sm">진행 기록·오답노트·순위는 이 브라우저에만 저장됩니다. 다른 기기와 공유되지 않습니다.</p>
+    <button class="btn danger" type="button" data-act="reset">이 문제은행 기록 모두 지우기</button>
+  </details>`;
+}
+
+/* ── 화면: 학습 ────────────────────────── */
+function viewStudy(tid,fresh){
+  const tab=TABS.find(t=>t.id===tid)||TABS[0];
+  cur=newSheet('study',tab.qs,tab);
+  const rec=S.tabs[tab.id], draft=S.drafts[tab.id];
+  if(fresh){delete S.drafts[tab.id];save();}
+  else if(draft){Object.assign(cur.ans,JSON.parse(JSON.stringify(draft)));}  // 풀던 중이면 이어서
+  else if(rec&&rec.answers){
+    Object.assign(cur.ans,JSON.parse(JSON.stringify(rec.answers)));
+    (rec.touched||[]).forEach(id=>cur.touched.add(id));
+    cur.graded=true;
+  }
+  renderSheet();
+}
+function renderSheet(){
+  const study=cur.mode==='study', tab=cur.tab;
+  const tabbar=study?`<nav class="tabbar noprint" role="tablist" aria-label="탭">${TABS.map((t,i)=>{const r=S.tabs[t.id];
+      return `<a class="tabchip" role="tab" href="#study/${t.id}" aria-selected="${t===tab}"><b>${i+1}</b><span class="tl">${esc(t.title)}</span><span class="qc" id="qc-${t.id}">${fmtCnt(tabAnswered(t),t.qs.length)}</span>${r?`<span class="sc" title="채점 점수">✓${r.score}</span>`:''}</a>`;}).join('')}
+      ${allGraded()?'<a class="tabchip sum" href="#summary">★ 종합</a>':''}</nav>`:'';
+  const head=study?`<div class="tabhead"><h2>${tab.idx+1}. ${esc(tab.title)}</h2>${tab.ref?`<span class="part">${esc(tab.ref)}</span>`:''}</div>`
+                  :`<div class="tabhead"><h2>🔁 오답 다시 풀기</h2><span class="part">${cur.list.length}문항</span></div>`;
+  const next=study?(tab.idx+1<TABS.length?`<a class="btn" href="#study/${TABS[tab.idx+1].id}">다음 탭 →</a>`:(allGraded()?'<a class="btn" href="#summary">★ 종합 결과</a>':'')):'<a class="btn" href="#notes">오답노트로</a>';
+  app.innerHTML=`<div class="sheet">
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>${study?'학습 모드':'오답노트'}</span></nav>
+  ${tabbar}${head}
+  <div class="progress"><div class="bar"><div id="pbar"></div></div><span id="ptxt"></span></div>
+  <div id="sheetResult">${cur.graded?sheetResultHTML():''}</div>
+  <div id="cards" class="${cur.onlyWrong?'onlywrong':''}">${cur.list.map((q,i)=>cardHTML(q,i+1)).join('')}</div>
+  <p class="warn" id="warn" role="status"></p>
+  <div class="actions">
+    ${cur.graded?'':`<button class="btn primary" type="button" data-act="grade">${study?'이 탭 채점하기':'채점하기'} <span class="qc" id="gradeCnt"></span></button>`}
+    ${cur.graded?`<button class="btn" type="button" data-act="onlywrong">${cur.onlyWrong?'전체 보기':'오답만 보기'}</button>`:''}
+    ${study?'<button class="btn" type="button" data-act="retab">다시 풀기</button>':''}
+    ${next}
+  </div></div>`;
+  const on=app.querySelector('.tabchip[aria-selected="true"]');
+  if(on)on.parentElement.scrollLeft=on.offsetLeft-on.parentElement.offsetLeft-16;
+  updateProgress();
+}
+function sheetResultHTML(){
+  const n=cur.list.length, score=cur.list.filter(q=>isCorrect(q,finalAns(q))).length, p=pct(score,n);
+  const msg=p===100?'만점입니다! 🎉':p>=80?'잘했어요. 틀린 문항의 해설과 자료 위치를 확인하세요.':p>=60?'절반 이상 이해했어요. 오답노트로 다시 풀어 보세요.':'자료를 한 번 더 읽고 다시 풀어 보세요.';
+  return `<div class="panel"><div class="score">${score}<small> / ${n} · ${p}%</small></div><p class="msg">${msg}</p>
+    ${cur.mode==='study'&&gameUnlocked()?'<a class="btn" href="#game">⚡ 게임 모드 도전</a>':''}</div>`;
+}
+function gradeSheet(){
+  const miss=cur.list.map((q,i)=>answered(q)?0:i+1).filter(Boolean);
+  if(miss.length&&!cur.armed){
+    cur.armed=true;
+    document.getElementById('warn').textContent=`미응답 ${miss.length}문항 (Q${miss.join(', Q')}). 한 번 더 누르면 미응답은 오답으로 채점합니다.`;
+    return;
+  }
+  const firstUnlock=!gameUnlocked();
+  cur.graded=true;
+  const snap={};let score=0;
+  cur.list.forEach(q=>{
+    const a=finalAns(q);
+    if(a!=null)snap[q.id]=a;
+    if(isCorrect(q,a)){score++;markSolved(q.id);}
+    else addWrong(q.id,answerText(q,a));
+  });
+  if(cur.mode==='study'){
+    S.tabs[cur.tab.id]={score,total:cur.list.length,answers:snap,touched:[...cur.touched],at:Date.now()};
+    delete S.drafts[cur.tab.id];
+  }
+  save();
+  renderSheet();
+  window.scrollTo({top:0,behavior:RM.matches?'auto':'smooth'});
+  say(`채점 결과 ${score}점, ${cur.list.length}문항 중`);
+  if(cur.mode==='study'&&firstUnlock)setTimeout(()=>toast('⚡ 게임 모드와 해설지가 열렸습니다!'),300);
+  else if(cur.mode==='study'&&allGraded())setTimeout(()=>toast('★ 모든 탭 완료! 종합 결과를 확인하세요.'),300);
+}
+
+/* ── 화면: 종합 결과 ───────────────────── */
+function summaryStats(){
+  let score=0,total=0;const byType={},byTab=[];
+  TABS.forEach(t=>{const r=S.tabs[t.id];if(!r)return;let s=0;
+    t.qs.forEach(q=>{const ok=isCorrect(q,r.answers?r.answers[q.id]:null);if(ok)s++;
+      const b=byType[q.ty]||(byType[q.ty]=[0,0]);b[1]++;if(ok)b[0]++;});
+    byTab.push([t,s,t.qs.length]);score+=s;total+=t.qs.length;});
+  return {score,total,byType,byTab};
+}
+function resultCode(score,total){return `${BANK.code||'QB'}-${letter(pct(score,total))}-${hash([S.name.trim(),score,total,BANK.salt].join('|'))}`;}
+function viewSummary(){
+  if(!allGraded()){location.hash='#home';return;}
+  const st=summaryStats(), p=pct(st.score,st.total), code=resultCode(st.score,st.total);
+  app.innerHTML=`
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>종합 결과</span></nav>
+  <div class="printhead">${esc(BANK.title)} · ${esc(S.name||'이름 없음')} · ${today()}</div>
+  <div class="panel">
+    <h2 class="ph">★ 종합 결과</h2>
+    <div class="score">${st.score}<small> / ${st.total} · ${p}%</small></div>
+    <p class="msg">${esc(S.name||'이름 없음')} · 결과 코드 <span class="rcode">${code}</span></p>
+    <h3 class="sh">탭별</h3>
+    <div class="bd">${st.byTab.map(([t,s,n])=>`<div><span>${t.idx+1}. ${esc(t.title)}</span><span class="b"><i style="width:${pct(s,n)}%"></i></span><span>${s}/${n}</span></div>`).join('')}</div>
+    <h3 class="sh">유형별</h3>
+    <div class="bd">${Object.entries(st.byType).map(([ty,[s,n]])=>`<div style="--tc:var(${TYPES[ty][1]})"><span>${TYPES[ty][0]}</span><span class="b"><i style="width:${pct(s,n)}%"></i></span><span>${s}/${n}</span></div>`).join('')}</div>
+  </div>
+  <div class="actions">
+    <button class="btn primary" type="button" data-act="copyreport">📋 결과 리포트 복사</button>
+    <a class="btn" href="#notes">📒 오답노트</a>
+    <a class="btn" href="#game">⚡ 게임 모드</a>
+    <button class="btn" type="button" data-act="print">🖨 인쇄</button>
+  </div>`;
+}
+function reportMD(){
+  const st=summaryStats();
+  let md=`# ${BANK.title} 결과\n\n- 이름: ${S.name||'-'}\n- 날짜: ${today()}\n- 점수: ${st.score}/${st.total} (${pct(st.score,st.total)}%)\n- 결과 코드: ${resultCode(st.score,st.total)}\n\n| 탭 | 점수 |\n|---|---|\n`;
+  st.byTab.forEach(([t,s,n])=>md+=`| ${t.idx+1}. ${t.title} | ${s}/${n} |\n`);
+  md+='\n'+notesMD(true);
+  return md;
+}
+
+/* ── 화면: 오답노트 ────────────────────── */
+function noteHTML(id){
+  const q=QMAP[id], w=S.wrong[id];
+  return `<div class="note${w.solved?' solved':''}"><div class="qt">${q.p}</div><dl>
+    <dt>내 답</dt><dd>${esc(w.last||'-')}</dd><dt>정답</dt><dd><b>${esc(correctText(q))}</b></dd><dt>해설</dt><dd>${q.w}</dd></dl>
+    <div class="foot"><span>📖 ${esc(q.an)}</span><span>${w.solved?'✓ 극복':'틀린 횟수 '+w.n}</span></div></div>`;
+}
+function groupByTab(ids){
+  const out=[];let last=null;
+  ids.forEach(id=>{const t=QTAB[id];if(t!==last){out.push(`<h3 class="ngroup"><span class="part">탭 ${t.idx+1}</span>${esc(t.title)}</h3>`);last=t;}out.push(noteHTML(id));});
+  return out.join('');
+}
+function viewNotes(){
+  const open=wrongList(false), solved=wrongList(true);
+  app.classList.add('sheet');
+  app.innerHTML=`
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>오답노트</span></nav>
+  <div class="printhead">${esc(BANK.title)} 오답노트 · ${esc(S.name||'')} · ${today()}</div>
+  <h1>📒 오답노트</h1>
+  <p class="sub">남은 오답 ${open.length} · 극복 ${solved.length}. 학습 모드와 게임 모드에서 틀린 문항이 모입니다.</p>
+  <div class="actions">
+    <a class="btn primary${open.length?'':' locked'}" href="#retry"${open.length?'':' aria-disabled="true"'}>🔁 오답만 다시 풀기</a>
+    <button class="btn" type="button" data-act="copynotes"${open.length+solved.length?'':' disabled'}>📋 마크다운 복사</button>
+    <button class="btn" type="button" data-act="print">🖨 인쇄</button>
+  </div>
+  ${open.length?groupByTab(open):'<div class="keylock">남은 오답이 없습니다. 👏</div>'}
+  ${solved.length?`<details class="more"><summary>✓ 극복한 문항 ${solved.length}개</summary>${groupByTab(solved)}
+    <button class="btn danger noprint" type="button" data-act="clearsolved">극복한 항목 비우기</button></details>`:''}`;
+}
+function notesMD(onlyOpen){
+  const ids=onlyOpen?wrongList(false):wrongList(false).concat(wrongList(true));
+  let md=`## 오답노트 (${ids.length}문항)\n`;let last=null;
+  ids.forEach(id=>{const q=QMAP[id],w=S.wrong[id],t=QTAB[id];
+    if(t!==last){md+=`\n### 탭 ${t.idx+1}. ${t.title}\n`;last=t;}
+    md+=`\n- **Q. ${strip(q.p)}**${w.solved?' ✓극복':''}\n  - 내 답: ${w.last||'-'}\n  - 정답: ${correctText(q)}\n  - 해설: ${strip(q.w)}\n  - 자료 위치: ${q.an} · 틀린 횟수 ${w.n}\n`;});
+  return md;
+}
+function viewRetry(){
+  const ids=wrongList(false);
+  if(!ids.length){location.hash='#notes';return;}
+  cur=newSheet('retry',ids.map(id=>QMAP[id]),null);
+  renderSheet();
+}
+
+/* ── 화면: 해설지 ──────────────────────── */
+function viewKey(){
+  if(!gameUnlocked()){
+    app.innerHTML=`<nav class="crumbs"><a href="#home">← 홈</a></nav><h1>📄 해설지 🔒</h1><div class="keylock">탭 하나를 채점하면 그 탭의 해설지가 열립니다.<br><br><a class="btn primary" href="#study/${TABS[0].id}">학습 시작</a></div>`;return;
+  }
+  app.classList.add('sheet');
+  app.innerHTML=`
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>해설지</span></nav>
+  <div class="printhead">${esc(BANK.title)} 해설지 · ${esc(S.name||'')} · ${today()}</div>
+  <h1>📄 해설지</h1>
+  <p class="sub">채점한 탭의 정답과 해설입니다. 아직 풀지 않은 탭은 채점 후 공개됩니다.</p>
+  <div class="actions"><button class="btn primary" type="button" data-act="print">🖨 인쇄 / PDF 저장</button></div>
+  ${TABS.map(t=>`<h3 class="ngroup"><span class="part">탭 ${t.idx+1}</span>${esc(t.title)}${t.ref?` <span class="ref">${esc(t.ref)}</span>`:''}</h3>`+
+    (S.tabs[t.id]?t.qs.map((q,i)=>`<div class="keyitem"><div class="kq">${i+1}. ${q.p} <span class="part">${TYPES[q.ty][0]}</span></div>
+      <p class="ka">정답: ${esc(correctText(q))}</p><p class="kw">${q.w}</p><span class="an">📖 ${esc(q.an)}</span></div>`).join('')
+      :`<div class="keylock">🔒 채점 후 공개 · <a href="#study/${t.id}">이 탭 풀기</a></div>`)).join('')}`;
+}
+
+/* ── 화면: 게임 ────────────────────────── */
+let G=null;
+const gameSetup={mode:'timeattack',count:10,scope:'all',time:GAME_MODES.timeattack.defaultTime};
+function gamePool(scope){
+  const M=GAME_MODES[gameSetup.mode];
+  const base=ALLQ.filter(q=>q.game&&M.types.includes(q.ty));
+  if(scope==='played')return shuffle(base.filter(q=>S.tabs[QTAB[q.id].id]));
+  if(scope==='wrong'){const w=new Set(wrongList(false));return shuffle(base.filter(q=>w.has(q.id))).concat(shuffle(base.filter(q=>!w.has(q.id))));}
+  return shuffle(base);
+}
+function viewGamePick(){
+  stopGame();
+  if(!gameUnlocked())return viewGameSetup();
+  app.innerHTML=`
+  <nav class="crumbs"><a href="#home">← 홈</a><span>/</span><span>게임 모드</span></nav>
+  <div class="game">
+    <h1>🎮 게임 모드</h1>
+    <p class="sub">플레이할 게임을 고르세요.</p>
+    <div class="gpick">${GAME_SLOTS.map((id,i)=>{const m=id&&GAME_MODES[id];
+      return m?`<a class="gcard" href="#game/${id}"><span class="gn">GAME ${i+1}</span><b>${m.title}</b><span class="gd">${m.desc}</span></a>`
+              :`<div class="gcard soon" aria-disabled="true"><span class="gn">GAME ${i+1}</span><b>🔒 준비 중</b><span class="gd">새 게임이 추가될 자리입니다.</span></div>`;}).join('')}
+    </div>
+  </div>`;
+}
+function viewGameSetup(modeId){
+  stopGame();
+  if(modeId&&GAME_MODES[modeId])gameSetup.mode=modeId;
+  if(!gameUnlocked()){
+    app.innerHTML=`<nav class="crumbs"><a href="#home">← 홈</a></nav><div class="game"><h1>⚡ 게임 모드 🔒</h1>
+      <div class="keylock">학습 모드에서 <b>탭 하나</b>를 먼저 채점하면 열립니다.<br><br><a class="btn primary" href="#study/${TABS[0].id}">학습 시작</a></div></div>`;return;
+  }
+  const poolN=gamePool(gameSetup.scope).length;
+  const counts=[10,20,30].filter(n=>n<poolN).concat([poolN]);
+  if(!counts.includes(gameSetup.count))gameSetup.count=counts.includes(10)?10:counts[0];
+  const M=GAME_MODES[gameSetup.mode];
+  if(!M.times.includes(gameSetup.time))gameSetup.time=M.defaultTime;
+  const chip=(grp,v,label,dis)=>`<button type="button" class="chip" data-act="gset" data-g="${grp}" data-v="${v}" aria-pressed="${gameSetup[grp]==v}"${dis?' disabled':''}>${label}</button>`;
+  app.innerHTML=`
+  <nav class="crumbs"><a href="#home">← 홈</a><span>/</span><a href="#game">게임 모드</a><span>/</span><span>${M.title.replace(/^\S+\s/,'')}</span></nav>
+  <div class="game">
+    <h1>${M.title}</h1>
+    <p class="sub">${M.desc}</p>
+    <div class="panel">
+      ${Object.keys(GAME_MODES).length>1?`<span class="lbl">게임 종류</span>
+      <div class="chips">${Object.entries(GAME_MODES).map(([id,m])=>chip('mode',id,m.title)).join('')}</div>`:''}
+      <span class="lbl">풀이 시간 (문항당)</span>
+      <div class="chips">${M.times.map(t=>chip('time',t,t+'초')).join('')}</div>
+      <span class="lbl">문항 수</span>
+      <div class="chips">${counts.map(n=>chip('count',n,n===poolN&&!([10,20,30].includes(n))?`전체 ${n}`:String(n))).join('')}</div>
+      <span class="lbl">출제 범위</span>
+      <div class="chips">${chip('scope','all','전체 탭')}${chip('scope','played','풀어본 탭만')}${chip('scope','wrong','오답 우선',!wrongList(false).length)}</div>
+      <div class="field"><label for="gnm">닉네임</label><input id="gnm" data-act="name" maxlength="20" value="${esc(S.name)}" placeholder="순위표에 표시"></div>
+      <div class="rules"><p>⏱ 모든 문항 ${gameSetup.time}초 · 순위는 같은 풀이 시간끼리 비교</p><p>🎯 정답 100점 + 남은 1초당 10점 · 🔥 3연속 ×1.2, 5연속 ×1.5</p><p>⌨ 숫자 1~5로 선택, O/X 키, 복수 선택은 Enter로 제출</p></div>
+      <button class="btn primary block" type="button" data-act="gstart">시작하기</button>
+    </div>
+  </div>`;
+}
+function startGame(){
+  const pool=gamePool(gameSetup.scope).slice(0,gameSetup.count);
+  if(!pool.length){toast('출제할 문항이 없습니다.');return;}
+  G={qs:pool,i:0,score:0,combo:0,maxCombo:0,results:[],locked:false,mode:gameSetup.mode,time:gameSetup.time};
+  renderGameQ();
+}
+function renderGameQ(){
+  const q=G.qs[G.i];
+  G.locked=false;G.elapsed=0;G.last=performance.now();G.limit=G.time*1000;G.warned=false;G.pick=[];
+  G.view=q.ty==='ox'?[true,false]:shuffle(range(q.o.length));
+  const opts=q.ty==='ox'
+    ?`<div class="gox">${G.view.map((v,k)=>`<button type="button" class="gopt" data-act="gans" data-k="${k}" aria-label="${v?'O 맞다':'X 틀리다'}">${v?'O':'X'}</button>`).join('')}</div>`
+    :`<div class="gopts">${G.view.map((oi,k)=>`<button type="button" class="gopt" data-act="gans" data-k="${k}"${q.ty==='multi'?' aria-pressed="false"':''}><kbd>${k+1}</kbd><span>${esc(q.o[oi])}</span></button>`).join('')}</div>`;
+  app.innerHTML=`
+  <div class="game play">
+    <div class="gtop"><div class="hud"><span>${G.i+1} / ${G.qs.length}</span><span class="combo${G.combo>=3?' hot':''}">🔥 콤보 ${G.combo}</span><span class="pts">${G.score.toLocaleString()}점</span></div>
+    <div class="timer" id="timer"><div id="tbar"></div></div><div class="tleft" id="tleft"></div></div>
+    <div class="gtype">${TYPES[q.ty][0]}${q.ty==='multi'?' · 모두 고른 뒤 제출':''}</div>
+    <div class="gq">${q.p}</div>
+    <div class="gbottom">${opts}
+    <div class="gfloat" id="gfloat" aria-live="polite"></div>
+    <div class="gsub"><button class="btn" type="button" data-act="gquit">그만하기</button>
+      ${q.ty==='multi'?'<button class="btn primary" type="button" data-act="gsubmit">제출 (Enter)</button>':''}</div></div>
+  </div>`;
+  G.raf=requestAnimationFrame(tick);
+}
+function tick(now){
+  if(!G||G.locked)return;
+  G.elapsed+=now-G.last;G.last=now;
+  const rem=Math.max(0,G.limit-G.elapsed), ratio=rem/G.limit;
+  const shown=RM.matches?Math.ceil(rem/1000)*1000/G.limit:ratio;
+  const bar=document.getElementById('tbar'), tm=document.getElementById('timer');
+  if(bar){bar.style.width=(Math.min(1,shown)*100)+'%';tm.className='timer'+(ratio<.25?' lo':ratio<.5?' mid':'');
+    document.getElementById('tleft').textContent=(rem/1000).toFixed(1)+'초';}
+  if(!G.warned&&rem<=5000){G.warned=true;say('5초 남았습니다');}
+  if(rem<=0){judge(null,true);return;}
+  G.raf=requestAnimationFrame(tick);
+}
+function judge(ans,timeout){
+  if(!G||G.locked)return;
+  G.locked=true;cancelAnimationFrame(G.raf);
+  const q=G.qs[G.i], used=Math.min(G.elapsed,G.limit), ok=!timeout&&isCorrect(q,ans);
+  let gain=0;
+  if(ok){G.combo++;G.maxCombo=Math.max(G.maxCombo,G.combo);
+    const mult=G.combo>=5?1.5:G.combo>=3?1.2:1;
+    gain=Math.round((100+Math.floor((G.limit-used)/100))*mult);G.score+=gain;}
+  else G.combo=0;
+  G.results.push({id:q.id,ok,ans,timeout,ms:used,gain});
+  // 판정 표시
+  app.querySelectorAll('[data-act="gans"]').forEach(b=>{
+    const k=+b.dataset.k, v=G.view[k];
+    const right=q.ty==='ox'?q.a===v:q.ty==='mc'?q.a===v:q.a.includes(v);
+    const picked=q.ty==='ox'||q.ty==='mc'?ans===v:(ans||[]).includes(v);
+    if(right)b.classList.add('ans');else if(picked)b.classList.add('miss');
+    b.disabled=true;
+  });
+  const f=document.getElementById('gfloat');
+  f.className='gfloat pop '+(ok?'ok':'no');
+  f.textContent=ok?`+${gain}${G.combo>=3?` 🔥×${G.combo>=5?'1.5':'1.2'}`:''}`:timeout?'⏰ 시간 초과':'✗ 오답';
+  if(timeout){const tm=document.getElementById('timer');tm&&tm.classList.add('out');}
+  const sb=app.querySelector('[data-act="gsubmit"]');if(sb)sb.disabled=true;
+  app.querySelector('.pts').textContent=G.score.toLocaleString()+'점';
+  const c=app.querySelector('.combo');c.textContent='🔥 콤보 '+G.combo;c.classList.toggle('hot',G.combo>=3);
+  G.next=setTimeout(()=>{if(!G)return;G.i++;G.i<G.qs.length?renderGameQ():finishGame();},ok?900:1400);
+}
+function gameAnswer(k){
+  if(!G||G.locked)return;
+  const q=G.qs[G.i];if(k<0||k>=G.view.length)return;
+  if(q.ty==='multi'){
+    const v=G.view[k], i=G.pick.indexOf(v);
+    i<0?G.pick.push(v):G.pick.splice(i,1);
+    const b=app.querySelector(`[data-act="gans"][data-k="${k}"]`);b&&b.setAttribute('aria-pressed',i<0);
+  }else judge(G.view[k],false);
+}
+function gameSubmit(){if(G&&!G.locked&&G.qs[G.i].ty==='multi')judge(G.pick.slice(),false);}
+function stopGame(){if(G){cancelAnimationFrame(G.raf);clearTimeout(G.next);G=null;}}
+function finishGame(){
+  const R=G.results, correct=R.filter(r=>r.ok).length, M=GAME_MODES[G.mode];
+  R.forEach(r=>{const q=QMAP[r.id];if(r.ok)markSolved(r.id);else addWrong(r.id,r.timeout?'(시간 초과)':answerText(q,r.ans));});
+  const rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:(S.name||'').trim()||'익명',score:G.score,
+    correct,total:R.length,rate:pct(correct,R.length),avg:Math.round(R.reduce((s,r)=>s+r.ms,0)/R.length/100)/10,combo:G.maxCombo,mode:G.mode,time:G.time,at:Date.now()};
+  const rank=Leaderboard.add(rec);
+  save();
+  const board=Leaderboard.load(boardKey(rec)), top=board.slice(0,10), mine=board.find(r=>r.id===rec.id);
+  const medal=i=>i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1;
+  const row=(r,i)=>`<tr class="${r.id===rec.id?'me':''}"><td>${medal(i)}</td><td>${esc(r.name)}</td><td class="r">${r.score.toLocaleString()}</td><td class="r">${r.rate}%</td><td class="r">${r.correct}/${r.total}</td><td class="r">${new Date(r.at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})}</td></tr>`;
+  const wrong=R.filter(r=>!r.ok);
+  G=null;
+  app.innerHTML=`
+  <div class="game">
+    <div class="panel center">
+      <p class="note-sm" style="margin:0">최종 점수</p>
+      <div class="score xl">${rec.score.toLocaleString()}</div>
+      <p class="msg">${M.title} · ${rec.time}초 — ${rank===1?'🏆 이 조건 최고 기록!':`이 조건 순위 ${rank}위`}</p>
+      <div class="bignum"><div><b>${correct}/${rec.total}</b><span>정답</span></div><div><b>${rec.rate}%</b><span>정답률</span></div><div><b>${rec.avg}초</b><span>평균 응답</span></div><div><b>${rec.combo}</b><span>최고 콤보</span></div></div>
+    </div>
+    <div class="panel"><h2 class="ph">🏆 순위 · ${M.title.replace(/^\S+\s/,'')} ${rec.time}초 · 이 브라우저 기록</h2>
+      <table class="board"><thead><tr><th>#</th><th>이름</th><th class="r">점수</th><th class="r">정답률</th><th class="r">정답</th><th class="r">날짜</th></tr></thead>
+      <tbody>${top.map(row).join('')}${rank>10&&mine?row(mine,rank-1):''}</tbody></table></div>
+    ${wrong.length?`<details class="more panel"><summary>틀린 문항 ${wrong.length}개 · 해설 보기 (오답노트에 저장됨)</summary>
+      ${wrong.map(r=>{const q=QMAP[r.id];return `<div class="keyitem"><div class="kq">${q.p}</div><p class="mine" style="margin:4px 0">내 답: ${esc(r.timeout?'(시간 초과)':answerText(q,r.ans))}</p><p class="ka">정답: ${esc(correctText(q))}</p><p class="kw">${q.w}</p><span class="an">📖 ${esc(q.an)}</span></div>`;}).join('')}</details>`:''}
+    <div class="actions"><button class="btn primary" type="button" data-act="gagain">↻ 다시 하기</button><a class="btn" href="#notes">📒 오답노트</a><a class="btn" href="#home">홈</a></div>
+  </div>`;
+}
+
+/* ── 라우터 · 이벤트 ───────────────────── */
+function route(){
+  stopGame();cur=null;app.classList.remove('sheet');
+  const [v,arg]=(location.hash.slice(1)||'home').split('/');
+  ({study:()=>viewStudy(arg),notes:viewNotes,retry:viewRetry,key:viewKey,game:()=>arg?viewGameSetup(arg):viewGamePick(),summary:viewSummary}[v]||viewHome)();
+  window.scrollTo(0,0);
+}
+let resetArmed=false;
+app.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el||el.disabled)return;
+  const act=el.dataset.act;
+  if(cur&&['ox','ml','mr','ord','hint'].includes(act))return onSheetClick(el);
+  switch(act){
+    case 'grade':gradeSheet();break;
+    case 'retab':viewStudy(cur.tab.id,true);window.scrollTo(0,0);break;  // 이전 점수는 다시 채점할 때까지 유지
+    case 'onlywrong':cur.onlyWrong=!cur.onlyWrong;document.getElementById('cards').classList.toggle('onlywrong',cur.onlyWrong);el.textContent=cur.onlyWrong?'전체 보기':'오답만 보기';break;
+    case 'copyreport':copy(reportMD());break;
+    case 'copynotes':copy(`# ${BANK.title}\n\n- 이름: ${S.name||'-'} · ${today()}\n\n`+notesMD(false));break;
+    case 'clearsolved':wrongList(true).forEach(id=>delete S.wrong[id]);save();viewNotes();break;
+    case 'print':window.print();break;
+    case 'reset':
+      if(!resetArmed){resetArmed=true;el.textContent='정말 지울까요? 한 번 더 누르세요';setTimeout(()=>{resetArmed=false;if(el.isConnected)el.textContent='이 문제은행 기록 모두 지우기';},4000);break;}
+      resetArmed=false;const nm=S.name;S=blank();S.name=nm;save();toast('기록을 지웠습니다');viewHome();break;
+    case 'gset':gameSetup[el.dataset.g]=['count','time'].includes(el.dataset.g)?+el.dataset.v:el.dataset.v;viewGameSetup();break;
+    case 'gstart':startGame();break;
+    case 'gans':gameAnswer(+el.dataset.k);break;
+    case 'gsubmit':gameSubmit();break;
+    case 'gquit':stopGame();viewGameSetup(gameSetup.mode);break;
+    case 'gagain':startGame();break;
+  }
+});
+app.addEventListener('change',e=>{const el=e.target;if(cur&&el.dataset&&(el.dataset.act==='pick'||el.dataset.act==='tick'))onSheetChange(el);});
+app.addEventListener('input',e=>{
+  const el=e.target;if(!el.dataset)return;
+  if(el.dataset.act==='name'){S.name=el.value;save();}
+  else if(cur)onSheetInput(el);
+});
+document.addEventListener('keydown',e=>{
+  if(!G||G.locked||e.altKey||e.ctrlKey||e.metaKey)return;
+  if(e.target.matches&&e.target.matches('input,textarea'))return;
+  const q=G.qs[G.i], k=e.key.toLowerCase();
+  if(q.ty==='ox'){if(k==='o'||k==='1'){e.preventDefault();gameAnswer(0);}else if(k==='x'||k==='2'){e.preventDefault();gameAnswer(1);}return;}
+  if(/^[1-9]$/.test(k)){e.preventDefault();gameAnswer(+k-1);}
+  else if(k==='enter'&&q.ty==='multi'){e.preventDefault();gameSubmit();}
+});
+document.addEventListener('visibilitychange',()=>{if(G&&!document.hidden)G.last=performance.now();});
+// 탭 바 좌우 화살표
+app.addEventListener('keydown',e=>{
+  const t=e.target.closest&&e.target.closest('.tabchip');if(!t||(e.key!=='ArrowRight'&&e.key!=='ArrowLeft'))return;
+  const n=e.key==='ArrowRight'?t.nextElementSibling:t.previousElementSibling;if(n){e.preventDefault();n.focus();}
+});
+/* 테마 */
+let theme=null;try{theme=localStorage.getItem('qb:theme');}catch(e){}
+const applyTheme=()=>{if(theme)document.documentElement.dataset.theme=theme;else delete document.documentElement.dataset.theme;};
+applyTheme();
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const dark=theme?theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  theme=dark?'light':'dark';try{localStorage.setItem('qb:theme',theme);}catch(e){}applyTheme();
+});
+document.title=BANK.title+' · 문제은행';
+window.addEventListener('hashchange',route);
+route();
+})();
+</script>
+</body>
+</html>

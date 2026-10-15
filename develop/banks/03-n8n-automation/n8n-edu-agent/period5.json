@@ -1,0 +1,1095 @@
+{
+  "id": "n8n-edu-p5",
+  "code": "NE5",
+  "title": "n8n 교육 자동화 5교시 · AI API 연동 & 프롬프트",
+  "subtitle": "OpenAI·Claude·Gemini 노드 · 응답 표현식 · 비용과 보안",
+  "course": "03-n8n-automation / n8n-edu-agent",
+  "source": "03-n8n-automation/n8n-edu-agent/실습가이드_5교시_AI_API연동.md",
+  "salt": "n8n-edu-p5",
+  "version": 1,
+  "updated": "2026-10-15",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "n8n 2.x와 API 키 준비",
+      "ref": "5교시 · n8n v2.x 참고 · 실습 9-A Step 1–2",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "n8n 2.0부터 워크플로우를 실제로 작동(트리거 활성화)시키려면 무엇을 해야 하나요?",
+          "o": [
+            "Save",
+            "Publish",
+            "Test workflow",
+            "Export"
+          ],
+          "a": 1,
+          "h": "초안 저장과 운영 배포 중 어느 쪽이 '실제 실행'일까요?",
+          "w": "n8n 2.x에서 Save는 초안 저장일 뿐이고, 트리거를 켜서 실제로 실행되게 하는 것은 Publish(운영 배포)입니다.",
+          "an": "5교시 · n8n v2.x 참고 사항"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "n8n 2.x에서 Save 버튼의 의미는?",
+          "o": [
+            "초안(Draft) 저장",
+            "운영 배포",
+            "트리거 활성화",
+            "워크플로우 삭제"
+          ],
+          "a": 0,
+          "h": "Save로는 워크플로우가 실행되지 않습니다.",
+          "w": "Save = 초안(Draft) 저장으로, 실행되지 않습니다. 운영 배포·트리거 활성화는 Publish의 역할입니다.",
+          "an": "5교시 · n8n v2.x 참고 사항"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "OpenAI API 키를 만든 직후 반드시 해야 할 일은?",
+          "o": [
+            "키 이름을 바꾼다",
+            "권한을 Read로 바꾼다",
+            "팀원과 공유한다",
+            "즉시 복사해 메모장에 저장한다"
+          ],
+          "a": 3,
+          "h": "이 화면을 벗어나면 키를 어떻게 될까요?",
+          "w": "생성 화면을 벗어나면 키를 다시 볼 수 없으므로 즉시 복사해 안전한 곳에 저장해야 합니다. 키 공유는 보안 수칙 위반입니다.",
+          "an": "실습 9-A Step 1 · 7번"
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "OpenAI API 키를 발급하는 사이트는?",
+          "o": [
+            "console.anthropic.com",
+            "aistudio.google.com",
+            "platform.openai.com",
+            "n8n.io"
+          ],
+          "a": 2,
+          "h": "회사 이름이 그대로 들어간 '플랫폼' 사이트입니다.",
+          "w": "OpenAI 키는 platform.openai.com → API keys에서 만듭니다. console.anthropic.com은 Claude, aistudio.google.com은 Gemini 키 발급처입니다.",
+          "an": "실습 9-A Step 1 · 3대 모델 비교표"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "발급받은 API 키를 n8n에 등록하는 사이드바 메뉴는?",
+          "o": [
+            "Workflows",
+            "Credentials",
+            "Executions",
+            "Templates"
+          ],
+          "a": 1,
+          "h": "인증 정보(자격 증명)를 영어로 무엇이라 할까요?",
+          "w": "좌측 사이드바 Credentials → + Add Credential에서 'OpenAI API'를 골라 키를 붙여넣고 저장합니다.",
+          "an": "실습 9-A Step 2"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "편집 중에는 'Test workflow' 버튼으로 Publish 없이도 수동 테스트를 할 수 있다.",
+          "a": true,
+          "h": "v2.x 참고 사항의 마지막 줄을 떠올려 보세요.",
+          "w": "맞습니다. 편집 중에는 Test workflow로 수동 테스트하고, 실제 운영(트리거 활성화)에는 Publish가 필요합니다.",
+          "an": "5교시 · n8n v2.x 참고 사항"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "OpenAI API 키는 생성 화면을 벗어나도 대시보드에서 언제든 다시 볼 수 있다.",
+          "a": false,
+          "h": "가이드의 ⚠️ 중요 표시를 떠올려 보세요.",
+          "w": "틀렸습니다. 화면을 벗어나면 키를 다시 볼 수 없습니다. 잃어버리면 새로 발급해야 합니다.",
+          "an": "실습 9-A Step 1 · ⚠️ 중요"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "n8n 용어와 뜻을 연결하세요.",
+          "pairs": [
+            [
+              "Save",
+              "초안(Draft) 저장"
+            ],
+            [
+              "Publish",
+              "운영 배포·트리거 활성화"
+            ],
+            [
+              "Test workflow",
+              "편집 중 수동 테스트"
+            ],
+            [
+              "Credential",
+              "API 키 등 인증 정보 저장"
+            ]
+          ],
+          "h": "저장 / 배포 / 시험 실행 / 인증 정보",
+          "w": "Save는 초안, Publish는 운영 배포, Test workflow는 편집 중 테스트, Credential은 API 키를 안전하게 보관하는 곳입니다.",
+          "an": "5교시 · n8n v2.x 참고 · 실습 9-A Step 2"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "n8n에 OpenAI Credential을 등록하는 순서를 맞추세요.",
+          "steps": [
+            "사이드바 Credentials 클릭",
+            "+ Add Credential 클릭",
+            "'OpenAI API' 검색·선택",
+            "API Key 필드에 키 붙여넣기",
+            "Save 클릭"
+          ],
+          "h": "메뉴 → 추가 → 종류 선택 → 키 입력 → 저장",
+          "w": "Credentials → + Add Credential → OpenAI API 선택 → 키 붙여넣기 → Save 순서이며, 'Connection tested successfully'로 확인합니다.",
+          "an": "실습 9-A Step 2"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 1,
+          "game": true,
+          "p": "5교시 실습 전에 준비해야 할 API 키를 <b>모두</b> 고르세요.",
+          "o": [
+            "OpenAI API 키",
+            "Anthropic API 키",
+            "Google Gemini API 키",
+            "Slack 봇 토큰",
+            "AWS 액세스 키"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "5교시는 '3대 AI 모델'을 연동합니다.",
+          "w": "ChatGPT(OpenAI)·Claude(Anthropic)·Gemini(Google) 3개 키가 필요합니다. Slack·AWS는 5교시 준비물이 아닙니다.",
+          "an": "5교시 · 실습 전 준비사항"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "OpenAI 노드: 호출·역할·JSON",
+      "ref": "실습 9-A Step 3–5",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "OpenAI 노드로 메시지를 보낼 때 고르는 Resource / Operation은?",
+          "o": [
+            "Text / Complete",
+            "Chat / Create",
+            "Message / Send",
+            "Message / Message a Model"
+          ],
+          "a": 2,
+          "h": "OpenAI 노드의 Operation 이름은 동사 한 단어입니다.",
+          "w": "OpenAI 노드는 Message / Send입니다. 'Message a Model'은 Anthropic·Gemini 노드의 Operation 이름입니다.",
+          "an": "실습 9-A Step 3 · 3대 모델 비교표"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "실습에서 비용 절감을 위해 고른 OpenAI 모델은?",
+          "o": [
+            "gpt-4o-mini",
+            "gpt-4o",
+            "claude-sonnet-4",
+            "gemini-2.0-flash"
+          ],
+          "a": 0,
+          "h": "이름 끝에 '작다'는 뜻의 단어가 붙어 있습니다.",
+          "w": "비용 절감을 위해 gpt-4o-mini를 씁니다. 응답 품질도 충분합니다. gpt-4o는 고성능·고비용 모델입니다.",
+          "an": "실습 9-A Step 3 · 5번"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "OpenAI 노드의 응답 텍스트를 참조하는 표현식은?",
+          "o": [
+            "$json.text",
+            "$json.content[0].text",
+            "$json.output",
+            "$json.message.content"
+          ],
+          "a": 3,
+          "h": "Output JSON에서 message 안의 content입니다.",
+          "w": "OpenAI는 <code>{{ $json.message.content }}</code>입니다. <code>$json.content[0].text</code>는 Claude, <code>$json.text</code>는 Gemini입니다.",
+          "an": "실습 9-A Step 3 · 8번"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "OpenAI 노드에서 AI의 역할(전문가 설정)을 지정하는 방법은?",
+          "o": [
+            "User 메시지 끝에 붙인다",
+            "Role: System 메시지 추가",
+            "Add Option → System Prompt",
+            "Model을 바꾼다"
+          ],
+          "a": 1,
+          "h": "Messages 섹션에서 Role을 바꿔 메시지를 하나 더 추가합니다.",
+          "w": "OpenAI는 Messages에 Role: System 메시지를 User 위에 추가합니다. 'Add Option → System Prompt'는 Anthropic 노드 방식입니다.",
+          "an": "실습 9-A Step 4"
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "AI에게 JSON 형식으로 응답해 달라고 하는 가장 큰 이유는?",
+          "o": [
+            "응답이 빨라져서",
+            "비용이 무료가 되어서",
+            "후속 노드에서 가공하기 편해서",
+            "한국어 품질이 좋아져서"
+          ],
+          "a": 2,
+          "h": "응답을 받은 '다음 노드' 입장에서 생각해 보세요.",
+          "w": "JSON으로 받으면 후속 노드에서 필드별로 데이터를 다루기 훨씬 편합니다.",
+          "an": "실습 9-A Step 5 · TIP"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "OpenAI 노드에서 System 메시지는 User 메시지보다 아래에 두어야 한다.",
+          "a": false,
+          "h": "Step 4의 메시지 순서 확인 부분을 떠올려 보세요.",
+          "w": "틀렸습니다. System이 위(Message 1), User가 아래(Message 2)입니다.",
+          "an": "실습 9-A Step 4 · 3번"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "JSON으로만 받고 싶다면 프롬프트에 '다른 텍스트는 포함하지 마세요'처럼 명시하는 것이 좋다.",
+          "a": true,
+          "h": "Step 5 프롬프트의 첫 줄을 떠올려 보세요.",
+          "w": "맞습니다. 'JSON으로만 응답, 다른 텍스트 포함 금지'를 명시해야 후속 처리에서 오류가 줄어듭니다.",
+          "an": "실습 9-A Step 5"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "실습 9-A OpenAI 노드 설정 항목과 값을 연결하세요.",
+          "pairs": [
+            [
+              "Credential",
+              "My OpenAI"
+            ],
+            [
+              "Resource",
+              "Message"
+            ],
+            [
+              "Operation",
+              "Send"
+            ],
+            [
+              "Model",
+              "gpt-4o-mini"
+            ]
+          ],
+          "h": "인증 이름 / 자원 / 동작 / 모델",
+          "w": "Credential은 My OpenAI, Resource는 Message, Operation은 Send, Model은 gpt-4o-mini입니다.",
+          "an": "실습 9-A Step 3 · 5번"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "첫 ChatGPT 호출 실습의 순서를 맞추세요.",
+          "steps": [
+            "새 워크플로우를 만들고 이름 변경",
+            "Manual Trigger 추가",
+            "OpenAI 노드 추가·설정",
+            "Test workflow(▶) 클릭",
+            "Output 탭에서 결과 확인"
+          ],
+          "h": "만들기 → 시작 노드 → AI 노드 → 실행 → 확인",
+          "w": "워크플로우 생성 → Manual Trigger → OpenAI 노드 → Test workflow → Output 확인 순서입니다.",
+          "an": "실습 9-A Step 3"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "실습 9-A에서 프롬프트에 적용한 기법을 <b>모두</b> 고르세요.",
+          "o": [
+            "System으로 역할 지정",
+            "JSON 출력 형식 지정",
+            "이미지 첨부",
+            "파일 업로드",
+            "Temperature 2.0 설정"
+          ],
+          "a": [
+            0,
+            1
+          ],
+          "h": "체크리스트의 '프롬프트 엔지니어링 기초' 괄호 안을 보세요.",
+          "w": "역할 지정(System Prompt)과 형식 지정(JSON)이 9-A의 두 기법입니다.",
+          "an": "실습 9-A Step 4–5 · 산출물 체크리스트"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "Anthropic 노드로 Claude 호출",
+      "ref": "실습 9-B",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Claude API 키를 발급하는 사이트는?",
+          "o": [
+            "platform.openai.com",
+            "aistudio.google.com",
+            "n8n.cloud",
+            "console.anthropic.com"
+          ],
+          "a": 3,
+          "h": "Claude를 만든 회사 이름 + console",
+          "w": "Claude 키는 console.anthropic.com → Settings → API Keys에서 만듭니다.",
+          "an": "실습 9-B Step 1"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Anthropic 노드에서 메시지를 보내는 Operation은?",
+          "o": [
+            "Send",
+            "Message a Model",
+            "Analyze Document",
+            "Generate"
+          ],
+          "a": 1,
+          "h": "'모델에게 메시지를 보낸다'를 그대로 옮긴 이름입니다.",
+          "w": "Anthropic 노드는 Resource: Message, Operation: Message a Model입니다. Send는 OpenAI 노드의 Operation입니다.",
+          "an": "실습 9-B Step 3"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Claude 응답 텍스트를 참조하는 표현식은?",
+          "o": [
+            "$json.content[0].text",
+            "$json.message.content",
+            "$json.text",
+            "$json.content.text"
+          ],
+          "a": 0,
+          "h": "content는 배열이고, 그 첫 번째 요소의 text입니다.",
+          "w": "Claude는 <code>{{ $json.content[0].text }}</code>입니다. Output의 content가 배열이기 때문입니다.",
+          "an": "실습 9-B Step 3 · 7번"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "Anthropic 노드에서 System Prompt를 넣는 곳은?",
+          "o": [
+            "Messages에 Role: System",
+            "Credential 설정 화면",
+            "Add Option → System Prompt",
+            "Model 드롭다운"
+          ],
+          "a": 2,
+          "h": "노드 설정 하단의 '옵션 추가' 버튼입니다.",
+          "w": "Anthropic 노드는 Add Option → System Prompt에서 지정합니다. OpenAI·Gemini는 Messages에 Role: System을 추가합니다.",
+          "an": "실습 9-B Step 4 · 3대 모델 비교표"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Anthropic Credential 테스트에서 'resource not found' 에러가 나면 가이드의 대응은?",
+          "o": [
+            "키를 새로 발급한다",
+            "그래도 Save를 진행한다",
+            "n8n을 재설치한다",
+            "OpenAI로 바꾼다"
+          ],
+          "a": 1,
+          "h": "실제 워크플로우에서는 정상 동작한다고 했습니다.",
+          "w": "구버전 테스트 모델 문제일 수 있어 그래도 Save를 진행하면 실제 워크플로우에서는 정상 동작합니다.",
+          "an": "실습 9-B Step 2 · ⚠️"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "n8n 2.x에서 Anthropic 노드를 쓰려면 별도 노드를 설치해야 한다.",
+          "a": false,
+          "h": "9-B 목표 아래 안내문을 떠올려 보세요.",
+          "w": "틀렸습니다. n8n 2.x에는 Anthropic 앱 노드가 기본 내장되어 있어 설치 없이 씁니다.",
+          "an": "실습 9-B 목표"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Anthropic 신규 계정에는 $5 무료 크레딧이 제공된다.",
+          "a": true,
+          "h": "Step 1의 💡 안내를 떠올려 보세요.",
+          "w": "맞습니다. 신규 계정의 $5 크레딧으로 교육 실습을 충분히 할 수 있습니다.",
+          "an": "실습 9-B Step 1 · 💡"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "Anthropic 노드의 Resource와 Operation을 연결하세요.",
+          "pairs": [
+            [
+              "Message",
+              "Message a Model"
+            ],
+            [
+              "Document",
+              "Analyze Document"
+            ],
+            [
+              "Image",
+              "Analyze Image"
+            ],
+            [
+              "Prompt",
+              "Generate / Improve / Templatize"
+            ]
+          ],
+          "h": "자원 이름이 동작 이름 안에 들어 있습니다.",
+          "w": "Message→Message a Model, Document→Analyze Document, Image→Analyze Image, Prompt→Generate/Improve/Templatize입니다.",
+          "an": "실습 9-B Step 5 표"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "n8n에서 Claude를 호출하기까지의 순서를 맞추세요.",
+          "steps": [
+            "console.anthropic.com에서 키 발급",
+            "Credentials에 'Anthropic API' 등록",
+            "새 워크플로우에 Manual Trigger 추가",
+            "Anthropic 노드를 Message a Model로 설정",
+            "Test workflow로 응답 확인"
+          ],
+          "h": "발급 → 등록 → 시작 노드 → AI 노드 → 실행",
+          "w": "키 발급 → Credential 등록 → Manual Trigger → Anthropic 노드 설정 → 테스트 순서입니다.",
+          "an": "실습 9-B Step 1–3"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "가이드가 꼽은 Claude(Anthropic 노드)의 강점을 <b>모두</b> 고르세요.",
+          "o": [
+            "긴 문서 분석",
+            "구조화된 지시 처리",
+            "문서·이미지 분석",
+            "이미지 생성",
+            "음성→텍스트 변환"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Claude 특징 💡 문단과 비교표의 '멀티모달' 칸을 보세요.",
+          "w": "Claude는 긴 문서(최대 200K 토큰)·구조화된 지시에 강하고 문서·이미지 분석을 지원합니다. 이미지 생성·음성 인식은 Gemini 쪽 기능입니다.",
+          "an": "실습 9-B Step 4 💡 · 3대 모델 비교표"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "Google Gemini 노드",
+      "ref": "실습 9-C",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "Gemini API 키를 발급하는 곳은?",
+          "o": [
+            "platform.openai.com",
+            "console.anthropic.com",
+            "aistudio.google.com/apikey",
+            "cloud.n8n.io"
+          ],
+          "a": 2,
+          "h": "Google의 'AI Studio'입니다.",
+          "w": "Gemini 키는 Google AI Studio(aistudio.google.com/apikey)에서 무료로 발급합니다.",
+          "an": "실습 9-C Step 1"
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "n8n에서 Gemini Credential을 등록할 때 고르는 타입은?",
+          "o": [
+            "Google Gemini(PaLM) API",
+            "Google Sheets OAuth2",
+            "Google Drive API",
+            "Google Cloud Storage"
+          ],
+          "a": 0,
+          "h": "Gemini 이름 옆 괄호 안에 예전 모델 이름이 붙어 있습니다.",
+          "w": "'Gemini'를 검색해 Google Gemini(PaLM) API를 선택하고, Host는 기본값 그대로 둡니다.",
+          "an": "실습 9-C Step 2"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Gemini 노드의 응답 텍스트를 참조하는 표현식은?",
+          "o": [
+            "$json.message.content",
+            "$json.content[0].text",
+            "$json.output.text",
+            "$json.text"
+          ],
+          "a": 3,
+          "h": "3대 모델 중 가장 짧은 경로입니다.",
+          "w": "Gemini는 <code>{{ $json.text }}</code>입니다. OpenAI는 message.content, Claude는 content[0].text입니다.",
+          "an": "실습 9-C Step 3 · 7번"
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "실습 9-C에서 선택한 Gemini 모델은?",
+          "o": [
+            "gpt-4o-mini",
+            "gemini-2.0-flash",
+            "claude-haiku-4-5",
+            "imagen-3.0-generate-002"
+          ],
+          "a": 1,
+          "h": "'빠르다'는 뜻의 단어가 붙은 모델입니다.",
+          "w": "Flash(gemini-2.0-flash)는 빠르고 비용 효율적입니다. imagen은 이미지 생성 모델입니다.",
+          "an": "실습 9-C Step 3 · 4번"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "음성을 텍스트로 바꾸려면 Gemini 노드에서 어떤 Resource / Operation을 고르나요?",
+          "o": [
+            "Audio / Transcribe a Recording",
+            "Image / Analyze Image",
+            "Document / Analyze Document",
+            "Message / Message a Model"
+          ],
+          "a": 0,
+          "h": "오디오(Audio) + '녹음을 받아 적다'",
+          "w": "음성 인식(STT)은 Audio / Transcribe a Recording입니다.",
+          "an": "실습 9-C Step 4 · 음성 인식 빠른 실습"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Google AI Studio의 Gemini API에는 무료 티어가 있다.",
+          "a": true,
+          "h": "Step 1의 💡 무료 사용 안내를 떠올려 보세요.",
+          "w": "맞습니다. 무료 티어가 있어 교육 실습에 비용 부담이 적습니다.",
+          "an": "실습 9-C Step 1 · 💡"
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "'Google Gemini Chat Model'은 메시지를 직접 보내는 앱 노드이다.",
+          "a": false,
+          "h": "노드 표의 '유형' 열을 떠올려 보세요.",
+          "w": "틀렸습니다. Chat Model은 AI Agent나 LLM Chain에 연결하는 서브 노드입니다. 직접 메시지를 보내는 것은 'Google Gemini' 앱 노드입니다.",
+          "an": "실습 9-C Step 3 · 노드 표"
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "하고 싶은 일과 Gemini 노드의 Operation을 연결하세요.",
+          "pairs": [
+            [
+              "이미지 속 텍스트 추출",
+              "Analyze Image"
+            ],
+            [
+              "텍스트로 이미지 만들기",
+              "Generate an Image"
+            ],
+            [
+              "음성을 텍스트로 변환",
+              "Transcribe a Recording"
+            ],
+            [
+              "RAG용 파일 업로드",
+              "Upload to File Search Store"
+            ]
+          ],
+          "h": "분석(Analyze) / 생성(Generate) / 받아쓰기(Transcribe) / 업로드(Upload)",
+          "w": "OCR은 Analyze Image, 이미지 생성은 Generate an Image, STT는 Transcribe a Recording, RAG 업로드는 Upload to File Search Store입니다.",
+          "an": "실습 9-C Step 4 표"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 3,
+          "game": false,
+          "p": "가이드의 '활용 시나리오' 순서를 맞추세요.",
+          "steps": [
+            "수업 녹음 파일 준비",
+            "Gemini로 음성 인식(텍스트 변환)",
+            "ChatGPT로 요약",
+            "수강생에게 이메일 발송"
+          ],
+          "h": "녹음 → 받아쓰기 → 요약 → 전달",
+          "w": "녹음 → Gemini 음성 인식 → ChatGPT 요약 → 이메일 발송입니다. 모델별 강점을 조합한 흐름입니다.",
+          "an": "실습 9-C Step 4 · 💡 활용 시나리오"
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "n8n 2.12.3 Google Gemini 노드가 지원하는 기능을 <b>모두</b> 고르세요.",
+          "o": [
+            "이미지 분석",
+            "이미지 생성",
+            "오디오 분석·음성 인식",
+            "문서 분석",
+            "웹페이지 크롤링"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "Step 4 기능표의 Resource 열을 떠올려 보세요.",
+          "w": "Gemini 노드는 Message·Image(분석/생성)·Document·Audio·File을 지원합니다. 웹 크롤링은 기능표에 없습니다.",
+          "an": "실습 9-C Step 4 표"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "3대 모델 비교와 AI 응답 파이프라인",
+      "ref": "3대 AI 모델 비교 요약 · 실습 10",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "'긴 문서 분석, 정확한 지시 수행'이 강점인 모델은?",
+          "o": [
+            "OpenAI (ChatGPT)",
+            "Anthropic (Claude)",
+            "Google (Gemini)",
+            "모두 같다"
+          ],
+          "a": 1,
+          "h": "200K 토큰 입력을 받는 모델입니다.",
+          "w": "비교표에서 Claude의 강점은 긴 문서 분석과 정확한 지시 수행입니다. OpenAI는 범용성, Gemini는 멀티모달·비용 효율입니다.",
+          "an": "3대 AI 모델 비교 요약 표"
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "실무 팁에서 '간단한 분류·요약'에 추천한 모델은?",
+          "o": [
+            "Claude Sonnet",
+            "GPT-4o",
+            "Gemini Flash",
+            "Claude Haiku"
+          ],
+          "a": 2,
+          "h": "무료·저렴한 모델에 가벼운 일을 맡깁니다.",
+          "w": "간단한 분류/요약은 Gemini Flash, 일반 생성은 GPT-4o-mini, 복잡한 분석은 Claude Sonnet으로 나누면 비용과 성능을 함께 잡습니다.",
+          "an": "3대 모델 비교 · 💡 실무 팁"
+        },
+        {
+          "id": "t5-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "실습 10에서 AI 응답을 뽑아 질문·모델·일시와 함께 정리하는 노드는?",
+          "o": [
+            "Edit Fields (Set)",
+            "Merge",
+            "Respond to Webhook",
+            "IF"
+          ],
+          "a": 0,
+          "h": "필드를 만들고 값을 채우는 노드입니다.",
+          "w": "Edit Fields(Set)에서 질문·응답·모델·일시 4개 필드를 만들어 Sheets와 Gmail로 넘깁니다.",
+          "an": "실습 10 Step 1 · 4번"
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "n8n에서 현재 날짜를 'yyyy-MM-dd'로 표시하는 올바른 문법은?",
+          "o": [
+            "$now.format('yyyy-MM-dd')",
+            "Date.format('yyyy-MM-dd')",
+            "$today('yyyy-MM-dd')",
+            "$now.toFormat('yyyy-MM-dd')"
+          ],
+          "a": 3,
+          "h": "n8n은 Luxon 라이브러리를 씁니다. 'to'가 붙습니다.",
+          "w": "올바른 문법은 <code>$now.toFormat('yyyy-MM-dd')</code>입니다. <code>$now.format()</code>은 에러가 납니다.",
+          "an": "실습 10 Step 1 · ⚠️ n8n 날짜 함수"
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "같은 질문에 대한 3개 모델의 답변을 한 번에 비교하려면 결과를 어떤 노드로 합치나요?",
+          "o": [
+            "Edit Fields",
+            "Code",
+            "Merge",
+            "Gmail"
+          ],
+          "a": 2,
+          "h": "'합치다'를 영어로 하면?",
+          "w": "OpenAI·Anthropic·Gemini 노드를 모두 연결한 뒤 Merge 노드로 결과를 합치면 한 번에 비교할 수 있습니다.",
+          "an": "실습 10 · 응용 💡"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "OpenAI 노드를 Anthropic 노드로 바꾸면 Edit Fields의 응답 표현식도 바꿔야 한다.",
+          "a": true,
+          "h": "모델마다 응답 JSON 구조가 다릅니다.",
+          "w": "맞습니다. OpenAI는 <code>$json.message.content</code>, Claude는 <code>$json.content[0].text</code>, Gemini는 <code>$json.text</code>로 바꿔야 합니다.",
+          "an": "실습 10 · 응용 표"
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "n8n 날짜 함수는 <code>$now.format()</code> 문법을 쓴다.",
+          "a": false,
+          "h": "⚠️ 표시의 ❌ 줄을 떠올려 보세요.",
+          "w": "틀렸습니다. n8n은 Luxon을 써서 <code>.toFormat()</code>을 씁니다. <code>.format()</code>은 에러가 납니다.",
+          "an": "실습 10 Step 1 · ⚠️"
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "모델과 응답 참조 표현식을 연결하세요.",
+          "pairs": [
+            [
+              "OpenAI",
+              "$json.message.content"
+            ],
+            [
+              "Anthropic (Claude)",
+              "$json.content[0].text"
+            ],
+            [
+              "Google Gemini",
+              "$json.text"
+            ]
+          ],
+          "h": "OpenAI는 message, Claude는 배열 [0], Gemini는 가장 짧은 경로",
+          "w": "OpenAI→message.content, Claude→content[0].text, Gemini→text. 체크리스트의 '응답 구조 차이 이해' 항목입니다.",
+          "an": "3대 모델 비교 표 · 응답 참조 표현식"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "실습 10 'AI 응답 파이프라인'의 노드 순서를 맞추세요.",
+          "steps": [
+            "Manual Trigger",
+            "OpenAI (질문)",
+            "Edit Fields (응답 추출)",
+            "Google Sheets (저장)",
+            "Gmail (공유)"
+          ],
+          "h": "시작 → 질문 → 정리 → 저장 → 공유",
+          "w": "Manual Trigger → OpenAI → Edit Fields → Google Sheets → Gmail 순서입니다.",
+          "an": "실습 10 Step 1 구조도"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 1,
+          "game": true,
+          "p": "실습 10의 Edit Fields에서 만든 필드를 <b>모두</b> 고르세요.",
+          "o": [
+            "질문",
+            "응답",
+            "모델",
+            "일시",
+            "만족도"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "AI응답로그 시트의 헤더와 같습니다.",
+          "w": "질문·응답·모델·일시 4개 필드를 만들고, 같은 이름의 시트 헤더에 매핑합니다.",
+          "an": "실습 10 Step 1 · 4–5번"
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "비용·보안·n8n 2.x 주의",
+      "ref": "AI API 비용 & 안전 가이드 · 산출물 체크리스트",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "일관성 높은 답변을 원할 때 권장하는 Temperature 값은?",
+          "o": [
+            "0.3~0.5",
+            "0.7~1.0",
+            "1.5~2.0",
+            "상관없음"
+          ],
+          "a": 0,
+          "h": "낮을수록 답이 일정해집니다.",
+          "w": "일관된 답변에는 0.3~0.5, 창의성이 필요하면 0.7~1.0을 권장합니다.",
+          "an": "비용 절감 팁 표"
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "불필요하게 긴 응답을 막기 위한 권장 max_tokens 값은?",
+          "o": [
+            "50~100",
+            "5000~10000",
+            "500~1000",
+            "무제한"
+          ],
+          "a": 2,
+          "h": "몇 문단 정도의 답에 충분한 크기입니다.",
+          "w": "max_tokens는 500~1000을 권장합니다. 너무 길면 비용이 늘고, 너무 짧으면 답이 잘립니다.",
+          "an": "비용 절감 팁 표"
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "비용 비교 표에서 입력 단가(1M 토큰)가 가장 저렴한 유료 모델은?",
+          "o": [
+            "Claude Sonnet 4",
+            "GPT-4o-mini",
+            "GPT-4o",
+            "Claude Haiku 4.5"
+          ],
+          "a": 1,
+          "h": "$0.15 / $2.50 / $3.00 / $0.80 중 가장 작은 값",
+          "w": "GPT-4o-mini가 입력 $0.15로 가장 저렴합니다(Gemini Flash는 무료 티어 포함으로 별도). 가성비 우수 모델입니다.",
+          "an": "모델별 비용 비교 표"
+        },
+        {
+          "id": "t6-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "API 키를 보관하는 올바른 곳은?",
+          "o": [
+            "코드에 직접 입력",
+            "팀 공유 문서",
+            "이메일 본문",
+            "n8n Credential"
+          ],
+          "a": 3,
+          "h": "보안 주의사항 1번입니다.",
+          "w": "API 키는 코드에 넣지 말고 n8n Credential에만 저장합니다. 공유 문서·이메일도 노출 위험이 있습니다.",
+          "an": "API 키 보안 주의사항 1"
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "n8n 2.x Code 노드에서 <code>process.env</code>를 쓸 수 없는 이유는?",
+          "o": [
+            "유료 기능이라서",
+            "Task Runner에서 격리 실행되어서",
+            "Python만 지원해서",
+            "버그 때문에"
+          ],
+          "a": 1,
+          "h": "보안 강화를 위한 '격리'가 핵심어입니다.",
+          "w": "n8n 2.0부터 Code 노드는 Task Runner에서 격리 실행되어 환경 변수 직접 접근이 막힙니다. 값은 Credential이나 Edit Fields로 전달합니다.",
+          "an": "n8n 2.x Code 노드 참고"
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "사용하지 않는 API 키는 즉시 삭제하는 것이 좋다.",
+          "a": true,
+          "h": "보안 주의사항 4번입니다.",
+          "w": "맞습니다. 쓰지 않는 키는 즉시 삭제해 노출 위험을 줄입니다.",
+          "an": "API 키 보안 주의사항 4"
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "창의적인 답변이 필요하면 Temperature를 0.3 이하로 낮춘다.",
+          "a": false,
+          "h": "창의성이 필요할 때 권장 범위를 떠올려 보세요.",
+          "w": "틀렸습니다. 창의성이 필요하면 0.7~1.0으로 높입니다. 낮은 값은 일관성을 위한 것입니다.",
+          "an": "비용 절감 팁 표"
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "모델과 비용 표의 '비고'를 연결하세요.",
+          "pairs": [
+            [
+              "GPT-4o-mini",
+              "가성비 우수"
+            ],
+            [
+              "GPT-4o",
+              "고성능"
+            ],
+            [
+              "Claude Sonnet 4",
+              "긴 문서에 강점"
+            ],
+            [
+              "Gemini 2.0 Flash",
+              "가장 저렴"
+            ]
+          ],
+          "h": "mini는 가성비, 무이름은 고성능",
+          "w": "GPT-4o-mini 가성비, GPT-4o 고성능, Claude Sonnet 4 긴 문서, Gemini 2.0 Flash 가장 저렴(무료 티어)입니다.",
+          "an": "모델별 비용 비교 표"
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "5교시 실습 진행 순서를 맞추세요.",
+          "steps": [
+            "실습 9-A ChatGPT 호출",
+            "실습 9-B Claude 호출",
+            "실습 9-C Gemini 호출",
+            "실습 10 AI 응답 파이프라인"
+          ],
+          "h": "9-A → 9-B → 9-C → 10",
+          "w": "세 모델을 하나씩 연동한 뒤(9-A~C), 응답을 Sheets·Gmail로 잇는 실습 10으로 마무리합니다.",
+          "an": "5교시 산출물 체크리스트"
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "가이드의 API 키 보안 수칙을 <b>모두</b> 고르세요.",
+          "o": [
+            "코드에 직접 넣지 않기",
+            "다른 사람과 공유 안 하기",
+            "Usage Limit 설정",
+            "안 쓰는 키 즉시 삭제",
+            "키를 이메일로 백업"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "보안 주의사항은 4가지입니다.",
+          "w": "코드 미포함·공유 금지·사용 한도 설정·미사용 키 삭제가 4대 수칙입니다. 이메일 백업은 노출 위험이 있습니다.",
+          "an": "API 키 보안 주의사항 1–4"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>문제은행 · 전체 목록</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/*__TOKENS__*/
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:var(--fs-base);line-height:var(--lh);-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom,0px)}
+a{color:inherit}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px 56px}
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;height:calc(52px + env(safe-area-inset-top,0px));margin:0 -20px 22px;padding:env(safe-area-inset-top,0px) 20px 0;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.brand{font-size:var(--fs-xs);color:var(--muted);flex:1}
+.brand b{color:var(--ink);font-weight:600}
+.iconbtn{font:inherit;font-size:14px;border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);width:32px;height:32px;border-radius:var(--r);cursor:pointer;display:grid;place-items:center}
+h1{font-size:var(--fs-h1);line-height:1.3;margin:0 0 6px;letter-spacing:-.02em;font-weight:700;color:var(--title)}
+.sub{color:var(--muted);margin:0 0 14px;font-size:var(--fs-sm)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,140px));gap:8px;margin:0 0 22px}
+.stat{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);padding:8px 12px;min-width:0}
+@media (max-width:560px){.stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.stat{padding:7px 8px}.stat b{font-size:15px}}
+.stat b{display:block;font-size:18px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--title)}
+.stat span{font-size:var(--fs-2xs);color:var(--faint)}
+.stage{margin:0 0 26px}
+.stage>h2{font-size:var(--fs-h2);margin:0 0 10px;font-weight:650;display:flex;align-items:center;gap:8px}
+.stage>h2 .num{font-family:var(--mono);font-size:var(--fs-xs);color:var(--link);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:0 7px;font-weight:500}
+.course{margin:0 0 14px}
+.course h3{font-size:var(--fs-sm);color:var(--muted);font-weight:600;margin:0 0 8px}
+/* 카드: 웹 자유 배치 · 태블릿 3개 · 모바일 2개 */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+@media (max-width:1023px){.cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:560px){.cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
+.card{display:flex;flex-direction:column;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;text-decoration:none;color:var(--ink);box-shadow:var(--shadow);transition:border-color .15s}
+.card:hover{border-color:var(--link)}
+.card .code{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint)}
+.card .tt{font-weight:650;font-size:14px;line-height:1.45;word-break:keep-all}
+.card .st{font-size:var(--fs-xs);color:var(--muted);line-height:1.5}
+.card .meta{margin-top:auto;padding-top:8px;display:flex;justify-content:space-between;gap:8px;font-size:var(--fs-2xs);color:var(--faint);font-variant-numeric:tabular-nums}
+.card .bar{height:4px;background:var(--soft);border-radius:99px;overflow:hidden;margin-top:6px}
+.card .bar i{display:block;height:100%;background:var(--link);border-radius:99px}
+.card.done{border-color:color-mix(in srgb,var(--gold) 55%,var(--line))}
+.card .wn{color:var(--bad)}
+.empty{font-size:var(--fs-sm);color:var(--faint);border:1px dashed var(--line-2);border-radius:var(--r-md);padding:12px;text-align:center}
+.foot{font-size:var(--fs-2xs);color:var(--faint);margin-top:24px}
+@media (max-width:560px){.wrap{padding:0 16px 48px}.topbar{margin:0 -16px 18px;padding-left:16px;padding-right:16px}.card{padding:10px}.card .st{display:none}.card .tt{font-size:13px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar">
+    <span class="brand">디지털노마드연구소 · <b>문제은행</b></span>
+    <button class="iconbtn" id="themeBtn" type="button" aria-label="라이트/다크 전환">🌓</button>
+  </header>
+  <main id="app"></main>
+</div>
+<script>
+(()=>{
+'use strict';
+const CAT=/*__CATALOG__*/null;
+const app=document.getElementById('app');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function progress(b){
+  try{const s=JSON.parse(localStorage.getItem('qb:'+b.id+':v1')||'null');if(!s)return {done:0,wrong:0};
+    return {done:Object.keys(s.tabs||{}).length,wrong:Object.values(s.wrong||{}).filter(w=>!w.solved).length};}
+  catch(e){return {done:0,wrong:0};}
+}
+const banks=CAT.stages.flatMap(st=>st.courses.flatMap(c=>c.banks));
+const totalQ=banks.reduce((n,b)=>n+b.qs,0);
+const P=Object.fromEntries(banks.map(b=>[b.id,progress(b)]));
+const doneTabs=banks.reduce((n,b)=>n+P[b.id].done,0), allTabs=banks.reduce((n,b)=>n+b.tabs,0);
+const wrong=banks.reduce((n,b)=>n+P[b.id].wrong,0);
+app.innerHTML=`
+  <h1>📚 문제은행</h1>
+  <p class="sub">강의자료를 문제은행으로 바꿔 공부합니다. 과목을 골라 학습 모드 → 게임 모드로 이어 가세요.</p>
+  <div class="stats">
+    <div class="stat"><b>${banks.length}</b><span>문제은행</span></div>
+    <div class="stat"><b>${totalQ.toLocaleString()}</b><span>전체 문항</span></div>
+    <div class="stat"><b>${doneTabs}/${allTabs}</b><span>채점한 탭</span></div>
+    <div class="stat"><b>${wrong}</b><span>남은 오답</span></div>
+  </div>
+  ${CAT.stages.map(st=>`<section class="stage"><h2><span class="num">${esc(st.num)}</span>${esc(st.title)}</h2>
+    ${st.courses.map(c=>`<div class="course"><h3>${esc(c.title)}</h3>
+      ${c.banks.length?`<div class="cards">${c.banks.map(b=>{const p=P[b.id],pc=Math.round(p.done/b.tabs*100);
+        return `<a class="card${p.done===b.tabs?' done':''}" href="${esc(b.href)}">
+          <span class="code">${esc(b.code)}</span><span class="tt">${esc(b.title)}</span>
+          ${b.subtitle?`<span class="st">${esc(b.subtitle)}</span>`:''}
+          <span class="bar" aria-label="진행률 ${pc}%"><i style="width:${pc}%"></i></span>
+          <span class="meta"><span>${b.qs}문항 · ${b.tabs}탭</span><span>${p.done?`${p.done}/${b.tabs} 탭`:'미응시'}${p.wrong?` · <span class="wn">오답 ${p.wrong}</span>`:''}</span></span></a>`;}).join('')}</div>`
+        :'<div class="empty">준비 중</div>'}</div>`).join('')}
+  </section>`).join('')}
+  <p class="foot">진행률·오답은 이 브라우저에만 저장됩니다. · 갱신 ${esc(CAT.built)}</p>`;
+/* 테마 (문제은행 페이지와 같은 저장 키) */
+let theme=null;try{theme=localStorage.getItem('qb:theme');}catch(e){}
+const apply=()=>{if(theme)document.documentElement.dataset.theme=theme;else delete document.documentElement.dataset.theme;};apply();
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const dark=theme?theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  theme=dark?'light':'dark';try{localStorage.setItem('qb:theme',theme);}catch(e){}apply();});
+})();
+</script>
+</body>
+</html>
