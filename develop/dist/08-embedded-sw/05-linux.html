@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>임베디드 SW · 리눅스 시스템 프로그래밍 (5일) · 문제은행</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* Quiz Bank 디자인 토큰 v2
+   타이포 기준: AI_Voice day07 워크시트 (본문 15px / 행간 1.55, 요소 13~14px)
+   다크 팔레트: day07 워크시트(#0b1220 남색 + 앰버·틸 포인트) / 라이트: 같은 구조의 중립 팔레트
+   build.py가 이 파일을 엔진 <style> 맨 앞에 그대로 넣는다. */
+:root{
+  /* 타이포 */
+  --font:"Pretendard Variable","Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"JetBrains Mono","D2Coding",Consolas,"SF Mono",monospace;
+  --fs-base:15px;--lh:1.55;
+  --fs-h1:24px;--fs-h2:17px;--fs-q:15px;--fs-opt:14px;--fs-btn:13px;--fs-btn-pri:14px;
+  --fs-sm:13px;--fs-xs:12px;--fs-2xs:11px;--fs-ox:22px;
+  /* 형태 */
+  --r-sm:6px;--r:8px;--r-md:10px;--r-lg:12px;--maxw:880px;
+
+  /* 라이트 */
+  --bg:#F5F6F8;--panel:#FFFFFF;--raised:#FFFFFF;--field:#FFFFFF;
+  --ink:#141A26;--muted:#5A6375;--faint:#8A93A4;--line:#E2E6EC;--line-2:#CDD3DC;--soft:#F0F2F5;
+  --title:#141A26;--link:#0E8C80;--accent:#B7791F;
+  --ok:#15803D;--bad:#D23B32;--combo:#7C3AED;--gold:#B7891F;
+  --btn-bg:#FFFFFF;--btn-line:#D5DAE2;--pri-bg:#141A26;--pri-line:#141A26;--pri-ink:#FFFFFF;
+  --ty-mc:#0E8C80;--ty-multi:#7C3AED;--ty-ox:#64748B;--ty-match:#C2417A;--ty-order:#B7791F;--ty-num:#2563EB;
+  --timer-hi:#16A34A;--timer-mid:#D97706;--timer-lo:#DC2626;
+  --lv1:#16A34A;--lv2:#EAB308;--lv3:#DC2626;  /* 난이도 1·2·3 */
+  --shadow:0 1px 2px rgb(16 24 40 / .04);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0B1220;--panel:#111A2E;--raised:#0E1628;--field:#0A0F1C;
+  --ink:#DBE4F0;--muted:#8A9BB8;--faint:#5E6F8E;--line:#1F2B45;--line-2:#2A3A5C;--soft:#16203A;
+  --title:#F5B942;--link:#2DD4BF;--accent:#F5B942;
+  --ok:#4ADE80;--bad:#F87171;--combo:#C084FC;--gold:#F5B942;
+  --btn-bg:#172239;--btn-line:#2A3A5C;--pri-bg:#123D33;--pri-line:#2DD4BF;--pri-ink:#2DD4BF;
+  --ty-mc:#2DD4BF;--ty-multi:#C084FC;--ty-ox:#8A9BB8;--ty-match:#F472B6;--ty-order:#F5B942;--ty-num:#60A5FA;
+  --timer-hi:#4ADE80;--timer-mid:#F5B942;--timer-lo:#F87171;
+  --lv1:#4ADE80;--lv2:#FACC15;--lv3:#F87171;
+  --shadow:none;
+  color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0B1220;--panel:#111A2E;--raised:#0E1628;--field:#0A0F1C;
+  --ink:#DBE4F0;--muted:#8A9BB8;--faint:#5E6F8E;--line:#1F2B45;--line-2:#2A3A5C;--soft:#16203A;
+  --title:#F5B942;--link:#2DD4BF;--accent:#F5B942;
+  --ok:#4ADE80;--bad:#F87171;--combo:#C084FC;--gold:#F5B942;
+  --btn-bg:#172239;--btn-line:#2A3A5C;--pri-bg:#123D33;--pri-line:#2DD4BF;--pri-ink:#2DD4BF;
+  --ty-mc:#2DD4BF;--ty-multi:#C084FC;--ty-ox:#8A9BB8;--ty-match:#F472B6;--ty-order:#F5B942;--ty-num:#60A5FA;
+  --timer-hi:#4ADE80;--timer-mid:#F5B942;--timer-lo:#F87171;
+  --lv1:#4ADE80;--lv2:#FACC15;--lv3:#F87171;
+  --shadow:none;
+  color-scheme:dark;}
+@media (max-width:560px){:root{--fs-base:14.5px;--fs-h1:20px;--fs-h2:16px;--fs-q:14.5px;--fs-ox:20px}}
+
+/* ── 기본 ───────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:110px;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:var(--fs-base);line-height:var(--lh);
+  -webkit-font-smoothing:antialiased;letter-spacing:-.003em;padding-bottom:env(safe-area-inset-bottom,0px)}
+a{color:inherit}
+b,strong{font-weight:650}
+code{font-family:var(--mono);font-size:.88em;color:var(--link);background:var(--soft);padding:1px 5px;border-radius:4px}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px 56px}
+.muted{color:var(--muted)}
+/* 상단 바 */
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;height:calc(52px + env(safe-area-inset-top,0px));margin:0 -20px 22px;padding:env(safe-area-inset-top,0px) 20px 0;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.brand{font-size:var(--fs-xs);color:var(--muted);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;letter-spacing:.01em}
+.brand b{color:var(--ink);font-weight:600}
+.iconbtn{font:inherit;font-size:14px;border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);width:32px;height:32px;border-radius:var(--r);cursor:pointer;flex:0 0 auto;display:grid;place-items:center}
+.iconbtn:hover{border-color:var(--muted)}
+/* 제목 */
+h1{font-size:var(--fs-h1);line-height:1.3;margin:0 0 6px;letter-spacing:-.02em;font-weight:700;color:var(--title)}
+h2{font-size:var(--fs-h2);line-height:1.4;margin:0;font-weight:650;letter-spacing:-.01em}
+.ph{font-size:14px;color:var(--muted);font-weight:600;margin:0 0 10px;letter-spacing:0}
+.sh{font-size:var(--fs-sm);color:var(--muted);font-weight:600;margin:16px 0 6px}
+.sub{color:var(--muted);margin:0 0 4px}
+.meta{font-size:var(--fs-xs);color:var(--faint);margin:0 0 18px;font-family:var(--mono);letter-spacing:-.01em}
+.crumbs{display:flex;gap:8px;align-items:center;margin-bottom:12px;font-size:var(--fs-sm);color:var(--faint)}
+.crumbs a{text-decoration:none;color:var(--muted)}
+.crumbs a:hover{color:var(--ink)}
+.part{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--link);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:1px 7px;white-space:nowrap;max-width:100%;font-weight:500;letter-spacing:0}
+.tabhead .part,.ngroup .part{white-space:normal;overflow-wrap:anywhere}  /* 긴 자료 위치(예: voice-ai 교시 라벨)는 줄바꿈 */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.center{text-align:center}
+.note-sm{font-size:var(--fs-sm);color:var(--muted)}
+.lbl{display:block;font-size:var(--fs-xs);color:var(--muted);margin-bottom:2px}
+/* 버튼 */
+.btn{font:inherit;font-size:var(--fs-btn);display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);
+  padding:7px 12px;border-radius:var(--r);cursor:pointer;text-decoration:none;min-height:34px;line-height:1.3;white-space:nowrap;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--pri-bg);color:var(--pri-ink);border-color:var(--pri-line);font-weight:650;font-size:var(--fs-btn-pri);padding:8px 18px}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.locked{opacity:.5}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,var(--btn-line))}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn .cnt{font-family:var(--mono);font-size:var(--fs-2xs);background:var(--bad);color:#fff;border-radius:99px;padding:0 6px;min-width:18px;line-height:16px;text-align:center}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0}
+button:focus-visible,a:focus-visible,input:focus-visible,.opt:focus-within{outline:2px solid var(--link);outline-offset:2px}
+/* 입력 */
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;max-width:300px}
+.field label{font-size:var(--fs-xs);color:var(--muted)}
+.field input{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--field);color:var(--ink)}
+.field input::placeholder{color:var(--faint)}
+/* 진행 바 */
+.bar{flex:1;height:4px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bar>div{height:100%;width:0;background:var(--link);transition:width .25s}
+.progress{position:sticky;top:calc(52px + env(safe-area-inset-top,0px));z-index:5;background:var(--bg);padding:8px 0;margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.progress span,.homeprog span{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.homeprog{display:flex;align-items:center;gap:12px;margin:2px 0 16px}
+/* 홈 탭 카드 */
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:6px}
+.tcard{display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;text-decoration:none;color:var(--ink);transition:border-color .15s;box-shadow:var(--shadow)}
+.tcard:hover{border-color:var(--line-2)}
+.tcard .tn{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint)}
+.tcard .tt{font-weight:600;font-size:14px;line-height:1.45}
+.tcard .ts{margin-top:auto;padding-top:8px;font-size:var(--fs-xs);color:var(--faint);display:flex;justify-content:space-between;align-items:center;font-family:var(--mono)}
+.tcard.done .ts b{color:var(--ok);font-weight:600}
+.tcard.perfect{border-color:color-mix(in srgb,var(--gold) 55%,var(--line))}
+.lockmsg{font-size:var(--fs-xs);color:var(--faint);margin:-6px 0 16px}
+/* 탭 바 */
+/* 학습 탭 선택: 웹(≥1024) 자유 배치 · 태블릿(560~1023) 3개 · 모바일(<560) 2개 */
+.tabbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+@media (max-width:1023px){.tabbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tabchip{min-width:0;display:flex;align-items:center;gap:6px;font-size:var(--fs-btn);padding:6px 10px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);text-decoration:none;color:var(--ink);line-height:1.35;word-break:keep-all}
+.tabchip .tl{min-width:0}
+.tabchip .qc{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--muted);white-space:nowrap;margin-left:auto}
+.tabchip[aria-selected="true"] .qc{color:var(--link)}
+.tabchip .sc{white-space:nowrap}
+.btn .qc{font-family:var(--mono);font-weight:500;opacity:.85}
+.tabchip b{font-family:var(--mono);font-weight:600;color:var(--faint)}
+.tabchip:hover{border-color:var(--muted)}
+.tabchip[aria-selected="true"]{border-color:var(--link);color:var(--link);background:color-mix(in srgb,var(--link) 9%,var(--btn-bg))}
+.tabchip[aria-selected="true"] b{color:var(--link)}
+.tabchip .sc{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--ok)}
+.tabchip.sum{border-color:color-mix(in srgb,var(--gold) 60%,var(--btn-line));color:var(--gold)}
+.tabhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 2px}
+.tabhead h2{color:var(--title)}
+/* 문항 카드 */
+.q{background:var(--raised);border:1px solid var(--line);border-left:3px solid var(--tc);border-radius:var(--r-md);padding:12px 14px;margin:0 0 10px;box-shadow:var(--shadow)}
+.q.correct{border-color:color-mix(in srgb,var(--ok) 45%,var(--line));border-left-color:var(--ok)}
+.q.wrong{border-color:color-mix(in srgb,var(--bad) 45%,var(--line));border-left-color:var(--bad)}
+.qhead{display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap}
+.qn{font-family:var(--mono);font-size:var(--fs-xs);color:var(--faint);font-weight:500}
+.tbadge{font-size:var(--fs-2xs);font-weight:600;padding:0 7px;line-height:18px;border-radius:var(--r-sm);color:var(--tc);border:1px solid color-mix(in srgb,var(--tc) 45%,transparent);background:color-mix(in srgb,var(--tc) 8%,transparent);white-space:nowrap}
+/* 난이도: 점 1 녹색 · 점 2 노랑 · 점 3 빨강 (쉬움 ●○○ / 보통 ●●○ / 어려움 ●●●) + 글자 */
+.lv{display:inline-flex;align-items:center;gap:4px;line-height:1}
+.lv .dots{font-size:9px;letter-spacing:1px}
+.lv i{font-style:normal}
+.lv .d1{color:var(--lv1)} .lv .d2{color:var(--lv2)} .lv .d3{color:var(--lv3)} .lv .off{color:var(--line-2)}
+.lv em{font-style:normal;font-size:var(--fs-2xs);font-weight:600}
+.lv1 em{color:var(--lv1)} .lv2 em{color:color-mix(in srgb,var(--lv2) 80%,var(--ink))} .lv3 em{color:var(--lv3)}
+.verdict{margin-left:auto;font-weight:650;font-size:var(--fs-xs)}
+.correct .verdict{color:var(--ok)} .wrong .verdict{color:var(--bad)}
+.qsrc{margin-left:auto;font-size:var(--fs-2xs);color:var(--faint)}
+.qt{font-size:var(--fs-q);font-weight:500;margin:4px 0 8px}
+.guide{font-size:var(--fs-xs);color:var(--faint);margin:-4px 0 8px}
+.opts{display:grid;gap:6px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r);cursor:pointer;background:var(--panel);font-size:var(--fs-opt);transition:border-color .12s,background .12s}
+.opt:hover{border-color:var(--line-2)}
+.opt input{margin:4px 0 0;accent-color:var(--link);flex:0 0 auto;width:14px;height:14px}
+.opt:has(input:checked){border-color:var(--link);background:color-mix(in srgb,var(--link) 7%,var(--panel))}
+.opt.ans{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--panel))}
+.opt.miss{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 9%,var(--panel))}
+.ox{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:360px}
+.ox button{font:inherit;font-size:var(--fs-ox);font-weight:700;padding:8px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);cursor:pointer;line-height:1.3}
+.ox button:hover{border-color:var(--muted)}
+.ox button[aria-pressed="true"]{border-color:var(--link);color:var(--link);background:color-mix(in srgb,var(--link) 10%,var(--btn-bg))}
+.ox button.ans{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,var(--btn-bg));color:var(--ok)}
+.ox button.miss{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--btn-bg));color:var(--bad)}
+/* 짝 맞추기 */
+.match{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 14px}
+.mcol{display:flex;flex-direction:column;gap:6px}
+.mitem{font:inherit;font-size:var(--fs-opt);text-align:left;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--ink);padding:7px 10px;cursor:pointer;min-height:38px;display:flex;align-items:center;gap:8px;line-height:1.45}
+.mitem:hover{border-color:var(--line-2)}
+.mitem .tag{flex:0 0 auto;width:20px;height:20px;border-radius:var(--r-sm);border:1px dashed var(--line-2);display:grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);font-weight:600}
+.mitem.linked{border-color:color-mix(in srgb,var(--pc) 70%,var(--line))}
+.mitem.linked .tag{border:0;background:var(--pc);color:var(--bg)}
+.mitem.sel{border-color:var(--link);box-shadow:0 0 0 3px color-mix(in srgb,var(--link) 18%,transparent)}
+.mitem.okm{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--panel))}
+.mitem.nom{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--panel))}
+.mleft .mitem{font-weight:600}
+/* 순서 */
+.olist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.oitem{font:inherit;font-size:var(--fs-opt);text-align:left;width:100%;display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--ink);cursor:pointer;transition:border-color .12s,background .12s}
+.oitem:hover{border-color:var(--line-2)}
+.oitem .num{width:22px;height:22px;border-radius:50%;border:1px dashed var(--line-2);display:grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);font-weight:600;color:var(--muted);flex:0 0 auto}
+.oitem.on{border-color:var(--link);background:color-mix(in srgb,var(--link) 7%,var(--panel))}
+.oitem.on .num{border:0;background:var(--link);color:var(--bg)}
+.oitem .txt{flex:1;line-height:1.45}
+.oitem .ofix{flex:0 0 auto;font-size:var(--fs-2xs);color:var(--ok);font-weight:600}
+.oitem.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--panel))}
+.oitem.ok .num{background:var(--ok)}
+.oitem.no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--panel))}
+.oitem.no.on .num{background:var(--bad)}
+.numrow{display:flex;align-items:center;gap:8px;font-size:var(--fs-opt)}
+.numrow input{font-family:var(--mono);font-size:14px;width:120px;padding:6px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--field);color:var(--ink);text-align:right}
+.numrow input.ans{border-color:var(--ok)} .numrow input.miss{border-color:var(--bad)}
+.locked .mitem,.locked .ox button,.locked .opt{pointer-events:none}
+.locked .oitem{pointer-events:none}
+.opt .onum{flex:0 0 auto;min-width:18px;height:18px;padding:0 4px;border-radius:var(--r-sm);border:1px solid var(--line-2);display:inline-grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);color:var(--muted);margin-top:1px}
+.opt:has(input:checked) .onum{border-color:var(--link);color:var(--link)}
+.opt.ans .onum{border-color:var(--ok);color:var(--ok)} .opt.miss .onum{border-color:var(--bad);color:var(--bad)}
+/* 힌트 토글 (빨간색 = Hint) */
+.hintwrap{margin:-2px 0 8px}
+.hintbtn{font:inherit;font-size:var(--fs-xs);font-weight:650;display:inline-flex;align-items:center;gap:4px;color:var(--bad);background:color-mix(in srgb,var(--bad) 7%,transparent);border:1px solid color-mix(in srgb,var(--bad) 40%,transparent);border-radius:var(--r-sm);padding:2px 9px;cursor:pointer;line-height:1.5}
+.hintbtn:hover{background:color-mix(in srgb,var(--bad) 13%,transparent)}
+.hintbtn .caret{font-size:.85em}
+.srcwrap{margin-top:8px}
+.srcbtn{font:inherit;font-size:var(--fs-xs);font-weight:600;display:inline-flex;align-items:center;gap:4px;color:var(--link);background:transparent;border:1px solid var(--line-2);border-radius:var(--r-sm);padding:1px 8px;cursor:pointer;line-height:1.5}
+.srcbtn:hover{border-color:var(--link)}
+.src{margin:6px 0 0;padding:6px 10px;border-left:3px solid var(--link);background:var(--soft);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:var(--fs-xs);color:var(--muted)}
+.src p{margin:0;white-space:pre-wrap;word-break:break-word}
+.src cite{display:block;margin-top:4px;font-style:normal;font-size:var(--fs-2xs);color:var(--faint)}
+.hint{margin-top:6px;padding:6px 10px;border-left:3px solid var(--bad);background:color-mix(in srgb,var(--bad) 6%,transparent);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:var(--fs-sm);color:var(--ink)}
+/* 해설 */
+.exp{margin-top:10px;padding:2px 0 2px 10px;border-left:3px solid var(--line-2);font-size:var(--fs-sm);color:var(--muted)}
+.correct .exp{border-left-color:color-mix(in srgb,var(--ok) 55%,var(--line))}
+.wrong .exp{border-left-color:color-mix(in srgb,var(--bad) 55%,var(--line))}
+.exp p{margin:0 0 3px}
+.exp b{color:var(--ink);font-weight:650;margin-right:4px}
+.an{font-family:var(--mono);color:var(--link);font-size:var(--fs-xs);margin:4px 0 0}
+.mine{color:var(--bad)}
+.onlywrong .q.correct{display:none}
+.warn{color:var(--bad);font-size:var(--fs-sm);min-height:1.3em;margin:4px 0 0}
+/* 결과 */
+.score{font-family:var(--mono);font-size:32px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--title);letter-spacing:-.02em}
+.score small{font-family:var(--font);font-size:14px;color:var(--muted);font-weight:400;letter-spacing:0}
+.score.xl{font-size:44px}
+.msg{margin:6px 0 10px;color:var(--muted);font-size:var(--fs-sm)}
+.bd{display:grid;gap:7px;margin:6px 0}
+.bd div{display:grid;grid-template-columns:minmax(90px,190px) 1fr 44px;gap:10px;align-items:center;font-size:var(--fs-sm)}
+.bd .b{height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bd .b i{display:block;height:100%;background:var(--tc,var(--link));border-radius:99px}
+.bd span:last-child{text-align:right;font-family:var(--mono);font-size:var(--fs-xs);color:var(--muted)}
+.rcode{font-family:var(--mono);font-size:16px;font-weight:600;letter-spacing:.06em;color:var(--accent);background:var(--soft);padding:2px 8px;border-radius:var(--r-sm)}
+/* 오답노트 · 해설지 */
+.ngroup{margin:18px 0 8px;font-size:14px;font-weight:650;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ngroup .ref{font-family:var(--mono);font-size:var(--fs-2xs);font-weight:400;color:var(--faint)}
+.note{background:var(--raised);border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:var(--r-md);padding:12px 14px;margin-bottom:10px}
+.note.solved{border-left-color:var(--ok)}
+.note .qt{margin:0 0 8px}
+.note dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0;font-size:var(--fs-sm)}
+.note dt{color:var(--faint)}
+.note dd{margin:0}
+.note .foot{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font-size:var(--fs-xs);color:var(--faint);font-family:var(--mono)}
+.note .foot span:first-child{color:var(--link)}
+details.more{margin-top:14px;font-size:var(--fs-sm)}
+details.more summary{cursor:pointer;color:var(--muted);padding:4px 0}
+.keyitem{padding:10px 0;border-bottom:1px solid var(--line)}
+.keyitem .kq{font-weight:500;font-size:14px}
+.keyitem .ka{margin:4px 0 2px;color:var(--ok);font-weight:600;font-size:var(--fs-sm)}
+.keyitem .kw{font-size:var(--fs-sm);color:var(--muted);margin:0}
+.keylock{padding:12px;border:1px dashed var(--line-2);border-radius:var(--r-md);color:var(--faint);text-align:center;margin:8px 0;font-size:var(--fs-sm)}
+.printhead{display:none}
+/* 게임 */
+.game{max-width:620px;margin:0 auto}
+.gpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.gcard{display:flex;flex-direction:column;gap:4px;min-height:120px;padding:14px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--panel);color:var(--ink);text-decoration:none;transition:border-color .15s,background .15s}
+a.gcard:hover{border-color:var(--link);background:color-mix(in srgb,var(--link) 6%,var(--panel))}
+.gcard .gn{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint);letter-spacing:.05em}
+.gcard b{font-size:15px}
+.gcard .gd{font-size:var(--fs-xs);color:var(--muted);line-height:1.5}
+.gcard.soon{border-style:dashed;opacity:.6;cursor:not-allowed}
+@media (max-width:560px){.gpick{gap:6px}.gcard{min-height:84px;padding:10px 8px;align-items:center;text-align:center;justify-content:center}.gcard b{font-size:13px;word-break:keep-all}.gcard .gd{display:none}}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 14px}
+.chip{font:inherit;font-size:var(--fs-btn);padding:6px 12px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);cursor:pointer;min-height:32px}
+.chip:hover{border-color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--link);color:var(--link);background:color-mix(in srgb,var(--link) 9%,var(--btn-bg));font-weight:600}
+.chip:disabled{opacity:.4;cursor:not-allowed}
+.rules{font-size:var(--fs-xs);color:var(--muted);border-left:3px solid var(--line-2);padding:2px 0 2px 10px;margin:4px 0 16px}
+.rules p{margin:0 0 2px}
+.play{display:flex;flex-direction:column;min-height:calc(100dvh - 130px)}
+.hud{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:var(--fs-sm);color:var(--muted);margin-bottom:8px}
+.hud .pts{font-size:18px;font-weight:600;color:var(--title)}
+.combo{font-family:var(--font);font-size:var(--fs-xs);padding:2px 9px;border-radius:var(--r-sm);border:1px solid var(--line-2);color:var(--muted)}
+.combo.hot{border-color:var(--combo);color:var(--combo);background:color-mix(in srgb,var(--combo) 12%,transparent)}
+.timer{height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
+.timer>div{height:100%;width:100%;background:var(--timer-hi);border-radius:99px}
+.timer.mid>div{background:var(--timer-mid)}
+.timer.lo>div{background:var(--timer-lo)}
+.timer.out{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.tleft{font-family:var(--mono);font-size:var(--fs-xs);color:var(--faint);text-align:right;font-variant-numeric:tabular-nums;margin:4px 0 12px;min-height:1.2em}
+.gtype{font-size:var(--fs-2xs);color:var(--faint);margin-bottom:4px;letter-spacing:.02em}
+.gq{font-size:18px;font-weight:600;line-height:1.5;margin:0 0 16px;letter-spacing:-.01em}
+.gbottom{margin-top:4px}
+.gopts{display:grid;gap:8px}
+.gopt{font:inherit;font-size:var(--fs-opt);text-align:left;display:flex;gap:12px;align-items:center;padding:10px 14px;min-height:46px;border:1px solid var(--btn-line);border-radius:var(--r-md);background:var(--panel);color:var(--ink);cursor:pointer;transition:background .12s,border-color .12s;line-height:1.45}
+.gopt:hover{border-color:var(--muted)}
+.gopt kbd{flex:0 0 auto;width:22px;height:22px;border-radius:var(--r-sm);border:1px solid var(--line-2);display:grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint)}
+.gopt[aria-pressed="true"]{border-color:var(--link);background:color-mix(in srgb,var(--link) 9%,var(--panel))}
+.gopt.ans{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--panel))}
+.gopt.miss{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--panel))}
+.gox{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gox .gopt{justify-content:center;font-size:28px;font-weight:700;min-height:76px}
+.gfloat{text-align:center;font-weight:650;font-size:16px;min-height:1.6em;margin-top:10px;font-family:var(--mono)}
+.gfloat.ok{color:var(--ok)} .gfloat.no{color:var(--bad)}
+.gfloat.pop{animation:pop .45s ease-out}
+@keyframes pop{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+.gsub{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px}
+.board{width:100%;border-collapse:collapse;font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
+.board th,.board td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.board th{font-size:var(--fs-xs);color:var(--faint);font-weight:500}
+.board .r{text-align:right;font-family:var(--mono)}
+.board tr.me td{background:color-mix(in srgb,var(--combo) 12%,transparent);font-weight:600}
+.bignum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 2px}
+.bignum div{border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;text-align:left}
+.bignum b{display:block;font-family:var(--mono);font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+.bignum span{font-size:var(--fs-2xs);color:var(--faint)}
+/* 토스트 */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(16px);background:var(--panel);color:var(--ink);border:1px solid var(--line-2);
+  padding:8px 14px;border-radius:var(--r);font-size:var(--fs-sm);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:calc(100% - 32px);box-shadow:0 6px 24px rgb(0 0 0 / .18)}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+/* 문제풀이 페이지(학습·오답 재도전): 탭 제목(h2)을 뺀 모든 글자 10px — 사용자 지정 */
+/* 문제풀이·오답노트·해설지 공통: 제목(h1·h2·탭 묶음 제목)을 뺀 글자 10px, 문제 11px, 자간 +0.03em, 행간 1.7 */
+.sheet,.sheet :where(*:not(h1,h2,.ngroup,.ngroup *)){font-size:10px!important;letter-spacing:.03em!important}  /* :where = 명시도 0 → 아래 11px 규칙이 이김 */
+.sheet :is(.qt,.opt,.exp,.exp p,.guide,.mitem,.oitem .txt,.hint,.warn,.msg,.sub,.note dt,.note dd,.note .foot,.kq,.ka,.kw,.keylock){line-height:1.7!important}
+.sheet :is(.qt,.kq),.sheet :is(.qt,.kq) *{font-size:11px!important}  /* 문제 문장만 11px */
+/* 한글이 섞인 숫자 요소는 mono 대신 본문 글꼴 + 고정폭 숫자 (mono 한글 자간이 벌어짐) */
+.meta,.tcard .tn,.tcard .ts,.progress span,.homeprog span,.note .foot,.an,.hud,.tleft,.gfloat,.bignum b{font-family:var(--font);font-variant-numeric:tabular-nums;letter-spacing:0}
+/* ── 반응형 ─────────────────────────────────────── */
+@media (max-width:560px){
+  .wrap{padding:0 16px 48px}
+  .topbar{margin:0 -16px 18px;padding-left:16px;padding-right:16px}
+  /* 홈 탭 카드: 모바일에서도 한 줄 3개 (사용자 지정) */
+  .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .tcard{padding:8px 9px;gap:2px}
+  .tcard .tn{font-size:10px}
+  .tcard .tt{font-size:12px;line-height:1.35;word-break:keep-all}
+  .tcard .ts{flex-direction:column;align-items:flex-start;gap:0;padding-top:6px;font-size:10px}
+  .tabbar{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  .tabchip{padding:6px 8px;gap:4px}
+  .q{padding:12px}
+  .match{grid-template-columns:1fr}
+  .mright{margin-top:6px;padding-top:8px;border-top:1px dashed var(--line-2)}
+  .btn,.chip{min-height:40px}
+  .actions .btn{flex:1 1 calc(50% - 8px)}
+  .actions .btn.primary{flex-basis:100%}
+  .ox{max-width:none}
+  .ox button{min-height:48px}
+  .oitem{min-height:40px}
+  .bd div{grid-template-columns:96px 1fr 40px}
+  .bignum{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .field{max-width:none}
+  /* 게임: 보기를 엄지 영역(화면 아래)으로 */
+  .play .gtop{position:sticky;top:calc(52px + env(safe-area-inset-top,0px));background:var(--bg);padding:6px 0 0;z-index:4}
+  .play .gbottom{margin-top:auto;padding-top:12px}
+  .gq{font-size:17px}
+  .gopt{min-height:50px}
+  .board th:nth-child(6),.board td:nth-child(6){display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{
+  :root{--bg:#fff;--panel:#fff;--raised:#fff;--ink:#000;--muted:#333;--faint:#555;--line:#bbb;--line-2:#999;--soft:#f1f1f1;--title:#000;--link:#055}
+  body{background:#fff;color:#000;font-size:12.5px}
+  .noprint,.topbar,.actions,.tabbar,.progress,.toast{display:none!important}
+  .printhead{display:block;margin-bottom:12px;font-size:12px}
+  .q,.note,.keyitem{break-inside:avoid;box-shadow:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar noprint">
+    <a class="brand" href="../index.html" title="전체 문제은행 목록">디지털노마드연구소 · <b>문제은행</b></a>
+    <button class="iconbtn" id="themeBtn" type="button" aria-label="라이트/다크 전환">🌓</button>
+  </header>
+  <main id="app"></main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="sr" id="live" aria-live="polite"></div>
+<script>
+(()=>{
+'use strict';
+const BANK={"id":"emb-linux","code":"ELX","title":"임베디드 SW · 리눅스 시스템 프로그래밍 (5일)","subtitle":"시스템 콜·프로세스 · 스케줄링·메모리 · 파일·sysfs·쓰레드 동기화","course":"08 · 임베디드 · 시스템 SW","source":"08-AI_CAMPUS-main/Linux-day1~5/*.pdf + src","salt":"emb-linux","version":1,"updated":"2026-10-16","tabs":[{"id":"t1","title":"Shell · Makefile · 측정","ref":"Day1 p.4–8 · 2–3교시","qs":[{"id":"t1-01","ty":"mc","lv":1,"game":true,"p":"모든 프로세스가 태어날 때 갖는 fd 2번에 연결된 것은?","o":["stdin","stdout","stderr","/dev/null"],"a":2,"h":"모든 프로세스는 fd 0·1·2를 갖고 태어나며, 0은 키보드 입력, 1은 일반 출력 통로입니다. 남은 2번은 에러 메시지가 나가는 표준 통로이고 기본으로 화면에 연결됩니다.","w":"fd 0은 stdin(키보드), 1은 stdout(화면), 2는 stderr(화면)입니다. <code>2><\/code>로 에러만 파일로 보낼 수 있습니다.","an":"Linux Day1 p.6","src":"모든 프로세스는 fd 0 · 1 · 2를 가지고 태어난다\nLinux & Shell · Day 1\n0\nstdin\n기본 연결: 키보드\n1\nstdout\n기본 연결: 화면\n2\nstderr\n기본 연결: 화면\n$ make > build.log 2>&1\n# 1 → build.log, 2 → 1이 가리키는 곳\n$ ./a.out 2> err.txt\n# 에러만 파일로\n$ grep processor /proc/cpuinfo | wc -l\n# 앞 명령의 1번 → 뒤 명령의 0번\n순서 주의: make 2>&1 > build.log 는 에러가 여전히 화면으로 간다"},{"id":"t1-02","ty":"mc","lv":2,"game":true,"p":"<code>make > build.log 2>&1<\/code>을 실행하면 에러 출력(fd 2)은 어디로 가나요?","o":["화면","build.log","/dev/null","err.txt"],"a":1,"h":"리다이렉션은 왼쪽부터 적용되므로 먼저 <code>><\/code>로 fd 1이 파일을 가리키게 됩니다. 그다음 <code>2>&1<\/code>은 'fd 2를 1이 지금 가리키는 곳으로' 보내라는 뜻이니 에러도 같은 곳으로 갑니다.","w":"먼저 1이 build.log를 가리키고, 이어서 2가 1이 가리키는 곳(build.log)을 따라갑니다. 그래서 출력과 에러가 모두 파일에 모입니다.","an":"Linux Day1 p.6","src":"$ make > build.log 2>&1\n# 1 → build.log, 2 → 1이 가리키는 곳\n$ ./a.out 2> err.txt\n# 에러만 파일로\n$ grep processor /proc/cpuinfo | wc -l\n# 앞 명령의 1번 → 뒤 명령의 0번\n순서 주의: make 2>&1 > build.log 는 에러가 여전히 화면으로 간다"},{"id":"t1-03","ty":"mc","lv":1,"game":true,"p":"Makefile 자동 변수 <code>$@<\/code>가 뜻하는 것은?","o":["만들 대상","첫 재료","모든 재료","컴파일러 이름"],"a":0,"h":"Makefile 규칙에서 <code>$@<\/code>는 규칙 왼쪽, 즉 이번에 만들어 낼 결과물(예: 03_errno)을 가리킵니다. 반면 <code>$<<\/code>는 오른쪽의 첫 재료(03_errno.c)를 가리킵니다.","w":"<code>$@<\/code>는 만들 대상(예: 03_errno), <code>$<<\/code>는 첫 재료(03_errno.c)입니다. 컴파일러는 <code>CC<\/code> 변수에 둡니다.","an":"Linux Day1 p.7","src":"%: %.c\n$(CC) $(CFLAGS) -o $@ $<\nclean:\nrm -f $(TARGETS)\n요소 의미\n$@ 만들 대상 (03_errno)\n$< 첫 재료 (03_errno.c)\n%: %.c 패턴 규칙\n탭 명령 줄 시작 (스페이스 X)\nmtime 대상이 더 새로우면 건너뜀"},{"id":"t1-04","ty":"mc","lv":3,"game":true,"p":"<code>make<\/code> 실행 중 <code>*** missing separator<\/code> 오류가 났습니다. 가장 유력한 원인은?","o":["run.sh 실행 권한 없음","CFLAGS 변수 누락","대상이 재료보다 새로움","명령 줄이 스페이스로 시작"],"a":3,"h":"Makefile에서 명령 줄은 반드시 탭 문자로 시작해야 합니다. 에디터가 탭을 공백 여러 개로 바꿔 저장하면 make가 구분자를 찾지 못해 이 오류를 냅니다.","w":"Makefile의 명령 줄은 탭으로 시작해야 하며 스페이스로 시작하면 missing separator가 납니다. <code>cat -A Makefile<\/code>로 <code>^I<\/code>(탭)를 확인합니다.","an":"Linux Day1 p.7 · 강사 스크립트 트러블슈팅","src":"| `Makefile:9: *** missing separator` | 명령 줄이 스페이스로 시작 | 에디터에서 탭 입력 확인 (`cat -A Makefile`로 `^I` 확인) |"},{"id":"t1-05","ty":"mc","lv":3,"game":true,"p":"<code>./run.sh<\/code> 실행 시 <code>Permission denied<\/code>가 나면 알맞은 조치는?","o":["chmod +x run.sh","dos2unix run.sh","make clean","sudo apt install strace"],"a":0,"h":"Permission denied는 파일에 실행 권한(x) 비트가 없어서 생기는 오류입니다. 권한을 바꾸는 명령으로 실행 비트를 더해 주면 <code>./run.sh<\/code>로 실행할 수 있습니다.","w":"실행 권한이 없어서 생기는 오류이므로 <code>chmod +x run.sh<\/code>로 권한을 줍니다. <code>dos2unix<\/code>는 CRLF 때문에 생기는 bad interpreter 오류의 조치입니다.","an":"Linux Day1 p.5 · 강사 스크립트 트러블슈팅","src":"| `./run.sh: Permission denied` | 실행 권한 없음 | `chmod +x run.sh` |"},{"id":"t1-06","ty":"ox","lv":2,"game":true,"p":"<code>make 2>&1 > build.log<\/code>도 에러를 build.log에 저장한다.","a":false,"h":"리다이렉션은 왼쪽부터 차례로 적용됩니다. <code>2>&1<\/code>이 먼저 처리되는 순간 fd 1은 아직 화면이므로 fd 2도 화면을 가리키게 되고, 그 뒤에 fd 1만 파일로 바뀝니다.","w":"틀렸습니다. 2가 먼저 '지금의 1(화면)'을 복사한 뒤 1만 파일로 바뀌므로 에러는 여전히 화면으로 갑니다.","an":"Linux Day1 p.6 순서 주의","src":"$ make > build.log 2>&1\n# 1 → build.log, 2 → 1이 가리키는 곳\n$ ./a.out 2> err.txt\n# 에러만 파일로\n$ grep processor /proc/cpuinfo | wc -l\n# 앞 명령의 1번 → 뒤 명령의 0번\n순서 주의: make 2>&1 > build.log 는 에러가 여전히 화면으로 간다"},{"id":"t1-07","ty":"ox","lv":1,"game":true,"p":"make는 대상 파일의 mtime이 재료보다 새로우면 그 대상의 빌드를 건너뛴다.","a":true,"h":"make는 대상과 재료 파일의 수정 시각(mtime)을 비교해 재료가 바뀐 것만 다시 빌드합니다. 대상이 재료보다 새로우면 다시 만들 필요가 없다고 판단합니다.","w":"맞습니다. 대상이 더 새로우면 건너뜁니다. 그래서 <code>touch 03_errno.c<\/code> 후 make하면 그 파일만 다시 빌드됩니다.","an":"Linux Day1 p.7","src":"3교시 · Makefile\n바뀐 것만 다시 빌드한다\nLinux & Shell · Day 1\nCC = gcc\nCFLAGS = -Wall -Wextra -g\nSRCS = $(wildcard *.c)\nTARGETS = $(SRCS:.c=)\nall: $(TARGETS)\n%: %.c\n$(CC) $(CFLAGS) -o $@ $<\nclean:\nrm -f $(TARGETS)\n요소 의미\n$@ 만들 대상 (03_errno)\n$< 첫 재료 (03_errno.c)\n%: %.c 패턴 규칙\n탭 명령 줄 시작 (스페이스 X)\nmtime 대상이 더 새로우면 건너뜀"},{"id":"t1-08","ty":"match","lv":2,"game":false,"p":"리다이렉션·파이프 기호와 하는 일을 연결하세요.","pairs":[[">","stdout을 파일로 보냄"],["2>","stderr만 파일로 보냄"],["|","앞 명령의 1번을 뒤 명령의 0번으로"],["&","명령을 백그라운드로 실행"],["$!","마지막 백그라운드 작업의 PID"]],"h":"fd 1은 stdout, fd 2는 stderr이므로 숫자가 붙은 리다이렉션은 해당 번호만 파일로 보냅니다. 파이프는 앞 명령의 출력을 뒤 명령의 입력으로 잇고, <code>&<\/code>는 백그라운드 실행, <code>$!<\/code>는 방금 백그라운드로 띄운 작업의 PID입니다.","w":"<code>><\/code>는 stdout, <code>2><\/code>는 stderr를 파일로 보냅니다. 파이프는 앞 명령의 출력을 뒤 명령의 입력으로 잇고, <code>sleep 30 &<\/code> 뒤 <code>echo $!<\/code>로 PID를 확인합니다.","an":"Linux Day1 p.5–6","src":"$ make > build.log 2>&1\n# 1 → build.log, 2 → 1이 가리키는 곳\n$ ./a.out 2> err.txt\n# 에러만 파일로\n$ grep processor /proc/cpuinfo | wc -l\n# 앞 명령의 1번 → 뒤 명령의 0번"},{"id":"t1-09","ty":"order","lv":2,"game":false,"p":"run.sh 측정 스크립트가 동작하는 순서를 맞추세요.","steps":["CSV 헤더 run,elapsed_ms 기록","시작 시각 date +%s%N 저장","프로그램 실행 (출력은 /dev/null)","종료 시각 date +%s%N 저장","(end-start)/1000000 ms를 한 줄 추가"],"h":"run.sh는 먼저 CSV 헤더 한 줄을 쓰고, 반복마다 <code>date +%s%N<\/code>으로 시작 시각을 잡은 뒤 프로그램을 실행합니다. 실행이 끝나면 다시 종료 시각을 잡아 두 값의 차이를 밀리초로 바꿔 한 줄씩 덧붙입니다.","w":"헤더를 먼저 쓰고, 반복마다 시작·종료 시각을 나노초로 재서 ms로 바꿔 CSV에 덧붙입니다. 측정은 한 번으로 믿지 않으므로 N번 반복합니다.","an":"Linux Day1 p.8 · run.sh","src":"PROG=$1\nN=$2\nOUT=${3:-result.csv}\necho \"run,elapsed_ms\" > \"$OUT\"\nfor i in $(seq 1 \"$N\"); do\nstart=$(date +%s%N)\n\"$PROG\" > /dev/null\nend=$(date +%s%N)\necho \"$i,$(( (end-start)/1000000 ))\" >> \"$OUT\"\ndone"},{"id":"t1-10","ty":"multi","lv":1,"game":true,"p":"환경 점검(check_env.sh)에서 확인하는 항목을 모두 고르세요.","o":["코어 2개 이상","sudo 권한","Secure Boot","WSL2 여부","GPU 메모리 크기"],"a":[0,1,2,3],"h":"check_env.sh 점검 표는 Day 2 affinity와 Day 5 race에 필요한 코어 수, RT 정책·모듈 로드에 필요한 관리자 권한을 봅니다. 또 Day 4 커널 모듈 실습을 막을 수 있는 보안 부팅 설정과 모듈·thermal 제한이 있는 가상 환경 여부도 확인합니다.","w":"코어 수(affinity·race), sudo(RT 정책·모듈 로드), Secure Boot(커널 모듈), WSL2(모듈·thermal 제한)를 점검합니다. GPU 메모리는 점검 항목이 아닙니다.","an":"Linux Day1 p.4","src":"점검 항목 왜 필요한가\n코어 2개 이상 Day 2 affinity · Day 5 race\nsudo 권한 RT 정책 · 모듈 로드\nSecure Boot Day 4 커널 모듈\nWSL2 여부 모듈·thermal 제한"}]},{"id":"t2","title":"시스템 콜 · errno · /proc","ref":"Day1 p.9–13 · 4–5교시","qs":[{"id":"t2-01","ty":"mc","lv":1,"game":true,"p":"man 페이지 섹션 2가 다루는 것은?","o":["사용자 명령","시스템 콜","라이브러리 함수","설정 파일"],"a":1,"h":"man 페이지는 섹션 번호로 나뉘며, 1은 ls 같은 사용자 명령, 3은 printf 같은 라이브러리 함수입니다. 그 사이의 2번 섹션은 write처럼 커널에 직접 요청하는 함수를 다룹니다.","w":"섹션 1은 사용자 명령(ls), 2는 시스템 콜(write), 3은 라이브러리 함수(printf)입니다.","an":"Linux Day1 p.9","src":"man 섹션 내용\n1 사용자 명령 (ls)\n2 시스템 콜 (write)\n3 라이브러리 함수 (printf)"},{"id":"t2-02","ty":"mc","lv":1,"game":true,"p":"x86_64에서 <code>write<\/code> 시스템 콜의 번호는?","o":["1","39","57","59"],"a":0,"h":"glibc 래퍼는 시스템 콜 번호를 rax에 싣는 얇은 포장일 뿐이며, 예제는 <code>SYS_write<\/code>와 <code>SYS_getpid<\/code> 값을 출력해 확인합니다. x86_64 번호 표에서 getpid는 39, fork는 57이고 write는 표의 맨 앞쪽 번호입니다.","w":"write는 1번입니다. 39는 getpid, 57은 fork, 59는 execve, 61은 wait4입니다.","an":"Linux Day1 p.11 · src/02_syscall_direct","src":"pid_t a = getpid(); // glibc 래퍼\nlong b = syscall(SYS_getpid); // 직접\nprintf(\"SYS_getpid = %d\\n\", SYS_getpid); // 39\nprintf(\"SYS_write = %d\\n\", SYS_write); // 1\n$ strace -c ./02_syscall_direct > /dev/null\n% time calls syscall\n... 3 write\n... 2 getpid\n1 write\n39 getpid\n57 fork\n59 execve\n61 wait4"},{"id":"t2-03","ty":"mc","lv":2,"game":true,"p":"<code>./01_write_vs_printf | cat<\/code>처럼 파이프로 실행하면 write 호출 수는?","o":["6번","5번","2번","1번"],"a":2,"h":"터미널로 출력하면 stdout이 줄 단위 버퍼링이라 printf 줄마다 write가 일어납니다. 파이프로 나가면 블록 단위 버퍼링으로 바뀌어 직접 호출한 write 한 번과 exit 때 fflush 한 번만 남습니다.","w":"파이프에서는 블록 단위 버퍼링이 되어 write 1번 + exit 때 fflush 1번, 총 2번입니다. 터미널에서는 줄 단위 버퍼링이라 6번입니다.","an":"Linux Day1 p.10","src":"터미널 ./01_write_vs_printf\n6\nwrite 호출 수\nwrite 1 + printf 줄마다 5\n줄 단위 버퍼링\n파이프 ./01_write_vs_printf | cat\n2\nwrite 호출 수\nwrite 1 + exit 때 fflush 1\n블록 단위 버퍼링"},{"id":"t2-04","ty":"mc","lv":2,"game":true,"p":"시스템 콜이 실패했을 때 glibc 래퍼가 호출자에게 주는 것은?","o":["커널 음수값 그대로","-1을 반환, errno 설정","0을 반환, errno 설정","NULL 포인터 반환"],"a":1,"h":"커널은 실패를 <code>-ENOENT<\/code> 같은 음수로 돌려주고, glibc 래퍼는 이를 두 가지로 나눠 줍니다. 원인 번호는 전역 변수에 담고 함수 반환값은 실패 표시 값으로 바꿉니다.","w":"커널은 음수(예: -2)를 돌려주고, glibc 래퍼는 errno=2로 저장한 뒤 -1을 반환합니다. main()은 -1을 확인하고 <code>strerror(errno)<\/code>로 원인을 봅니다.","an":"Linux Day1 p.12","src":"커널은 음수를, glibc는 -1과 errno를 준다\nLinux & Shell · Day 1\n커널\nreturn -ENOENT\nrax = -2 →\nglibc 래퍼\nerrno = 2\nreturn -1 →\nmain()\nfd == -1 ?\nstrerror(errno)\nerrno 이름 원인\n2 ENOENT 경로 없음\n13 EACCES 권한 없음\n9 EBADF 닫힌 fd\n21 EISDIR 디렉터리를 쓰기로\n규칙: 반환값이 실패(-1)일 때만\nerrno를 읽는다"},{"id":"t2-05","ty":"mc","lv":3,"game":true,"p":"존재하지 않는 경로를 <code>open<\/code>했습니다. errno 이름은?","o":["EACCES","EBADF","EISDIR","ENOENT"],"a":3,"h":"errno 표에서 2번은 경로가 없을 때, 13번은 권한이 없을 때 설정됩니다. 존재하지 않는 파일을 열면 'No such file or directory'에 해당하는 2번 이름이 errno에 담깁니다.","w":"경로가 없으면 ENOENT(2)입니다. EACCES(13)는 권한 없음, EBADF(9)는 닫힌 fd, EISDIR(21)는 디렉터리를 쓰기로 연 경우입니다.","an":"Linux Day1 p.12 · src/03_errno","src":"errno 이름 원인\n2 ENOENT 경로 없음\n13 EACCES 권한 없음\n9 EBADF 닫힌 fd\n21 EISDIR 디렉터리를 쓰기로"},{"id":"t2-06","ty":"ox","lv":2,"game":true,"p":"시스템 콜이 성공했을 때도 errno를 읽어 원인을 확인해야 한다.","a":false,"h":"errno는 함수가 실패를 알리는 반환값(-1)을 돌려줬을 때만 의미가 있습니다. 성공한 호출은 errno를 지우지 않으므로 이전 실패의 값이 그대로 남아 있을 수 있습니다.","w":"틀렸습니다. 반환값이 실패(-1)일 때만 errno를 읽습니다. 성공 시 errno에는 이전 값이 남아 있을 수 있습니다.","an":"Linux Day1 p.12 규칙","src":"규칙: 반환값이 실패(-1)일 때만\nerrno를 읽는다"},{"id":"t2-07","ty":"ox","lv":1,"game":true,"p":"/proc 아래 파일은 디스크에 저장된 것이 아니라 읽는 순간 커널이 만들어 주는 가상 파일이다.","a":true,"h":"/proc의 파일은 디스크에 저장된 내용이 아니라 읽는 순간 커널이 그때의 상태로 만들어 주는 가상 파일입니다. 그래서 <code>/proc/self/status<\/code>를 읽을 때마다 현재 프로세스의 VmRSS 같은 값이 새로 나옵니다.","w":"맞습니다. /proc는 읽는 순간 커널이 만들어 주는 가상 파일입니다. /proc/self는 읽는 프로세스 자신을 가리킵니다.","an":"Linux Day1 p.13 · p.21","src":"5교시 · /proc\n읽는 순간 커널이 만들어 주는 가상 파일\nLinux & Shell · Day 1\n1.5 MB\nVmRSS · malloc 전\n→52 MB\nVmRSS · 50MB malloc + memset 후\n$ cat /proc/self/status | head\n$ ls -l /proc/self/fd\n$ cat /proc/loadavg"},{"id":"t2-08","ty":"match","lv":1,"game":false,"p":"errno 이름과 원인을 연결하세요.","pairs":[["ENOENT (2)","경로 없음"],["EACCES (13)","권한 없음"],["EBADF (9)","닫힌 fd"],["EISDIR (21)","디렉터리를 쓰기로 열기"]],"h":"errno 번호 표에서 2번은 경로를 찾지 못한 경우, 13번은 권한이 거부된 경우입니다. 9번은 이미 닫힌 fd를 쓰려 할 때, 21번은 디렉터리를 쓰기 모드로 열려 할 때 설정됩니다.","w":"ENOENT는 경로 없음, EACCES는 권한 없음, EBADF는 잘못되거나 닫힌 fd, EISDIR는 디렉터리를 쓰기로 연 경우입니다.","an":"Linux Day1 p.12 errno 표","src":"errno 이름 원인\n2 ENOENT 경로 없음\n13 EACCES 권한 없음\n9 EBADF 닫힌 fd\n21 EISDIR 디렉터리를 쓰기로"},{"id":"t2-09","ty":"order","lv":2,"game":false,"p":"<code>write()<\/code> 호출이 터미널에 도달하는 경로를 순서대로 맞추세요.","steps":["main()에서 write() 호출","glibc 래퍼가 rax=1 등 레지스터 설정","syscall 명령으로 커널 모드 전환","sys_call_table[1] → sys_write()","tty 드라이버로 출력"],"h":"사용자 모드에서 main이 glibc의 write를 부르면 래퍼가 rax·rdi·rsi·rdx 레지스터에 번호와 인자를 싣습니다. 이어 syscall 명령으로 커널 모드로 넘어가 시스템 콜 표에서 함수를 찾고, 마지막으로 tty 드라이버가 화면에 출력합니다.","w":"glibc는 번호(rax=1)와 인자를 싣는 얇은 포장입니다. syscall 명령으로 커널 모드에 들어가 sys_call_table[1]의 sys_write()가 tty 드라이버에 넘깁니다.","an":"Linux Day1 p.9 · 애니메이션 D1-2","src":"사용자 모드\nmain() glibc write() rax=1 rdi=1\nrsi=buf rdx=20\n▼ syscall 명령 · 모드 전환\n커널 모드\nsys_call_table[1] sys_write() tty 드라이버"},{"id":"t2-10","ty":"multi","lv":3,"game":false,"p":"50MB를 malloc하고 memset하자 VmRSS가 1.5MB에서 52MB로 늘었습니다. 옳은 설명을 모두 고르세요.","o":["malloc은 주소만 예약한다","실제로 써야 페이지가 할당된다","memset을 빼면 RSS가 거의 안 는다","malloc은 시스템 콜이다","VmRSS는 /proc/self/status에 있다"],"a":[0,1,2,4],"h":"malloc은 가상 주소만 예약하고, 실제 물리 페이지는 처음 쓸 때 page fault로 할당됩니다. 그래서 memset으로 실제로 써야 VmRSS가 늘고, 이 값은 <code>/proc/self/status<\/code>에서 확인합니다.","w":"malloc은 주소만 예약하고 실제로 써야 페이지가 할당되므로 memset을 빼면 RSS가 거의 늘지 않습니다. malloc은 시스템 콜이 아니라 glibc 함수입니다.","an":"Linux Day1 p.13 · Linux Day3 p.4–5","src":"1.5 MB\nVmRSS · malloc 전\n→52 MB\nVmRSS · 50MB malloc + memset 후\n$ cat /proc/self/status | head\n$ ls -l /proc/self/fd\n$ cat /proc/loadavg\nDay 3 예고: memset을 지우면 RSS는?\nmalloc은 주소만 예약한다 — 실제로 써야 페이지가 할당된다"}]},{"id":"t3","title":"fork · exec · wait · 시그널","ref":"Day1 p.14–20 · 6–8교시","qs":[{"id":"t3-01","ty":"mc","lv":1,"game":true,"p":"<code>fork()<\/code>가 자식 프로세스 쪽에 반환하는 값은?","o":["자식의 PID","0","-1","부모의 PID"],"a":1,"h":"fork는 한 번 호출되지만 부모와 자식에서 각각 한 번씩, 두 번 반환합니다. 부모 쪽에는 자식의 PID(양수)가, 실패하면 -1이 오고, 자식 쪽에는 '나는 자식'을 뜻하는 특별한 값이 옵니다.","w":"자식은 0, 부모는 자식의 PID(>0)를 받고, 실패하면 부모에게 -1이 돌아옵니다.","an":"Linux Day1 p.14","src":"한 번 호출, 두 번 반환\nLinux & Shell · Day 1\n-1\n부모\n실패\n0\n자식\n\"나는 자식\"\n> 0\n부모\n자식의 PID"},{"id":"t3-02","ty":"mc","lv":2,"game":true,"p":"<code>x=100<\/code> 후 fork하여 자식은 <code>x+=1<\/code>, 부모는 <code>x-=1<\/code>을 하면 각각 x는?","o":["둘 다 100","자식 99 · 부모 101","둘 다 101","자식 101 · 부모 99"],"a":3,"h":"fork 후 자식은 부모의 메모리를 복사본으로 받으므로 같은 변수라도 서로 영향을 주지 않습니다. 둘 다 시작값 100에서 각자 한 번씩 더하거나 빼기만 합니다.","w":"자식은 복제된 자기 x를 101로, 부모는 자기 x를 99로 바꿉니다. 서로의 변수에 영향을 주지 않습니다.","an":"Linux Day1 p.14 · src/05_fork_basic","src":"int x = 100;\nfflush(stdout);\npid_t pid = fork();\nif (pid == 0) { x += 1; exit(0); }\nx -= 1; wait(NULL);\n// 자식 101, 부모 99"},{"id":"t3-03","ty":"mc","lv":1,"game":true,"p":"exec 후에도 <b>유지되는<\/b> 것은?","o":["코드(text) 영역","전역 변수와 힙","PID와 PPID","스택"],"a":2,"h":"exec는 같은 프로세스에 다른 프로그램을 덮어쓰므로 코드·전역 변수·힙·스택은 교체됩니다. 반면 프로세스의 정체성(번호와 부모 관계), 열린 fd 0·1·2, 현재 디렉터리와 사용자 ID는 그대로 남습니다.","w":"PID·PPID, 열린 fd 0·1·2, 현재 디렉터리, 사용자 ID는 유지됩니다. 코드·전역 변수·힙·스택은 교체되어 돌아올 곳이 없습니다.","an":"Linux Day1 p.15","src":"같은 PID에 다른 프로그램을 덮어쓴다\nLinux & Shell · Day 1\n유지된다\n• PID와 부모 관계(PPID)\n• 열린 파일 디스크립터 0 · 1 · 2\n• 현재 디렉터리, 사용자 ID\n교체된다\n• 코드(text) 영역\n• 전역 변수 · 힙\n• 스택 — 그래서 돌아올 곳이 없다"},{"id":"t3-04","ty":"mc","lv":2,"game":true,"p":"좀비(Z) 프로세스를 없애는 올바른 방법은?","o":["좀비에 kill -9 보내기","부모가 waitpid 호출","자식이 exit 다시 호출","셸을 새로 열기"],"a":1,"h":"좀비는 자식이 이미 끝났는데 부모가 종료 상태를 수거하지 않아 테이블에 남은 것입니다. 이미 죽은 프로세스라 시그널로는 없앨 수 없고, 부모 쪽에서 종료 상태를 가져가야 사라집니다.","w":"좀비는 부모가 종료 상태를 수거(wait)하지 않아 남은 것이므로 부모가 waitpid를 호출해야 합니다. <code>kill -9<\/code>는 소용없습니다.","an":"Linux Day1 p.17","src":"좀비 (Z)\n자식은 끝났는데 부모가 wait하지 않음\nPID PPID STAT CMD\n6021 6020 Z [07_zombie] <defunct>\n해결: 부모가 waitpid 호출 (kill -9는 소용없음)"},{"id":"t3-05","ty":"mc","lv":3,"game":true,"p":"myshell에서 <code>sleep 100<\/code> 실행 중 Ctrl+C를 누르면 다음 프롬프트 숫자는?","o":["130","2","127","0"],"a":0,"h":"셸은 시그널로 죽은 명령의 종료 코드를 128 + 시그널 번호로 표시합니다. Ctrl+C는 SIGINT(2번)이므로 그 계산 결과가 다음 프롬프트 괄호에 나타납니다.","w":"SIGINT(2)로 끝났으므로 128+2=130입니다. 127은 없는 명령(exec 실패), 2는 <code>ls /nope<\/code>의 종료 코드입니다.","an":"Linux Day1 p.19 · myshell.c","src":"$ make myshell && ./myshell\nmyshell[0]$ ls /nope\nmyshell[2]$ sleep 100 ← Ctrl+C\nmyshell[130]$ exit"},{"id":"t3-06","ty":"ox","lv":1,"game":true,"p":"SIGKILL(9)은 핸들러로 잡을 수 없다.","a":true,"h":"시그널 표에서 SIGINT·SIGTERM은 핸들러로 처리할 수 있지만 <code>kill -9<\/code>로 보내는 9번은 예외로 표시돼 있습니다. 이 시그널은 커널이 바로 프로세스를 종료시키므로 프로그램이 가로챌 수 없습니다.","w":"맞습니다. SIGKILL은 잡을 수 없고 기본 동작(종료)만 합니다. SIGINT(2)·SIGTERM(15)은 sigaction으로 처리할 수 있습니다.","an":"Linux Day1 p.18","src":"시그널 번호 언제 기본 동작\nSIGINT 2 Ctrl+C 종료\nSIGKILL 9 kill -9 종료 (잡을 수 없음)\nSIGTERM 15 kill 기본값 종료\nSIGCHLD 17 자식 종료 무시"},{"id":"t3-07","ty":"ox","lv":2,"game":true,"p":"셸이 fork한 자식이 <code>chdir('/tmp')<\/code>를 하면 셸의 현재 디렉터리도 /tmp로 바뀐다.","a":false,"h":"fork로 생긴 자식은 별도 프로세스이므로 자식이 chdir하면 자식만 이동하고, 자식이 끝나면 셸은 원래 위치 그대로입니다. 그래서 cd는 셸 프로세스가 직접 chdir하는 내장 명령이어야 합니다.","w":"틀렸습니다. 자식만 /tmp로 이동하고 종료되므로 셸은 그대로입니다. 그래서 cd는 셸이 직접 chdir()하는 내장 명령이어야 합니다.","an":"Linux Day1 p.20","src":"자식이 chdir(\"/tmp\") → 자식만 /tmp로 이동 → \n자식 종료 → 셸은 그대로\n셸 프로세스가 직접 chdir()해야 한다 → 내장 명\n령"},{"id":"t3-08","ty":"match","lv":1,"game":false,"p":"wait 상태 해석 매크로와 의미를 연결하세요.","pairs":[["WIFEXITED(s)","exit()로 정상 종료했나"],["WEXITSTATUS(s)","종료 코드 0~255"],["WIFSIGNALED(s)","시그널로 죽었나"],["WTERMSIG(s)","몇 번 시그널인가"]],"h":"wait로 받은 상태값은 매크로로 해석합니다. IF가 붙은 매크로는 '정상 종료했나', '시그널로 죽었나'처럼 참·거짓을 묻고, EXITSTATUS는 종료 코드, TERMSIG는 몇 번 시그널인지를 꺼냅니다.","w":"WIFEXITED/WIFSIGNALED로 종료 방식을 먼저 확인한 뒤 WEXITSTATUS/WTERMSIG로 코드나 시그널 번호를 꺼냅니다.","an":"Linux Day1 p.16","src":"매크로 의미\nWIFEXITED(s) exit()로 정상 종료했나\nWEXITSTATUS(s) 종료 코드 0~255\nWIFSIGNALED(s) 시그널로 죽었나\nWTERMSIG(s) 몇 번 시그널인가"},{"id":"t3-09","ty":"order","lv":2,"game":false,"p":"myshell 한 바퀴의 처리 순서를 맞추세요.","steps":["fgets로 한 줄 읽기","strtok으로 인자 자르기","내장 명령(cd·exit) 확인","fork 후 자식이 execvp","부모가 waitpid로 수거"],"h":"셸 루프는 프롬프트에서 한 줄을 읽고(fgets), 공백 기준으로 인자를 자른 뒤(strtok), cd·exit 같은 내장 명령인지 먼저 확인합니다. 내장이 아니면 fork로 자식을 만들어 execvp로 프로그램을 실행하고, 부모는 waitpid로 끝나기를 기다립니다.","w":"bash의 정체는 fork-exec-wait 루프입니다. 내장 명령이면 셸이 직접 처리하고, 아니면 fork·execvp 후 waitpid로 종료 코드를 받아 프롬프트에 표시합니다.","an":"Linux Day1 p.19 · myshell.c","src":"bash의 정체: fork-exec-wait 루프\nLinux & Shell · Day 1\n프롬프트\nmyshell[0]$\n›\n읽기\nfgets\n›\n자르기\nstrtok\n›\n내장?\ncd · exit\n›\nfork\nclone\n›\nexec\nexecvp\n›\nwait\nwaitpid\n↺ 종료 코드를 프롬프트에 표시하고 처음으로"},{"id":"t3-10","ty":"multi","lv":2,"game":false,"p":"시그널 핸들러 작성 규칙으로 옳은 것을 모두 고르세요.","o":["printf 대신 write 사용","공유 변수는 volatile sig_atomic_t","SIGCHLD에선 WNOHANG 반복 수거","핸들러 안에서 printf 사용","SIGKILL 핸들러 등록"],"a":[0,1,2],"h":"핸들러 안에서는 async-signal-safe 함수만 써야 하므로 printf 대신 write를 씁니다. 핸들러와 공유하는 변수는 volatile sig_atomic_t로 선언하고, SIGCHLD에서는 WNOHANG을 붙여 waitpid를 반복해 여러 자식을 모두 수거합니다.","w":"핸들러에서는 async-signal-safe한 write를 쓰고, 공유 변수는 volatile sig_atomic_t로 둡니다. SIGCHLD에서는 <code>waitpid(-1, …, WNOHANG)<\/code>를 반복합니다. SIGKILL은 잡을 수 없습니다.","an":"Linux Day1 p.18","src":"핸들러 작성 규칙\n• printf 대신 write (async-signal-safe)\n• 공유 변수는 volatile sig_atomic_t\n• SIGCHLD에선 waitpid(-1, …, WNOHANG)\n를 반복"}]},{"id":"t4","title":"컨텍스트 스위치 · CFS · affinity","ref":"Day2 p.3–5 · 1–3교시","qs":[{"id":"t4-01","ty":"mc","lv":1,"game":true,"p":"sleep·I/O 대기처럼 스스로 CPU를 내려놓는 컨텍스트 스위치는?","o":["비자발적","자발적","선점","throttling"],"a":1,"h":"컨텍스트 스위치에는 두 종류가 있습니다. sleep·I/O 대기처럼 스스로 잠들며 CPU를 내려놓는 경우와, 할 일이 남았는데 선점으로 빼앗기는 경우입니다. 앞의 경우는 voluntary로 집계됩니다.","w":"자발적(voluntary) 스위치는 sleep·I/O·이벤트 대기로 스스로 내려놓는 것이고, 비자발적은 할 일이 남았는데 선점으로 빼앗기는 것입니다.","an":"Linux Day2 p.3 · src/01_ctxsw.c","src":"CPU 를 내려놓는 두 가지 방법\nLinux & Shell · Day 2\n자발적 (voluntary)\n스스로 잠들며 내려놓음\nsleep · I/O 대기 · 이벤트 대기\n1000 sleep 1000 번\n비자발적 (nonvoluntary)\n할 일이 남았는데 빼앗김\n선점 (preemption)\n270 busy + stress-ng\n$ grep ctxt /proc/self/status\nvoluntary_ctxt_switches: 3\nnonvoluntary_ctxt_switches: 0"},{"id":"t4-02","ty":"mc","lv":1,"game":true,"p":"CFS에서 nice 0의 weight 값은?","o":["110","335","1024","3121"],"a":2,"h":"CFS weight 표에서 nice -5는 3121, nice 5는 335입니다. vruntime 증가량 공식의 분자 상수를 보면, nice 0 태스크는 vruntime이 실제 실행 시간과 같은 속도로 늘어나도록, 즉 비율이 1.00이 되도록 기준 weight가 정해져 있습니다.","w":"nice 0의 weight는 1024입니다. 3121은 nice -5, 335는 nice 5, 110은 nice 10의 weight입니다.","an":"Linux Day2 p.4","src":"vruntime 증가량 = 실제 실행 시간 × 1024 / \nweight\nnice weight 둘이 경쟁할 때 nice 0 대비 몫\n-5 3121 75.3 %\n0 1024 50 %\n5 335 24.7 %\n10 110 9.7 %\n19 15 1.4 %"},{"id":"t4-03","ty":"mc","lv":2,"game":true,"p":"CFS가 다음에 실행할 태스크를 고르는 기준은?","o":["vruntime이 가장 작은 것","nice 값이 가장 큰 것","PID가 가장 작은 것","가장 오래 실행한 것"],"a":0,"h":"CFS는 태스크마다 weight로 보정한 가상 실행 시간(vruntime)을 쌓아 둡니다. 지금까지 덜 실행된 태스크에게 차례를 주려고, 그 값이 가장 작은 태스크를 다음에 고릅니다.","w":"CFS는 vruntime이 가장 작은 태스크를 고릅니다. vruntime 증가량 = 실제 실행 시간 × 1024 / weight이므로 weight가 작으면 vruntime이 빨리 늘어납니다.","an":"Linux Day2 p.4 · src/03_vruntime.c","src":"vruntime 이 가장 작은 태스크를 고른다\nLinux & Shell · Day 2\nvruntime 증가량 = 실제 실행 시간 × 1024 / \nweight\nnice weight 둘이 경쟁할 때 nice 0 대비 몫\n-5 3121 75.3 %\n0 1024 50 %\n5 335 24.7 %\n10 110 9.7 %\n19 15 1.4 %"},{"id":"t4-04","ty":"mc","lv":3,"game":true,"p":"nice 0과 nice 10 태스크가 CPU 하나를 두고 경쟁하면 nice 10의 몫은 약 얼마인가요?","o":["50%","24.7%","1.4%","9.7%"],"a":3,"h":"두 태스크의 몫은 weight 비율로 정해지며 nice 0은 1024, nice 10은 110입니다. 그래서 nice 10의 몫은 110 / (1024 + 110)로 계산합니다.","w":"몫은 weight 비율입니다. 110/(1024+110) ≈ 9.7%이며, 02_nice_race 실측도 A 90.3%, B 9.7%였습니다.","an":"Linux Day2 p.4 · src/02_nice_race.c","src":"nice weight 둘이 경쟁할 때 nice 0 대비 몫\n-5 3121 75.3 %\n0 1024 50 %\n5 335 24.7 %\n10 110 9.7 %\n19 15 1.4 %\n$ ./02_nice_race 10\nA (nice 0 ) : 73120810 회 90.3 % 예상 90.3 %\nB (nice 10) : 7884416 회 9.7 % 예상 9.7 %"},{"id":"t4-05","ty":"mc","lv":3,"game":true,"p":"이미 실행 중인 PID 2410을 CPU 1에 고정하는 명령은?","o":["taskset -cp 1 2410","chrt -p 2410","renice 1 2410","nice -n 1 2410"],"a":0,"h":"taskset은 <code>-c<\/code>로 CPU 번호 목록을 지정하고, 이미 실행 중인 프로세스에는 PID를 받는 <code>-p<\/code> 옵션을 함께 붙입니다. 순서는 CPU 번호를 먼저, PID를 마지막에 적습니다.","w":"<code>taskset -cp 1 PID<\/code>가 실행 중인 프로세스의 affinity를 바꿉니다. chrt는 RT 정책, renice·nice는 nice 값을 다룹니다.","an":"Linux Day2 p.5 · p.10","src":"방법 예\n 실행할 때 taskset -c 0 ./prog\n 실행 중인 PID taskset -cp 1 <PID>\nC 코드 sched_setaffinity(0, sizeof(set), &set)\n 지금 CPU sched_getcpu()"},{"id":"t4-06","ty":"ox","lv":2,"game":true,"p":"nice 값이 클수록 weight가 커져 CPU를 더 많이 받는다.","a":false,"h":"CFS weight 표에서 nice -5는 3121, nice 0은 1024, nice 19는 15입니다. nice 값이 커질수록 weight가 어떻게 변하는지, 그리고 weight가 CPU 몫과 어떤 관계인지 생각해 보세요.","w":"틀렸습니다. nice가 클수록(양보할수록) weight가 작아집니다. nice 19의 weight는 15로 nice 0 대비 1.4%만 받습니다.","an":"Linux Day2 p.4 weight 표","src":"nice weight 둘이 경쟁할 때 nice 0 대비 몫\n-5 3121 75.3 %\n0 1024 50 %\n5 335 24.7 %\n10 110 9.7 %\n19 15 1.4 %"},{"id":"t4-07","ty":"ox","lv":2,"game":true,"p":"CPU 0에만 stress-ng가 돌 때 07_busy를 CPU 0에 고정하면 CPU 1이 놀아도 기다려 계산량이 약 절반이 된다.","a":true,"h":"CPU 0에 고정하면 CPU 1이 놀고 있어도 옮겨 갈 수 없어 stress-ng와 CPU 0을 나눠 써야 합니다. 슬라이드의 비교에서 자유 실행은 100%, 바쁜 CPU 0 고정은 50%로 나옵니다.","w":"맞습니다. 바쁜 CPU 0에 고정하면 50%로 줄고, 빈 CPU 1에 고정하면 혼자 100%를 받습니다. 고정은 잘 쓰면 예측 가능, 잘못 쓰면 손해입니다.","an":"Linux Day2 p.5 · src/07_busy.c","src":"자유\n덜 바쁜 CPU 로 이동\n100 %\n바쁜 CPU 0 고정\nCPU 1 이 놀아도 대기\n50 %\n빈 CPU 1 고정\n혼자 · 예측 가능\n100 %\nCPU 0 에만 stress-ng 가 돌 때 ./07_busy 의 계산량"},{"id":"t4-08","ty":"match","lv":1,"game":false,"p":"CPU affinity를 다루는 방법과 예를 연결하세요.","pairs":[["실행할 때 고정","taskset -c 0 ./prog"],["실행 중인 PID 고정","taskset -cp 1 PID"],["C 코드에서 고정","sched_setaffinity()"],["지금 도는 CPU 확인","sched_getcpu()"]],"h":"affinity는 셸에서 실행할 때 <code>taskset -c<\/code>로, 이미 실행 중인 PID에는 <code>taskset -cp<\/code>로 지정합니다. C 코드 안에서는 sched_setaffinity를 쓰고, 지금 어느 CPU에서 도는지는 sched_getcpu로 확인합니다.","w":"명령줄에서는 taskset(-c 실행 시, -cp 실행 중)을 쓰고, C 코드에서는 sched_setaffinity로 고정하고 sched_getcpu로 현재 CPU를 확인합니다.","an":"Linux Day2 p.5 · src/04_affinity.c","src":"방법 예\n 실행할 때 taskset -c 0 ./prog\n 실행 중인 PID taskset -cp 1 <PID>\nC 코드 sched_setaffinity(0, sizeof(set), &set)\n 지금 CPU sched_getcpu()"},{"id":"t4-09","ty":"order","lv":1,"game":false,"p":"weight가 큰 것부터 작은 순서로 nice 값을 나열하세요.","steps":["nice -5","nice 0","nice 5","nice 10","nice 19"],"h":"CFS weight 표는 nice -5가 3121, 0이 1024, 5가 335, 10이 110, 19가 15입니다. nice 값이 작을수록 weight가 크다는 점을 이용해 정렬해 보세요.","w":"weight는 nice -5=3121, 0=1024, 5=335, 10=110, 19=15입니다. nice가 1 오를 때마다 몫이 약 1.25배씩 줄어드는 구조입니다.","an":"Linux Day2 p.4 weight 표","src":"nice weight 둘이 경쟁할 때 nice 0 대비 몫\n-5 3121 75.3 %\n0 1024 50 %\n5 335 24.7 %\n10 110 9.7 %\n19 15 1.4 %"},{"id":"t4-10","ty":"multi","lv":2,"game":true,"p":"비자발적(nonvoluntary) 컨텍스트 스위치에 해당하는 것을 모두 고르세요.","o":["할 일이 남았는데 빼앗김","선점(preemption)","busy 루프 + stress-ng 경쟁","sleep 1000번","I/O 완료 대기"],"a":[0,1,2],"h":"비자발적 전환은 할 일이 남았는데 스케줄러에게 CPU를 빼앗기는 것, 즉 선점입니다. 계속 계산만 하는 busy 루프가 stress-ng와 경쟁하면 이 횟수가 늘고, sleep이나 I/O 대기는 이에 해당하지 않습니다.","w":"비자발적 스위치는 실행할 일이 남았는데 선점당하는 경우로, busy + stress-ng 실험에서 270회가 나왔습니다. sleep과 I/O 대기는 자발적입니다.","an":"Linux Day2 p.3","src":"자발적 (voluntary)\n스스로 잠들며 내려놓음\nsleep · I/O 대기 · 이벤트 대기\n1000 sleep 1000 번\n비자발적 (nonvoluntary)\n할 일이 남았는데 빼앗김\n선점 (preemption)\n270 busy + stress-ng"}]},{"id":"t5","title":"실시간 정책 · 주기 · cgroup","ref":"Day2 p.6–10 · 4–8교시","qs":[{"id":"t5-01","ty":"mc","lv":1,"game":true,"p":"끝나거나 잠들 때까지 CPU를 비키지 않는 스케줄링 정책은?","o":["SCHED_OTHER","SCHED_RR","SCHED_FIFO","nice 19"],"a":2,"h":"실시간 정책 표에서 SCHED_RR은 같은 우선순위끼리 시간 조각을 나누고, SCHED_OTHER는 CFS로 공평하게 나눕니다. 시간 조각 없이 끝나거나 잠들 때까지 계속 실행하는 정책은 이 둘이 아닌 나머지 하나입니다.","w":"SCHED_FIFO(1~99)는 끝나거나 잠들 때까지 실행합니다. SCHED_RR은 같은 순위끼리 시간 조각을 나누고, SCHED_OTHER는 CFS로 공평하게 나눕니다.","an":"Linux Day2 p.6","src":"SCHED_FIFO 는 잠들 때까지 비키지 않는다\nLinux & Shell · Day 2\n정책 우선순위 규칙\nSCHED_OTHER nice -20~19 CFS — 공평하게\nSCHED_FIFO 1~99 끝나거나 잠들 때까지\nSCHED_RR 1~99 FIFO + 같은 순위끼리 시간 조각"},{"id":"t5-02","ty":"mc","lv":2,"game":true,"p":"RT throttling 설정에서 1000ms 중 RT 태스크가 쓸 수 있는 시간은?","o":["500 ms","950 ms","990 ms","1000 ms"],"a":1,"h":"RT throttling은 무한 루프 RT 태스크가 있어도 시스템이 멈추지 않도록 주기마다 일부 시간을 일반 태스크에 남겨 둡니다. 1000ms 주기 중 50ms는 셸·sshd 몫으로 남긴다는 점에서 RT 몫을 계산해 보세요.","w":"950ms/1000ms까지만 RT가 실행되고 50ms는 셸·sshd 몫이라, RT 무한 루프가 있어도 PuTTY가 멈추지 않습니다.","an":"Linux Day2 p.6","src":"RT throttling\n950 ms\n/ 1000 ms 까지만 RT 실행\n무한 루프 RT 가 있어도 50ms 는 셸 · sshd 몫 \n→ PuTTY 가 멈추지 않는다"},{"id":"t5-03","ty":"mc","lv":3,"game":true,"p":"1ms × 1000번 상대 nanosleep이 1303ms 걸렸습니다. 오차를 줄이는 방법은?","o":["TIMER_ABSTIME 절대 대기","usleep(1000)로 교체","sleep 시간을 줄임","nice -20으로 실행"],"a":0,"h":"상대 sleep은 '지금부터 1ms'라서 일한 시간과 깨어나는 지연이 매 주기 더해져 오차가 쌓입니다. 다음 주기의 시각을 직접 계산해 그 시각까지 기다리게 하면 오차가 누적되지 않습니다.","w":"<code>clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, …)<\/code>로 다음 절대 시각까지 자면 오차가 누적되지 않아 1000.1ms가 됩니다. 상대 sleep은 작업·깨어남 지연이 매번 쌓입니다.","an":"Linux Day2 p.7 · src/06_sleep_drift.c","src":"/* 2) 절대 sleep: \"start + i×1ms 시각까지\" — 오차가 쌓이지 않는다 */\n clock_gettime(CLOCK_MONOTONIC, &start);\n next = start;\n for (int i = 0; i < LOOPS; i++) {\n work();\n add_ns(&next, PERIOD_NS);\n clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL);"},{"id":"t5-04","ty":"mc","lv":3,"game":true,"p":"cgroup v2 <code>cpu.max<\/code>에 <code>30000 100000<\/code>이 있으면 100ms 주기마다 쓸 수 있는 시간은?","o":["3 ms","10 ms","70 ms","30 ms"],"a":3,"h":"cpu.max의 두 숫자는 '쓸 수 있는 시간(us)'과 '주기(us)'입니다. 예를 들어 <code>20000 100000<\/code>은 100ms마다 20ms, 즉 20%이므로 같은 방식으로 첫 숫자를 ms로 바꿔 보세요.","w":"30000us/100000us이므로 100ms 주기마다 30ms(30%)를 씁니다. 다 쓰면 다음 주기까지 throttled 상태가 됩니다.","an":"Linux Day2 p.8","src":"cpu.max — 주기마다 쓸 수 있는 시간\nLinux & Shell · Day 2\n파일 의미 예\ncpu.max 주기마다 쓸 시간 20000 100000 = 20 %"},{"id":"t5-05","ty":"mc","lv":1,"game":true,"p":"jitter 측정 결과로 정책을 판단할 때 보는 값은?","o":["부하 없을 때 평균","첫 측정 1회 값","부하 상태 최대·99%","최소 지연 값"],"a":2,"h":"지연은 평균이 아니라 드물게 튀는 꼬리를 봐야 합니다. 판단 기준은 부하를 건 상태에서 가장 나쁜 값과 상위 1% 경계 값을 여러 번 측정해 보는 것입니다.","w":"부하를 건 상태에서 최대·99% 값으로, 여러 번 측정해 판단합니다. 평균이 좋아도 가끔 튀는 지연이 실시간 작업을 망칩니다.","an":"Linux Day2 p.9 · src/jitter.c","src":"지연은 평균이 아니라 꼬리를 본다\nLinux & Shell · Day 2\n조합 평균 99% 최대 ( 예시 , us)\nOTHER · 부하 없음 95 160 900\nOTHER · 부하 2,100 3,900 8,000\nFIFO 80 · 부하 45 110 600\nFIFO 80 · CPU 1 · 부하 40 95 450\n$ stress-ng --cpu 2 &\n$ ./jitter -o other_load.csv\n$ sudo ./jitter -f 80 -c 1 -o fifo_cpu1.csv\n판단 기준\n• 부하를 건 상태에서\n• 최대 · 99 % 로\n• 여러 번 측정"},{"id":"t5-06","ty":"ox","lv":2,"game":true,"p":"SCHED_FIFO 우선순위 99는 중요한 사용자 태스크라면 마음껏 써도 된다.","a":false,"h":"정책 선택 기준은 우선순위를 필요한 만큼만 쓰라고 강조합니다. 가장 높은 우선순위는 커널 스레드가 쓰도록 남겨 두어야 하므로 사용자 태스크가 차지하면 안 됩니다.","w":"틀렸습니다. 우선순위는 필요한 만큼만 쓰며, 99는 커널 스레드 몫입니다.","an":"Linux Day2 p.10","src":"1. 주기가 짧고 늦으면 안 되는 일만 RT — 모터 , 센서 , 오디오\n2. RT 태스크에는 반드시 잠드는 지점 (clock_nanosleep)\n3. 우선순위는 필요한 만큼만 — 99 는 커널 스레드 몫\n4. 무거운 계산 (AI 추론 , 로그 ) 은 OTHER 로 , 다른 CPU 에\n5. 부하를 건 상태의 최대 지연으로 판단"},{"id":"t5-07","ty":"ox","lv":1,"game":true,"p":"일반 사용자로 <code>./05_rt_policy<\/code>를 실행해 FIFO로 바꾸려 하면 Operation not permitted가 난다.","a":true,"h":"실시간 정책으로 바꾸는 <code>sched_setscheduler<\/code>는 권한이 필요한 작업입니다. 일반 사용자로 실행하면 EPERM 오류가 나고, sudo로 실행해야 FIFO 우선순위 50으로 바뀝니다.","w":"맞습니다. RT 정책 변경은 권한이 필요해 sudo 없이는 실패합니다. <code>sudo ./05_rt_policy 50<\/code>이면 SCHED_FIFO 50으로 바뀝니다.","an":"Linux Day2 p.6 · src/05_rt_policy.c","src":"$ ./05_rt_policy\nsched_setscheduler: Operation not permitted\n$ sudo ./05_rt_policy 50\n 변경 후 정책=SCHED_FIFO, 우선순위=50"},{"id":"t5-08","ty":"match","lv":1,"game":false,"p":"명령과 하는 일을 연결하세요.","pairs":[["nice / renice","nice 값 설정"],["taskset","CPU 고정"],["chrt","RT 정책 설정"],["systemd-run","cgroup 한도 적용"]],"h":"Day 2 정리 표의 명령은 각각 하나의 조절 대상을 맡습니다. nice 값, CPU 고정, 실시간 정책, cgroup 한도 중 무엇을 바꾸는지 명령 이름과 실습 내용을 떠올려 연결해 보세요.","w":"nice/renice는 CFS 몫, taskset은 실행 위치, chrt는 SCHED_FIFO/RR, systemd-run은 <code>CPUQuota=20%<\/code>처럼 cgroup 한도를 정합니다.","an":"Linux Day2 p.10 명령 표","src":"명령 하는 일\nnice / renice nice 값\ntaskset CPU 고정\nchrt RT 정책\nsystemd-run cgroup 한도"},{"id":"t5-09","ty":"order","lv":2,"game":false,"p":"절대 시각 기반 1ms 주기 루프의 순서를 맞추세요.","steps":["clock_gettime으로 next 초기화","work() 실행","next.tv_nsec에 1ms 더하기","tv_nsec 넘침을 tv_sec로 올림","clock_nanosleep(TIMER_ABSTIME)"],"h":"절대 시각 루프는 먼저 현재 시각으로 next를 잡고, 루프 안에서 일을 한 뒤 next에 주기(1ms)를 더합니다. 나노초가 10억을 넘으면 초로 올려 정리한 다음 그 절대 시각까지 잠듭니다.","w":"시작 시각을 한 번 잡고 매 주기 next에 1ms를 더한 뒤 10억 ns를 넘으면 초로 올리고, 그 절대 시각까지 잡니다. 그래서 드리프트가 쌓이지 않습니다.","an":"Linux Day2 p.7 코드","src":"clock_gettime(CLOCK_MONOTONIC, &next);\nfor (;;) {\n work();\n next.tv_nsec += 1000000; /* 1 ms */\n if (next.tv_nsec >= 1000000000L) { next.tv_nsec -= 1000000000L; next.tv_sec++; }\n clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL);"},{"id":"t5-10","ty":"multi","lv":2,"game":true,"p":"임베디드에서 정책을 고르는 기준으로 옳은 것을 모두 고르세요.","o":["늦으면 안 되는 일만 RT로","RT 태스크엔 잠드는 지점","AI 추론은 OTHER로 다른 CPU에","모든 태스크를 FIFO 99로","평균 지연으로 판단"],"a":[0,1,2],"h":"RT는 주기가 짧고 늦으면 안 되는 모터·센서·오디오 같은 일에만 쓰고, RT 태스크에는 반드시 잠드는 지점을 둡니다. 무거운 계산은 일반 정책으로 다른 CPU에 보내고, 판단은 부하 상태의 최대 지연으로 합니다.","w":"RT는 모터·센서·오디오처럼 주기가 짧고 늦으면 안 되는 일만, 반드시 clock_nanosleep 같은 잠드는 지점을 두고, 무거운 계산은 OTHER로 다른 CPU에 둡니다. 판단은 부하 상태의 최대 지연으로 합니다.","an":"Linux Day2 p.10","src":"1. 주기가 짧고 늦으면 안 되는 일만 RT — 모터 , 센서 , 오디오\n2. RT 태스크에는 반드시 잠드는 지점 (clock_nanosleep)\n3. 우선순위는 필요한 만큼만 — 99 는 커널 스레드 몫\n4. 무거운 계산 (AI 추론 , 로그 ) 은 OTHER 로 , 다른 CPU 에\n5. 부하를 건 상태의 최대 지연으로 판단"}]},{"id":"t6","title":"주소 공간 · malloc · mmap","ref":"Day3 p.3–6 · 1–4교시","qs":[{"id":"t6-01","ty":"mc","lv":1,"game":true,"p":"초기값이 없는 전역 변수가 놓이는 영역은?","o":["data","bss","rodata","heap"],"a":1,"h":"가상 주소 공간에서 전역 변수는 초기값 유무에 따라 두 영역으로 나뉩니다. <code>int g_init = 42;<\/code>처럼 값이 있으면 data에, <code>int g_zero;<\/code>처럼 값이 없으면 그 바로 위의 다른 영역에 놓입니다.","w":"초기값 없는 전역은 bss, 초기값 있는 전역은 data, 문자열 상수 'hello' 같은 것은 rodata에 놓입니다.","an":"Linux Day3 p.3 · src/01_layout.c","src":"int g_init = 42; /* data : 초기값 있는 전역 */\nint g_zero; /* bss : 초기값 없는 전역 */\nconst char *g_msg = \"hello\"; /* \"hello\" 는 rodata */"},{"id":"t6-02","ty":"mc","lv":1,"game":true,"p":"슬라이드 기준, glibc malloc이 brk 대신 mmap을 쓰는 크기는?","o":["4KB 이상","64KB 이상","128KB 이상","1MB 이상"],"a":2,"h":"glibc malloc은 작은 요청은 heap(brk)에서, 큰 요청은 별도의 mmap 영역에서 처리합니다. 슬라이드 비교 표의 '크기' 줄에 그 기준값이 적혀 있으며, 예제에서 256KB 요청은 mmap으로 처리됐습니다.","w":"128KB 미만은 heap(brk)에서, 128KB 이상은 mmap으로 받습니다. <code>./02_malloc_path 256<\/code>은 mmap/munmap이 보입니다.","an":"Linux Day3 p.4 · src/02_malloc_path.c","src":"작으면 heap(brk), 크면 mmap\nLinux & Shell · Day 3\nheap (brk) mmap\n크기 128KB 미만 128KB 이상\n주소 0x55… [heap] 0x7f…\nfree glibc 가 보관 · 재사용 munmap 즉시 반환"},{"id":"t6-03","ty":"mc","lv":3,"game":true,"p":"<code>malloc(100MB)<\/code> 직후 /proc/self/status에서 나타나는 변화는?","o":["VmSize·VmRSS 모두 큰 폭 증가","VmSize만 약 100MB 증가","VmRSS만 약 100MB 증가","둘 다 변화 없음"],"a":1,"h":"malloc은 가상 주소만 예약하므로 직후에는 주소 공간 크기만 커지고 실제 물리 메모리 사용량은 거의 그대로입니다. 표에서 malloc 직후 줄의 VmSize와 VmRSS, minflt 변화를 비교해 보세요.","w":"malloc 직후 VmSize는 2,692→105,096kB로 늘지만 VmRSS는 1,736kB 정도로 거의 그대로입니다. 실제로 만져야 RSS가 늘어납니다.","an":"Linux Day3 p.5 · src/03_demand.c","src":"단계 VmSize VmRSS minflt\n시작 2,692 kB 1,412 kB +0\nmalloc(100MB) 105,096 kB 1,736 kB +12\n 앞 50MB 페이지마다 1바이트 105,096 kB 52,932 kB +12,811\nmemset 100MB 105,096 kB 104,136 kB +25,612"},{"id":"t6-04","ty":"mc","lv":2,"game":true,"p":"여러 프로세스가 같은 모델 가중치 파일을 mmap하면 얻는 이점은?","o":["같은 page cache를 공유","파일이 자동 압축됨","디스크 쓰기가 사라짐","스택이 커짐"],"a":0,"h":"파일을 mmap하면 실제로 읽는 부분만 page fault로 RAM에 올라옵니다. 그 페이지는 커널의 파일 캐시에 있으므로 여러 프로세스가 같은 파일을 매핑하면 같은 메모리를 함께 씁니다.","w":"모델 가중치를 mmap하면 실제로 읽는 부분만 page fault로 RAM에 올라오고, 여러 프로세스가 같은 page cache를 공유합니다.","an":"Linux Day3 p.6","src":"온디바이스 AI\n모델 가중치를 mmap → 실제로 읽는 \n부분만 page fault 로 RAM 에 , 여러 \n프로세스가 같은 page cache 공유"},{"id":"t6-05","ty":"mc","lv":3,"game":true,"p":"<code>./04_mmap_upper test.txt private<\/code> 실행 뒤 <code>cat test.txt<\/code>의 결과는?","o":["HELLO MMAP WORLD","빈 파일","권한 오류로 실패","hello mmap world"],"a":3,"h":"private 인자를 주면 MAP_PRIVATE로 매핑되어 쓰기가 내 복사본(COW)에만 반영됩니다. 그래서 프로그램 안에서는 대문자로 바뀌어도 파일 자체는 처음 내용 그대로 남습니다.","w":"private(MAP_PRIVATE)은 COW 복사본을 고치므로 파일은 소문자 그대로입니다. 옵션 없이(MAP_SHARED) 실행해야 파일이 대문자로 바뀝니다.","an":"Linux Day3 p.6 · src/04_mmap_upper.c","src":"$ ./04_mmap_upper test.txt private ; cat test.txt\nhello mmap world\n$ ./04_mmap_upper test.txt ; cat test.txt\nHELLO MMAP WORLD"},{"id":"t6-06","ty":"ox","lv":2,"game":true,"p":"malloc은 커널에 직접 메모리를 요청하는 시스템 콜이다.","a":false,"h":"malloc은 glibc 라이브러리 함수로, 미리 받아 둔 메모리에서 잘라 줍니다. 모자랄 때만 brk나 mmap 같은 시스템 콜로 커널에 갑니다.","w":"틀렸습니다. malloc은 glibc 함수로, 미리 받아 둔 메모리에서 잘라 주고 모자랄 때만 brk·mmap으로 커널에 갑니다.","an":"Linux Day3 p.4","src":"malloc 은 시스템 콜이 아니다\nglibc 함수가 미리 받아 둔 메모리에서 잘라 주고 , \n모자랄 때만 brk · mmap 으로 커널에 간다"},{"id":"t6-07","ty":"ox","lv":1,"game":true,"p":"<code>setarch -R<\/code>로 실행하면 주소 무작위화가 꺼져 text 주소가 매번 같게 나온다.","a":true,"h":"ASLR 때문에 01_layout을 실행할 때마다 변수 주소가 바뀝니다. <code>setarch -R<\/code>은 주소 무작위화를 끄고 실행하므로 매번 0x555555555… 같은 고정 주소가 나옵니다.","w":"맞습니다. 평소에는 실행마다 주소가 바뀌지만 <code>setarch -R<\/code>로 실행하면 text 주소가 0x55555555536a처럼 고정됩니다.","an":"Linux Day3 p.3","src":"* 실행: ./01_layout (두 번 실행해 주소가 바뀌는지 — ASLR)\n * setarch -R ./01_layout (ASLR 끄고 실행 — 매번 같은 주소)"},{"id":"t6-08","ty":"match","lv":2,"game":false,"p":"mmap 플래그와 쓰임을 연결하세요.","pairs":[["MAP_SHARED","파일 수정 · 프로세스 간 공유"],["MAP_PRIVATE","실행 파일 · 라이브러리 (내 복사본)"],["MAP_ANONYMOUS","파일 없이 0으로 시작 (큰 malloc)"]],"h":"SHARED는 쓰기가 파일과 다른 프로세스에 반영되고, PRIVATE는 내 복사본(COW)만 바뀌어 파일을 그대로 둡니다. ANONYMOUS는 파일 없이 0으로 채운 메모리를 받는 방식이라 큰 malloc에 쓰입니다.","w":"MAP_SHARED는 파일과 다른 프로세스에 반영되고, MAP_PRIVATE는 COW 복사본이라 파일이 그대로입니다. MAP_ANONYMOUS는 파일 없이 0으로 시작하며 큰 malloc이 씁니다.","an":"Linux Day3 p.6 플래그 표","src":"플래그 쓰면 용도\nMAP_SHARED 파일과 다른 프로세스에 반영 파일 수정 · 공유\nMAP_PRIVATE 내 복사본 (COW) · 파일 그대로 실행 파일 · 라이브러리\nMAP_ANONYMOUS 파일 없이 0 으로 시작 큰 malloc"},{"id":"t6-09","ty":"order","lv":2,"game":false,"p":"demand paging에서 처음 만진 페이지가 처리되는 순서를 맞추세요.","steps":["CPU가 주소에 접근","MMU가 매핑 확인","page fault 발생","커널이 물리 페이지 연결","명령을 다시 실행"],"h":"처음 만진 페이지는 CPU가 주소에 접근하면 MMU가 매핑을 확인하다 없으면 page fault를 냅니다. 그러면 커널이 물리 페이지를 연결하고, 멈췄던 명령을 다시 실행합니다.","w":"MMU가 매핑이 없음을 확인하면 page fault가 나고, 커널이 물리 페이지를 연결한 뒤 같은 명령을 다시 실행합니다. 이때 minflt가 1 늘어납니다.","an":"Linux Day3 p.5","src":"CPU 접근 › MMU 확인 › page fault › 커널 연결 › 다시 실행"},{"id":"t6-10","ty":"multi","lv":2,"game":true,"p":"128KB 미만 malloc(heap·brk 경로)의 특징을 모두 고르세요.","o":["주소가 0x55… [heap] 영역","free 후 glibc가 보관·재사용","brk 시스템 콜은 가끔만","매번 mmap/munmap 호출","free 즉시 커널에 반환"],"a":[0,1,2],"h":"작은 malloc은 0x55…로 시작하는 [heap] 영역에서 나오고, free하면 바로 반환하지 않고 glibc가 보관했다 재사용합니다. 그래서 brk 시스템 콜은 매번이 아니라 가끔만 일어납니다.","w":"작은 malloc은 [heap](0x55…)에서 나오고, free하면 glibc가 보관했다 재사용하며 brk는 가끔만 부릅니다. 매번 mmap/munmap하고 즉시 반환하는 것은 128KB 이상 경로입니다.","an":"Linux Day3 p.4 비교 표","src":"heap (brk) mmap\n크기 128KB 미만 128KB 이상\n주소 0x55… [heap] 0x7f…\nfree glibc 가 보관 · 재사용 munmap 즉시 반환\n 시스템 콜 가끔 brk 매번 mmap/munmap"}]},{"id":"t7","title":"COW · mlock · OOM · 오류 도구","ref":"Day3 p.7–10 · 5–8교시","qs":[{"id":"t7-01","ty":"mc","lv":1,"game":true,"p":"fork 후 자식이 페이지에 쓸 때만 그 페이지를 복사하는 기법은?","o":["demand paging","Copy-on-Write","mlockall","overcommit"],"a":1,"h":"fork는 부모 메모리를 바로 복사하지 않고 공유하다가, 어느 한쪽이 페이지에 쓰는 순간 그 페이지만 복사합니다. 그래서 자식이 쓴 페이지 수만큼만 minflt가 늘어납니다.","w":"Copy-on-Write는 fork 때 페이지를 공유하다가 쓰는 순간 그 페이지만 복사합니다. 그래서 fault 수가 쓴 페이지 수와 같습니다.","an":"Linux Day3 p.7 · src/05_cow.c","src":"fork 는 복사하지 않는다 — 쓸 때만\nLinux & Shell · Day 3\n자식이 0 % 씀\n+0\nminflt\n자식이 10 % 씀\n+1,280\nminflt\n자식이 50 % 씀\n+6,400\nminflt\n자식이 100 % 씀\n+12,800\nminflt\n50MB = 12,800 페이지 → fault 수 = 쓴 페이지 수 (05_cow 실측 )"},{"id":"t7-02","ty":"mc","lv":3,"game":true,"p":"50MB(12,800페이지) 버퍼에서 fork한 자식이 50%를 쓰면 minflt 증가량은 약?","o":["+1,280","+12,800","+6,400","+0"],"a":2,"h":"Copy-on-Write에서는 자식이 쓴 페이지마다 복사가 한 번씩 일어나므로 fault 수가 쓴 페이지 수와 같습니다. 전체 12,800페이지 × 쓴 비율(50%)로 계산해 보세요.","w":"COW에서 fault 수는 쓴 페이지 수와 같으므로 12,800 × 0.5 = 6,400입니다. 10%는 +1,280, 100%는 +12,800이었습니다.","an":"Linux Day3 p.7 · src/05_cow.c","src":"자식이 0 % 씀\n+0\nminflt\n자식이 10 % 씀\n+1,280\nminflt\n자식이 50 % 씀\n+6,400\nminflt\n자식이 100 % 씀\n+12,800\nminflt\n50MB = 12,800 페이지 → fault 수 = 쓴 페이지 수 (05_cow 실측 )"},{"id":"t7-03","ty":"mc","lv":3,"game":true,"p":"<code>mlockall<\/code>을 쓰면 page fault는 언제 몰리나요?","o":["malloc하는 시점","실시간 루프 중","free하는 시점","프로세스 종료 시"],"a":0,"h":"mlockall(MCL_FUTURE)를 걸면 할당하는 즉시 실제 페이지를 확보합니다. 그래서 fault가 실시간 루프 안이 아니라 메모리를 받는 단계에 몰리고, 루프 중 fault는 거의 0이 됩니다.","w":"mlockall(MCL_FUTURE)이면 할당 즉시 실제 페이지를 확보해 malloc 중 +8,226, 루프 중 +1이 되고 루프 시간이 13.04ms→0.12ms로 줄었습니다.","an":"Linux Day3 p.8 · src/06_mlock.c","src":"malloc 중 fault 루프 중 fault 루프 시간\n 잠금 없음 +3 +8,194 13.04 ms\nmlockall +8,226 +1 0.12 ms"},{"id":"t7-04","ty":"mc","lv":2,"game":true,"p":"overcommit 0에서 메모리 부족이 실제로 드러나는 시점은?","o":["malloc이 NULL 반환할 때","컴파일할 때","free를 호출할 때","memset으로 실제 쓸 때"],"a":3,"h":"overcommit 0에서는 malloc이 거의 항상 성공하므로 NULL 검사로는 메모리 부족을 막을 수 없습니다. 메모리를 실제로 사용하는 순간에야 부족이 드러나 SIGKILL로 죽습니다.","w":"overcommit 0에서는 malloc이 거의 항상 성공하고, 부족은 실제로 쓰는 순간 SIGKILL로 옵니다. overcommit 2(엄격)일 때만 한도를 넘는 malloc이 NULL이 됩니다.","an":"Linux Day3 p.8 · src/07_oom.c","src":"NULL 검사로는 못 막는다\novercommit 0 에서 malloc 은 거의 항상 성공 . \n부족은 memset( 실제 사용 ) 순간 SIGKILL 로 \n온다 ."},{"id":"t7-05","ty":"mc","lv":1,"game":true,"p":"AddressSanitizer(ASan)를 쓰려면 붙이는 컴파일 옵션은?","o":["-g","-Wall -Wextra","-pthread","-fsanitize=address"],"a":3,"h":"ASan은 valgrind와 달리 다시 빌드해야 하며, 약 2배 느리고 오류 즉시 중단합니다. Makefile의 asan 대상은 gcc에 sanitize 계열 옵션과 <code>-fno-omit-frame-pointer<\/code>를 붙여 08_bugs_asan을 만듭니다.","w":"<code>-fsanitize=address<\/code>로 빌드하면 약 2배 느려지지만 오류 즉시 중단합니다. valgrind는 재빌드 없이 쓰지만 10~50배 느립니다.","an":"Linux Day3 p.9 · src/Makefile asan","src":"asan: 08_bugs.c\n $(CC) $(CFLAGS) -fsanitize=address -fno-omit-frame-pointer -o 08_bugs_asan 08_bugs.c"},{"id":"t7-06","ty":"ox","lv":2,"game":true,"p":"overcommit 0에서는 malloc 반환값의 NULL 검사만으로 OOM을 막을 수 있다.","a":false,"h":"overcommit 0에서는 malloc이 거의 항상 성공해 NULL이 돌아오지 않습니다. 부족은 memset처럼 실제로 메모리를 쓰는 순간 SIGKILL로 오므로, 반환값 검사로는 잡을 수 없습니다.","w":"틀렸습니다. malloc은 거의 항상 성공하고 실제 사용 순간 OOM killer가 SIGKILL을 보내므로 NULL 검사로는 못 막습니다.","an":"Linux Day3 p.8","src":"NULL 검사로는 못 막는다\novercommit 0 에서 malloc 은 거의 항상 성공 . \n부족은 memset( 실제 사용 ) 순간 SIGKILL 로 \n온다 ."},{"id":"t7-07","ty":"ox","lv":1,"game":true,"p":"valgrind는 재빌드 없이 쓸 수 있지만 10~50배 느리다.","a":true,"h":"valgrind는 이미 만든 실행 파일을 그대로 감시하므로 다시 빌드할 필요가 없지만 실행 속도가 크게 떨어집니다. ASan은 다시 빌드해야 하는 대신 약 2배만 느려지고 오류 즉시 중단합니다.","w":"맞습니다. valgrind는 재빌드가 필요 없지만 10~50배 느리고, ASan은 재빌드가 필요하지만 약 2배 느리며 즉시 중단합니다.","an":"Linux Day3 p.9","src":"valgrind: 재빌드 불필요 · 10~50 배 느림\nASan: -fsanitize=address · 2 배 · 즉시 중단"},{"id":"t7-08","ty":"match","lv":2,"game":false,"p":"메모리 오류와 ASan 보고 메시지를 연결하세요.","pairs":[["leak","LeakSanitizer"],["use-after-free","heap-use-after-free"],["overflow","heap-buffer-overflow"],["double free","attempting double-free"]],"h":"ASan은 오류 종류를 메시지 이름으로 알려 줍니다. 누수는 별도의 Leak 검사기가, 해제 후 읽기·버퍼 넘침은 heap- 접두어가 붙은 메시지가, 두 번 해제는 'attempting'으로 시작하는 메시지가 나옵니다.","w":"ASan은 오류 종류를 이름으로 보고합니다. 도구 없이 실행하면 leak·overflow는 정상 종료처럼 보이고, double free만 Aborted(134)로 드러납니다.","an":"Linux Day3 p.9 표 · src/08_bugs.c","src":"오류 도구 없이 valgrind ASan\nleak 정상 종료 (0) definitely lost 100 B LeakSanitizer\nuse-after-free 쓰레기 값 · 0 Invalid read heap-use-after-free\noverflow 정상 출력 · 0 Invalid write heap-buffer-overflow\ndouble free Aborted (134) Invalid free() attempting double-free"},{"id":"t7-09","ty":"order","lv":2,"game":false,"p":"cgroup 한도 안에서 OOM을 관찰하는 실습 흐름을 맞추세요.","steps":["systemd-run으로 MemoryMax=100M 설정","07_oom이 메모리를 실제로 사용","VmRSS가 한도에 접근","Killed 출력","dmesg에서 OOM 기록 확인"],"h":"실습은 systemd-run으로 MemoryMax=100M 한도를 건 scope 안에서 07_oom을 실행합니다. 프로그램이 10MB씩 실제로 써서 VmRSS가 한도에 가까워지면 Killed가 출력되고, 그 기록은 dmesg에서 확인합니다.","w":"<code>systemd-run --scope -p MemoryMax=100M<\/code>로 실행하면 90MB 근처에서 Killed되고, <code>dmesg<\/code>에 'Memory cgroup out of memory'가 남습니다.","an":"Linux Day3 p.8","src":"$ sudo systemd-run --scope -p MemoryMax=100M \\\n -p MemorySwapMax=0 ./07_oom\n 90 MB 사용, VmRSS 93800 kB\nKilled\n$ sudo dmesg | tail -1\nMemory cgroup out of memory: Killed process 2731 (07_oom)"},{"id":"t7-10","ty":"multi","lv":1,"game":true,"p":"온디바이스 AI 메모리 원칙으로 제시된 것을 모두 고르세요.","o":["가중치는 mmap으로 필요한 만큼","실시간은 FIFO + mlockall","장시간 동작은 누수 점검","메모리 실험은 cgroup 안에서","가중치를 미리 memset으로 채움"],"a":[0,1,2,3],"h":"memlab 슬라이드의 온디바이스 AI 메모리 원칙은 네 가지입니다. 모델 가중치는 필요한 부분만 매핑하고, 실시간 태스크는 FIFO와 메모리 잠금을 쓰며, 장시간 동작은 도구로 누수를 점검하고, 메모리 실험은 한도 안에서 합니다.","w":"가중치는 mmap, 실시간 태스크는 SCHED_FIFO + mlockall, 장시간 동작은 valgrind·ASan 점검, 메모리 실험은 cgroup 한도 안에서 합니다.","an":"Linux Day3 p.10 · memlab.c","src":"1. 모델 가중치 → mmap 으로 필요한 부분만\n2. 실시간 태스크 → SCHED_FIFO + mlockall\n3. 장시간 동작 → valgrind · ASan 으로 누수 점검\n4. 메모리 실험은 cgroup 한도 안에서\n온디바이스 AI 메모리 원칙"}]},{"id":"t8","title":"fd · inode · 버퍼 · page cache","ref":"Day4 p.3–7 · 1–5교시","qs":[{"id":"t8-01","ty":"mc","lv":1,"game":true,"p":"fd 0·1·2가 열린 상태에서 새로 <code>open<\/code>한 파일의 fd는?","o":["0","1","3","4"],"a":2,"h":"새로 open하면 커널은 비어 있는 fd 번호 중 가장 작은 것을 줍니다. 0·1·2는 표준 입출력이 이미 차지하고 있으므로 그 바로 다음 번호가 배정됩니다.","w":"0·1·2 다음의 가장 작은 빈 번호인 3이 배정됩니다. 하나 더 열면 4입니다.","an":"Linux Day4 p.3 · src/01_fd.c","src":"새로 연 fd: a=3, b=4 (0·1·2 다음 빈 번호)\na 를 닫고 다시 열면c=3 ( 가장 작은 빈 번호 재사용)"},{"id":"t8-02","ty":"mc","lv":2,"game":true,"p":"fd 3과 4가 열린 상태에서 3을 닫고 다시 파일을 열면 새 fd는?","o":["5","3","4","0"],"a":1,"h":"커널은 새 fd로 항상 비어 있는 번호 중 가장 작은 것을 고릅니다. 하나를 닫으면 그 번호가 빈 번호가 되므로 다음 open이 그 자리를 재사용합니다.","w":"가장 작은 빈 번호를 재사용하므로 3이 됩니다. 이 규칙 덕분에 close(1) 후 open하면 stdout을 바꿀 수도 있습니다.","an":"Linux Day4 p.3 · src/01_fd.c","src":"새로 연 fd: a=3, b=4 (0·1·2 다음 빈 번호)\na 를 닫고 다시 열면c=3 ( 가장 작은 빈 번호 재사용)"},{"id":"t8-03","ty":"mc","lv":1,"game":true,"p":"<code>read<\/code>가 0을 반환하면 의미는?","o":["오류 발생","파일 끝(EOF)","일부만 읽음","다시 시도 필요"],"a":1,"h":"read 반환값이 양수면 읽은 바이트 수, -1이면 오류(errno 설정)입니다. mycp는 반환값이 0보다 클 때만 복사를 반복하는데, 0은 더 읽을 데이터가 없다는 신호입니다.","w":"read 반환값이 >0이면 읽은 바이트 수, 0이면 파일 끝(EOF), -1이면 오류이며 errno를 확인합니다.","an":"Linux Day4 p.3 · src/mycp.c","src":"read 반환값\n> 0 읽은 바이트\n= 0 파일 끝 (EOF)\n= -1 오류 · errno"},{"id":"t8-04","ty":"mc","lv":2,"game":true,"p":"<code>ln a.txt hard.txt<\/code> 후 <code>rm a.txt<\/code>를 하면 hard.txt는?","o":["그대로 읽힌다","깨진 링크가 된다","함께 삭제된다","inode 번호가 바뀐다"],"a":0,"h":"하드 링크는 같은 inode를 가리키는 이름을 하나 더 만들어 링크 수가 2가 됩니다. 이름 하나를 지워도 inode는 링크 수가 남아 있어 내용이 사라지지 않습니다.","w":"하드 링크는 같은 inode를 가리키는 또 하나의 이름이라 a.txt를 지워도 그대로 읽힙니다. 깨진 링크가 되는 것은 심볼릭 링크입니다.","an":"Linux Day4 p.4 · src/02_myls.c","src":"하드 링크 심볼릭 링크\n명령 ln a.txt hard.txt ln -s a.txt soft.txt\ninode 같다 ( 링크 수 2) 다르다 ( 경로 5 B)\nrm a.txt 후 그대로 읽힘 깨진 링크"},{"id":"t8-05","ty":"mc","lv":3,"game":true,"p":"4096B 버퍼 복사가 4.4ms인데 fsync를 넣자 233ms가 됐습니다. 주된 이유는?","o":["시스템 콜 수가 줄어서","page cache 복사가 늘어서","inode를 새로 만들어서","디스크 기록 후에 돌아와서"],"a":3,"h":"write는 page cache에 복사하자마자 돌아오지만 fsync를 붙이면 데이터가 실제 저장 장치에 기록된 뒤에야 돌아옵니다. 그래서 같은 4096B 버퍼라도 매번 디스크를 기다리는 만큼 느려집니다.","w":"write는 page cache에 복사한 직후 돌아오지만 fsync는 디스크 기록이 끝난 뒤 돌아옵니다. 그래서 속도가 1,799MB/s에서 34MB/s로 떨어졌습니다.","an":"Linux Day4 p.5 · src/03_copybench.c","src":"4096 B + fsync 233 ms 6,144 34 MB/s\n방법 돌아오는 시점\nwrite page cache 복사 직후\n+ fsync 디스크 기록 후\nO_SYNC 매 write 디스크까지"},{"id":"t8-06","ty":"ox","lv":2,"game":true,"p":"<code>write<\/code>가 반환되면 데이터는 이미 디스크에 기록된 것이다.","a":false,"h":"write는 데이터를 page cache에 복사한 직후 돌아옵니다. 디스크 기록을 보장하려면 fsync를 부르거나 O_SYNC로 열어야 합니다.","w":"틀렸습니다. write는 page cache 복사 직후 돌아옵니다. 디스크 기록을 보장하려면 fsync를 호출하거나 O_SYNC로 열어야 합니다.","an":"Linux Day4 p.5","src":"방법 돌아오는 시점\nwrite page cache 복사 직후\n+ fsync 디스크 기록 후\nO_SYNC 매 write 디스크까지"},{"id":"t8-07","ty":"ox","lv":1,"game":true,"p":"dirty 페이지는 아직 디스크에 기록되지 않았으므로 커널이 그냥 버릴 수 없다.","a":true,"h":"page cache의 clean 페이지는 디스크와 내용이 같아 필요하면 버릴 수 있습니다. 반면 dirty 페이지는 아직 기록 전이라 먼저 디스크에 써야 하므로 그냥 버릴 수 없습니다.","w":"맞습니다. clean 페이지는 디스크와 같아 버릴 수 있지만, dirty 페이지는 기록 전이라 버릴 수 없습니다.","an":"Linux Day4 p.6","src":"clean\n디스크와 같음 · 버릴 수 있음\ndirty\n기록 전 · 못 버림"},{"id":"t8-08","ty":"match","lv":1,"game":false,"p":"inotify 이벤트와 발생 시점을 연결하세요.","pairs":[["IN_CREATE","파일이 생김"],["IN_MODIFY","내용이 바뀜 (write마다)"],["IN_CLOSE_WRITE","쓰기로 연 파일을 닫음"],["IN_DELETE","파일이 지워짐"],["IN_MOVED_FROM / TO","이름 바꾸기"]],"h":"inotify는 폴링 대신 디렉터리 변화를 이벤트로 받습니다. CREATE는 생김, MODIFY는 write마다, CLOSE_WRITE는 쓰기로 연 파일을 닫을 때, DELETE는 지워질 때, MOVED_FROM/TO는 이름이 바뀔 때 옵니다.","w":"파일을 완성된 상태로 처리하려면 write마다 오는 IN_MODIFY보다 IN_CLOSE_WRITE를 기다리는 것이 좋습니다. inotify는 폴링 대신 이벤트로 알려 줍니다.","an":"Linux Day4 p.7 · src/05_inotify.c","src":"이벤트 언제\nIN_CREATE 생김\nIN_MODIFY 내용 바뀜 (write 마다 )\nIN_CLOSE_WRITE 쓰기로 연 파일을 닫음 ★\nIN_DELETE 지워짐\nIN_MOVED_FROM / TO 이름 바꾸기"},{"id":"t8-09","ty":"order","lv":2,"game":false,"p":"printf 출력을 잠시 파일로 돌렸다가 화면으로 되돌리는 순서를 맞추세요.","steps":["saved = dup(1)로 화면 fd 보관","dup2(b, 1)로 fd 1을 out.txt로","printf 후 fflush(stdout)","dup2(saved, 1)로 화면 복구"],"h":"먼저 dup(1)로 지금 화면을 가리키는 fd를 보관한 뒤 dup2로 fd 1을 out.txt로 바꿉니다. printf 내용은 버퍼에 남을 수 있으니 fflush로 내보낸 다음, 보관해 둔 fd로 다시 dup2 하여 화면을 되돌립니다.","w":"dup(1)로 화면을 보관하고 dup2(b, 1)로 fd 1을 파일로 바꾼 뒤, 버퍼를 비우고 dup2(saved, 1)로 되돌립니다. myshell의 > 리다이렉션도 같은 원리(open + dup2)입니다.","an":"Linux Day4 p.3 코드 · src/01_fd.c","src":"int saved = dup(1); /* 원래 화면(stdout)을 보관 */\n dup2(b, 1); /* 이제 fd 1 = out.txt */\n printf(\"이 줄은 화면이 아니라 out.txt 로 갑니다\\n\");\n fflush(stdout);\n dup2(saved, 1); /* fd 1 을 화면으로 되돌림 */"},{"id":"t8-10","ty":"multi","lv":3,"game":true,"p":"심볼릭 링크(<code>ln -s a.txt soft.txt<\/code>)에 해당하는 설명을 모두 고르세요.","o":["원본과 inode가 다르다","원본을 지우면 깨진 링크","링크 자체 정보는 lstat","원본의 링크 수가 2가 된다","원본 삭제 후에도 읽힌다"],"a":[0,1,2],"h":"심볼릭 링크는 원본 경로 문자열(5B)을 담은 별도 파일이라 inode가 다르고 링크 수도 늘지 않습니다. 원본을 지우면 가리킬 대상이 없어지고, 링크 자체의 정보는 링크를 따라가지 않는 stat 계열 함수로 봅니다.","w":"심볼릭 링크는 경로(5B)를 담은 별도 inode라 원본을 지우면 깨지고, 링크 자체 정보는 lstat으로 봅니다. 링크 수 2와 삭제 후 읽힘은 하드 링크의 특징입니다.","an":"Linux Day4 p.4","src":"하드 링크 심볼릭 링크\n명령 ln a.txt hard.txt ln -s a.txt soft.txt\ninode 같다 ( 링크 수 2) 다르다 ( 경로 5 B)\nrm a.txt 후 그대로 읽힘 깨진 링크\n 정보 함수 stat lstat ( 링크 자체 )"}]},{"id":"t9","title":"sysfs · 커널 모듈 · sysmon","ref":"Day4 p.8–10 · 6–8교시 · src/module","qs":[{"id":"t9-01","ty":"mc","lv":1,"game":true,"p":"net·block·thermal처럼 장치를 종류별로 보여 주는 sysfs 경로는?","o":["/sys/devices","/sys/class","/sys/bus","/sys/kernel"],"a":1,"h":"sysfs 경로는 관점에 따라 나뉩니다. /sys/devices는 실제 연결 구조, /sys/bus는 pci·usb 같은 버스별이고, 네트워크·디스크·온도처럼 장치 종류별로 모은 곳은 따로 있습니다.","w":"/sys/class는 종류별, /sys/devices는 실제 연결 구조, /sys/bus는 버스별(pci·usb·i2c), /sys/kernel은 커널 설정과 mysysfs가 있는 곳입니다.","an":"Linux Day4 p.8","src":"경로 관점\n/sys/devices 실제 연결 구조\n/sys/class 종류별 (net, block, thermal)\n/sys/bus 버스별 (pci, usb, i2c)\n/sys/kernel 커널 설정 · mysysfs"},{"id":"t9-02","ty":"mc","lv":1,"game":true,"p":"<code>insmod mysysfs.ko<\/code> 할 때 커널에서 실행되는 것은?","o":["module_exit 함수","value_show 콜백","module_init 함수","value_store 콜백"],"a":2,"h":"커널 모듈에서는 사용자가 명령을 실행하면 커널이 등록된 콜백을 부릅니다. 모듈을 적재할 때는 초기화 함수(mysysfs_init)가, 제거할 때는 정리 함수가 실행되도록 매크로로 등록돼 있습니다.","w":"insmod는 module_init으로 등록한 mysysfs_init을 실행하고, rmmod는 module_exit을 실행합니다. show/store는 파일을 읽고 쓸 때 불립니다.","an":"Linux Day4 p.9 · src/module/mysysfs.c","src":"명령 커널에서\ninsmod module_init\ncat value value_show\necho 42 > value value_store\nrmmod module_exit"},{"id":"t9-03","ty":"mc","lv":2,"game":true,"p":"<code>cat /sys/kernel/mysysfs/value<\/code>를 실행하면 불리는 콜백은?","o":["value_show","value_store","writes_show","mysysfs_exit"],"a":0,"h":"sysfs 속성은 <code>__ATTR(value, 0664, ..., ...)<\/code>로 읽기·쓰기 콜백을 등록합니다. 파일을 읽으면(cat) 버퍼에 텍스트를 써서 길이를 돌려주는 '보여 주기' 콜백이, 쓰면(echo) store 콜백이 불립니다.","w":"읽기는 value_show가 <code>sysfs_emit<\/code>으로 buf에 값을 써서 돌려줍니다. 쓰기(<code>echo 42 > value<\/code>)는 value_store가 처리합니다.","an":"Linux Day4 p.9 · src/module/mysysfs.c","src":"/* cat value 하면 불림 — buf 에 텍스트를 쓰고 길이를 돌려준다 */\nstatic ssize_t value_show(struct kobject *kobj, struct kobj_attribute *attr, char *buf)\n{\n return sysfs_emit(buf, \"%d\\n\", value);"},{"id":"t9-04","ty":"mc","lv":3,"game":true,"p":"value 파일에 숫자가 아닌 문자열을 쓰면 어떻게 되나요?","o":["value가 0이 된다","writes만 1 증가한다","모듈이 제거된다","쓰기가 오류로 실패한다"],"a":3,"h":"value_store는 kstrtoint로 받은 텍스트를 정수로 해석합니다. 숫자가 아니면 음수 오류(-EINVAL)를 돌려주므로 사용자 쪽 쓰기 호출이 Invalid argument로 끝납니다.","w":"kstrtoint가 음수(-EINVAL)를 반환하면 value_store가 그대로 반환해 사용자에게 Invalid argument 오류가 납니다. writes는 증가하지 않습니다.","an":"Linux Day4 p.9 · src/module/mysysfs.c","src":"int ret = kstrtoint(buf, 10, &value);\n if (ret < 0)\n return ret; /* 숫자가 아니면 -EINVAL → 사용자에게 오류 */"},{"id":"t9-05","ty":"mc","lv":3,"game":true,"p":"sysmon이 /proc/stat으로 CPU 사용률을 계산하는 식은?","o":["Δidle / Δ전체","(Δ전체 − Δidle) / Δ전체","MemTotal − MemAvailable","Δ섹터 × 512"],"a":1,"h":"/proc/stat의 cpu 줄은 누적 시간이라 두 시점의 차이(Δ)로 계산합니다. 전체 시간 증가분 중 쉬지 않고 일한 몫, 즉 전체에서 idle 증가분을 뺀 값의 비율이 사용률입니다.","w":"CPU%는 (Δ전체 − Δidle)/Δ전체입니다. MemTotal − MemAvailable은 메모리 사용량, Δ섹터 × 512는 디스크 쓰기량 계산입니다.","an":"Linux Day4 p.10 · src/sysmon.c","src":"값 읽는 곳 계산\nCPU % /proc/stat (Δ 전체 − Δidle) / Δ 전체"},{"id":"t9-06","ty":"ox","lv":2,"game":true,"p":"mysysfs의 writes 속성은 0444 권한이라 읽기만 할 수 있다.","a":true,"h":"속성 권한 0664는 소유자·그룹이 쓰기까지 가능하고, 0444는 모두 읽기만 가능합니다. writes 속성은 store 콜백 자리에 NULL을 넣어 등록돼 쓰기를 받지 않습니다.","w":"맞습니다. writes는 <code>__ATTR(writes, 0444, writes_show, NULL)<\/code>로 store가 없는 읽기 전용이고, value는 0664로 읽기·쓰기가 됩니다.","an":"src/module/mysysfs.c","src":"static struct kobj_attribute value_attr = __ATTR(value, 0664, value_show, value_store);\nstatic struct kobj_attribute writes_attr = __ATTR(writes, 0444, writes_show, NULL);"},{"id":"t9-07","ty":"ox","lv":1,"game":true,"p":"/sys는 파일 하나에 여러 값을 표처럼 담는 것이 원칙이다.","a":false,"h":"sysfs의 규칙은 '파일 하나에 값 하나(텍스트 한 줄)'입니다. 여러 값을 표로 담는 /proc 파일과 달리 각 속성이 따로 파일로 존재합니다.","w":"틀렸습니다. /sys는 '파일 하나에 값 하나'가 원칙입니다. 여러 값을 담은 표 형태는 /proc/stat·/proc/meminfo 같은 procfs에서 흔합니다.","an":"Linux Day4 p.8","src":"/sys — 파일 하나에 값 하나\nLinux & Shell · Day 4\n경로 관점\n/sys/devices 실제 연결 구조"},{"id":"t9-08","ty":"match","lv":1,"game":false,"p":"사용자 명령과 커널에서 실행되는 함수를 연결하세요.","pairs":[["insmod","module_init"],["cat value","value_show"],["echo 42 > value","value_store"],["rmmod","module_exit"]],"h":"사용자가 sysfs 파일을 다루면 커널은 대응하는 콜백을 실행합니다. 모듈 적재·제거는 초기화·종료 함수가, 파일 읽기는 show 콜백이, 파일 쓰기는 store 콜백이 맡습니다.","w":"모듈 적재/제거는 init/exit, 속성 읽기/쓰기는 show/store 콜백이 처리합니다. 사용자는 파일을 다루고 커널은 콜백을 실행합니다.","an":"Linux Day4 p.9 표","src":"명령 커널에서\ninsmod module_init\ncat value value_show\necho 42 > value value_store\nrmmod module_exit"},{"id":"t9-09","ty":"order","lv":2,"game":false,"p":"mysysfs 커널 모듈 실습 순서를 맞추세요.","steps":["module 폴더에서 make","sudo insmod mysysfs.ko","echo 42 | sudo tee …/value","sudo dmesg | tail로 로그 확인","sudo rmmod mysysfs"],"h":"모듈은 linux-headers가 필요한 module 폴더에서 make로 빌드한 뒤 insmod로 적재합니다. 값은 <code>sudo tee<\/code>로 value 파일에 쓰고, pr_info 로그를 dmesg로 확인한 다음 rmmod로 제거합니다.","w":"Kbuild로 빌드한 뒤 insmod로 적재하고 값을 쓰면 pr_info 로그가 dmesg에 남습니다. 마지막에 rmmod로 제거하면 kobject_put으로 디렉터리와 속성이 함께 사라집니다.","an":"Linux Day4 p.1 · p.9 · src/module/Makefile","src":"* 빌드: cd module && make (linux-headers-$(uname -r) 필요)\n * 적재: sudo insmod mysysfs.ko && sudo dmesg | tail -2\n * 제거: sudo rmmod mysysfs"},{"id":"t9-10","ty":"multi","lv":2,"game":true,"p":"mysysfs_init에서 하는 일을 모두 고르세요.","o":["/sys/kernel/mysysfs 생성","속성 그룹 등록","실패 시 kobject_put 정리","value를 42로 초기화","dmesg 기록 삭제"],"a":[0,1,2],"h":"mysysfs_init은 kernel_kobj 아래에 mysysfs 디렉터리를 만들고 sysfs_create_group으로 속성 묶음을 붙입니다. 그룹 등록이 실패하면 앞서 만든 kobject를 정리하고 오류를 돌려줍니다.","w":"kobject_create_and_add로 /sys/kernel/mysysfs를 만들고, sysfs_create_group으로 value·writes 속성을 등록하며, 실패하면 kobject_put으로 정리합니다. 42는 사용자가 나중에 쓰는 값입니다.","an":"src/module/mysysfs.c","src":"static int __init mysysfs_init(void)\n{\n int ret;\n my_kobj = kobject_create_and_add(\"mysysfs\", kernel_kobj); /* /sys/kernel/mysysfs */\n if (!my_kobj)\n return -ENOMEM;\n ret = sysfs_create_group(my_kobj, &my_group);\n if (ret) {\n kobject_put(my_kobj);\n return ret;\n }\n pr_info(\"mysysfs: /sys/kernel/mysysfs 생성\\n\");"}]},{"id":"t10","title":"쓰레드 · race · mutex · 교착","ref":"Day5 p.3–5 · 1–3교시","qs":[{"id":"t10-01","ty":"mc","lv":1,"game":true,"p":"같은 프로세스의 쓰레드끼리 <b>공유하는<\/b> 것은?","o":["스택","레지스터","주소 공간","TID"],"a":2,"h":"프로세스 vs 쓰레드 비교 표에서 스택·레지스터는 쓰레드마다 따로 갖습니다. 반면 fork는 COW 복사본을 만들지만 쓰레드는 같은 메모리를 함께 써서, 두 쓰레드가 출력한 &g_value 주소가 똑같이 나옵니다.","w":"쓰레드는 주소 공간을 공유해 전역 변수 주소(&g_value)가 같습니다. 스택·레지스터는 쓰레드마다 따로이며 TID로 구분합니다.","an":"Linux Day5 p.3 · src/01_threads.c","src":"프로세스는 복사 , 쓰레드는 공유\nLinux & Shell · Day 5\n프로세스 (fork) 쓰레드 (pthread_create)\n 주소 공간 따로 (COW) 공유\n 스택 · 레지스터 따로 따로\n식별 PID 같은 PID, TID\n통신 파이프 · 공유 메모리 변수 ( 동기화 필요 )\n 쓰레드 1: PID=2731 TID=2732 &g_value=0x…5014\n 쓰레드 2: PID=2731 TID=2733 &g_value=0x…5014\nfork 자식: g_value = 1030\nfork 부모: g_value = 30"},{"id":"t10-02","ty":"mc","lv":2,"game":true,"p":"<code>counter++<\/code>가 race condition을 일으키는 이유는?","o":["읽기·더하기·쓰기 세 단계라서","컴파일러 오류 때문에","스택 변수라서","원자적 연산이라서"],"a":0,"h":"<code>counter++<\/code>는 기계어로 보면 메모리에서 rax로 가져오고, 1을 더하고, 다시 메모리에 저장하는 명령으로 나뉩니다. 두 쓰레드가 중간 단계에 끼어들면 같은 값을 읽어 한 번의 증가가 사라집니다.","w":"counter++는 읽기·더하기·쓰기 세 명령이라 두 쓰레드가 같은 값을 읽으면 한 번이 사라집니다.","an":"Linux Day5 p.4 · src/02_race.c","src":"counter++ 는 세 단계다\nLinux & Shell · Day 5\nmov counter,%rax # 읽기\nadd $0x1,%rax # 더하기\nmov %rax,counter # 쓰기\ncounter = 5\nA: 읽기 (5)\nB: 읽기 (5)\nA: 더하기 · → 쓰기 6\nB: 더하기 · → 쓰기 6 ← 두 번 더했는데6"},{"id":"t10-03","ty":"mc","lv":3,"game":true,"p":"쓰레드 2개가 각각 1,000,000번 동기화 없이 증가시켜 실제값이 1,000,000이면 잃어버린 증가는?","o":["0","500,000","2,000,000","1,000,000"],"a":3,"h":"두 쓰레드가 각각 백만 번씩 더했으니 기대값은 2백만입니다. 잃어버린 증가 수는 기대값에서 실제로 나온 값을 뺀 것으로 계산합니다.","w":"기대 2,000,000 − 실제 1,000,000 = 1,000,000을 잃었습니다. mutex를 쓰면 실제 2,000,000(잃어버림 0)이 됩니다.","an":"Linux Day5 p.1 · p.4","src":"$ ./02_race 2 1000000 none\n… 실제 1000000 ( 잃어버림 1000000)\n… 실제 2000000 ( 잃어버림 0)"},{"id":"t10-04","ty":"mc","lv":1,"game":true,"p":"POSIX 쓰레드를 만드는 함수는?","o":["fork","pthread_create","execvp","sem_wait"],"a":1,"h":"POSIX 쓰레드 함수는 모두 pthread_ 접두어로 시작합니다. 01_threads.c는 for 루프에서 worker 함수를 넘겨 쓰레드를 하나씩 만들고, pthread_join으로 끝나기를 기다립니다.","w":"쓰레드는 pthread_create로 만들고, 빌드에 <code>-pthread<\/code>가 필요합니다. fork는 프로세스를 복제하고 execvp는 프로그램을 교체합니다.","an":"Linux Day5 p.2–3 · src/01_threads.c","src":"for (int i = 0; i < 3; i++) {\n pthread_create(&th[i], NULL, worker, &ids[i]);\n usleep(100000); /* 출력이 섞이지 않게 잠깐 */\n }\n for (int i = 0; i < 3; i++) {\n void *r;\n pthread_join(th[i], &r); /* 끝날 때까지 기다리고 반환값 회수 */"},{"id":"t10-05","ty":"mc","lv":2,"game":true,"p":"교착으로 멈춘 프로세스에서 모든 쓰레드의 호출 스택을 보는 방법은?","o":["gdb thread apply all bt","ps -L 로 목록만 확인","valgrind --leak-check","taskset -cp"],"a":0,"h":"교착으로 멈춘 프로세스는 디버거를 PID에 붙여(-p) 살펴봅니다. 디버거 명령 중 모든 쓰레드에 대해 backtrace(bt)를 실행하는 명령을 쓰면 각 쓰레드가 어떤 잠금에서 멈췄는지 보입니다.","w":"<code>gdb -p PID<\/code>로 붙은 뒤 <code>thread apply all bt<\/code>로 각 쓰레드가 어떤 잠금에서 기다리는지 봅니다. ps -L은 쓰레드 목록만 보여 줍니다.","an":"Linux Day5 p.5","src":"교착 해결 원칙\n• 모든 쓰레드가 같은 순서로 잠근다\n• 잠금 안에서 오래 걸리는 일 금지\n• 멈췄다면 gdb -p … thread apply all bt"},{"id":"t10-06","ty":"ox","lv":2,"game":true,"p":"fork한 자식이 전역 변수 g_value를 바꾸면 부모의 g_value도 같이 바뀐다.","a":false,"h":"쓰레드는 주소 공간을 공유하지만 fork한 자식은 부모 메모리의 복사본(COW)을 갖습니다. 그래서 자식이 g_value에 1000을 더해도 부모가 출력한 값은 그대로입니다.","w":"틀렸습니다. fork는 주소 공간을 따로(COW) 가지므로 자식 1030, 부모 30처럼 달라집니다. 같이 바뀌는 것은 쓰레드입니다.","an":"Linux Day5 p.3 · src/01_threads.c","src":"pid_t pid = fork(); /* 비교: 프로세스는 복사본 */\n if (pid == 0) {\n g_value += 1000;\n printf(\"fork 자식: g_value = %d\\n\", g_value);\n exit(0);\n }\n wait(NULL);\n printf(\"fork 부모: g_value = %d (자식이 바꿔도 그대로)\\n\", g_value);"},{"id":"t10-07","ty":"ox","lv":1,"game":true,"p":"같은 프로세스의 쓰레드들은 PID가 같고 TID로 구분된다.","a":true,"h":"01_threads 출력에서 쓰레드 1과 2는 PID가 2731로 같고 TID가 2732, 2733으로 다릅니다. 쓰레드는 한 프로세스 안에서 각자의 TID로 구분됩니다.","w":"맞습니다. 두 쓰레드 모두 PID 2731이고 TID가 2732, 2733으로 다릅니다. <code>ps -L<\/code>이나 /proc/PID/task로 확인합니다.","an":"Linux Day5 p.3","src":"식별 PID 같은 PID, TID\n통신 파이프 · 공유 메모리 변수 ( 동기화 필요 )\n 쓰레드 1: PID=2731 TID=2732 &g_value=0x…5014\n 쓰레드 2: PID=2731 TID=2733 &g_value=0x…5014"},{"id":"t10-08","ty":"match","lv":1,"game":false,"p":"프로세스와 쓰레드의 특성을 연결하세요.","pairs":[["프로세스 주소 공간","따로 (COW)"],["쓰레드 주소 공간","공유"],["프로세스 간 통신","파이프 · 공유 메모리"],["쓰레드 간 통신","변수 (동기화 필요)"],["쓰레드 식별","같은 PID, 다른 TID"]],"h":"fork로 만든 프로세스는 주소 공간을 따로(COW) 가지므로 파이프나 공유 메모리로 통신합니다. 쓰레드는 주소 공간을 공유해 변수로 통신하지만 동기화가 필요하고, 같은 PID 아래 TID로 구분됩니다.","w":"프로세스는 주소 공간이 따로라 파이프·공유 메모리로 통신하고, 쓰레드는 공유하므로 변수로 바로 통신하지만 동기화가 필요합니다.","an":"Linux Day5 p.3 비교 표","src":"프로세스 (fork) 쓰레드 (pthread_create)\n 주소 공간 따로 (COW) 공유\n 스택 · 레지스터 따로 따로\n식별 PID 같은 PID, TID\n통신 파이프 · 공유 메모리 변수 ( 동기화 필요 )"},{"id":"t10-09","ty":"order","lv":2,"game":false,"p":"counter=5에서 증가 한 번을 잃어버리는 race 시나리오를 순서대로 맞추세요.","steps":["A: counter 읽기 (5)","B: counter 읽기 (5)","A: 더하고 6 쓰기","B: 더하고 6 쓰기"],"h":"race는 두 쓰레드가 모두 갱신 전 값을 읽을 때 생깁니다. A와 B가 차례로 5를 읽은 뒤, 각자 더해서 6을 쓰기 때문에 두 번 더했는데도 결과는 한 번만 늘어납니다.","w":"A와 B가 모두 5를 읽은 뒤 각자 6을 쓰므로 두 번 더했는데 결과는 6입니다. 이것이 race condition입니다.","an":"Linux Day5 p.4","src":"counter = 5\nA: 읽기 (5)\nB: 읽기 (5)\nA: 더하기 · → 쓰기 6\nB: 더하기 · → 쓰기 6 ← 두 번 더했는데6"},{"id":"t10-10","ty":"multi","lv":3,"game":true,"p":"03_deadlock 같은 교착을 막는 원칙으로 옳은 것을 모두 고르세요.","o":["모든 쓰레드가 같은 순서로 잠금","잠금 안에서 오래 걸리는 일 금지","임계 구역은 짧게 유지","쓰레드마다 다른 순서로 잠금","잠금 안에서 sleep으로 대기"],"a":[0,1,2],"h":"03_deadlock은 두 쓰레드가 mutex A·B를 반대 순서로 잡아 서로를 기다리며 멈춥니다. 해결 원칙은 잠그는 순서를 통일하고, 잠금 안에서 오래 걸리는 일을 하지 않으며, 임계 구역을 짧게 두는 것입니다.","w":"fixed 모드는 잠금 순서를 A→B로 통일해 정상 종료했습니다. 잠금 안에서 오래 걸리는 일을 피하고 임계 구역을 짧게 유지해야 합니다.","an":"Linux Day5 p.5 · src/03_deadlock.c","src":"pthread_mutex_lock(&mtx);\ncounter++; /* — 임계 구역 짧게 */\npthread_mutex_unlock(&mtx);\n$ ./03_deadlock\nt1: A 잡음\nt2: B 잡음\nt1: B 기다림...\nt2: A 기다림...\n감시자: 3 — 초 동안 진행 없음 교착(deadlock)\n$ ./03_deadlock fixed\n 정상 종료 ( 잠금 순서를 A→B 로 통일)\n교착 해결 원칙\n• 모든 쓰레드가 같은 순서로 잠근다\n• 잠금 안에서 오래 걸리는 일 금지"}]},{"id":"t11","title":"조건 변수 · 세마포어 · edge_pipeline","ref":"Day5 p.6–10 · 4–8교시","qs":[{"id":"t11-01","ty":"mc","lv":1,"game":true,"p":"'동시에 N개까지만' 허용할 때 알맞은 도구는?","o":["mutex","조건 변수","세마포어","atomic"],"a":2,"h":"도구 표에서 mutex는 여러 변수를 함께 고치는 구간, 조건 변수는 '~가 될 때까지' 기다림, atomic은 카운터·플래그 하나에 씁니다. 05_sem은 가속기 2개를 쓰레드 5개가 나눠 쓰도록 남은 자리 수를 세는 도구를 씁니다.","w":"세마포어는 남은 자리 수를 세어 N개까지 동시에 들어가게 합니다. mutex는 한 번에 하나, atomic은 카운터·플래그 하나에 씁니다.","an":"Linux Day5 p.7 · src/05_sem.c","src":"도구 언제\nmutex 여러 변수를 함께 고치는 구간\n 조건 변수 \"~ 가 될 때까지 \" 기다림\n세마포어 동시에 N 개까지\natomic 카운터 · 플래그 하나"},{"id":"t11-02","ty":"mc","lv":2,"game":true,"p":"<code>pthread_cond_wait(&cv, &m)<\/code>가 하는 일은?","o":["mutex를 풀고 잠든다","mutex를 잡은 채 잠든다","모든 쓰레드를 깨운다","버퍼를 비운다"],"a":0,"h":"조건 변수 대기 함수는 잡고 있던 mutex를 내려놓고 잠듭니다. 그래야 다른 쓰레드가 그 mutex를 잡고 버퍼를 채울 수 있고, 깨어나면 다시 mutex를 잡은 상태로 돌아옵니다.","w":"cond_wait는 mutex를 풀고 잠들었다가 깨면 다시 mutex를 잡습니다. 그래서 다른 쓰레드가 그사이 버퍼를 채울 수 있습니다.","an":"Linux Day5 p.6 · src/04_prodcons.c","src":"함수 하는 일\ncond_wait 풀고 잠듦 → 깨면 다시 잡음\ncond_signal 하나 깨움\ncond_broadcast 모두 깨움 ( 종료 알림 )"},{"id":"t11-03","ty":"mc","lv":1,"game":true,"p":"종료 알림처럼 기다리는 쓰레드를 <b>모두<\/b> 깨울 때 쓰는 함수는?","o":["cond_signal","cond_broadcast","cond_wait","mutex_unlock"],"a":1,"h":"조건 변수 함수 표에서 cond_signal은 기다리는 쓰레드 하나만 깨웁니다. 종료 알림처럼 기다리는 쓰레드 전부를 깨워야 할 때는 '방송'이라는 뜻의 다른 함수를 씁니다.","w":"cond_signal은 하나만, cond_broadcast는 모두 깨웁니다. 종료 알림에는 broadcast를 씁니다.","an":"Linux Day5 p.6 함수 표","src":"함수 하는 일\ncond_wait 풀고 잠듦 → 깨면 다시 잡음\ncond_signal 하나 깨움\ncond_broadcast 모두 깨움 ( 종료 알림 )"},{"id":"t11-04","ty":"mc","lv":3,"game":true,"p":"두 변수 거리가 8B면 905ms, 64B로 떨어뜨리면 251.7ms였습니다. 원인은?","o":["같은 캐시 라인 공유","mutex 경합 증가","page fault 증가","RT throttling"],"a":0,"h":"CPU 캐시는 64바이트 단위(라인)로 데이터를 주고받습니다. 서로 다른 변수라도 8B 떨어져 같은 64B 안에 있으면, 두 CPU가 번갈아 고칠 때마다 그 단위가 CPU 사이를 오가며 느려집니다.","w":"서로 다른 변수라도 같은 64B 캐시 라인에 있으면 두 CPU 사이를 라인이 오가며 느려집니다(false sharing). 64B 떨어뜨리자 3.6배 빨라졌습니다.","an":"Linux Day5 p.8 · src/06_false_sharing.c","src":"&T.a / &T.b 거리 8 B 같은 캐시 라인: 905.3 ms\n&P.a / &P.b 거리 64 B 64B 떨어뜨림 : 251.7 ms (3.6 배)"},{"id":"t11-05","ty":"mc","lv":2,"game":true,"p":"카운터나 플래그 하나만 보호하면 될 때 슬라이드가 권하는 도구는?","o":["mutex","세마포어","조건 변수","atomic"],"a":3,"h":"02_race 측정에서 보호 방식별 결과는 모두 정확했지만 시간은 13.0ms, 35.5ms, 39.0ms로 달랐습니다. 카운터·플래그 하나만 다룰 때는 잠금 없이 원자적 덧셈을 하는 가장 가벼운 도구가 알맞습니다.","w":"변수 하나는 atomic이 알맞습니다(예시 13.0ms, 정확). mutex는 여러 변수를 함께 고치는 구간에 쓰며 39.0ms였습니다.","an":"Linux Day5 p.7 · src/02_race.c","src":"방식 결과 시간 ( 예시 )\nnone 틀림 5.3 ms\natomic 정확 13.0 ms\nspinlock 정확 35.5 ms\nmutex 정확 39.0 ms\n도구 언제\nmutex 여러 변수를 함께 고치는 구간\n 조건 변수 \"~ 가 될 때까지 \" 기다림\n세마포어 동시에 N 개까지\natomic 카운터 · 플래그 하나"},{"id":"t11-06","ty":"ox","lv":1,"game":true,"p":"05_sem에서 sem_wait는 남은 자리가 0이면 자리가 날 때까지 기다린다.","a":true,"h":"05_sem은 세마포어 초기값을 2로 두고, 각 작업이 시작할 때 sem_wait로 자리를 하나 가져가고 끝나면 sem_post로 반납합니다. 자리가 0이면 다른 작업이 반납할 때까지 그 자리에서 기다립니다.","w":"맞습니다. 자리가 0이면 sem_wait에서 기다리고, 다른 쓰레드가 sem_post로 자리를 반납하면 진행합니다.","an":"src/05_sem.c","src":"sem_wait(&slots); /* 자리가 0 이면 여기서 기다림 */\n pthread_mutex_lock(&m);\n active++;\n if (active > max_active) max_active = active;\n printf(\"작업 %d 시작 (동시 실행 %d)\\n\", id, active);\n pthread_mutex_unlock(&m);\n usleep(200000); /* 가속기 사용 0.2초 */\n pthread_mutex_lock(&m);\n active--;\n printf(\"작업 %d 끝\\n\", id);\n pthread_mutex_unlock(&m);\n sem_post(&slots); /* 자리 반납 → 기다리던 쓰레드 하나 진행 */"},{"id":"t11-07","ty":"ox","lv":2,"game":true,"p":"edge_pipeline 출력에서 dropped 값은 0보다 커야 정상이다.","a":false,"h":"edge_pipeline 출력의 dropped는 링 버퍼가 가득 차 버려진 샘플 수입니다. 슬라이드의 '볼 것' 표에는 samples ≈ 100, max_lat_us는 -r에서 작을 것, 그리고 dropped의 정상 기준이 적혀 있습니다.","w":"틀렸습니다. dropped는 0이어야 정상입니다. samples는 10ms 주기라 초당 약 100, max_lat_us는 부하 시 -r이 더 작아야 합니다.","an":"Linux Day5 p.9","src":"볼 것 기준\nsamples ≈ 100 (10ms)\nmax_lat_us 부하 시 -r 이 작다\ndropped 0 이어야 정상"},{"id":"t11-08","ty":"match","lv":2,"game":false,"p":"edge_pipeline 구성 요소와 적용한 내용을 연결하세요.","pairs":[["센서 쓰레드","10ms 절대 주기 · FIFO (Day 2)"],["링 버퍼 64칸","mutex + 조건 변수 (Day 5)"],["처리 쓰레드","이동 평균 · 알람"],["기록 쓰레드","1초마다 CSV + fsync (Day 4)"],["main","mlockall · SIGINT 정상 종료"]],"h":"edge_pipeline은 5일 실습을 하나로 묶습니다. 센서는 Day 2의 절대 주기·FIFO, 링 버퍼는 Day 5의 mutex·조건 변수, 처리는 이동 평균·알람, 기록은 Day 4의 CSV·fsync, main은 Day 3의 mlockall과 Day 1의 SIGINT 처리를 맡습니다.","w":"센서는 Day 2 주기·RT, 링 버퍼는 Day 5 동기화, 기록은 Day 4 fsync, main은 Day 3 mlockall과 Day 1 시그널 처리를 씁니다.","an":"Linux Day5 p.9 · src/edge_pipeline.c","src":"* [센서 쓰레드] 10ms 절대 주기로 가상 센서 값 생성 (Day 2: clock_nanosleep, FIFO, CPU 고정)\n * │ 링 버퍼 64칸 (Day 5: mutex + 조건 변수)\n * [처리 쓰레드] 이동 평균 10개, 임계치 넘으면 알람 (Day 5: cond_wait)\n * │ 통계 구조체 (mutex)\n * [기록 쓰레드] 1초마다 CSV 한 줄 + fsync (Day 4)\n * [main] mlockall (Day 3), SIGINT 로 정상 종료 (Day 1)"},{"id":"t11-09","ty":"order","lv":2,"game":false,"p":"생산자·소비자에서 소비자가 값 하나를 꺼내는 순서를 맞추세요.","steps":["pthread_mutex_lock","while (count == 0) cond_wait","buf[head] 꺼내고 head·count 갱신","cond_signal(not_full)","pthread_mutex_unlock"],"h":"소비자는 먼저 mutex를 잡고, 버퍼가 비어 있으면 while로 조건 변수에서 기다립니다. 값이 생기면 buf[head]를 꺼내 head·count를 갱신하고, 생산자에게 자리가 났다고 알린 뒤 mutex를 풉니다.","w":"조건은 if가 아니라 while로 검사해 깨어난 뒤 다시 확인합니다. 꺼낸 뒤 not_full을 signal해 생산자를 깨우고 mutex를 풉니다.","an":"Linux Day5 p.6 코드 · src/04_prodcons.c","src":"pthread_mutex_lock(&m);\nwhile (count == 0) /* if 가 아니라 while */\n pthread_cond_wait(&not_empty, &m); /* m 풀고 잠듦 */\nv = buf[head]; head = (head + 1) % CAP; count--;\npthread_cond_signal(&not_full);\npthread_mutex_unlock(&m);"},{"id":"t11-10","ty":"multi","lv":3,"game":true,"p":"<code>sudo ./edge_pipeline -r<\/code>의 -r 옵션이 적용하는 것을 모두 고르세요.","o":["센서 쓰레드 SCHED_FIFO 80","센서 쓰레드 CPU 1 고정","mlockall","링 버퍼를 128칸으로","fsync 생략"],"a":[0,1,2],"h":"머리 주석에서 -r 옵션은 센서 쓰레드를 실시간 정책 우선순위 80으로 바꾸고 특정 CPU에 고정하며, 메모리를 잠가 page fault를 미리 없앱니다. 출력의 '정책=' 문자열에도 세 가지가 함께 표시됩니다.","w":"-r은 센서 쓰레드를 SCHED_FIFO 80 + CPU 1에 고정하고 mlockall을 적용합니다. 링 버퍼는 64칸 그대로이며 기록 쓰레드는 fsync를 계속합니다.","an":"src/edge_pipeline.c 머리 주석","src":"* sudo ./edge_pipeline -d 10 -r (센서 SCHED_FIFO 80 + CPU 1 + mlockall)"}]}]};
+const app=document.getElementById('app');
+if(!BANK){app.innerHTML='<p>문제은행 데이터가 없습니다. <code>python develop/build.py</code>로 빌드한 파일을 여세요.</p>';return;}
+
+/* ── 상수 · 인덱스 ─────────────────────── */
+const TYPES={mc:['객관식','--ty-mc'],multi:['복수 선택','--ty-multi'],ox:['O / X','--ty-ox'],match:['짝 맞추기','--ty-match'],order:['순서 맞추기','--ty-order'],num:['계산','--ty-num']};
+const GUIDE={mc:'알맞은 답을 하나 고르세요.',multi:'알맞은 것을 모두 고르세요.',ox:'맞으면 O, 틀리면 X를 고르세요.',
+  match:'왼쪽 항목을 누른 뒤 짝이 되는 오른쪽 항목을 누르세요. 연결된 항목을 다시 누르면 풀립니다.',
+  order:'첫 번째부터 순서대로 클릭하세요. 번호가 붙은 항목을 다시 누르면 그 번호부터 뒤 번호가 지워집니다.',num:'숫자만 입력하세요.'};
+/* 게임 모드 목록 — 새 게임은 여기에 항목을 추가한다 (설정·출제 유형·규칙 문구를 모드별로) */
+const GAME_MODES={
+  timeattack:{title:'⚡ 타임어택',desc:'제한시간 안에 풀수록 점수가 커집니다. 시간이 다 되면 오답!',
+    types:['mc','ox','multi'],times:[5,7,10,15],defaultTime:10},
+};
+// 게임 선택 화면의 버튼 3칸: 모드 id 또는 null(준비 중). 새 게임을 만들면 null 자리에 id를 넣는다.
+const GAME_SLOTS=['timeattack',null,null];
+const PAL=['--ty-mc','--ty-order','--ty-match','--ty-num','--ty-multi'];
+const LETTER='ABCDEFGH';
+const TABS=BANK.tabs, QMAP={}, QTAB={};
+TABS.forEach((t,ti)=>{t.idx=ti;t.qs.forEach(q=>{QMAP[q.id]=q;QTAB[q.id]=t;});});
+const ALLQ=TABS.flatMap(t=>t.qs);
+const RM=matchMedia('(prefers-reduced-motion: reduce)');
+
+/* ── 저장소 (실패해도 동작) ─────────────── */
+const KEY='qb:'+BANK.id+':v1';
+const blank=()=>({name:'',tabs:{},wrong:{},board:[],drafts:{}});  // drafts: 채점 전 탭별 풀던 답
+let S=blank();
+try{const raw=localStorage.getItem(KEY);if(raw)S=Object.assign(blank(),JSON.parse(raw));}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+const gameUnlocked=()=>Object.keys(S.tabs).length>0;
+const allGraded=()=>TABS.every(t=>S.tabs[t.id]);
+
+/* 순위 저장소 — 공유 순위로 바꿀 때 이 객체만 교체 */
+// 순위는 같은 조건(게임 모드 + 풀이 시간)끼리만 비교한다. key = 'timeattack:10'
+const boardKey=r=>`${r.mode||'timeattack'}:${r.time||'-'}`;
+const Leaderboard={
+  load(key){return S.board.filter(r=>boardKey(r)===key).sort((a,b)=>b.score-a.score||b.rate-a.rate||a.at-b.at);},
+  add(rec){S.board.push(rec);
+    const list=this.load(boardKey(rec)), rank=list.findIndex(r=>r.id===rec.id)+1;
+    // 조건별 상위 50개만 보관
+    const keep=new Set(Object.values(S.board.reduce((m,r)=>{(m[boardKey(r)]=m[boardKey(r)]||[]).push(r);return m;},{}))
+      .flatMap(l=>l.sort((a,b)=>b.score-a.score||b.rate-a.rate||a.at-b.at).slice(0,50)).map(r=>r.id));
+    S.board=S.board.filter(r=>keep.has(r.id));save();return rank;}
+};
+
+/* ── 유틸 ──────────────────────────────── */
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const strip=s=>String(s??'').replace(/<[^>]+>/g,'');
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
+const range=n=>[...Array(n).keys()];
+const derange=n=>{if(n<2)return range(n);let s;do{s=shuffle(range(n));}while(s.every((v,i)=>v===i));return s;};
+const sortN=a=>a.slice().sort((x,y)=>x-y);
+const today=()=>new Date().toLocaleDateString('ko-KR');
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+function hash(s){let h=5381;for(const c of s)h=((h<<5)+h+c.codePointAt(0))>>>0;return h.toString(36).toUpperCase().padStart(6,'0').slice(-6);}
+function letter(p){return p>=90?'A':p>=80?'B':p>=70?'C':p>=60?'D':'F';}
+let toastT;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200);}
+function say(msg){const l=document.getElementById('live');l.textContent='';setTimeout(()=>l.textContent=msg,30);}
+async function copy(text){
+  try{await navigator.clipboard.writeText(text);toast('📋 클립보드에 복사했습니다');return;}catch(e){}
+  const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0;top:0';document.body.appendChild(ta);ta.select();
+  let ok=false;try{ok=document.execCommand('copy');}catch(e){}ta.remove();
+  toast(ok?'📋 클립보드에 복사했습니다':'복사하지 못했습니다. 인쇄 기능을 이용하세요.');
+}
+
+/* ── 채점 · 답 표시 ───────────────────── */
+function isCorrect(q,a){
+  if(a==null)return false;
+  switch(q.ty){
+    case 'mc':case 'ox':return a===q.a;
+    case 'multi':{if(!Array.isArray(a)||a.length!==q.a.length)return false;const x=sortN(a),y=sortN(q.a);return x.every((v,i)=>v===y[i]);}
+    case 'match':return q.pairs.every((_,i)=>a[i]===i);
+    case 'order':return a.length===q.steps.length&&a.every((v,i)=>v===i);
+    case 'num':return String(a).trim()!==''&&Math.abs(Number(a)-q.a)<=(q.tol??1e-6);
+  }
+  return false;
+}
+function correctText(q){
+  switch(q.ty){
+    case 'mc':return q.o[q.a];
+    case 'multi':return q.a.map(i=>q.o[i]).join(', ');
+    case 'ox':return q.a?'O':'X';
+    case 'match':return q.pairs.map(p=>p[0]+' → '+p[1]).join(' / ');
+    case 'order':return q.steps.join(' → ');
+    case 'num':return q.a+(q.unit||'');
+  }
+}
+function answerText(q,a){
+  if(a==null)return '(미응답)';
+  switch(q.ty){
+    case 'mc':return q.o[a]??'(미응답)';
+    case 'multi':return a.length?sortN(a).map(i=>q.o[i]).join(', '):'(미응답)';
+    case 'ox':return a?'O':'X';
+    case 'match':return q.pairs.map((p,i)=>p[0]+' → '+(a[i]!=null?q.pairs[a[i]][1]:'?')).join(' / ');
+    case 'order':return a.map(i=>q.steps[i]).join(' → ');
+    case 'num':return a+(q.unit||'');
+  }
+}
+
+/* ── 오답노트 ──────────────────────────── */
+function addWrong(id,ans){const w=S.wrong[id]||{n:0};w.n++;w.last=ans;w.at=Date.now();w.solved=false;S.wrong[id]=w;}
+function markSolved(id){if(S.wrong[id]&&!S.wrong[id].solved){S.wrong[id].solved=true;S.wrong[id].at=Date.now();}}
+const wrongList=solved=>Object.keys(S.wrong).filter(id=>QMAP[id]&&!!S.wrong[id].solved===solved)
+  .sort((a,b)=>QTAB[a].idx-QTAB[b].idx||ALLQ.indexOf(QMAP[a])-ALLQ.indexOf(QMAP[b]));
+
+/* ── 문항 풀이 상태(학습·재도전 공용) ───── */
+let cur=null;  // {mode,list,ans,touched,msel,shuf,graded,armed,tab}
+function newSheet(mode,list,tab){
+  const c={mode,list,tab,ans:{},touched:new Set(),msel:{},shuf:{},hints:new Set(),srcs:new Set(),graded:false,armed:false,onlyWrong:false};
+  list.forEach(q=>{
+    if(q.ty==='match')c.shuf[q.id]=derange(q.pairs.length);
+    if(q.ty==='order')c.shuf[q.id]=derange(q.steps.length);  // 화면 배치(고정). 답 = 클릭한 순서의 단계 인덱스 배열
+  });
+  return c;
+}
+const answered=q=>isAnswered(q,cur.ans[q.id]);
+function isAnswered(q,a){
+  switch(q.ty){
+    case 'mc':return Number.isInteger(a);
+    case 'ox':return typeof a==='boolean';
+    case 'multi':return Array.isArray(a)&&a.length>0;
+    case 'match':return !!a&&Object.keys(a).length===q.pairs.length;
+    case 'order':return Array.isArray(a)&&a.length===q.steps.length;
+    case 'num':return a!=null&&String(a).trim()!==''&&!isNaN(Number(a));
+  }
+}
+const finalAns=q=>answered(q)?cur.ans[q.id]:null;
+
+function cardHTML(q,n){
+  const [label,color]=TYPES[q.ty];
+  const g=cur.graded, a=cur.ans[q.id], fa=finalAns(q), ok=g&&isCorrect(q,fa);
+  const lock=g?' disabled':'';
+  let body='';
+  if(q.ty==='mc'||q.ty==='multi'){
+    const multi=q.ty==='multi', mine=multi?(a||[]):[a];
+    body='<div class="opts">'+q.o.map((o,i)=>{
+      const right=multi?q.a.includes(i):q.a===i, picked=mine.includes(i);
+      const cls=g?(right?' ans':picked?' miss':''):'';
+      return `<label class="opt${cls}"><span class="onum">${i+1}</span><input type="${multi?'checkbox':'radio'}" name="r-${q.id}" data-act="${multi?'tick':'pick'}" data-q="${q.id}" data-i="${i}"${picked?' checked':''}${lock}><span>${esc(o)}</span></label>`;
+    }).join('')+'</div>';
+  }else if(q.ty==='ox'){
+    body='<div class="ox">'+[true,false].map(v=>{
+      const cls=g?(q.a===v?' ans':a===v?' miss':''):'';
+      return `<button type="button" class="${cls.trim()}" data-act="ox" data-q="${q.id}" data-v="${v?1:0}" data-fk="${q.id}-ox${v?1:0}" aria-pressed="${a===v}" aria-label="${v?'맞다 O':'틀리다 X'}"${lock}>${v?'O':'X'}</button>`;
+    }).join('')+'</div>';
+  }else if(q.ty==='match'){
+    const m=a||{}, sel=cur.msel[q.id], linkedBy={};
+    Object.entries(m).forEach(([l,r])=>linkedBy[r]=+l);
+    const left=q.pairs.map((p,i)=>{
+      const linked=m[i]!=null, cls=(linked?' linked':'')+(sel===i?' sel':'')+(g?(m[i]===i?' okm':' nom'):'');
+      return `<button type="button" class="mitem${cls}" style="--pc:var(${PAL[i%PAL.length]})" data-act="ml" data-q="${q.id}" data-i="${i}" data-fk="${q.id}-l${i}"${lock}><span class="tag">${LETTER[i]}</span>${esc(p[0])}</button>`;
+    }).join('');
+    const right=cur.shuf[q.id].map(j=>{
+      const by=linkedBy[j], linked=by!=null, cls=(linked?' linked':'')+(g&&linked?(by===j?' okm':' nom'):'');
+      return `<button type="button" class="mitem${cls}" style="--pc:var(${linked?PAL[by%PAL.length]:'--line'})" data-act="mr" data-q="${q.id}" data-j="${j}" data-fk="${q.id}-r${j}"${lock}><span class="tag">${linked?LETTER[by]:''}</span>${esc(q.pairs[j][1])}</button>`;
+    }).join('');
+    body=`<div class="match"><div class="mcol mleft">${left}</div><div class="mcol mright">${right}</div></div>`;
+  }else if(q.ty==='order'){
+    const seq=a||[], full=seq.length===q.steps.length;
+    body='<div class="olist">'+(cur.shuf[q.id]||range(q.steps.length)).map(si=>{
+      const pos=seq.indexOf(si), on=pos>=0;
+      const cls=(on?' on':'')+(g?(pos===si?' ok':' no'):'');
+      const fix=g&&pos!==si?`<span class="ofix">정답 ${si+1}</span>`:'';
+      return `<button type="button" class="oitem${cls}" data-act="ord" data-q="${q.id}" data-s="${si}" data-fk="${q.id}-o${si}" aria-pressed="${on}"${lock}>`+
+        `<span class="num">${on?pos+1:''}</span><span class="txt">${esc(q.steps[si])}</span>${fix}</button>`;
+    }).join('')+'</div>'+(g&&!full?'<p class="guide">(순서를 끝까지 매기지 않아 미응답 처리)</p>':'');
+  }else if(q.ty==='num'){
+    const cls=g?(ok?'ans':'miss'):'';
+    body=`<div class="numrow"><input class="${cls}" type="text" inputmode="decimal" data-act="num" data-q="${q.id}" value="${esc(a??'')}" aria-label="숫자 답"${lock}><span>${esc(q.unit||'')}</span></div>`;
+  }
+  const numAns=q.ty==='mc'?`${q.a+1}번 · `:q.ty==='multi'?q.a.map(i=>i+1).join('·')+'번 · ':'';
+  const exp=g?`<div class="exp"><p><b>정답</b> ${numAns}${esc(correctText(q))}</p>${ok?'':`<p class="mine">내 답: ${esc(answerText(q,fa))}</p>`}<p>${q.w}</p><p class="an">📖 자료 위치: ${esc(q.an)}</p></div>`:'';
+  const src=cur.mode==='retry'?`<span class="qsrc">${QTAB[q.id].idx+1}. ${esc(QTAB[q.id].title)}</span>`:'';
+  return `<article class="q${g?(ok?' correct':' wrong')+' locked':''}" id="card-${q.id}" data-n="${n}" style="--tc:var(${color})">`+
+    `<div class="qhead"><span class="qn">Q${n}</span><span class="tbadge">${label}</span>${lvHTML(q.lv)}${src}${g?`<span class="verdict">${ok?'✓ 정답':'✗ 오답'}</span>`:''}</div>`+
+    `<div class="qt">${q.p}</div>${hintHTML(q)}${g?'':`<p class="guide">${GUIDE[q.ty]}</p>`}${body}${exp}</article>`;
+}
+const LV_NAME=['쉬움','보통','어려움'];
+function lvHTML(lv){
+  lv=lv||1;
+  const dots=[1,2,3].map(k=>k<=lv?`<i class="d${k}">●</i>`:'<i class="off">○</i>').join('');
+  return `<span class="lv lv${lv}" title="난이도 ${LV_NAME[lv-1]}"><span class="dots" aria-hidden="true">${dots}</span><em>${LV_NAME[lv-1]}</em></span>`;
+}
+// 자료 발췌: 이스케이프 후 마크다운 기호만 가볍게 서식으로 (**굵게**, `코드`, 머리 #)
+const srcText=t=>esc(t).replace(/^#{1,6}\s*/gm,'').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`([^`\n]+)`/g,'<code>$1</code>');
+function hintHTML(q){
+  if(!q.h)return '';
+  const open=cur.hints.has(q.id), label=q.ty==='num'?'Hint · 계산식':'Hint';
+  // 2단계: ① 자세한 힌트(h) ② 자료 보기 — 자료 원문 발췌(src) + 위치(an)
+  const sopen=cur.srcs.has(q.id);
+  const src=q.src?`<div class="srcwrap"><button type="button" class="srcbtn" data-act="src" data-q="${q.id}" data-fk="${q.id}-src" aria-expanded="${sopen}" aria-controls="src-${q.id}">`+
+    `<span class="caret" aria-hidden="true">${sopen?'▾':'▸'}</span>📖 자료 보기</button>`+
+    (sopen?`<blockquote class="src" id="src-${q.id}"><p>${srcText(q.src)}</p>${q.an?`<cite>${esc(q.an)}</cite>`:''}</blockquote>`:'')+`</div>`:'';
+  return `<div class="hintwrap"><button type="button" class="hintbtn" data-act="hint" data-q="${q.id}" data-fk="${q.id}-hint" aria-expanded="${open}" aria-controls="hint-${q.id}">`+
+    `<span class="caret" aria-hidden="true">${open?'▾':'▸'}</span>${label}</button>`+
+    (open?`<div class="hint" id="hint-${q.id}">${q.h}${src}</div>`:'')+`</div>`;
+}
+function refreshCard(q){
+  const el=document.getElementById('card-'+q.id);if(!el)return;
+  const fk=document.activeElement&&document.activeElement.dataset?document.activeElement.dataset.fk:null;
+  el.outerHTML=cardHTML(q,el.dataset.n);
+  if(fk){const f=app.querySelector(`[data-fk="${fk}"]`);if(f&&!f.disabled)f.focus();}
+  updateProgress();
+}
+const pad2=n=>String(n).padStart(2,'0');
+const fmtCnt=(n,t)=>`(${pad2(n)}/${pad2(t)})`;
+// 탭별 푼 문항 수: 지금 보는 탭 → 화면 상태, 그 외 → 풀던 답(drafts) → 채점 기록
+function tabAnswered(t){
+  const src=cur&&cur.mode==='study'&&cur.tab===t?cur.ans:(S.drafts[t.id]||(S.tabs[t.id]&&S.tabs[t.id].answers)||{});
+  return t.qs.filter(q=>isAnswered(q,src[q.id])).length;
+}
+function updateProgress(){
+  const p=document.getElementById('pbar');if(!p||!cur)return;
+  const n=cur.list.filter(answered).length, cnt=fmtCnt(n,cur.list.length);
+  p.style.width=pct(n,cur.list.length)+'%';
+  document.getElementById('ptxt').textContent=`${n} / ${cur.list.length} 응답`;
+  const g=document.getElementById('gradeCnt');if(g)g.textContent=cnt;
+  if(cur.mode==='study'){
+    const c=document.getElementById('qc-'+cur.tab.id);if(c)c.textContent=cnt;
+    if(!cur.graded){  // 풀던 답 저장 → 탭을 옮겨도 유지
+      if(n||Object.keys(cur.ans).some(k=>{const v=cur.ans[k];return Array.isArray(v)?v.length:v&&typeof v==='object'?Object.keys(v).length:v!=null&&v!=='';}))
+        S.drafts[cur.tab.id]=JSON.parse(JSON.stringify(cur.ans));
+      else delete S.drafts[cur.tab.id];
+      save();
+    }
+  }
+}
+
+/* 학습 화면 상호작용 */
+function onSheetClick(el){
+  const q=QMAP[el.dataset.q];if(!q)return;
+  if(el.dataset.act==='hint'){cur.hints.has(q.id)?cur.hints.delete(q.id):cur.hints.add(q.id);refreshCard(q);return;}  // 채점 후에도 열고 닫기 가능
+  if(el.dataset.act==='src'){cur.srcs.has(q.id)?cur.srcs.delete(q.id):cur.srcs.add(q.id);refreshCard(q);return;}  // 채점 후에도 열고 닫기 가능
+  if(cur.graded)return;
+  const act=el.dataset.act;
+  if(act==='ox'){cur.ans[q.id]=el.dataset.v==='1';}
+  else if(act==='ml'){
+    const i=+el.dataset.i, m=cur.ans[q.id]||(cur.ans[q.id]={});
+    if(m[i]!=null){delete m[i];cur.msel[q.id]=null;}
+    else cur.msel[q.id]=cur.msel[q.id]===i?null:i;
+  }else if(act==='mr'){
+    const j=+el.dataset.j, m=cur.ans[q.id]||(cur.ans[q.id]={}), sel=cur.msel[q.id];
+    const by=Object.keys(m).find(l=>m[l]===j);
+    if(by!=null)delete m[by];
+    if(sel!=null){m[sel]=j;cur.msel[q.id]=null;}
+  }else if(act==='ord'){
+    const si=+el.dataset.s, seq=cur.ans[q.id]||(cur.ans[q.id]=[]), pos=seq.indexOf(si);
+    if(pos>=0)seq.length=pos;  // 1번을 누르면 전부 리셋, 2번을 누르면 1번은 남고 2번부터 삭제
+    else seq.push(si);
+  }else return;
+  cur.armed=false;
+  refreshCard(q);
+}
+function onSheetChange(el){
+  const q=QMAP[el.dataset.q];if(!q||cur.graded)return;
+  if(el.dataset.act==='pick')cur.ans[q.id]=+el.dataset.i;
+  else if(el.dataset.act==='tick'){
+    cur.ans[q.id]=[...app.querySelectorAll(`input[data-act="tick"][data-q="${q.id}"]:checked`)].map(x=>+x.dataset.i);
+  }
+  cur.armed=false;updateProgress();
+}
+function onSheetInput(el){
+  if(el.dataset.act==='num'&&!cur.graded){cur.ans[el.dataset.q]=el.value;cur.armed=false;updateProgress();}
+}
+
+/* ── 화면: 홈 ──────────────────────────── */
+function viewHome(){
+  const done=TABS.filter(t=>S.tabs[t.id]).length, open=wrongList(false).length, unlocked=gameUnlocked();
+  const firstTodo=(TABS.find(t=>!S.tabs[t.id])||TABS[0]).id;
+  app.innerHTML=`
+  <nav class="crumbs"><a href="../index.html#08">← 과정 목록</a></nav>
+  <h1>${esc(BANK.title)}</h1>
+  ${BANK.subtitle?`<p class="sub">${esc(BANK.subtitle)}</p>`:''}
+  <p class="meta">${ALLQ.length}문항 · ${TABS.length}탭 · 출처 ${esc(BANK.course||BANK.source)}${BANK.updated?' · '+esc(BANK.updated):''}</p>
+  <div class="field"><label for="nm">이름 (결과 코드·순위에 사용)</label><input id="nm" data-act="name" autocomplete="nickname" maxlength="20" value="${esc(S.name)}" placeholder="이름 또는 닉네임"></div>
+  <div class="homeprog"><div class="bar"><div style="width:${pct(done,TABS.length)}%"></div></div><span>${done} / ${TABS.length} 탭 채점 완료</span></div>
+  <div class="grid">${TABS.map((t,i)=>{const r=S.tabs[t.id];
+    return `<a class="tcard${r?' done':''}${r&&r.score===r.total?' perfect':''}" href="#study/${t.id}">
+      <span class="tn">탭 ${i+1} · ${esc(t.ref||'')}</span><span class="tt">${esc(t.title)}</span>
+      <span class="ts">${t.qs.length}문항 ${r?`<b>✓ ${r.score}/${r.total}${r.score===r.total?' ⭐':''}</b>`:'<span>미응시</span>'}</span></a>`;}).join('')}
+  </div>
+  <div class="actions">
+    <a class="btn primary" href="#study/${firstTodo}">📘 학습 시작</a>
+    <a class="btn${unlocked?'':' locked'}" href="#game">⚡ 게임 모드${unlocked?'':' 🔒'}</a>
+    <a class="btn" href="#notes">📒 오답노트${open?` <span class="cnt">${open}</span>`:''}</a>
+    <a class="btn${unlocked?'':' locked'}" href="#key">📄 해설지${unlocked?'':' 🔒'}</a>
+    ${allGraded()?'<a class="btn" href="#summary">★ 종합 결과</a>':''}
+  </div>
+  ${unlocked?'':'<p class="lockmsg">🔒 게임 모드와 해설지는 탭 하나를 채점하면 열립니다.</p>'}
+  <details class="more noprint"><summary>기록 관리</summary>
+    <p class="note-sm">진행 기록·오답노트·순위는 이 브라우저에만 저장됩니다. 다른 기기와 공유되지 않습니다.</p>
+    <button class="btn danger" type="button" data-act="reset">이 문제은행 기록 모두 지우기</button>
+  </details>`;
+}
+
+/* ── 화면: 학습 ────────────────────────── */
+function viewStudy(tid,fresh){
+  const tab=TABS.find(t=>t.id===tid)||TABS[0];
+  cur=newSheet('study',tab.qs,tab);
+  const rec=S.tabs[tab.id], draft=S.drafts[tab.id];
+  if(fresh){delete S.drafts[tab.id];save();}
+  else if(draft){Object.assign(cur.ans,JSON.parse(JSON.stringify(draft)));}  // 풀던 중이면 이어서
+  else if(rec&&rec.answers){
+    Object.assign(cur.ans,JSON.parse(JSON.stringify(rec.answers)));
+    (rec.touched||[]).forEach(id=>cur.touched.add(id));
+    cur.graded=true;
+  }
+  renderSheet();
+}
+function renderSheet(){
+  const study=cur.mode==='study', tab=cur.tab;
+  const tabbar=study?`<nav class="tabbar noprint" role="tablist" aria-label="탭">${TABS.map((t,i)=>{const r=S.tabs[t.id];
+      return `<a class="tabchip" role="tab" href="#study/${t.id}" aria-selected="${t===tab}"><b>${i+1}</b><span class="tl">${esc(t.title)}</span><span class="qc" id="qc-${t.id}">${fmtCnt(tabAnswered(t),t.qs.length)}</span>${r?`<span class="sc" title="채점 점수">✓${r.score}</span>`:''}</a>`;}).join('')}
+      ${allGraded()?'<a class="tabchip sum" href="#summary">★ 종합</a>':''}</nav>`:'';
+  const head=study?`<div class="tabhead"><h2>${tab.idx+1}. ${esc(tab.title)}</h2>${tab.ref?`<span class="part">${esc(tab.ref)}</span>`:''}</div>`
+                  :`<div class="tabhead"><h2>🔁 오답 다시 풀기</h2><span class="part">${cur.list.length}문항</span></div>`;
+  const next=study?(tab.idx+1<TABS.length?`<a class="btn" href="#study/${TABS[tab.idx+1].id}">다음 탭 →</a>`:(allGraded()?'<a class="btn" href="#summary">★ 종합 결과</a>':'')):'<a class="btn" href="#notes">오답노트로</a>';
+  app.innerHTML=`<div class="sheet">
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>${study?'학습 모드':'오답노트'}</span></nav>
+  ${tabbar}${head}
+  <div class="progress"><div class="bar"><div id="pbar"></div></div><span id="ptxt"></span></div>
+  <div id="sheetResult">${cur.graded?sheetResultHTML():''}</div>
+  <div id="cards" class="${cur.onlyWrong?'onlywrong':''}">${cur.list.map((q,i)=>cardHTML(q,i+1)).join('')}</div>
+  <p class="warn" id="warn" role="status"></p>
+  <div class="actions">
+    ${cur.graded?'':`<button class="btn primary" type="button" data-act="grade">${study?'이 탭 채점하기':'채점하기'} <span class="qc" id="gradeCnt"></span></button>`}
+    ${cur.graded?`<button class="btn" type="button" data-act="onlywrong">${cur.onlyWrong?'전체 보기':'오답만 보기'}</button>`:''}
+    ${study?'<button class="btn" type="button" data-act="retab">다시 풀기</button>':''}
+    ${next}
+  </div></div>`;
+  const on=app.querySelector('.tabchip[aria-selected="true"]');
+  if(on)on.parentElement.scrollLeft=on.offsetLeft-on.parentElement.offsetLeft-16;
+  updateProgress();
+}
+function sheetResultHTML(){
+  const n=cur.list.length, score=cur.list.filter(q=>isCorrect(q,finalAns(q))).length, p=pct(score,n);
+  const msg=p===100?'만점입니다! 🎉':p>=80?'잘했어요. 틀린 문항의 해설과 자료 위치를 확인하세요.':p>=60?'절반 이상 이해했어요. 오답노트로 다시 풀어 보세요.':'자료를 한 번 더 읽고 다시 풀어 보세요.';
+  return `<div class="panel"><div class="score">${score}<small> / ${n} · ${p}%</small></div><p class="msg">${msg}</p>
+    ${cur.mode==='study'&&gameUnlocked()?'<a class="btn" href="#game">⚡ 게임 모드 도전</a>':''}</div>`;
+}
+function gradeSheet(){
+  const miss=cur.list.map((q,i)=>answered(q)?0:i+1).filter(Boolean);
+  if(miss.length&&!cur.armed){
+    cur.armed=true;
+    document.getElementById('warn').textContent=`미응답 ${miss.length}문항 (Q${miss.join(', Q')}). 한 번 더 누르면 미응답은 오답으로 채점합니다.`;
+    return;
+  }
+  const firstUnlock=!gameUnlocked();
+  cur.graded=true;
+  const snap={};let score=0;
+  cur.list.forEach(q=>{
+    const a=finalAns(q);
+    if(a!=null)snap[q.id]=a;
+    if(isCorrect(q,a)){score++;markSolved(q.id);}
+    else addWrong(q.id,answerText(q,a));
+  });
+  if(cur.mode==='study'){
+    S.tabs[cur.tab.id]={score,total:cur.list.length,answers:snap,touched:[...cur.touched],at:Date.now()};
+    delete S.drafts[cur.tab.id];
+  }
+  save();
+  renderSheet();
+  window.scrollTo({top:0,behavior:RM.matches?'auto':'smooth'});
+  say(`채점 결과 ${score}점, ${cur.list.length}문항 중`);
+  if(cur.mode==='study'&&firstUnlock)setTimeout(()=>toast('⚡ 게임 모드와 해설지가 열렸습니다!'),300);
+  else if(cur.mode==='study'&&allGraded())setTimeout(()=>toast('★ 모든 탭 완료! 종합 결과를 확인하세요.'),300);
+}
+
+/* ── 화면: 종합 결과 ───────────────────── */
+function summaryStats(){
+  let score=0,total=0;const byType={},byTab=[];
+  TABS.forEach(t=>{const r=S.tabs[t.id];if(!r)return;let s=0;
+    t.qs.forEach(q=>{const ok=isCorrect(q,r.answers?r.answers[q.id]:null);if(ok)s++;
+      const b=byType[q.ty]||(byType[q.ty]=[0,0]);b[1]++;if(ok)b[0]++;});
+    byTab.push([t,s,t.qs.length]);score+=s;total+=t.qs.length;});
+  return {score,total,byType,byTab};
+}
+function resultCode(score,total){return `${BANK.code||'QB'}-${letter(pct(score,total))}-${hash([S.name.trim(),score,total,BANK.salt].join('|'))}`;}
+function viewSummary(){
+  if(!allGraded()){location.hash='#home';return;}
+  const st=summaryStats(), p=pct(st.score,st.total), code=resultCode(st.score,st.total);
+  app.innerHTML=`
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>종합 결과</span></nav>
+  <div class="printhead">${esc(BANK.title)} · ${esc(S.name||'이름 없음')} · ${today()}</div>
+  <div class="panel">
+    <h2 class="ph">★ 종합 결과</h2>
+    <div class="score">${st.score}<small> / ${st.total} · ${p}%</small></div>
+    <p class="msg">${esc(S.name||'이름 없음')} · 결과 코드 <span class="rcode">${code}</span></p>
+    <h3 class="sh">탭별</h3>
+    <div class="bd">${st.byTab.map(([t,s,n])=>`<div><span>${t.idx+1}. ${esc(t.title)}</span><span class="b"><i style="width:${pct(s,n)}%"></i></span><span>${s}/${n}</span></div>`).join('')}</div>
+    <h3 class="sh">유형별</h3>
+    <div class="bd">${Object.entries(st.byType).map(([ty,[s,n]])=>`<div style="--tc:var(${TYPES[ty][1]})"><span>${TYPES[ty][0]}</span><span class="b"><i style="width:${pct(s,n)}%"></i></span><span>${s}/${n}</span></div>`).join('')}</div>
+  </div>
+  <div class="actions">
+    <button class="btn primary" type="button" data-act="copyreport">📋 결과 리포트 복사</button>
+    <a class="btn" href="#notes">📒 오답노트</a>
+    <a class="btn" href="#game">⚡ 게임 모드</a>
+    <button class="btn" type="button" data-act="print">🖨 인쇄</button>
+  </div>`;
+}
+function reportMD(){
+  const st=summaryStats();
+  let md=`# ${BANK.title} 결과\n\n- 이름: ${S.name||'-'}\n- 날짜: ${today()}\n- 점수: ${st.score}/${st.total} (${pct(st.score,st.total)}%)\n- 결과 코드: ${resultCode(st.score,st.total)}\n\n| 탭 | 점수 |\n|---|---|\n`;
+  st.byTab.forEach(([t,s,n])=>md+=`| ${t.idx+1}. ${t.title} | ${s}/${n} |\n`);
+  md+='\n'+notesMD(true);
+  return md;
+}
+
+/* ── 화면: 오답노트 ────────────────────── */
+function noteHTML(id){
+  const q=QMAP[id], w=S.wrong[id];
+  return `<div class="note${w.solved?' solved':''}"><div class="qt">${q.p}</div><dl>
+    <dt>내 답</dt><dd>${esc(w.last||'-')}</dd><dt>정답</dt><dd><b>${esc(correctText(q))}</b></dd><dt>해설</dt><dd>${q.w}</dd></dl>
+    <div class="foot"><span>📖 ${esc(q.an)}</span><span>${w.solved?'✓ 극복':'틀린 횟수 '+w.n}</span></div></div>`;
+}
+function groupByTab(ids){
+  const out=[];let last=null;
+  ids.forEach(id=>{const t=QTAB[id];if(t!==last){out.push(`<h3 class="ngroup"><span class="part">탭 ${t.idx+1}</span>${esc(t.title)}</h3>`);last=t;}out.push(noteHTML(id));});
+  return out.join('');
+}
+function viewNotes(){
+  const open=wrongList(false), solved=wrongList(true);
+  app.classList.add('sheet');
+  app.innerHTML=`
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>오답노트</span></nav>
+  <div class="printhead">${esc(BANK.title)} 오답노트 · ${esc(S.name||'')} · ${today()}</div>
+  <h1>📒 오답노트</h1>
+  <p class="sub">남은 오답 ${open.length} · 극복 ${solved.length}. 학습 모드와 게임 모드에서 틀린 문항이 모입니다.</p>
+  <div class="actions">
+    <a class="btn primary${open.length?'':' locked'}" href="#retry"${open.length?'':' aria-disabled="true"'}>🔁 오답만 다시 풀기</a>
+    <button class="btn" type="button" data-act="copynotes"${open.length+solved.length?'':' disabled'}>📋 마크다운 복사</button>
+    <button class="btn" type="button" data-act="print">🖨 인쇄</button>
+  </div>
+  ${open.length?groupByTab(open):'<div class="keylock">남은 오답이 없습니다. 👏</div>'}
+  ${solved.length?`<details class="more"><summary>✓ 극복한 문항 ${solved.length}개</summary>${groupByTab(solved)}
+    <button class="btn danger noprint" type="button" data-act="clearsolved">극복한 항목 비우기</button></details>`:''}`;
+}
+function notesMD(onlyOpen){
+  const ids=onlyOpen?wrongList(false):wrongList(false).concat(wrongList(true));
+  let md=`## 오답노트 (${ids.length}문항)\n`;let last=null;
+  ids.forEach(id=>{const q=QMAP[id],w=S.wrong[id],t=QTAB[id];
+    if(t!==last){md+=`\n### 탭 ${t.idx+1}. ${t.title}\n`;last=t;}
+    md+=`\n- **Q. ${strip(q.p)}**${w.solved?' ✓극복':''}\n  - 내 답: ${w.last||'-'}\n  - 정답: ${correctText(q)}\n  - 해설: ${strip(q.w)}\n  - 자료 위치: ${q.an} · 틀린 횟수 ${w.n}\n`;});
+  return md;
+}
+function viewRetry(){
+  const ids=wrongList(false);
+  if(!ids.length){location.hash='#notes';return;}
+  cur=newSheet('retry',ids.map(id=>QMAP[id]),null);
+  renderSheet();
+}
+
+/* ── 화면: 해설지 ──────────────────────── */
+function viewKey(){
+  if(!gameUnlocked()){
+    app.innerHTML=`<nav class="crumbs"><a href="#home">← 홈</a></nav><h1>📄 해설지 🔒</h1><div class="keylock">탭 하나를 채점하면 그 탭의 해설지가 열립니다.<br><br><a class="btn primary" href="#study/${TABS[0].id}">학습 시작</a></div>`;return;
+  }
+  app.classList.add('sheet');
+  app.innerHTML=`
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>해설지</span></nav>
+  <div class="printhead">${esc(BANK.title)} 해설지 · ${esc(S.name||'')} · ${today()}</div>
+  <h1>📄 해설지</h1>
+  <p class="sub">채점한 탭의 정답과 해설입니다. 아직 풀지 않은 탭은 채점 후 공개됩니다.</p>
+  <div class="actions"><button class="btn primary" type="button" data-act="print">🖨 인쇄 / PDF 저장</button></div>
+  ${TABS.map(t=>`<h3 class="ngroup"><span class="part">탭 ${t.idx+1}</span>${esc(t.title)}${t.ref?` <span class="ref">${esc(t.ref)}</span>`:''}</h3>`+
+    (S.tabs[t.id]?t.qs.map((q,i)=>`<div class="keyitem"><div class="kq">${i+1}. ${q.p} <span class="part">${TYPES[q.ty][0]}</span></div>
+      <p class="ka">정답: ${esc(correctText(q))}</p><p class="kw">${q.w}</p><span class="an">📖 ${esc(q.an)}</span></div>`).join('')
+      :`<div class="keylock">🔒 채점 후 공개 · <a href="#study/${t.id}">이 탭 풀기</a></div>`)).join('')}`;
+}
+
+/* ── 화면: 게임 ────────────────────────── */
+let G=null;
+const gameSetup={mode:'timeattack',count:10,scope:'all',time:GAME_MODES.timeattack.defaultTime};
+function gamePool(scope){
+  const M=GAME_MODES[gameSetup.mode];
+  const base=ALLQ.filter(q=>q.game&&M.types.includes(q.ty));
+  if(scope==='played')return shuffle(base.filter(q=>S.tabs[QTAB[q.id].id]));
+  if(scope==='wrong'){const w=new Set(wrongList(false));return shuffle(base.filter(q=>w.has(q.id))).concat(shuffle(base.filter(q=>!w.has(q.id))));}
+  return shuffle(base);
+}
+function viewGamePick(){
+  stopGame();
+  if(!gameUnlocked())return viewGameSetup();
+  app.innerHTML=`
+  <nav class="crumbs"><a href="#home">← 홈</a><span>/</span><span>게임 모드</span></nav>
+  <div class="game">
+    <h1>🎮 게임 모드</h1>
+    <p class="sub">플레이할 게임을 고르세요.</p>
+    <div class="gpick">${GAME_SLOTS.map((id,i)=>{const m=id&&GAME_MODES[id];
+      return m?`<a class="gcard" href="#game/${id}"><span class="gn">GAME ${i+1}</span><b>${m.title}</b><span class="gd">${m.desc}</span></a>`
+              :`<div class="gcard soon" aria-disabled="true"><span class="gn">GAME ${i+1}</span><b>🔒 준비 중</b><span class="gd">새 게임이 추가될 자리입니다.</span></div>`;}).join('')}
+    </div>
+  </div>`;
+}
+function viewGameSetup(modeId){
+  stopGame();
+  if(modeId&&GAME_MODES[modeId])gameSetup.mode=modeId;
+  if(!gameUnlocked()){
+    app.innerHTML=`<nav class="crumbs"><a href="#home">← 홈</a></nav><div class="game"><h1>⚡ 게임 모드 🔒</h1>
+      <div class="keylock">학습 모드에서 <b>탭 하나</b>를 먼저 채점하면 열립니다.<br><br><a class="btn primary" href="#study/${TABS[0].id}">학습 시작</a></div></div>`;return;
+  }
+  const poolN=gamePool(gameSetup.scope).length;
+  const counts=[10,20,30].filter(n=>n<poolN).concat([poolN]);
+  if(!counts.includes(gameSetup.count))gameSetup.count=counts.includes(10)?10:counts[0];
+  const M=GAME_MODES[gameSetup.mode];
+  if(!M.times.includes(gameSetup.time))gameSetup.time=M.defaultTime;
+  const chip=(grp,v,label,dis)=>`<button type="button" class="chip" data-act="gset" data-g="${grp}" data-v="${v}" aria-pressed="${gameSetup[grp]==v}"${dis?' disabled':''}>${label}</button>`;
+  app.innerHTML=`
+  <nav class="crumbs"><a href="#home">← 홈</a><span>/</span><a href="#game">게임 모드</a><span>/</span><span>${M.title.replace(/^\S+\s/,'')}</span></nav>
+  <div class="game">
+    <h1>${M.title}</h1>
+    <p class="sub">${M.desc}</p>
+    <div class="panel">
+      ${Object.keys(GAME_MODES).length>1?`<span class="lbl">게임 종류</span>
+      <div class="chips">${Object.entries(GAME_MODES).map(([id,m])=>chip('mode',id,m.title)).join('')}</div>`:''}
+      <span class="lbl">풀이 시간 (문항당)</span>
+      <div class="chips">${M.times.map(t=>chip('time',t,t+'초')).join('')}</div>
+      <span class="lbl">문항 수</span>
+      <div class="chips">${counts.map(n=>chip('count',n,n===poolN&&!([10,20,30].includes(n))?`전체 ${n}`:String(n))).join('')}</div>
+      <span class="lbl">출제 범위</span>
+      <div class="chips">${chip('scope','all','전체 탭')}${chip('scope','played','풀어본 탭만')}${chip('scope','wrong','오답 우선',!wrongList(false).length)}</div>
+      <div class="field"><label for="gnm">닉네임</label><input id="gnm" data-act="name" maxlength="20" value="${esc(S.name)}" placeholder="순위표에 표시"></div>
+      <div class="rules"><p>⏱ 모든 문항 ${gameSetup.time}초 · 순위는 같은 풀이 시간끼리 비교</p><p>🎯 정답 100점 + 남은 1초당 10점 · 🔥 3연속 ×1.2, 5연속 ×1.5</p><p>⌨ 숫자 1~5로 선택, O/X 키, 복수 선택은 Enter로 제출</p></div>
+      <button class="btn primary block" type="button" data-act="gstart">시작하기</button>
+    </div>
+  </div>`;
+}
+function startGame(){
+  const pool=gamePool(gameSetup.scope).slice(0,gameSetup.count);
+  if(!pool.length){toast('출제할 문항이 없습니다.');return;}
+  G={qs:pool,i:0,score:0,combo:0,maxCombo:0,results:[],locked:false,mode:gameSetup.mode,time:gameSetup.time};
+  renderGameQ();
+}
+function renderGameQ(){
+  const q=G.qs[G.i];
+  G.locked=false;G.elapsed=0;G.last=performance.now();G.limit=G.time*1000;G.warned=false;G.pick=[];
+  G.view=q.ty==='ox'?[true,false]:shuffle(range(q.o.length));
+  const opts=q.ty==='ox'
+    ?`<div class="gox">${G.view.map((v,k)=>`<button type="button" class="gopt" data-act="gans" data-k="${k}" aria-label="${v?'O 맞다':'X 틀리다'}">${v?'O':'X'}</button>`).join('')}</div>`
+    :`<div class="gopts">${G.view.map((oi,k)=>`<button type="button" class="gopt" data-act="gans" data-k="${k}"${q.ty==='multi'?' aria-pressed="false"':''}><kbd>${k+1}</kbd><span>${esc(q.o[oi])}</span></button>`).join('')}</div>`;
+  app.innerHTML=`
+  <div class="game play">
+    <div class="gtop"><div class="hud"><span>${G.i+1} / ${G.qs.length}</span><span class="combo${G.combo>=3?' hot':''}">🔥 콤보 ${G.combo}</span><span class="pts">${G.score.toLocaleString()}점</span></div>
+    <div class="timer" id="timer"><div id="tbar"></div></div><div class="tleft" id="tleft"></div></div>
+    <div class="gtype">${TYPES[q.ty][0]}${q.ty==='multi'?' · 모두 고른 뒤 제출':''}</div>
+    <div class="gq">${q.p}</div>
+    <div class="gbottom">${opts}
+    <div class="gfloat" id="gfloat" aria-live="polite"></div>
+    <div class="gsub"><button class="btn" type="button" data-act="gquit">그만하기</button>
+      ${q.ty==='multi'?'<button class="btn primary" type="button" data-act="gsubmit">제출 (Enter)</button>':''}</div></div>
+  </div>`;
+  G.raf=requestAnimationFrame(tick);
+}
+function tick(now){
+  if(!G||G.locked)return;
+  G.elapsed+=now-G.last;G.last=now;
+  const rem=Math.max(0,G.limit-G.elapsed), ratio=rem/G.limit;
+  const shown=RM.matches?Math.ceil(rem/1000)*1000/G.limit:ratio;
+  const bar=document.getElementById('tbar'), tm=document.getElementById('timer');
+  if(bar){bar.style.width=(Math.min(1,shown)*100)+'%';tm.className='timer'+(ratio<.25?' lo':ratio<.5?' mid':'');
+    document.getElementById('tleft').textContent=(rem/1000).toFixed(1)+'초';}
+  if(!G.warned&&rem<=5000){G.warned=true;say('5초 남았습니다');}
+  if(rem<=0){judge(null,true);return;}
+  G.raf=requestAnimationFrame(tick);
+}
+function judge(ans,timeout){
+  if(!G||G.locked)return;
+  G.locked=true;cancelAnimationFrame(G.raf);
+  const q=G.qs[G.i], used=Math.min(G.elapsed,G.limit), ok=!timeout&&isCorrect(q,ans);
+  let gain=0;
+  if(ok){G.combo++;G.maxCombo=Math.max(G.maxCombo,G.combo);
+    const mult=G.combo>=5?1.5:G.combo>=3?1.2:1;
+    gain=Math.round((100+Math.floor((G.limit-used)/100))*mult);G.score+=gain;}
+  else G.combo=0;
+  G.results.push({id:q.id,ok,ans,timeout,ms:used,gain});
+  // 판정 표시
+  app.querySelectorAll('[data-act="gans"]').forEach(b=>{
+    const k=+b.dataset.k, v=G.view[k];
+    const right=q.ty==='ox'?q.a===v:q.ty==='mc'?q.a===v:q.a.includes(v);
+    const picked=q.ty==='ox'||q.ty==='mc'?ans===v:(ans||[]).includes(v);
+    if(right)b.classList.add('ans');else if(picked)b.classList.add('miss');
+    b.disabled=true;
+  });
+  const f=document.getElementById('gfloat');
+  f.className='gfloat pop '+(ok?'ok':'no');
+  f.textContent=ok?`+${gain}${G.combo>=3?` 🔥×${G.combo>=5?'1.5':'1.2'}`:''}`:timeout?'⏰ 시간 초과':'✗ 오답';
+  if(timeout){const tm=document.getElementById('timer');tm&&tm.classList.add('out');}
+  const sb=app.querySelector('[data-act="gsubmit"]');if(sb)sb.disabled=true;
+  app.querySelector('.pts').textContent=G.score.toLocaleString()+'점';
+  const c=app.querySelector('.combo');c.textContent='🔥 콤보 '+G.combo;c.classList.toggle('hot',G.combo>=3);
+  G.next=setTimeout(()=>{if(!G)return;G.i++;G.i<G.qs.length?renderGameQ():finishGame();},ok?900:1400);
+}
+function gameAnswer(k){
+  if(!G||G.locked)return;
+  const q=G.qs[G.i];if(k<0||k>=G.view.length)return;
+  if(q.ty==='multi'){
+    const v=G.view[k], i=G.pick.indexOf(v);
+    i<0?G.pick.push(v):G.pick.splice(i,1);
+    const b=app.querySelector(`[data-act="gans"][data-k="${k}"]`);b&&b.setAttribute('aria-pressed',i<0);
+  }else judge(G.view[k],false);
+}
+function gameSubmit(){if(G&&!G.locked&&G.qs[G.i].ty==='multi')judge(G.pick.slice(),false);}
+function stopGame(){if(G){cancelAnimationFrame(G.raf);clearTimeout(G.next);G=null;}}
+function finishGame(){
+  const R=G.results, correct=R.filter(r=>r.ok).length, M=GAME_MODES[G.mode];
+  R.forEach(r=>{const q=QMAP[r.id];if(r.ok)markSolved(r.id);else addWrong(r.id,r.timeout?'(시간 초과)':answerText(q,r.ans));});
+  const rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:(S.name||'').trim()||'익명',score:G.score,
+    correct,total:R.length,rate:pct(correct,R.length),avg:Math.round(R.reduce((s,r)=>s+r.ms,0)/R.length/100)/10,combo:G.maxCombo,mode:G.mode,time:G.time,at:Date.now()};
+  const rank=Leaderboard.add(rec);
+  save();
+  const board=Leaderboard.load(boardKey(rec)), top=board.slice(0,10), mine=board.find(r=>r.id===rec.id);
+  const medal=i=>i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1;
+  const row=(r,i)=>`<tr class="${r.id===rec.id?'me':''}"><td>${medal(i)}</td><td>${esc(r.name)}</td><td class="r">${r.score.toLocaleString()}</td><td class="r">${r.rate}%</td><td class="r">${r.correct}/${r.total}</td><td class="r">${new Date(r.at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})}</td></tr>`;
+  const wrong=R.filter(r=>!r.ok);
+  G=null;
+  app.innerHTML=`
+  <div class="game">
+    <div class="panel center">
+      <p class="note-sm" style="margin:0">최종 점수</p>
+      <div class="score xl">${rec.score.toLocaleString()}</div>
+      <p class="msg">${M.title} · ${rec.time}초 — ${rank===1?'🏆 이 조건 최고 기록!':`이 조건 순위 ${rank}위`}</p>
+      <div class="bignum"><div><b>${correct}/${rec.total}</b><span>정답</span></div><div><b>${rec.rate}%</b><span>정답률</span></div><div><b>${rec.avg}초</b><span>평균 응답</span></div><div><b>${rec.combo}</b><span>최고 콤보</span></div></div>
+    </div>
+    <div class="panel"><h2 class="ph">🏆 순위 · ${M.title.replace(/^\S+\s/,'')} ${rec.time}초 · 이 브라우저 기록</h2>
+      <table class="board"><thead><tr><th>#</th><th>이름</th><th class="r">점수</th><th class="r">정답률</th><th class="r">정답</th><th class="r">날짜</th></tr></thead>
+      <tbody>${top.map(row).join('')}${rank>10&&mine?row(mine,rank-1):''}</tbody></table></div>
+    ${wrong.length?`<details class="more panel"><summary>틀린 문항 ${wrong.length}개 · 해설 보기 (오답노트에 저장됨)</summary>
+      ${wrong.map(r=>{const q=QMAP[r.id];return `<div class="keyitem"><div class="kq">${q.p}</div><p class="mine" style="margin:4px 0">내 답: ${esc(r.timeout?'(시간 초과)':answerText(q,r.ans))}</p><p class="ka">정답: ${esc(correctText(q))}</p><p class="kw">${q.w}</p><span class="an">📖 ${esc(q.an)}</span></div>`;}).join('')}</details>`:''}
+    <div class="actions"><button class="btn primary" type="button" data-act="gagain">↻ 다시 하기</button><a class="btn" href="#notes">📒 오답노트</a><a class="btn" href="#home">홈</a></div>
+  </div>`;
+}
+
+/* ── 라우터 · 이벤트 ───────────────────── */
+function route(){
+  stopGame();cur=null;app.classList.remove('sheet');
+  const [v,arg]=(location.hash.slice(1)||'home').split('/');
+  ({study:()=>viewStudy(arg),notes:viewNotes,retry:viewRetry,key:viewKey,game:()=>arg?viewGameSetup(arg):viewGamePick(),summary:viewSummary}[v]||viewHome)();
+  window.scrollTo(0,0);
+}
+let resetArmed=false;
+app.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el||el.disabled)return;
+  const act=el.dataset.act;
+  if(cur&&['ox','ml','mr','ord','hint','src'].includes(act))return onSheetClick(el);
+  switch(act){
+    case 'grade':gradeSheet();break;
+    case 'retab':viewStudy(cur.tab.id,true);window.scrollTo(0,0);break;  // 이전 점수는 다시 채점할 때까지 유지
+    case 'onlywrong':cur.onlyWrong=!cur.onlyWrong;document.getElementById('cards').classList.toggle('onlywrong',cur.onlyWrong);el.textContent=cur.onlyWrong?'전체 보기':'오답만 보기';break;
+    case 'copyreport':copy(reportMD());break;
+    case 'copynotes':copy(`# ${BANK.title}\n\n- 이름: ${S.name||'-'} · ${today()}\n\n`+notesMD(false));break;
+    case 'clearsolved':wrongList(true).forEach(id=>delete S.wrong[id]);save();viewNotes();break;
+    case 'print':window.print();break;
+    case 'reset':
+      if(!resetArmed){resetArmed=true;el.textContent='정말 지울까요? 한 번 더 누르세요';setTimeout(()=>{resetArmed=false;if(el.isConnected)el.textContent='이 문제은행 기록 모두 지우기';},4000);break;}
+      resetArmed=false;const nm=S.name;S=blank();S.name=nm;save();toast('기록을 지웠습니다');viewHome();break;
+    case 'gset':gameSetup[el.dataset.g]=['count','time'].includes(el.dataset.g)?+el.dataset.v:el.dataset.v;viewGameSetup();break;
+    case 'gstart':startGame();break;
+    case 'gans':gameAnswer(+el.dataset.k);break;
+    case 'gsubmit':gameSubmit();break;
+    case 'gquit':stopGame();viewGameSetup(gameSetup.mode);break;
+    case 'gagain':startGame();break;
+  }
+});
+app.addEventListener('change',e=>{const el=e.target;if(cur&&el.dataset&&(el.dataset.act==='pick'||el.dataset.act==='tick'))onSheetChange(el);});
+app.addEventListener('input',e=>{
+  const el=e.target;if(!el.dataset)return;
+  if(el.dataset.act==='name'){S.name=el.value;save();}
+  else if(cur)onSheetInput(el);
+});
+document.addEventListener('keydown',e=>{
+  if(!G||G.locked||e.altKey||e.ctrlKey||e.metaKey)return;
+  if(e.target.matches&&e.target.matches('input,textarea'))return;
+  const q=G.qs[G.i], k=e.key.toLowerCase();
+  if(q.ty==='ox'){if(k==='o'||k==='1'){e.preventDefault();gameAnswer(0);}else if(k==='x'||k==='2'){e.preventDefault();gameAnswer(1);}return;}
+  if(/^[1-9]$/.test(k)){e.preventDefault();gameAnswer(+k-1);}
+  else if(k==='enter'&&q.ty==='multi'){e.preventDefault();gameSubmit();}
+});
+document.addEventListener('visibilitychange',()=>{if(G&&!document.hidden)G.last=performance.now();});
+// 탭 바 좌우 화살표
+app.addEventListener('keydown',e=>{
+  const t=e.target.closest&&e.target.closest('.tabchip');if(!t||(e.key!=='ArrowRight'&&e.key!=='ArrowLeft'))return;
+  const n=e.key==='ArrowRight'?t.nextElementSibling:t.previousElementSibling;if(n){e.preventDefault();n.focus();}
+});
+/* 테마 */
+let theme=null;try{theme=localStorage.getItem('qb:theme');}catch(e){}
+const applyTheme=()=>{if(theme)document.documentElement.dataset.theme=theme;else delete document.documentElement.dataset.theme;};
+applyTheme();
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const dark=theme?theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  theme=dark?'light':'dark';try{localStorage.setItem('qb:theme',theme);}catch(e){}applyTheme();
+});
+document.title=BANK.title+' · 문제은행';
+window.addEventListener('hashchange',route);
+route();
+})();
+</script>
+</body>
+</html>

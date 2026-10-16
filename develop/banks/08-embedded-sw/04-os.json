@@ -1,0 +1,1910 @@
+{
+  "id": "emb-os",
+  "code": "EOS",
+  "title": "임베디드 SW · 운영체제 활용 (3일)",
+  "subtitle": "File System과 CLI · Process와 자원 · 커널 파일과 Script 자동화",
+  "course": "08 · 임베디드 · 시스템 SW",
+  "source": "08-AI_CAMPUS-main/os-day1~3/운영체제_Day*.pdf + OS/운영체제활용교안.pdf",
+  "salt": "emb-os",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "OS의 역할 · GUI와 CLI",
+      "ref": "OS Day1 S2 · 교안 C01",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "하드웨어와 프로그램 사이에서 자원을 관리하고 프로그램에 분배하는 시스템 소프트웨어는 무엇입니까?",
+          "o": [
+            "Operating System",
+            "Device Driver",
+            "Shell",
+            "File Explorer"
+          ],
+          "a": 0,
+          "h": "자료의 3층 그림에서 위층은 프로그램, 아래층은 CPU·Memory·Storage·I/O 하드웨어입니다. 그 가운데 층에 놓여 자원을 관리하고 나눠 주는 시스템 소프트웨어를 떠올려 보세요.",
+          "w": "OS는 CPU·Memory·Storage·I/O 같은 자원을 관리하고 프로그램에 분배하는 시스템 소프트웨어입니다. Shell은 명령을 해석하는 통역, File Explorer는 GUI 창구일 뿐입니다.",
+          "an": "OS Day1 S2 p.7",
+          "src": "OS의 정의 — 하드웨어와 프로그램 사이\n프로그램\nchrome.exe · music.exe · 여러분이 만들 프로그램\nOperating System\n자원을 관리하고 프로그램에 분배하는 시스템 소프트웨어\n하드웨어\nCPU · Memory · Storage · I/O — 컴퓨터 구조에서 배운 4대 부품\n프로그램은 하드웨어를 직접 만지지 않는다 — 반드시 OS를 거친다"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "GUI와 비교해 CLI가 '압도적'이라고 소개된 작업 분야는 무엇입니까?",
+          "o": [
+            "처음 배우는 일",
+            "보이는 대로 조작",
+            "반복·자동화·원격",
+            "마우스 클릭 작업"
+          ],
+          "a": 2,
+          "h": "GUI는 보이는 대로 조작해 배우기 쉽지만 반복 작업에는 손이 많이 간다고 정리되어 있습니다. 그 반대편인 키보드 명령 방식이 강한 분야를, 개발자가 CLI를 쓰는 이유와 함께 세 가지로 묶어 보세요.",
+          "w": "CLI는 처음엔 낯설지만 글자로 정확히 지시하므로 반복·자동화·원격 작업에 압도적입니다. 배우기 쉽고 보이는 대로 조작하는 것은 GUI의 장점입니다.",
+          "an": "OS Day1 S2 p.10",
+          "src": "GUI — Graphical User Interface\nFile Explorer · 마우스 클릭\n보이는 대로 조작 — 배우기 쉬움\n반복 작업에는 손이 많이 감\nCLI — Command Line Interface\nTerminal · 키보드 명령\n글자로 정확히 지시 — 처음엔 낯섦\n반복·자동화·원격에 압도적"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "OS가 없는 상태에서 두 프로그램이 같은 Memory를 원하면 어떤 일이 생깁니까?",
+          "o": [
+            "Storage로 자동 이동한다",
+            "같은 칸을 덮어써 충돌한다",
+            "서로 다른 구획을 받는다",
+            "한쪽이 자동으로 대기한다"
+          ],
+          "a": 1,
+          "h": "OS OFF 실험에서는 두 프로그램이 스스로 자리를 잡고, OS ON에서는 OS가 빈 구획을 확인해 서로 다른 구획을 배정합니다. 관리자가 없어 같은 자리를 둘이 동시에 쓰면 무슨 일이 생길지 생각해 보세요.",
+          "w": "OS가 없으면 두 프로그램이 스스로 자리를 잡다가 같은 칸을 덮어써 충돌·정지합니다. 서로 다른 구획을 배정받는 것은 OS ON일 때의 결과입니다.",
+          "an": "OS Day1 S2 p.8",
+          "src": "OS가 없다면 — Memory 충돌 실험\n프로그램 두 개가 같은 Memory를 원할 때\nOS OFF\n두 프로그램이 스스로 자리를 잡음\n→ 같은 칸을 덮어씀 → \n 충돌·정지\nOS ON\n실행 요청 → OS가 빈 구획 확인 → 서로 다른 구획 배정\n→ 둘 다 정상 동작"
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "User Space 프로그램이 보호된 자원에 접근할 때 Kernel로 넘어가는 공식 진입점은 무엇입니까?",
+          "o": [
+            "Library Call",
+            "Shell Prompt",
+            "Device Driver",
+            "System Call"
+          ],
+          "a": 3,
+          "h": "User Space 프로그램은 제한된 권한으로 실행되므로 보호 자원에 직접 손댈 수 없습니다. 이때 Kernel에게 공식적으로 일을 맡기는 '호출' 통로의 이름을 떠올려 보세요.",
+          "w": "보호 자원 접근은 System Call을 통해 Kernel에 위임됩니다. Library Call은 System Call과 같은 것이 아니며, Driver는 Kernel 안에서 실제 하드웨어를 제어하는 계층입니다.",
+          "an": "교안 C01 p.12 · p.15",
+          "src": "2. 보호 경계\nUser Space는 제한된 권한으로 실행되고 보호 자원 접근은\nSystem Call을 통해 Kernel로 넘어갑니다."
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "Deadline을 놓치면 안 되는 장치 제어에 RTOS를 고른다면, 범용 OS보다 중시한 것은 무엇입니까?",
+          "o": [
+            "높은 평균 처리량",
+            "예측 가능한 응답시간",
+            "사용 편의성",
+            "많은 동시 사용자"
+          ],
+          "a": 1,
+          "h": "범용 OS는 평균 처리량과 편의성을 중심에 두지만, RTOS는 다른 기준을 중심에 둡니다. Deadline을 반드시 지켜야 하는 장치라면 '평균적으로 빠른 것'보다 무엇이 보장되어야 할지 생각해 보세요.",
+          "w": "RTOS는 예측 가능한 Deadline 중심, 범용 OS는 평균 처리량·편의성 중심입니다. 제어 시스템에서는 평균 속도보다 지터가 작은 응답이 더 중요할 수 있습니다.",
+          "an": "교안 C01 p.13 · p.16 · p.21",
+          "src": "④ 범용 OS vs RTOS\n평균 처리량·편의성 중심과 예측 가능한 응답시간\n중심의 차이"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "프로그램은 필요하면 OS를 거치지 않고 하드웨어를 직접 만질 수 있습니다.",
+          "a": false,
+          "h": "OS 정의 그림에서 프로그램과 하드웨어 사이에는 항상 OS 층이 놓여 있습니다. 자료는 프로그램이 하드웨어에 닿으려면 반드시 그 가운데 층을 지나야 한다고 강조합니다.",
+          "w": "프로그램은 하드웨어를 직접 만지지 않고 반드시 OS를 거칩니다. 카메라 같은 장치도 앱이 레지스터를 직접 만지지 않고 Driver를 통해 접근합니다.",
+          "an": "OS Day1 S2 p.7 · 교안 p.20",
+          "src": "프로그램은 하드웨어를 직접 만지지 않는다 — 반드시 OS를 거친다"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "GUI와 CLI는 서로 다른 OS 기능을 부르기 때문에 결과물도 달라질 수 있습니다.",
+          "a": false,
+          "h": "GUI(File Explorer)와 CLI(Terminal)는 같은 OS를 부르는 두 개의 창구로 소개됩니다. 자료의 핵심 명제는 두 창구가 결국 어떤 OS 기능을 부르는지, 그래서 결과물이 어떻게 되는지를 말하고 있습니다.",
+          "w": "두 창구는 결국 같은 OS 기능을 부릅니다. 그래서 같은 directory 구조를 File Explorer와 Terminal로 만들면 결과가 동일합니다.",
+          "an": "OS Day1 S2 p.10 · S8 p.45",
+          "src": "GUI와 CLI — 같은 OS를 부르는 두 창구\nGUI — Graphical User Interface\nFile Explorer · 마우스 클릭\n보이는 대로 조작 — 배우기 쉬움\n반복 작업에는 손이 많이 감\nCLI — Command Line Interface\nTerminal · 키보드 명령\n글자로 정확히 지시 — 처음엔 낯섦\n반복·자동화·원격에 압도적\n핵심 명제 — 두 창구는 결국 같은 OS 기능을 부른다. 오늘 하루가 이 문장의 증명이다"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "OS의 4가지 관리 업무와 그 내용을 연결하세요.",
+          "pairs": [
+            [
+              "File System 관리",
+              "파일을 tree로 정리, path로 찾기"
+            ],
+            [
+              "Process 관리",
+              "실행 중인 프로그램에 CPU 배분"
+            ],
+            [
+              "Memory 관리",
+              "구획 배정과 회수"
+            ],
+            [
+              "Device(I/O) 관리",
+              "키보드 입력 → 화면 출력 중계"
+            ]
+          ],
+          "h": "File System 관리는 tree와 path, Process 관리는 CPU, Memory 관리는 구획, Device 관리는 입력과 출력의 중계와 관련됩니다. 각 업무 이름에 들어 있는 자원을 기준으로 내용을 짝지어 보세요.",
+          "w": "File System은 tree와 path, Process는 CPU 배분, Memory는 구획 배정·회수, Device는 입출력 중계입니다. 네 업무 모두 3층 그림의 가운데 층(OS)에서 벌어집니다.",
+          "an": "OS Day1 S2 p.9",
+          "src": "OS의 4가지 관리 업무\n오늘과 내일, 이 지도 위의 위치\nFile System 관리\n파일을 tree로 정리, path로 찾기\n오늘\nProcess 관리\n실행 중인 프로그램에 CPU 배분\n내일\nMemory 관리\n구획 배정과 회수\n내일\nDevice(I/O) 관리\n키보드 입력 → 화면 출력 중계"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "사용자가 파일 읽기를 요청했을 때 OS 안에서 처리되는 순서대로 나열하세요.",
+          "steps": [
+            "Application이 User Space에서 요청 구성",
+            "System Call로 Kernel에 위임",
+            "Kernel이 CPU·RAM·Device 정책 적용",
+            "Driver가 실제 하드웨어 제어",
+            "결과가 User Space로 복귀"
+          ],
+          "h": "요청은 사용자 쪽(User Space)에서 만들어지고, 보호 자원 접근은 Kernel에 위임된 뒤 정책이 적용됩니다. 실제 장치를 움직이는 것은 장치별 Driver이며, 마지막에 결과가 요청한 쪽으로 돌아옵니다.",
+          "w": "앱이 요청을 만들고 System Call로 Kernel에 넘기면, Kernel이 정책을 적용하고 Driver가 하드웨어를 제어한 뒤 결과가 User Space로 돌아옵니다. User→Kernel 경계를 지나는 순간이 System Call입니다.",
+          "an": "교안 C01 WORKFLOW p.17",
+          "src": "2\nApplication\nUser Space에서 요청 구성\n→\n3\nSystem Call\n보호 자원 접근을 Kernel에 위임\n→\n4\nKernel 정책\nCPU· RAM· Device 정책 적용\n→\n5\nDriver / Hardware\n장치별 Driver가 실제 HW 제어\n→\n6\n결과 반환\n결과가 다시 User Space로 복귀"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "AI 앱이 카메라와 CPU를 동시에 많이 쓰는 상황에 대한 설명으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "앱이 카메라 레지스터를 직접 제어한다",
+            "앱은 Driver를 통해 카메라에 접근한다",
+            "Scheduler가 다른 프로세스의 실행 기회를 조정한다",
+            "OS는 자원 충돌에 관여하지 않는다",
+            "메모리·파일 접근도 Kernel 서비스로 보호된다"
+          ],
+          "a": [
+            1,
+            2,
+            4
+          ],
+          "h": "자료의 4단계 정리에 따르면 앱은 카메라 레지스터를 직접 만지지 않고, CPU 독점은 Scheduler가 조정하며, 메모리·파일·네트워크도 Kernel 서비스가 보호합니다. 이 원칙과 어긋나는 '직접 접근'류 보기를 걸러 내세요.",
+          "w": "앱은 Driver를 통해 장치에 접근하고, CPU 독점은 Scheduler가 조정하며, 메모리·파일·네트워크 접근도 Kernel 서비스가 보호합니다. OS는 '자원 충돌을 관리하는 정책 계층'이므로 관여하지 않는다는 보기는 틀립니다.",
+          "an": "교안 C01 문제 상황 p.20",
+          "src": "1 STEP 1\n앱은 카메라 레지스터를 직접 만지지 않고 Driver를 통해 접근한다.\n2 STEP 2\nCPU를 독점하면 Scheduler가 다른 프로세스의 실행 기회를 조정한다.\n3 STEP 3\n메모리·파일·네트워크 접근도 각각 Kernel 서비스를 통해 보호된다."
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "File System · Path · 확장자",
+      "ref": "OS Day1 S3–S4",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>C:\\Users\\student\\Documents\\report.txt</code> — 이 표기의 이름은 무엇입니까?",
+          "o": [
+            "상대 경로",
+            "절대 경로",
+            "확장자",
+            "Prompt"
+          ],
+          "a": 1,
+          "h": "이 표기는 Root인 C:\\에서 시작해 directory 이름을 순서대로 separator로 이어 마지막에 파일명을 적은 형태입니다. 어디서 읽어도 같은 파일을 가리키는 '도로명 주소' 같은 경로 방식을 떠올려 보세요.",
+          "w": "Root(C:\\)부터 파일까지 가는 길을 separator로 이어 적은 것이 절대 경로입니다. 어디서 읽어도 같은 파일을 가리키는 '도로명 주소'에 해당합니다.",
+          "an": "OS Day1 확인 퀴즈 1 · p.15",
+          "src": "Absolute Path\nC:\\Users\\student\\Documents\\report.txt\n• Root(C:\\)에서 파일까지 가는 길을 separator(\\)로 이어 적는다\n• 어디서 읽어도 같은 파일을 가리킨다 — 전국 어디서나 통하는 도로명 주소"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "상대 경로에서 <code>..</code>가 뜻하는 것은 무엇입니까?",
+          "o": [
+            "지금 위치",
+            "Home Directory",
+            "Root directory",
+            "상위 directory로 한 칸"
+          ],
+          "a": 3,
+          "h": "상대 경로에서 점 하나(.)는 지금 위치를 뜻합니다. 점 두 개는 지금 위치에서 tree의 위쪽 방향으로 이동하는 표기라는 점을 생각해 보세요.",
+          "w": "<code>..</code>는 상위 directory로 한 칸, <code>.</code>는 지금 위치입니다. <code>cd ..</code>로 상위로 올라가는 것도 같은 규칙입니다.",
+          "an": "OS Day1 S3 p.16",
+          "src": "여기서 report.txt로 가려면? ..\\Documents\\report.txt\n.. = 상위 directory로 한 칸\n. = 지금 위치"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "Working Directory가 <code>C:\\Users\\student\\Downloads</code>일 때 Documents 안의 report.txt를 가리키는 상대 경로는?",
+          "o": [
+            "..\\Documents\\report.txt",
+            ".\\Documents\\report.txt",
+            "Documents\\report.txt",
+            "..\\..\\report.txt"
+          ],
+          "a": 0,
+          "h": "Downloads와 Documents는 둘 다 student 아래에 있는 형제 directory입니다. 먼저 상위로 한 칸 올라가는 표기를 쓰고, 그다음 Documents와 파일명을 separator로 이어 보세요.",
+          "w": "Downloads와 Documents는 같은 student 아래의 형제 폴더이므로 <code>..</code>로 한 칸 올라간 뒤 Documents로 내려갑니다. <code>.\\Documents</code>는 Downloads 안에서 찾으므로 틀립니다.",
+          "an": "OS Day1 S3 p.16",
+          "src": "지금 위치 (Working Directory)\nC:\\Users\\student\\Downloads\n여기서 report.txt로 가려면? ..\\Documents\\report.txt\n.. = 상위 directory로 한 칸\n. = 지금 위치"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "파일 이름 뒤의 확장자가 결정하는 것은 무엇입니까?",
+          "o": [
+            "파일의 내용",
+            "파일의 크기",
+            "여는 프로그램",
+            "저장 위치"
+          ],
+          "a": 2,
+          "h": "자료는 확장자가 파일 내용이 아니라 '해석 방법'을 바꾼다고 설명합니다. OS가 확장자를 보고 이 파일을 어떤 도구로 열지 연결한다는 점을 떠올려 보세요.",
+          "w": "확장자는 OS가 이 파일을 어떤 프로그램으로 열(해석할)지를 결정합니다. 실제 내용(바이트)·크기·위치는 확장자를 바꿔도 그대로입니다.",
+          "an": "OS Day1 확인 퀴즈 3 · p.21",
+          "src": "파일 이름의 구조 — 이름.확장자\nreport.txt\n문서\n.txt .pdf .hwp\n이미지\n.jpg .png .gif\n미디어\n.mp3 .mp4\n압축·실행·코드\n.zip .exe .py 예고\n확장자가 결정하는 것 — 이 파일을 어떤 프로그램으로 열(해석할) 것인가"
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "확장자 숨김 상태에서 '이력서.pdf'로 보이는 <code>이력서.pdf.exe</code>의 진짜 정체는?",
+          "o": [
+            "실행 파일",
+            "PDF 문서",
+            "압축 파일",
+            "이미지 파일"
+          ],
+          "a": 0,
+          "h": "이중 확장자 파일에서 진짜 확장자는 맨 끝에 있는 것입니다. 맨 끝 확장자가 무엇인지 보고, 그 파일을 더블클릭하면 어떤 동작이 일어나는지 생각해 보세요.",
+          "w": "이중 확장자에서 진짜 확장자는 맨 끝의 .exe이므로 더블클릭하면 실행됩니다. 그래서 File Explorer에서 '파일 확장명' 표시를 켜야 합니다.",
+          "an": "OS Day1 S4 p.23",
+          "src": "위장 파일 — 이중 확장자의 함정\n확장자 표시를 켜야 하는 이유\n이력서.pdf.exe\n• 확장자 숨김(기본값) 상태에서는 「이력서.pdf」로만 보인다 — 아이콘까지 위장 가능\n• 진짜 확장자는 맨 끝 — .exe면 실행 파일. 더블클릭 = 실행"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "파일의 확장자를 .txt에서 .jpg로 바꾸면 파일의 실제 내용(바이트)도 함께 바뀝니다.",
+          "a": false,
+          "h": "자료는 확장자를 바꾸면 '고정된 것'과 '바뀌는 것'을 나누어 보여 줍니다. 파일의 바이트는 어떤 확장자로 바꿔도 그대로이고, 바뀌는 것은 OS가 연결하는 프로그램뿐입니다.",
+          "w": "확장자를 바꿔도 바이트는 그대로이고, OS가 연결하는 프로그램만 바뀝니다. 그래서 .jpg로 바꾼 텍스트는 해석 실패로 나타납니다.",
+          "an": "OS Day1 S4 p.22",
+          "src": "확장자를 바꾸면 — 내용은 고정, 해석만 변경\n고정된 것\n파일의 실제 내용(바이트)\n48 65 6C 6C 6F 20 4F 53 21\n— 어떤 확장자로 바꿔도 그대로\n바뀌는 것\nOS가 연결하는 프로그램\n.txt→메모장 정상 · .jpg→해석 실패\n.zip→손상 판정 · .exe→실행 거부"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "macOS·Linux는 Drive 문자 없이 <code>/</code>에서 시작하고 separator로 슬래시(/)를 씁니다.",
+          "a": true,
+          "h": "Windows는 역슬래시와 C: 같은 Drive 문자를 씁니다. 반면 macOS·Linux 경로는 /Users/student/...처럼 표기되므로 시작 문자와 구분 기호를 확인해 보세요.",
+          "w": "Windows는 <code>C:\\</code>처럼 Drive 문자와 역슬래시를, macOS·Linux는 Drive 문자 없이 <code>/</code>에서 시작하는 슬래시를 씁니다.",
+          "an": "OS Day1 S3 p.17",
+          "src": "OS마다 다른 길 표시\nWindows\nC:\\Users\\student\\...\n역슬래시 \\ · Drive 문자(C:)\nmacOS · Linux\n/Users/student/...\n슬래시 / · Drive 문자 없이 /에서 시작"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "확장자 묶음과 파일 종류를 연결하세요.",
+          "pairs": [
+            [
+              ".txt .pdf .hwp",
+              "문서"
+            ],
+            [
+              ".jpg .png .gif",
+              "이미지"
+            ],
+            [
+              ".mp3 .mp4",
+              "미디어"
+            ],
+            [
+              ".zip .exe .py",
+              "압축·실행·코드"
+            ]
+          ],
+          "h": "문서는 텍스트·PDF·한글 파일, 이미지는 사진 형식, 미디어는 소리·영상 형식입니다. 남은 묶음에는 압축 파일·실행 파일·파이썬 코드가 섞여 있습니다.",
+          "w": "문서·이미지·미디어·압축/실행/코드로 나뉩니다. 어떤 묶음이든 확장자는 내용이 아니라 열 프로그램을 정합니다.",
+          "an": "OS Day1 S4 p.21",
+          "src": "report.txt\n문서\n.txt .pdf .hwp\n이미지\n.jpg .png .gif\n미디어\n.mp3 .mp4\n압축·실행·코드\n.zip .exe .py 예고"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "절대 경로 <code>C:\\Users\\student\\Documents\\report.txt</code>를 Root부터 순서대로 나열하세요.",
+          "steps": [
+            "C:\\ (Drive · Root)",
+            "Users",
+            "student (Home Directory)",
+            "Documents",
+            "report.txt"
+          ],
+          "h": "File System의 뼈대는 Drive·Root에서 출발해 Users, 사용자의 Home Directory, 그 안의 폴더 순으로 내려갑니다. 절대 경로는 Root에서 파일까지 가는 길을 위에서 아래로 이어 적은 것이며 마지막이 파일명입니다.",
+          "w": "절대 경로는 Root에서 출발해 directory를 차례로 지나 마지막에 파일명으로 끝납니다. Home Directory는 <code>C:\\Users\\&lt;사용자명&gt;</code>입니다.",
+          "an": "OS Day1 S3 p.14–15",
+          "src": "C:\\ (Drive · Root)\n├─ Users\n│ └─ student (Home Directory)\n│ ├─ Documents\n│ │ ├─ report.txt"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "Windows 파일 이름에 쓸 수 <b>없는</b> 문자를 모두 고르세요.",
+          "o": [
+            "*",
+            "?",
+            "_",
+            "|",
+            "-"
+          ],
+          "a": [
+            0,
+            1,
+            3
+          ],
+          "h": "자료에는 Windows 파일 이름에 쓸 수 없는 문자 목록이 \\ / : 등과 함께 정리되어 있습니다. 보기의 각 문자가 그 금지 목록에 들어 있는지 하나씩 대조해 보세요.",
+          "w": "이름에 쓸 수 없는 문자는 \\ / : * ? \" < > | 입니다. 밑줄(_)과 하이픈(-)은 쓸 수 있습니다.",
+          "an": "OS Day1 S3 p.17",
+          "src": "• 이름에 쓸 수 없는 문자: \\ / : * ? \" < > |\n• 공백이 든 이름은 따옴표로 감싼다"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "Terminal · CLI 조작 명령",
+      "ref": "OS Day1 S5–S8",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Terminal·Shell·OS 중 입력된 글자를 '명령'으로 해석하는 통역 역할은 무엇입니까?",
+          "o": [
+            "Terminal",
+            "Shell",
+            "OS",
+            "Prompt"
+          ],
+          "a": 1,
+          "h": "Terminal은 글자를 받고 보여 주는 창이고, OS는 해석된 요청을 실제로 수행합니다. 그 사이에서 CMD나 bash처럼 글자를 명령으로 해석하는 '통역'이 무엇인지 떠올려 보세요.",
+          "w": "Terminal은 글자를 받고 보여주는 창, Shell(CMD·PowerShell·bash)은 글자를 명령으로 해석하는 통역, OS는 해석된 요청을 실제로 수행합니다.",
+          "an": "OS Day1 S5 p.27",
+          "src": "① Terminal (창)\n글자를 받고 보여주는 화면 — 입출력 창구\n② Shell (통역)\n입력된 글자를 「명령」으로 해석 — CMD · PowerShell · bash\n③ OS (실행)\n해석된 요청을 File System에서 실제로 수행"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Prompt <code>C:\\Users\\student&gt;</code> 가 보여주는 정보는 무엇입니까?",
+          "o": [
+            "현재 Working Directory",
+            "마지막으로 실행한 명령",
+            "설치된 OS 버전",
+            "로그인한 시간"
+          ],
+          "a": 0,
+          "h": "Prompt는 화면이 먼저 말을 거는 부분으로, '나는 지금 어디에 서 있는가'를 알려 줍니다. > 앞에 적힌 경로가 바로 그 위치입니다.",
+          "w": "Prompt 자체가 현재 Working Directory를 보여주고, > 뒤가 입력하는 자리입니다. OS 버전은 msinfo32 같은 시스템 정보에서 확인합니다.",
+          "an": "OS Day1 S5 p.28",
+          "src": "C:\\Users\\student> ▮\n• Prompt 자체가 현재 Working Directory를 보여준다 — 나는 지금 어디에 서 있는가"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "GUI의 「잘라내기 → 붙여넣기」와 같은 일을 하는 CLI 명령은 무엇입니까?",
+          "o": [
+            "copy",
+            "del",
+            "move",
+            "ren"
+          ],
+          "a": 2,
+          "h": "잘라내기 → 붙여넣기는 파일을 다른 곳으로 옮기고 원래 자리에서는 사라지게 합니다. CLI 조작 5종 중 '원본 사라짐'으로 설명된 명령을 찾아보세요.",
+          "w": "<code>move</code>는 이동이므로 원본이 사라집니다. <code>copy</code>는 원본을 유지하는 복사, <code>ren</code>은 자리 이동 없는 이름 변경입니다.",
+          "an": "OS Day1 확인 퀴즈 2 · p.33",
+          "src": "mkdir backup directory 생성\ncopy report.txt backup\\ 복사 — 원본 유지\nmove photo.jpg backup\\ 이동 — 원본 사라짐\nren report.txt final.txt 이름 변경 — 자리 이동 없는 move\ndel final.txt 삭제"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "따옴표 없이 <code>mkdir My Folder</code>를 실행하면 어떤 결과가 나옵니까?",
+          "o": [
+            "My Folder 1개 생성",
+            "오류로 아무것도 안 생김",
+            "My_Folder 1개 생성",
+            "directory 2개 생성"
+          ],
+          "a": 3,
+          "h": "Shell은 공백을 인자 구분자로 읽기 때문에 따옴표가 없으면 My와 Folder가 별개의 토큰으로 잘립니다. mkdir이 받은 인자가 몇 개인지 세어 보세요.",
+          "w": "토큰이 [mkdir][My][Folder]로 잘려 directory 2개가 생깁니다. <code>mkdir \"My Folder\"</code>처럼 따옴표로 감싸야 하나의 인자가 됩니다.",
+          "an": "OS Day1 S6 p.34",
+          "src": "따옴표 없이\nmkdir My Folder\n→ 토큰: [mkdir][My][Folder]\n→ directory 2개가 생겨 버림 ✗\n따옴표 씌우고\nmkdir \"My Folder\"\n→ 토큰: [mkdir][My Folder]\n→ directory 1개 정상 ✓"
+        },
+        {
+          "id": "t3-05",
+          "ty": "num",
+          "lv": 3,
+          "game": false,
+          "p": "work 안에 docs·photos·backup 폴더를 만들고 report.txt를 backup에 복사하는 과제를 CLI로 하면 명령은 최소 몇 줄입니까?",
+          "a": 4,
+          "unit": "줄",
+          "h": "폴더 하나를 만들 때마다 mkdir 한 줄, 파일 복사에 copy 한 줄이 필요합니다. 새로 만들 하위 폴더 개수와 복사 명령 수를 더하는 식(mkdir × 폴더 수 + copy × 1)으로 계산해 보세요.",
+          "w": "시범 경주에서 CLI 선수는 <code>mkdir</code> ×3 + <code>copy</code> ×1 = 4줄이었고, GUI 선수는 클릭 17회·단계 8개가 걸렸습니다. 개수가 100배로 늘면 차이는 더 커집니다.",
+          "an": "OS Day1 S7 p.39–40",
+          "src": "CLI 선수\n명령 4줄\nmkdir ×3 + copy ×1"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "CLI의 <code>del</code>로 지운 파일은 GUI 삭제처럼 휴지통에서 복원할 수 있습니다.",
+          "a": false,
+          "h": "GUI 삭제는 파일을 휴지통으로 옮겨 되돌릴 수 있는 삭제입니다. 자료는 CLI의 del이 휴지통을 어떻게 지나가는지, 그리고 복원 경로가 있는지를 비교해 보여 줍니다.",
+          "w": "<code>del</code>은 휴지통을 거치지 않고 즉시 소멸시키므로 복원 경로가 없습니다. 그래서 del 전에 <code>dir</code>로 대상을 확인하는 습관이 필요합니다.",
+          "an": "OS Day1 S6 p.35",
+          "src": "del의 경고 — 휴지통이 없다\nGUI 삭제\n파일 → 휴지통으로 이동\n복원 가능 — 되돌릴 수 있는 삭제\nCLI del\n휴지통을 그대로 통과 → 즉시 소멸\n복원 경로 없음\n그래서 습관 — del 전에 dir로 대상 확인"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>ren</code>(이름 변경)은 '자리 이동이 없는 move'와 같은 원리입니다.",
+          "a": true,
+          "h": "move는 파일을 다른 자리로 옮기면서 원본 위치에서 사라지게 합니다. ren report.txt final.txt는 같은 자리에서 이름만 바꾸므로, 자료가 이 명령을 move와 어떤 관계로 설명하는지 확인해 보세요.",
+          "w": "<code>ren</code>은 같은 자리에서 이름만 바꾸는 이동으로 볼 수 있어 move와 같은 원리입니다. 명령 미리보기의 탭 ③·④가 이를 대조합니다.",
+          "an": "OS Day1 S6 p.33",
+          "src": "move photo.jpg backup\\ 이동 — 원본 사라짐\nren report.txt final.txt 이름 변경 — 자리 이동 없는 move\ndel final.txt 삭제 —\n 휴지통 없이 즉시\n▶ 명령 미리보기 (5개 탭 )\n명령 미리보기 (5개 탭) 탭 ①~⑤를 워크시트 순서 그대로 재생 — move와 ren이 같은 원리임을 대조"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "GUI 동작과 같은 일을 하는 CLI 명령을 연결하세요.",
+          "pairs": [
+            [
+              "새 폴더 만들기",
+              "mkdir"
+            ],
+            [
+              "복사 → 붙여넣기",
+              "copy"
+            ],
+            [
+              "이름 바꾸기",
+              "ren"
+            ],
+            [
+              "삭제(휴지통 없이)",
+              "del"
+            ]
+          ],
+          "h": "CLI 명령 이름은 대개 영어 동사의 줄임말입니다. make directory, copy, rename, delete를 떠올리며 GUI 동작과 짝지어 보세요.",
+          "w": "새 폴더는 mkdir, 복사는 copy, 이름 바꾸기는 ren, 삭제는 del입니다. del만은 GUI와 달리 휴지통을 거치지 않습니다.",
+          "an": "OS Day1 S8 p.44",
+          "src": "대응표 — 같은 일, 두 이름\n새 폴더 만들기\n mkdir\n복사 → 붙여넣기\n copy\n잘라내기 → 붙여넣기\n move\n이름 바꾸기\n ren\n삭제 (휴지통 없이!)\n del"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "Terminal에 <code>dir</code> 한 줄을 입력했을 때 처리되는 순서대로 나열하세요.",
+          "steps": [
+            "Terminal 창이 글자를 받는다",
+            "Shell이 글자를 명령으로 해석한다",
+            "OS가 File System에서 실제로 수행한다",
+            "결과가 역순으로 화면에 표시된다"
+          ],
+          "h": "자료는 Terminal을 '창', Shell을 '통역', OS를 '실행'으로 비유합니다. 입력은 창을 지나 통역을 거쳐 실제 수행으로 이어지고, 결과는 들어온 길을 거꾸로 따라 화면에 나타납니다.",
+          "w": "dir 한 줄은 창을 지나 Shell이 해석하고 OS가 수행한 뒤, 결과가 역순으로 화면에 돌아옵니다.",
+          "an": "OS Day1 S5 p.27",
+          "src": "① Terminal (창)\n글자를 받고 보여주는 화면 — 입출력 창구\n② Shell (통역)\n입력된 글자를 「명령」으로 해석 — CMD · PowerShell · bash\n③ OS (실행)\n해석된 요청을 File System에서 실제로 수행\ndir 한 줄 → 창을 지나 → 통역이 해석 → OS가 수행 → 결과가 역순으로 화면에"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "명령이 안 먹을 때 에러 진단기의 점검 루틴에 들어 있는 항목을 모두 고르세요.",
+          "o": [
+            "오타·대소문자",
+            "separator(\\)",
+            "공백·따옴표",
+            "OS 재설치",
+            "확장자 숨김 켜기"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "가상 Terminal 실습의 에러 점검 루틴은 세 단계로 정리되어 있습니다. 글자를 잘못 쳤는지, 경로 구분 기호가 맞는지, 이름 속 빈칸 처리가 맞는지를 차례로 확인하는 흐름입니다.",
+          "w": "에러 점검 루틴은 오타·대소문자 → separator(\\) → 공백·따옴표 순서입니다. OS 재설치나 확장자 표시는 이 루틴에 없습니다.",
+          "an": "OS Day1 S5 p.29",
+          "src": "▶ 에러 진단기 (5문항)\n에러 진단기 (5문항) 에러 점검 루틴: 오타·대소문자 → separator(\\) → 공백·따옴표"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "프로세스의 일생 · fork·execve·wait",
+      "ref": "OS Day2 S1–S3 · 교안 C03",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "ps 화면의 상태 글자 S가 뜻하는 것은 무엇입니까?",
+          "o": [
+            "실행/대기",
+            "잠듦",
+            "좀비",
+            "강제 종료"
+          ],
+          "a": 1,
+          "h": "ps의 상태 글자는 R(실행/대기), S, Z(좀비) 세 가지로 소개됩니다. 대부분의 프로세스가 일이 올 때까지 어떤 상태로 머무는지 떠올려 보세요.",
+          "w": "S는 잠듦(일이 올 때까지 대기)이며 대부분의 프로세스가 S입니다. R은 실행 중+실행하고 싶음의 줄서기, Z는 죽었는데 표에서 안 지워진 좀비입니다.",
+          "an": "OS Day2 S1 p.5",
+          "src": "• 상태 — R(실행/대기) · S(잠듦) · Z(좀비)\n• 종료값 — 죽으며 남기는 숫자 한 개\n상태의 진실\n• 대부분은 S — 일이 올 때까지 잠들어 있다"
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "exit(7)로 끝난 좀비(Z) 프로세스가 남기는 것은 무엇입니까?",
+          "o": [
+            "Memory 전체",
+            "CPU 레지스터 값",
+            "표의 한 줄(PID·종료값)",
+            "열린 파일 전부"
+          ],
+          "a": 2,
+          "h": "프로세스가 끝나면 Memory와 CPU는 즉시 회수됩니다. 부모가 wait()로 찾아가기 전까지 남아 있는 것은 장부에 적힌 정보 몇 칸뿐이라는 점을 생각해 보세요.",
+          "w": "Memory·CPU는 즉시 회수되고 프로세스 표의 한 줄(PID, 종료값 7)만 남습니다. 부모가 <code>wait()</code>로 찾아가야 표에서 지워집니다.",
+          "an": "OS Day2 S1 p.6",
+          "src": "exit(7) 이후에 남는 것\nMemory·CPU는 즉시 회수됩니다. 남는 것은 표 한 줄 — 「PID 1234, 종료값 7」.\n부모가 wait()로 이 성적표를 찾아가야 표에서 지워집니다."
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "부모가 먼저 죽어 고아가 된 자식이 나중에 종료되면, 누가 대신 wait 해 표를 청소합니까?",
+          "o": [
+            "PID 1 systemd",
+            "실행했던 bash",
+            "kswapd",
+            "crond"
+          ],
+          "a": 0,
+          "h": "부모가 먼저 죽으면 자식은 고아가 되고, 시스템의 가장 첫 번째 프로세스가 입양합니다. 리눅스에서 PID 번호 1번을 가진 프로세스가 무엇인지 떠올려 보세요.",
+          "w": "부모가 먼저 죽으면 PID 1(systemd)이 입양해 대신 wait 하므로 좀비가 표에 쌓이지 않습니다. kswapd는 페이지 회수, crond는 주기 실행 데몬입니다.",
+          "an": "OS Day2 S1 p.6",
+          "src": "부모가 먼저 죽으면\nPID 1(systemd)이 입양해 대신 wait — 표를 청소합니다."
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>fork()</code> 직후 자식 프로세스에게 돌아오는 반환값은 무엇입니까?",
+          "o": [
+            "자식의 PID",
+            "부모의 PID",
+            "-1",
+            "0"
+          ],
+          "a": 3,
+          "h": "fork() 뒤 부모와 자식은 거의 모든 것이 같고 반환값 레지스터 한 칸만 다릅니다. 부모는 자식의 PID를 받으며, if(pid==0) 분기가 자식 쪽 길이라는 점을 보면 자식이 받는 값을 알 수 있습니다.",
+          "w": "부모에게는 자식의 PID(예: 1234)가, 자식에게는 0이 돌아옵니다. 이 반환값 레지스터 한 칸이 부모/자식의 갈림길입니다.",
+          "an": "OS Day2 S2 p.9",
+          "src": "딱 하나 다른 것\n• fork()의 반환값이 담기는 레지스터\n• 부모 ← 자식의 PID (예: 1234)\n• 자식 ← 0\n• 이 한 칸이 if(pid==0)의 갈림길"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "fork 전에 x=10이었고 fork 후 자식이 x=99로 바꿨습니다. 부모가 읽는 x는?",
+          "o": [
+            "99",
+            "10",
+            "0",
+            "109"
+          ],
+          "a": 1,
+          "h": "fork가 끝난 순간부터 부모와 자식은 서로 다른 Memory를 씁니다. 한쪽의 수정이 다른 쪽으로 넘어가지 않으므로, 부모의 x는 fork 이전 값에서 바뀌었는지 생각해 보세요.",
+          "w": "fork 후 부모와 자식은 서로 다른 Memory를 가지므로 부모의 x는 10 그대로입니다. 실제 Linux는 Copy-on-Write로 '쓰는 순간에만' 그 페이지를 복사합니다.",
+          "an": "OS Day2 S2 p.10",
+          "src": "fork 전에 x=10. 자식이 x=99로 바꾼다. → 부모의 x는?\n답: 부모의 x = 10\n복제된 순간부터 서로 다른 Memory — 한쪽의 수정이 넘어가지 않는"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>execve(\"ls\")</code>가 성공하면 그다음 줄에 적어 둔 print가 실행됩니다.",
+          "a": false,
+          "h": "execve는 기존 Memory를 철거하고 새 프로그램을 적재한 뒤 PC를 새 프로그램 첫 줄로 옮깁니다. 되돌아갈 주소가 없으므로, 성공했을 때 원래 코드의 다음 줄이 실행될 수 있는지 판단해 보세요.",
+          "w": "성공한 execve는 기존 코드를 철거하고 PC를 새 프로그램 첫 줄로 바꾸므로 돌아갈 주소가 없어 다음 줄은 실행되지 않습니다. execve가 실패했을 때만 -1로 돌아옵니다.",
+          "an": "OS Day2 S3 p.13",
+          "src": "① Memory 철거 — 기존 코드·데이터 전부 삭제\n② 새 프로그램 적재 — ls의 코드가 들어옴\n③ PC를 새 프로그램의 첫 줄로 — 되돌아갈 주소가 없다\n그래서 다음 줄은 영원히 미실행\n(execve가 '실패'했을 때만 -1로 돌아온다)"
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>execve()</code>로 다른 프로그램으로 변신해도 PID는 그대로 유지됩니다.",
+          "a": true,
+          "h": "execve는 몸(코드·데이터)을 통째로 바꾸는 '변신'입니다. 자료는 그래도 장부의 줄은 같은 줄, 즉 같은 프로세스라고 설명하므로 프로세스 번호가 어떻게 되는지 생각해 보세요.",
+          "w": "execve는 실행 이미지만 교체하고 프로세스 표의 줄은 그대로라 PID가 같습니다. 교안도 exec를 '같은 PID에서 실행 이미지를 교체'로 설명합니다.",
+          "an": "OS Day2 S3 p.13 · 교안 p.45",
+          "src": "③ PC를 새 프로그램의 첫 줄로 — 되돌아갈 주소가 없다\n그래서 다음 줄은 영원히 미실행\n(execve가 '실패'했을 때만 -1로 돌아온다)\n그래도 PID는 그대로\n몸은 바뀌어도 장부의 줄은 같은 줄 — 같은 프로세스."
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "프로세스 상태와 그 의미를 연결하세요.",
+          "pairs": [
+            [
+              "Ready",
+              "CPU를 기다리는 상태"
+            ],
+            [
+              "Running",
+              "CPU에서 실행 중"
+            ],
+            [
+              "Waiting",
+              "I/O·이벤트를 기다리는 상태"
+            ],
+            [
+              "Terminated",
+              "실행을 마친 상태"
+            ]
+          ],
+          "h": "Ready와 Waiting은 둘 다 '기다리는' 상태지만 기다리는 대상이 다릅니다. 하나는 CPU를, 다른 하나는 I/O나 이벤트 완료를 기다리며, Scheduler가 고르면 실행 상태가 됩니다.",
+          "w": "Ready는 CPU 대기, Running은 실행, Waiting은 I/O·이벤트 대기입니다. I/O가 끝나면 Waiting에서 Ready로 돌아가 다시 CPU를 기다립니다.",
+          "an": "교안 C03 p.44 · p.46 · p.49",
+          "src": "Ready\nCPU를 기다리는 Ready Queue 진입\n→\n3\nRunning\nScheduler가 선택하면 Running\n→\n4\nWaiting\nI/O 요청 시 Waiting으로 이동"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "부모가 <code>wait()</code>로 자식의 종료값을 회수하는 흐름을 순서대로 나열하세요.",
+          "steps": [
+            "부모가 wait()를 호출하고 S로 잠든다",
+            "자식이 exit(7)로 종료한다",
+            "자식이 좀비가 되어 성적표 7을 남긴다",
+            "OS가 잠든 부모를 깨운다",
+            "부모가 성적표를 받고 표에서 삭제한다"
+          ],
+          "h": "wait()을 부른 부모는 먼저 잠들고, 자식은 종료값을 남긴 채 좀비가 됩니다. 그러면 OS가 부모를 깨우고, 부모가 성적표를 가져가면서 표의 줄이 지워집니다.",
+          "w": "부모는 wait에서 잠들고, 자식이 exit하면 좀비가 되며, OS가 부모를 깨워 성적표를 넘기면 표에서 지워집니다. 이미 좀비가 있다면 wait는 잠들지 않고 즉시 받아 옵니다.",
+          "an": "OS Day2 S3 p.14",
+          "src": "흐름\n부모 wait() → S로 잠듦 → 자식 exit(7) → 좀비(성적표 7) → OS가 부모를 깨움 → 성적표 회수, 표에서 삭제"
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "<code>fork()</code> 때 부모에서 자식으로 그대로 복제되는 것을 모두 고르세요.",
+          "o": [
+            "Memory 전체(코드·변수)",
+            "CPU 레지스터(PC 포함)",
+            "파일 핸들 등 장부 대부분",
+            "fork 반환값 레지스터",
+            "부모와 같은 PID"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "fork()는 '프로세스 복사기'로, 코드·변수, PC를 포함한 레지스터, 파일 핸들 같은 장부 대부분을 그대로 복제합니다. 딱 하나 다른 것은 반환값이 담기는 칸뿐이라는 점에 주의하세요.",
+          "w": "Memory 전체, PC를 포함한 레지스터, 파일 핸들 등 장부 대부분이 복제되므로 자식도 fork 직후부터 시작합니다. 반환값 레지스터는 부모(자식 PID)와 자식(0)이 다르고, 자식은 자기 PID를 새로 받습니다.",
+          "an": "OS Day2 S2 p.9",
+          "src": "복제되는 것\n• Memory 전체 — 코드·변수 그대로\n• CPU 레지스터 — PC(다음 실행 위치)까지\n• → 자식도 fork '직후'부터 시작\n• 파일 핸들 등 장부 대부분"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "CPU 스케줄링 · O(1)과 CFS",
+      "ref": "OS Day2 S4–S5 · 교안 C04",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "O(n) 스케줄러가 모든 task를 훑으며 계산하는 점수 goodness는 무엇입니까?",
+          "o": [
+            "counter + priority",
+            "vruntime × nice",
+            "PID + PPID",
+            "counter − priority"
+          ],
+          "a": 0,
+          "h": "O(n) 스케줄러는 매번 모든 task를 훑으며 점수가 가장 높은 task를 고릅니다. 이 점수는 남은 시간 카운터와 우선순위 두 값을 더해 만듭니다.",
+          "w": "O(n)은 매번 모든 task의 goodness = counter + priority를 계산해 최고 점수를 고릅니다. 그래서 task가 1,000개면 비교도 1,000회가 필요합니다.",
+          "an": "OS Day2 S4 p.17",
+          "src": "• 매번 모든 task를 훑는다\n• 점수 goodness = counter + priority\n• 최고 점수가 다음 주인공"
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "O(1) 스케줄러가 최고 우선순위 줄을 찾는 방법은 무엇입니까?",
+          "o": [
+            "모든 task를 비교",
+            "비트맵 find-first-bit 1회",
+            "레드블랙 트리 탐색",
+            "도착 순서대로 선택"
+          ],
+          "a": 1,
+          "h": "O(1) 스케줄러는 140개의 우선순위 줄마다 비어 있는지를 비트로 표시해 둡니다. 모든 task를 훑지 않고 그 비트 표에서 처음 켜진 비트를 한 번에 찾는 방식입니다.",
+          "w": "우선순위 140줄과 비트맵을 두고 find-first-bit 한 번으로 최고 우선순위 줄을 찾습니다. 레드블랙 트리는 CFS가 쓰는 자료구조입니다.",
+          "an": "OS Day2 S4 p.18",
+          "src": "① 우선순위 140줄 + 비트맵: 최고 우선순위 줄 찾기 = find-first-bit 1회\n② active / expired 두 배열: 시간 다 쓴 task는 expired로 — 훑지 않는다"
+        },
+        {
+          "id": "t5-03",
+          "ty": "num",
+          "lv": 3,
+          "game": false,
+          "p": "O(1) 스케줄러에서 task가 1,000개일 때 다음 차례 하나를 고르는 데 필요한 선택 연산은 몇 회입니까?",
+          "a": 2,
+          "unit": "회",
+          "h": "O(1) 스케줄러는 task 수와 상관없이 같은 횟수로 다음 차례를 고릅니다. 비트맵에서 최고 우선순위 줄을 찾는 연산 1회와, 그 큐의 머리를 꺼내는 연산 1회를 더해 보세요.",
+          "w": "O(1)은 task 수와 무관하게 find-first-bit와 큐 머리 꺼내기, 2회 연산으로 선택합니다. 같은 상황에서 O(n)은 비교 1,000회가 필요합니다.",
+          "an": "OS Day2 S4 p.17–18",
+          "src": "결과\ntask 1,000개여도 선택 연산 = 2회 (find-first-bit + 큐 머리 꺼내기)"
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "CFS에서 다음에 CPU를 받을 task는 어떻게 정해집니까?",
+          "o": [
+            "가장 먼저 도착한 task",
+            "nice 값이 가장 큰 task",
+            "vruntime이 가장 큰 task",
+            "vruntime이 가장 작은 task"
+          ],
+          "a": 3,
+          "h": "CFS는 task마다 '받은 시간'을 재는 시계 vruntime을 둡니다. 가장 적게 받은 task, 즉 트리의 맨 왼쪽에 있는 task가 다음 주자가 된다는 규칙을 떠올려 보세요.",
+          "w": "CFS는 task마다 받은 시간 시계 vruntime을 두고 그 값이 최소인(트리의 맨 왼쪽) task를 고릅니다. 달리면 시계가 올라 뒤로 밀립니다.",
+          "an": "OS Day2 S5 p.21",
+          "src": "vruntime 경주\n• task마다 '받은 시간' 시계 vruntime\n• 다음 주자 = vruntime 최소(맨 왼쪽)\n• 달리면 시계가 오르고, 뒤로 밀린다"
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "CFS에서 nice 값이 바꾸는 것은 무엇입니까?",
+          "o": [
+            "time quantum 길이",
+            "task 도착 순서",
+            "vruntime 시계의 속도",
+            "비트맵의 크기"
+          ],
+          "a": 2,
+          "h": "CFS에서 우선순위는 시계를 얼마나 빨리 돌게 하느냐로 표현됩니다. 중요한 task는 시계가 천천히 올라 같은 실시간에도 더 자주 뽑힌다는 설명에 주목하세요.",
+          "w": "nice는 vruntime 시계가 오르는 속도입니다. 중요한 task는 같은 실시간에 시계가 덜 올라 더 자주 뽑히므로, 실습에서 nice −5 task가 받은 실시간이 2배가 됩니다.",
+          "an": "OS Day2 S5 p.21 · p.23",
+          "src": "우선순위와 반응성\n• nice = 시계 '속도' — 중요하면 천천히 오름\n• → 같은 실시간에 시계가 덜 올라 더 자주 뽑힘"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 3,
+          "game": true,
+          "p": "Round Robin에서 반응성을 높이려고 Quantum을 계속 줄이면 전체 처리량도 계속 좋아집니다.",
+          "a": false,
+          "h": "짧은 Quantum은 CPU를 자주 교대시켜 반응성을 높이지만, 그때마다 PCB 저장·복원과 캐시 교란이 생깁니다. 실제 처리 시간보다 전환 비용이 커지면 처리량이 어떻게 되는지 생각해 보세요.",
+          "w": "Quantum이 짧으면 반응성은 좋아지지만 전환이 잦아져, 전환 비용이 실제 처리 시간보다 커지면 처리량이 떨어집니다. Context Switch는 공짜가 아닙니다.",
+          "an": "교안 C04 문제 상황 p.68",
+          "src": "1 STEP 1\n짧은 Quantum은 프로세스가 CPU를 자주 교대해 인터랙티브 반응성을 높인다.\n2 STEP 2\n하지만 PCB 저장/복원과 캐시 교란이 자주 발생한다.\n3 STEP 3\n실제 처리에 쓰는 시간보다 전환 비용이 커지면 전체 처리량이 떨어진다."
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "CFS가 쓰는 레드블랙 트리에는 '빨간 노드의 자식은 빨강일 수 없다'는 규칙이 있습니다.",
+          "a": true,
+          "h": "레드블랙 트리는 색 바꾸기와 회전으로 스스로 균형을 잡습니다. 자료의 '규칙 맛보기'는 빨간 노드에 연달아 붙을 수 있는 색에 대한 금지 규칙 하나를 소개합니다.",
+          "w": "빨간 노드의 자식은 빨강일 수 없다는 금지가 기울기를 막아 삽입·삭제·최솟값을 모두 O(log n)으로 유지합니다. 균형 도구는 색 바꾸기와 회전입니다.",
+          "an": "OS Day2 S5 p.22",
+          "src": "균형의 도구 둘\n색 바꾸기(싸다, 위로 미룸) + 회전(그 자리에서 해결)\n규칙 맛보기\n빨간 노드의 자식은 빨강일 수 없다 — 이 금지 하나가 기울기를 막는"
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "스케줄링 정책과 특징을 연결하세요.",
+          "pairs": [
+            [
+              "FCFS",
+              "도착 순서대로, Convoy Effect"
+            ],
+            [
+              "SJF",
+              "짧은 작업 우선, 평균 대기시간 감소"
+            ],
+            [
+              "Priority",
+              "중요도 기반, Starvation 가능"
+            ],
+            [
+              "Round Robin",
+              "Quantum 단위 선점"
+            ]
+          ],
+          "h": "FCFS는 도착 순서, SJF는 짧은 작업 우선, Priority는 중요도, Round Robin은 시간 조각 단위 교대가 핵심입니다. 긴 작업이 앞을 막는 현상, 낮은 우선순위가 굶는 현상 같은 부작용도 함께 연결해 보세요.",
+          "w": "FCFS는 긴 작업이 앞에 있으면 Convoy Effect, SJF는 평균 대기시간에 유리하지만 실행시간 예측이 필요, Priority는 낮은 우선순위의 Starvation, RR은 Quantum 단위로 선점합니다.",
+          "an": "교안 C04 p.60–61",
+          "src": "① FCFS\n도착 순서대로 처리: 단순하지만 긴 작업이 앞에 있으\n면 Convoy Effect\n② SJF\n짧은 작업 우선: 평균 대기시간을 줄일 수 있지만 실행시간 예측이 필요"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "CPU 스케줄링 워크플로우를 순서대로 나열하세요.",
+          "steps": [
+            "Ready Queue에서 CPU를 기다린다",
+            "스케줄링 정책을 적용해 선택한다",
+            "Dispatch로 CPU에 올린다",
+            "Burst 또는 Quantum만큼 실행한다",
+            "종료하거나 Context Switch 후 다시 대기한다"
+          ],
+          "h": "Process는 먼저 CPU 앞 대기열에 서고, 정책(FCFS/SJF/Priority/RR)에 따라 하나가 선택됩니다. 선택된 Process는 CPU에 올려져 일정 시간 실행되고, 끝나거나 교대 후 다시 대기열로 돌아갑니다.",
+          "w": "Ready Queue의 Process 중 정책이 하나를 고르면 Dispatch로 CPU에 올라 Burst/Quantum만큼 실행하고, 끝나거나 Context Switch 후 Queue로 돌아갑니다.",
+          "an": "교안 C04 WORKFLOW p.65",
+          "src": "2\nReady Queue\nCPU 앞에서 대기\n→\n3\n정책 선택\nFCFS/SJF/Priority/RR 정책 적용\n→\n4\nDispatch\n선택된 Process를 CPU에 올림\n→\n5\nBurst / Quantum 실행\nBurst 또는 Quantum만큼 실행\n→\n6\nSwitch / Complete\n종료하거나 Context Switch 후 다시 Queue"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "O(1) 스케줄러를 이루는 요소를 모두 고르세요.",
+          "o": [
+            "우선순위 140줄",
+            "비트맵",
+            "active/expired 두 배열",
+            "vruntime 시계",
+            "레드블랙 트리"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "O(1) 스케줄러의 '두 가지 발명'은 우선순위 줄과 그 위의 비트 표, 그리고 시간을 다 쓴 task를 옮겨 두는 배열 쌍입니다. vruntime 시계나 레드블랙 트리는 그 다음 세대 스케줄러의 요소라는 점에 주의하세요.",
+          "w": "O(1)은 우선순위 140줄+비트맵, active/expired 두 배열로 이루어지며 active가 비면 포인터 두 개를 맞바꿔 새 epoch를 시작합니다. vruntime과 레드블랙 트리는 CFS의 구성 요소입니다.",
+          "an": "OS Day2 S4 p.18 · S5 p.21–22",
+          "src": "두 가지 발명\n① 우선순위 140줄 + 비트맵: 최고 우선순위 줄 찾기 = find-first-bit 1회\n② active / expired 두 배열: 시간 다 쓴 task는 expired로 — 훑지 않는다\nactive가 텅 비면\n포인터 두 개를 맞바꾸는 '한 번'의 교체 — 새 epoch 시작."
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "Memory 배급 · 가상 메모리",
+      "ref": "OS Day2 S6–S8 · 교안 C05",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "buddy allocator에 20K를 요청하면 실제로 지급되는 블록 크기는?",
+          "o": [
+            "20K",
+            "24K",
+            "32K",
+            "64K"
+          ],
+          "a": 2,
+          "h": "buddy allocator는 2의 거듭제곱 크기 블록만 다룹니다. 20K를 담을 수 있는 가장 작은 2의 거듭제곱 크기를 찾으면 되고, 남는 부분은 내부 단편화가 됩니다.",
+          "w": "buddy는 2의 거듭제곱 블록만 다루므로 20K 요청에 32K를 줍니다. 남는 12K는 내부 단편화입니다.",
+          "an": "OS Day2 S6 p.25",
+          "src": "할당\n• 2의 거듭제곱 블록만 취급\n• 20K 요청 → 32K 지급 (내부 단편화)"
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "buddy에서 해제한 블록의 짝(buddy) 주소를 계산하는 식은 무엇입니까?",
+          "o": [
+            "내 주소 XOR 내 크기",
+            "내 주소 + 내 크기",
+            "내 주소 AND 내 크기",
+            "free list 전체 검색"
+          ],
+          "a": 0,
+          "h": "buddy 블록은 같은 크기의 짝과 주소에서 비트 하나만 다릅니다. 그래서 검색 없이 내 주소와 내 크기에 비트 연산 한 번을 적용해 짝을 계산한다는 점을 떠올려 보세요.",
+          "w": "buddy 주소 = 내 주소 XOR 내 크기라 검색 없이 한 번에 구합니다. 짝이 free면 병합하고 그 위로 연쇄 병합합니다.",
+          "an": "OS Day2 S6 p.25",
+          "src": "해제와 병합\n• buddy 주소 = 내 주소 XOR 내 크기\n• 계산 한 번 — 검색이 없다"
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "slab allocator에서 새 할당 요청을 1순위로 받는 진열대는 무엇입니까?",
+          "o": [
+            "full",
+            "empty",
+            "free list",
+            "partial"
+          ],
+          "a": 3,
+          "h": "slab에는 full, empty, 그리고 일부만 사용 중인 진열대 세 가지가 있습니다. empty는 반납 후보이고 full은 더 넣을 자리가 없으니, 새 할당을 먼저 받는 쪽이 어디일지 생각해 보세요.",
+          "w": "slab의 진열대는 partial·full·empty이며, 새 할당은 부분 사용 중인 partial이 1순위입니다. empty는 반납 후보이고, free list는 buddy의 크기별 재고 장부입니다.",
+          "an": "OS Day2 S6 p.26",
+          "src": "진열대 셋\npartial(부분 사용 — 새 할당 1순위) · full · empty(반납 후보)"
+        },
+        {
+          "id": "t6-04",
+          "ty": "num",
+          "lv": 3,
+          "game": false,
+          "p": "x86 2단 페이징에서 표 1장은 4KB이고 엔트리 하나는 4B입니다. 표 1장에 들어가는 칸은 몇 개입니까?",
+          "a": 1024,
+          "unit": "칸",
+          "h": "x86 2단 페이징에서는 표 하나도 4KB 페이지 1장에 담깁니다. 표 크기 4KB를 엔트리 크기 4B로 나누는 식(4096 ÷ 4)으로 칸 수를 구하고, 그것이 10bit 인덱스와 맞는지 확인해 보세요.",
+          "w": "4096B ÷ 4B = 1024칸이고 2^10 = 1024이므로 인덱스가 10bit입니다. 그래서 32bit 주소가 PGD 10bit + PTE 10bit + offset 12bit로 나뉩니다.",
+          "an": "OS Day2 S7 p.29",
+          "src": "왜 하필 10bit?\n표도 4KB 페이지 1장: 4KB ÷ 엔트리 4B = 1024칸 = 10bit. 산수다."
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "Present 비트가 0인(아직 RAM에 안 올라온) 내 페이지에 접근하면 OS는 어떻게 합니까?",
+          "o": [
+            "SIGSEGV로 강제 종료",
+            "Page Fault 후 frame을 채워 재시도",
+            "TLB가 RAM 접근 없이 처리",
+            "kswapd가 프로세스를 종료"
+          ],
+          "a": 1,
+          "h": "P=0은 내 영역의 페이지이지만 아직 RAM에 올라오지 않았다는 뜻으로, 프로그램을 죽이는 SIGSEGV와는 다른 사고입니다. OS가 buddy에서 frame을 받아 채운 뒤 어떻게 하는지 확인해 보세요.",
+          "w": "P=0이면 Page Fault가 나고 OS가 buddy에서 frame을 받아 채운 뒤 명령을 재시도합니다. SIGSEGV는 find_vma로도 찾지 못한, 아예 내 땅이 아닌 주소일 때입니다.",
+          "an": "OS Day2 S7 p.30",
+          "src": "두 가지 사고\n• P=0 (아직 안 올라옴) → Page Fault → OS가 buddy에서 frame 받\n아 채우고 재시도\n• 내 땅이 아예 아님(find_vma 미발견) → SIGSEGV — 프로그램 강\n제 종료"
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Page Fault는 항상 프로그램 오류이므로 발생하면 즉시 코드를 고쳐야 합니다.",
+          "a": false,
+          "h": "Virtual Page에 접근했는데 RAM에 없으면 OS가 Disk/Swap에서 Page를 읽어 Frame에 적재합니다. 이는 가상 메모리의 정상 흐름이며, 문제가 되는 것은 Fault가 과도해 Thrashing이 생길 때입니다.",
+          "w": "Page Fault는 RAM에 없는 Page를 Disk/Swap에서 적재하는 정상 메커니즘일 수 있습니다. 다만 빈도가 과도하면 Thrashing·성능 저하가 되고, 메모리가 고갈되면 OOM이 발생합니다.",
+          "an": "교안 C05 p.82 · p.85",
+          "src": "1 STEP 1\nVirtual Page에 접근했는데 RAM에 없으면 Page Fault가 발생한다.\n2 STEP 2\nOS는 Disk/Swap에서 필요한 Page를 읽어 빈 Frame에 적재한다.\n3 STEP 3\nFrame이 없으면 교체 정책으로 기존 Page를 내보낼 수 있다.\n4 STEP 4\nFault가 과도하면 Thrashing과 성능 저하, 메모리 고갈 시 OOM이 발생한다."
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "프로세스 A와 B가 똑같은 가상 주소를 읽으면 항상 같은 물리 frame의 데이터가 나옵니다.",
+          "a": false,
+          "h": "프로세스마다 자기 PGD가 있고 CR3가 그것을 가리킵니다. 그래서 같은 가상 주소라도 프로세스에 따라 변환 결과가 달라지며, 이것이 '격리'입니다.",
+          "w": "프로세스마다 PGD가 달라 같은 가상 주소라도 다른 물리 frame으로 변환됩니다. 이것이 남의 Memory에 닿을 수 없게 하는 격리입니다.",
+          "an": "OS Day2 S7 p.30",
+          "src": "같은 주소, 다른 세계\n• 프로세스마다 자기 PGD (CR3가 지정)\n• 같은 가상 주소 → 다른 물리 frame\n• 이것이 '격리' — 남의 Memory에 닿을 수 없다"
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "가상 메모리 용어와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "TLB",
+              "주소 변환 지름길 캐시"
+            ],
+            [
+              "CR3",
+              "프로세스의 PGD를 지정"
+            ],
+            [
+              "kswapd",
+              "inactive 꼬리부터 페이지 회수"
+            ],
+            [
+              "refault",
+              "쫓아낸 페이지를 다시 디스크에서 적재"
+            ]
+          ],
+          "h": "TLB는 표 walk의 RAM 접근을 줄이는 지름길이고, CR3는 프로세스별 큰 지도(PGD)를 가리킵니다. kswapd는 RAM이 모자랄 때 inactive 줄에서 페이지를 거두고, 쫓아낸 페이지를 다시 쓰면 디스크에서 다시 읽어 와야 합니다.",
+          "w": "TLB는 표 2장 걷기(RAM 접근 2회 추가)를 0회로 줄이는 캐시, CR3는 프로세스의 PGD를 지정, kswapd는 회수 스레드, refault는 축출한 페이지를 다시 써서 생기는 수만 배 느린 재적재입니다.",
+          "an": "OS Day2 S7 p.29–31",
+          "src": "회수(kswapd)\ninactive 꼬리부터: R=1 → 기회 한 번 더(머리로) / R=0 → 축출(dirty면\nwrite-back 먼저)\n오판의 청구서\n쫓아낸 페이지를 다시 쓰면 refault — 디스크에서 재적재"
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "Terminal에서 <code>ls</code> ⏎ 한 줄이 처리되는 여행을 순서대로 나열하세요.",
+          "steps": [
+            "bash가 fork()로 자신을 복제",
+            "자식이 execve()로 ls로 변신",
+            "스케줄러(CFS)가 CPU 차례 배정",
+            "MMU 주소 변환과 #PF+buddy로 페이지 적재",
+            "wait()로 좀비 회수 후 Prompt 복귀"
+          ],
+          "h": "Day 2에서 배운 순서 그대로 따라가면 됩니다. 먼저 bash가 자신을 복제하고, 자식이 다른 프로그램으로 변신한 뒤, CPU 차례 → 주소 변환과 페이지 적재 → 부모의 회수 순으로 이어집니다.",
+          "w": "fork → execve → CFS → MMU(PGD→PTE)·#PF+buddy → wait 순서로 진행해 Prompt로 돌아옵니다. Day 2의 모든 세션이 이 한 줄에 한 번씩 등장합니다.",
+          "an": "OS Day2 S8 p.34 · p.36",
+          "src": "① bash가 자신을 복제\nfork()\n② 자식이 ls로 변신\nexecve()\n③ CPU 차례 배정\n스케줄러(CFS)\n④ 주소를 표로 변환\nMMU (PGD→PTE)\n⑤ 첫 접근 페이지 적재\n#PF + buddy\n⑥ 좀비 회수, Prompt 복귀\nwait()"
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "RAM이 모자랄 때 kswapd의 근사 LRU 회수에 대한 설명으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "inactive 줄의 꼬리부터 검사한다",
+            "R=1이면 기회를 한 번 더 준다",
+            "R=0이면 축출 대상이 된다",
+            "dirty 페이지는 write-back 없이 버린다",
+            "매 접근마다 목록을 정확히 갱신한다"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "리눅스는 진짜 LRU 대신 R비트와 active/inactive 두 줄로 근사합니다. kswapd는 inactive 줄 꼬리부터 보면서 최근 사용 표시가 켜진 페이지에는 기회를 한 번 더 주고, 꺼진 페이지는 내보냅니다.",
+          "w": "inactive 꼬리부터 보며 R=1이면 머리로 보내 기회를 한 번 더 주고(second chance), R=0이면 축출합니다. dirty 페이지는 write-back을 먼저 하며, 매 접근 갱신하는 진짜 LRU는 불가능해서 근사를 씁니다.",
+          "an": "OS Day2 S7 p.31",
+          "src": "리눅스의 근사 LRU\n진짜 LRU(매 접근마다 목록 갱신)는 불가능 → MMU가 켜 주는 R비트 + active/inactive 두 줄\n회수(kswapd)\ninactive 꼬리부터: R=1 → 기회 한 번 더(머리로) / R=0 → 축출(dirty면\nwrite-back 먼저)"
+        }
+      ]
+    },
+    {
+      "id": "t7",
+      "title": "커널의 파일 다루기 · open·read·write",
+      "ref": "OS Day3 S1–S2 · 교안 C06",
+      "qs": [
+        {
+          "id": "t7-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "fd 0·1·2가 사용 중인 프로세스가 <code>open()</code>에 성공하면 반환되는 숫자는?",
+          "o": [
+            "0",
+            "3",
+            "8812",
+            "-1"
+          ],
+          "a": 1,
+          "h": "open()은 fd 테이블에서 비어 있는 가장 작은 슬롯 번호를 반환합니다. 0·1·2가 이미 표준 입출력으로 쓰이고 있다면 다음 빈 슬롯이 몇 번인지 세어 보세요.",
+          "w": "0·1·2(터미널)가 사용 중이므로 빈 슬롯 3에 struct file을 연결하고 3을 반환합니다. 8812는 inode 번호이고 -1은 실패일 때입니다.",
+          "an": "OS Day3 S1 p.6 · p.8",
+          "src": "7 struct file 생성: f_pos=0, inode 가리킴, 참조 수 1\n8 fd 테이블 빈 슬롯: 0·1·2 사용 중 → 3\n9 3번 슬롯 → struct file, 숫자 3 반환"
+        },
+        {
+          "id": "t7-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "존재하지 않는 파일을 <code>open()</code>하면 어떤 errno가 설정됩니까?",
+          "o": [
+            "EACCES",
+            "SIGPIPE",
+            "ENOENT",
+            "EADDRINUSE"
+          ],
+          "a": 2,
+          "h": "없는 파일을 열면 dentry 탐색 단계(5단계)에서 멈추고 struct file을 만들지 않은 채 -1을 반환합니다. 이때 errno는 'No such file or directory'를 뜻하는 E로 시작하는 이름입니다.",
+          "w": "없는 파일은 5단계(dentry)에서 멈추고 음수 dentry만 남긴 채 -1, errno = ENOENT를 돌려줍니다. EACCES는 이름은 찾았지만 inode 권한 검사에서 실패한 경우입니다.",
+          "an": "OS Day3 S1 p.6",
+          "src": "없는 파일이면?\n5단계에서 멈춤. 음수 dentry가 남고 struct file은\n만들지 않음."
+        },
+        {
+          "id": "t7-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "권한이 없어 <code>open()</code>이 'Permission denied'로 실패했다면, 이를 막은 주체는?",
+          "o": [
+            "셸(bash)",
+            "Terminal 창",
+            "dentry 캐시",
+            "커널의 inode 권한 검사"
+          ],
+          "a": 3,
+          "h": "open의 아홉 단계 중 6단계는 inode의 권한 비트를 검사하는 단계로, 자료는 이 검사를 셸이 하지 않는다고 강조합니다. 이름 찾기는 성공했지만 이 검사에서 실패하면 EACCES가 납니다.",
+          "w": "권한 검사는 6단계에서 커널이 inode의 권한 비트로 합니다. 셸은 요청을 전달할 뿐이며, 확인 문구의 정답도 '커널'입니다.",
+          "an": "OS Day3 S1 p.6 · p.8",
+          "src": "6 inode의 권한 비트 검사 (셸이 아니라 커널)\n7 struct file 생성: f_pos=0, inode 가리킴, 참조 수 1\n8 fd 테이블 빈 슬롯: 0·1·2 사용 중 → 3\n9 3번 슬롯 → struct file, 숫자 3 반환\n없는 파일이면?\n5단계에서 멈춤. 음수 dentry가 남고 struct file은\n만들지 않음.\n→ -1, errno = ENOENT\n권한이 없으면?\n6단계에서 멈춤. 이름 찾기는 성공했지만 inode 검\n사 실패.\n→ -1, errno = EACCES ('Permission denied')"
+        },
+        {
+          "id": "t7-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "파일 시스템에서 '파일명 ↔ inode 번호' 매핑을 담당하는 것은 무엇입니까?",
+          "o": [
+            "Directory Entry(dentry)",
+            "inode",
+            "Data Block",
+            "struct file"
+          ],
+          "a": 0,
+          "h": "파일시스템에서 inode는 권한·소유자·크기·블록 포인터 같은 메타데이터를 담습니다. 그렇다면 사람이 붙인 이름과 inode 번호를 연결해 주는 '디렉터리 안의 항목'이 무엇인지 떠올려 보세요.",
+          "w": "Directory Entry는 파일명과 inode 번호를 연결하는 이름 공간입니다. inode는 권한·크기·블록 위치 같은 메타데이터, Data Block은 실제 내용을 담습니다.",
+          "an": "교안 C06 p.93 · OS Day3 p.6",
+          "src": "① Directory Entry\n파일명과 inode 번호의 매핑\n② inode\n권한·소유자·크기·블록 포인터 등 메타데이터"
+        },
+        {
+          "id": "t7-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "큰 로그 파일을 rm 했는데 df 여유 공간이 그대로입니다. 가장 알맞은 원인은?",
+          "o": [
+            "dentry가 아직 남아 있어서",
+            "페이지 캐시가 가득 차서",
+            "struct file이 inode를 잡아서",
+            "휴지통으로 옮겨져서"
+          ],
+          "a": 2,
+          "h": "rm은 이름표(dentry)를 지우고 링크 수를 0으로 만들 뿐입니다. 어떤 프로세스가 그 파일을 열고 있으면 열린 파일 객체가 본체를 계속 붙잡고 있어 블록이 해제되지 않습니다.",
+          "w": "열린 채로 rm 하면 이름표와 링크 수는 사라지지만 struct file이 inode를 잡고 있어 블록이 해제되지 않습니다. 그 파일을 연 프로세스를 찾아 close(재시작)해야 공간이 돌아옵니다.",
+          "an": "OS Day3 S1 p.7 · 교안 p.101",
+          "src": "열린 채로 rm\n이름표 제거, 링크 수 0\n그러나 struct file이 inode를 잡고 있음\n→ 블록 해제 안 됨, df 그대로\n→ /proc/PID/fd 에 (deleted)\n마지막 close 때 비로소 해제"
+        },
+        {
+          "id": "t7-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>write()</code>가 성공을 반환했다면 그 데이터는 이미 디스크에 기록된 상태입니다.",
+          "a": false,
+          "h": "write()는 페이지 캐시에 쓰고 페이지를 dirty로 표시한 뒤 곧바로 반환합니다. 디스크에 실제로 닿는 시점은 약 30초 뒤 writeback 스레드나 fsync가 정한다는 점을 생각해 보세요.",
+          "w": "write는 페이지 캐시에 쓰고 dirty로 표시한 뒤 즉시 반환합니다. 디스크에 닿는 시점은 약 30초 뒤 writeback 스레드 또는 fsync가 정합니다.",
+          "an": "OS Day3 S2 p.9 · p.11",
+          "src": "방치\nwrite → 페이지 dirty → 즉시 반환\n약 30초 뒤 writeback 스레드가 flush\n→ 그제야 디스크가 'new'\nfsync\nwrite → dirty → fsync(3)\n프로세스가 잠들고 블록 쓰기 완료 후 반환\n→ 반환 전까지 디스크 보장"
+        },
+        {
+          "id": "t7-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "같은 파일을 두 번째 read할 때 빠른 이유는 페이지 캐시 히트로 디스크에 가지 않기 때문입니다.",
+          "a": true,
+          "h": "첫 read에서는 페이지 캐시에 데이터가 없어 디스크에서 읽어 옵니다(미스). 두 번째 read에서는 해당 페이지가 이미 캐시에 있어 디스크에 가지 않으므로 마이크로초 수준으로 끝납니다.",
+          "w": "두 번째 read는 페이지가 이미 캐시에 있어 디스크를 건너뛰고 마이크로초 단위로 끝납니다. drop_caches로 캐시를 비우면 다시 느려집니다.",
+          "an": "OS Day3 S2 p.10 · p.12",
+          "src": "두 번째 read (히트)\n페이지 0이 이미 캐시에 있음 → 디스\n크 안 감 → 마이크로초. 캐시는 inode \n단위 공유, f_pos는 struct file마다."
+        },
+        {
+          "id": "t7-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "커널의 파일 구조 상자와 담긴 내용을 연결하세요.",
+          "pairs": [
+            [
+              "fd 테이블",
+              "정수 슬롯 → struct file"
+            ],
+            [
+              "struct file",
+              "f_pos · inode 포인터 · 참조 수"
+            ],
+            [
+              "dentry",
+              "이름 'a.txt' → inode"
+            ],
+            [
+              "inode",
+              "권한 · 크기 · 블록 위치 · 링크 수"
+            ]
+          ],
+          "h": "fd 테이블은 정수 번호가 struct file을 가리키는 표이고, struct file은 현재 읽기 위치와 inode 포인터를 가집니다. dentry는 이름을 inode로 잇고, inode에는 권한·크기·블록 위치 같은 본체 정보가 있습니다.",
+          "w": "프로세스의 fd 테이블이 struct file을 가리키고, struct file은 읽기 위치 f_pos와 inode를, dentry는 이름을 inode로 잇고, inode는 메타데이터를 가집니다.",
+          "an": "OS Day3 p.4",
+          "src": "fd 테이블\n0 → 터미널\n1 → 터미널\n2 → 터미널\n3 → struct file\nstruct file\nf_pos\nf_inode →\n참조 수\ndentry\n'a.txt' → inode\ninode\n권한 · 크기\n블록 위치\n링크 수"
+        },
+        {
+          "id": "t7-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "<code>open(\"/home/user/a.txt\")</code>가 커널 안에서 처리되는 순서대로 나열하세요.",
+          "steps": [
+            "시스템 콜 경계를 넘어 커널로 진입",
+            "dentry 캐시로 / → home → user → a.txt 탐색",
+            "inode의 권한 비트 검사",
+            "struct file 생성(f_pos=0, 참조 수 1)",
+            "fd 테이블 빈 슬롯에 연결하고 번호 반환"
+          ],
+          "h": "open은 먼저 시스템 콜로 커널에 들어가 경로를 dentry로 한 단계씩 짚습니다. 이름 찾기가 끝나면 inode 권한을 검사하고, struct file을 만든 뒤 fd 테이블의 빈 슬롯에 연결해 번호를 돌려줍니다.",
+          "w": "커널 진입 → dentry 경로 탐색 → inode 권한 검사 → struct file 생성 → fd 슬롯 연결·반환의 아홉 단계를 다섯으로 묶은 것입니다. 실패하면 각각 탐색 단계(ENOENT)나 권한 단계(EACCES)에서 멈춥니다.",
+          "an": "OS Day3 S1 p.6",
+          "src": "1 시스템 콜 경계를 넘어 커널로\n2~5 dentry 캐시를 / → home → user → a.txt 순서로 짚음\n5 마지막 dentry가 inode #8812를 가리킴 — 이름은 여기까지\n6 inode의 권한 비트 검사 (셸이 아니라 커널)\n7 struct file 생성: f_pos=0, inode 가리킴, 참조 수 1\n8 fd 테이블 빈 슬롯: 0·1·2 사용 중 → 3\n9 3번 슬롯 → struct file, 숫자 3 반환"
+        },
+        {
+          "id": "t7-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "write와 디스크 기록 시점에 대한 설명으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "write 직후 해당 페이지는 dirty가 된다",
+            "약 30초 뒤 writeback 스레드가 flush한다",
+            "fsync는 블록 쓰기 완료 후 반환한다",
+            "저널링은 방금 쓴 데이터까지 지켜 준다",
+            "전원을 끊어도 dirty 페이지는 남는다"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "write는 페이지를 dirty로 만들고 즉시 반환하며, 디스크 기록은 약 30초 뒤 writeback 스레드가 합니다. fsync를 부르면 프로세스가 잠들었다가 블록 쓰기가 끝난 뒤 반환되므로 디스크 기록이 보장됩니다.",
+          "w": "write는 dirty만 만들고 반환하며, writeback 스레드나 fsync가 디스크에 내립니다. 전원을 끊으면 RAM의 dirty 페이지가 사라지고, 저널링이 지키는 것은 메타데이터이지 방금 쓴 데이터가 아닙니다.",
+          "an": "OS Day3 S2 p.11",
+          "src": "방치\nwrite → 페이지 dirty → 즉시 반환\n약 30초 뒤 writeback 스레드가 flush\n→ 그제야 디스크가 'new'\nfsync\nwrite → dirty → fsync(3)\n프로세스가 잠들고 블록 쓰기 완료 후 반환\n→ 반환 전까지 디스크 보장"
+        }
+      ]
+    },
+    {
+      "id": "t8",
+      "title": "fd 복사·리다이렉션 · 스크립트 실행",
+      "ref": "OS Day3 S3–S4 · 교안 C02·C08",
+      "qs": [
+        {
+          "id": "t8-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>fork()</code> 때 fd 테이블과 struct file은 각각 어떻게 됩니까?",
+          "o": [
+            "fd 테이블 복사, struct file 공유",
+            "fd 테이블 공유, struct file 복사",
+            "둘 다 복사",
+            "둘 다 공유"
+          ],
+          "a": 0,
+          "h": "fork는 프로세스 쪽 상자(fd 테이블)를 복사하지만, 그 화살표가 가리키는 커널의 열린 파일 객체는 새로 만들지 않습니다. 그래서 부모와 자식의 f_pos가 함께 움직이고 > 리다이렉션이 가능해집니다.",
+          "w": "fork는 fd 테이블(화살표)을 복사하고 가운데 struct file은 공유합니다. 그래서 f_pos가 같이 움직이고 > 리다이렉션이 가능합니다.",
+          "an": "OS Day3 S3 p.13–14",
+          "src": "이 세션의 도착점\nfd 테이블은 복사, struct file은 공유 — 그래서 f_pos가 같이 움직이고, 그래서 > 리다이렉션이 된다.\n핵심 문장 — 세션 끝에 전원이 말할 수 있어야 하는 한 줄\n“fd 테이블은 복사되지만 struct file은 공유된다 — 그래서 >가 된다.”"
+        },
+        {
+          "id": "t8-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "fork로 struct file을 공유한 부모가 100B를 읽었습니다. 자식은 어디부터 읽습니까?",
+          "o": [
+            "0부터",
+            "100부터",
+            "200부터",
+            "파일 끝부터"
+          ],
+          "a": 1,
+          "h": "fork 뒤 부모와 자식의 fd 3은 같은 struct file A를 가리키며, 참조 수는 2가 됩니다. 읽기 위치 f_pos는 struct file 안에 하나뿐이므로 부모가 읽고 난 뒤의 위치를 자식도 이어받습니다.",
+          "w": "f_pos가 공유 struct file에 있으므로 부모가 100B를 읽으면 자식은 100부터 읽습니다. 참조 수는 2가 됩니다.",
+          "an": "OS Day3 S3 p.14",
+          "src": "부모 (PID 500)\n0 → tty\n1 → tty\n3 → file A\n자식 (PID 501)\n0 → tty\n1 → tty\n3 → file A\nstruct file A\nf_pos = 0\n→ 100 → 200\n참조 수 2"
+        },
+        {
+          "id": "t8-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>ls &gt; out.txt</code>에서 자식이 out.txt를 fd 3으로 연 뒤, 1번 화살표를 파일로 바꾸는 호출은?",
+          "o": [
+            "close(1)",
+            "execve(3)",
+            "pipe(1)",
+            "dup2(3, 1)"
+          ],
+          "a": 3,
+          "h": "ls > out.txt의 일곱 단계에서 자식은 out.txt를 fd 3으로 연 뒤, fd 3이 가리키는 파일을 fd 1 자리에 복제해 넣습니다. 그다음 close(3)과 execve가 이어지며, 이 '복제해 덮어쓰기' 호출의 인자 순서도 함께 생각해 보세요.",
+          "w": "<code>dup2(3, 1)</code>로 1번이 out.txt를 가리키게 한 뒤 3번을 close합니다. execve 후에도 fd 테이블은 유지되므로 ls의 출력이 파일로 갑니다.",
+          "an": "OS Day3 S3 p.14",
+          "src": "1. bash가 `ls > out.txt` 읽고 fork\n2. 자식: open(out.txt) → fd 3\n3. 자식: dup2(3, 1) — 1번 화살표를 파일로\n4. 자식: close(3)"
+        },
+        {
+          "id": "t8-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "표준 에러(stderr)의 fd 번호는 무엇입니까?",
+          "o": [
+            "0",
+            "1",
+            "2",
+            "3"
+          ],
+          "a": 2,
+          "h": "모든 프로세스는 표준 입력, 표준 출력, 표준 에러 세 개를 미리 열어 둔 채 시작합니다. 자료는 이 세 개가 순서대로 0부터 번호를 받으며, 새로 open한 파일은 3부터 받는다고 설명합니다.",
+          "w": "stdin은 0, stdout은 1, stderr는 2입니다. 그래서 <code>2&gt;&amp;1</code>은 에러를 표준 출력과 같은 곳으로 보냅니다.",
+          "an": "교안 C08 p.134 · p.138",
+          "src": "FD T able open()/close() 반복 fd 3,4,5가 생성·반환 fd 번호, 객체 수 왜 stdin/stdout/stderr가 0/1/2인가?"
+        },
+        {
+          "id": "t8-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "<code>./run.sh</code>는 Permission denied인데 <code>bash run.sh</code>는 실행됩니다. 이유는?",
+          "o": [
+            "bash가 권한 검사를 건너뛰어서",
+            "커널이 /bin/bash의 x만 검사해서",
+            "run.sh에 #!이 없어서",
+            "PATH에 run.sh가 있어서"
+          ],
+          "a": 1,
+          "h": "execve의 1단계는 실행 대상 inode의 x 비트 검사입니다. ./run.sh는 run.sh 자체가 실행 대상이지만, bash run.sh는 실행 대상이 /bin/bash이고 run.sh는 읽기만 하면 된다는 차이를 생각해 보세요.",
+          "w": "<code>bash run.sh</code>의 실행 대상은 /bin/bash이므로 커널은 /bin/bash의 x 비트만 검사하고, run.sh는 r 권한만 있으면 됩니다. 권한 검사는 셸이 아니라 execve 1단계에서 커널이 합니다.",
+          "an": "OS Day3 S4 p.18",
+          "src": "./run.sh vs bash run.sh\nbash run.sh 는 실행 대상이 /bin/bash → 커널은 /bin/bash의 x만 검사. \nrun.sh는 r만 있으면 됨."
+        },
+        {
+          "id": "t8-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>ls &gt; out.txt</code>에서 ls는 자기 출력이 파일로 간다는 사실을 알고 다르게 동작합니다.",
+          "a": false,
+          "h": "자식은 dup2로 fd 1번 화살표를 out.txt로 바꾼 뒤 execve로 ls가 됩니다. execve 뒤에도 fd 테이블은 유지되므로 ls는 평소처럼 fd 1에 쓸 뿐, 그 끝이 터미널인지 파일인지 구분하지 않습니다.",
+          "w": "ls는 fd 1이 파일인지 터미널인지 모른 채 평소처럼 write합니다. 바뀐 것은 자식 fd 테이블의 1번 화살표뿐이며, 부모 bash의 1번은 여전히 터미널입니다.",
+          "an": "OS Day3 S3 p.14–15",
+          "src": "3. 자식: dup2(3, 1) — 1번 화살표를 파일로\n4. 자식: close(3)\n5. 자식: execve(/bin/ls) — fd 테이블은 유지\n6. ls는 평소처럼 fd 1에 write (파일인지 모름)"
+        },
+        {
+          "id": "t8-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>cd</code>는 fork 없이 bash 자신이 chdir을 부르는 빌트인 명령입니다.",
+          "a": true,
+          "h": "cd를 fork로 실행하면 자식의 cwd만 바뀌고 부모 bash는 제자리에 남습니다. 그래서 bash는 이 명령을 자식을 만들지 않고 자기 안에서 직접 처리한다는 점을 떠올려 보세요.",
+          "w": "cd를 fork로 실행하면 자식의 cwd만 바뀌고 부모는 제자리이므로 bash가 직접 chdir을 부르는 빌트인입니다. 같은 이유로 스크립트 안의 cd는 터미널 위치를 바꾸지 못합니다.",
+          "an": "OS Day3 S4 p.19",
+          "src": "cd는 왜 빌트인인가\ncd를 fork로 실행하면 자식의 cwd만 바뀌\n고 부모는 제자리.\n그래서 bash 자신이 chdir을 부른다."
+        },
+        {
+          "id": "t8-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "Linux 디렉터리와 담긴 정보를 연결하세요.",
+          "pairs": [
+            [
+              "/etc",
+              "설정"
+            ],
+            [
+              "/proc",
+              "프로세스·커널 정보"
+            ],
+            [
+              "/sys",
+              "장치·커널 객체"
+            ],
+            [
+              "/dev",
+              "장치 노드"
+            ],
+            [
+              "/home",
+              "사용자 데이터"
+            ]
+          ],
+          "h": "/etc는 시스템 설정, /home은 사용자 개인 데이터가 있는 곳입니다. /proc은 실행 중인 프로세스와 커널 정보를, /sys는 장치·커널 객체를, /dev는 장치 노드를 파일처럼 보여 줍니다.",
+          "w": "/home은 사용자 데이터, /etc는 설정, /proc는 프로세스·커널 정보, /sys는 장치·커널 객체, /dev는 장치 노드입니다. /proc와 /sys는 디스크 파일이 아니라 Kernel 상태를 파일처럼 노출하는 가상 파일시스템입니다.",
+          "an": "교안 C02 p.28–29",
+          "src": "① 디렉터리 의미\n/home 사용자 데이터, /etc 설정, /proc 프로세스/\n커널 정보, /sys 장치/커널 객체, /dev 장치 노드"
+        },
+        {
+          "id": "t8-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "bash가 <code>ls &gt; out.txt</code>를 처리하는 순서대로 나열하세요.",
+          "steps": [
+            "bash가 명령을 읽고 fork",
+            "자식: open(out.txt) → fd 3",
+            "자식: dup2(3, 1)로 1번을 파일로",
+            "자식: close(3)",
+            "자식: execve(/bin/ls)"
+          ],
+          "h": "리다이렉션은 자식 쪽에서 준비를 마친 뒤 프로그램으로 변신하는 흐름입니다. fork 다음 파일을 열어 fd를 받고, 1번 화살표를 그 파일로 돌린 뒤 쓸모없어진 fd를 닫고 마지막에 ls로 변신합니다.",
+          "w": "fork 후 자식이 파일을 열고 dup2로 1번을 바꾼 뒤 3번을 닫고 execve합니다. execve 뒤에도 fd 테이블이 유지되므로 ls는 평소처럼 fd 1에 씁니다.",
+          "an": "OS Day3 S3 p.14",
+          "src": "ls > out.txt 의 일곱 단계\n1. bash가 `ls > out.txt` 읽고 fork\n2. 자식: open(out.txt) → fd 3\n3. 자식: dup2(3, 1) — 1번 화살표를 파일로\n4. 자식: close(3)\n5. 자식: execve(/bin/ls) — fd 테이블은 유지"
+        },
+        {
+          "id": "t8-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "스크립트 실행과 종료 코드에 대한 설명으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "Permission denied는 execve 1단계에서 난다",
+            "chmod +x는 inode의 비트 하나를 켠다",
+            "$?가 0이면 성공이다",
+            "스크립트 안 cd는 터미널 위치도 바꾼다",
+            "#!은 x 비트 검사보다 먼저 읽는다"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Permission denied의 출처는 셸이 아니라 execve의 첫 단계인 inode x 비트 검사이며, chmod +x는 그 비트 하나를 켜는 것입니다. 종료 코드 $?는 성공 하나만 0이고 실패 이유는 여럿이라는 규칙도 함께 떠올려 보세요.",
+          "w": "x 비트가 없으면 execve 1단계에서 EACCES로 끝나 #!은 읽지도 않으며, chmod +x는 inode 비트 하나를 켭니다. $?는 0이 성공이고, 스크립트는 자식 bash라 그 안의 cd는 터미널에 남지 않습니다.",
+          "an": "OS Day3 S4 p.18–19",
+          "src": "Permission denied 의 출처\n셸이 아니라 execve()의 1단계. chmod +x 는 inode의 비트 하나를 켜\n는 것."
+        }
+      ]
+    },
+    {
+      "id": "t9",
+      "title": "변수·조건 · 파이프",
+      "ref": "OS Day3 S5–S6 · 교안 C08",
+      "qs": [
+        {
+          "id": "t9-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "스크립트에서 설정한 변수가 실행 후에도 터미널에 남게 하는 실행 방법은?",
+          "o": [
+            "./collect.sh",
+            "source collect.sh",
+            "bash collect.sh",
+            "nohup ./collect.sh"
+          ],
+          "a": 1,
+          "h": "./collect.sh는 fork+execve로 자식 bash가 실행해 변수가 자식 상자에 생겼다가 함께 사라집니다. fork 없이 지금의 터미널 bash가 스크립트를 직접 읽어 실행하는 방법을 떠올려 보세요(.bashrc를 읽는 방식과 같습니다).",
+          "w": "<code>source</code>는 fork 없이 터미널 bash가 직접 실행하므로 변수가 터미널 상자에 남습니다. <code>./collect.sh</code>는 자식 bash에서 돌아 종료와 함께 변수가 사라집니다. .bashrc를 source로 읽는 이유입니다.",
+          "an": "OS Day3 S5 p.23",
+          "src": "./collect.sh\nfork+execve → 자식 bash\n자식의 상자에 LOG_DIR 생김\n자식 종료 → 상자 소멸\n터미널: echo $LOG_DIR → 빈 값\nsource collect.sh\nfork 없음\n터미널 bash가 직접 읽어 실행\n터미널 상자에 LOG_DIR 남음\n(.bashrc 를 source로 읽는 이유)"
+        },
+        {
+          "id": "t9-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "부모가 export한 LOG_DIR를 자식이 /tmp로 바꿨습니다. 부모의 LOG_DIR는 어떻게 됩니까?",
+          "o": [
+            "부모도 함께 바뀐다",
+            "부모·자식 모두 지워진다",
+            "부모는 그대로다",
+            "부모에게 오류가 난다"
+          ],
+          "a": 2,
+          "h": "export한 변수는 execve 때 envp로 자식에게 '복사'될 뿐입니다. 변수 흐름은 부모에서 자식으로 한 방향이므로, 자식이 자기 복사본을 바꿔도 부모 쪽 값에 영향이 가는지 생각해 보세요.",
+          "w": "export는 execve 때 envp로 자식에 복사될 뿐 되돌아오지 않으므로 부모 값은 그대로입니다. 스크립트에서 바꾼 PATH가 터미널에 안 남는 이유도 같습니다.",
+          "an": "OS Day3 S5 p.22–23",
+          "src": "export LOG_DIR=…\nexecve 때 envp로 자식에 복사\n자식이 LOG_DIR=/tmp 로 바꿔도\n부모는 그대로\n흐름은 부모 → 자식 한 방향"
+        },
+        {
+          "id": "t9-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>[ -d ~/logs ]</code> 검사가 실패하면 <code>$?</code>는 어떤 값입니까?",
+          "o": [
+            "0",
+            "항상 127",
+            "빈 문자열",
+            "0이 아닌 값"
+          ],
+          "a": 3,
+          "h": "[ 는 그 자체가 명령이고, 검사 결과를 종료 코드로 남깁니다. 디렉터리가 있으면 exit 0이고, 없으면 오른쪽의 mkdir이 실행되는 이유를 종료 코드 규칙(성공만 0)으로 생각해 보세요.",
+          "w": "<code>[</code>도 명령이라 실패하면 0이 아닌 종료 코드를 남기고, if·&&·||가 이 값을 읽습니다. 0이 참인 이유는 성공은 하나지만 실패 이유는 여럿이기 때문입니다.",
+          "an": "OS Day3 S5 p.24–25",
+          "src": "구문 참일 때 거짓일 때\n[ -d ~/logs ] || mkdir -p ~/logs 있음 → [ 가 exit 0 → || 오른쪽 건너뜀 없음 → exit 1 → || 오른쪽 fork → mkdir"
+        },
+        {
+          "id": "t9-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "파이프 버퍼(커널)가 가득 찼을 때 쓰는 쪽 프로세스는 어떻게 됩니까?",
+          "o": [
+            "데이터를 버리고 계속 쓴다",
+            "write가 블록되어 잠든다",
+            "SIGPIPE를 받고 종료한다",
+            "grep이 즉시 종료된다"
+          ],
+          "a": 1,
+          "h": "파이프 버퍼는 커널 안에 있는 64KB 크기의 공간입니다. 버퍼가 가득 차면 데이터를 버리지 않고 커널이 쓰는 쪽을 재워 두었다가, 읽는 쪽이 읽으면 깨우는 흐름 제어를 합니다.",
+          "w": "버퍼가 가득 차면 write가 블록되어 커널이 쓰는 쪽을 재우고, 읽는 쪽이 읽으면 깨어납니다. 이것이 흐름 제어이며 데이터는 버려지지 않습니다.",
+          "an": "OS Day3 S6 p.28",
+          "src": "버퍼가 가득\nwrite가 블록 — 커널이 sensor를 재움. 데이\n터는 안 버려짐. grep이 읽으면 깨어남 = 흐\n름 제어"
+        },
+        {
+          "id": "t9-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "<code>sensor | head -1</code>에서 head가 먼저 끝난 뒤 sensor가 다음 write를 하면?",
+          "o": [
+            "SIGPIPE를 받고 조용히 종료",
+            "버퍼가 자동으로 커진다",
+            "SIGHUP을 받고 종료",
+            "데이터가 파일로 저장된다"
+          ],
+          "a": 0,
+          "h": "head -1이 끝나면 파이프의 읽기 끝이 닫힙니다. 더 이상 읽을 사람이 없는 파이프에 쓰려고 하면 커널이 쓰는 프로세스에게 특정 시그널을 보내 조용히 끝나게 합니다.",
+          "w": "오른쪽이 끝나 읽기 끝이 닫히면 sensor의 다음 write에 SIGPIPE가 와서 조용히 종료합니다. SIGHUP은 터미널(세션)이 사라질 때의 신호입니다.",
+          "an": "OS Day3 S6 p.28",
+          "src": "오른쪽 먼저 종료\nhead -1 이 끝나면 읽기 끝 닫힘 → sensor의\n다음 write → SIGPIPE → 조용히 종료"
+        },
+        {
+          "id": "t9-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "파이프 <code>A | B</code>에서 B는 A가 완전히 끝난 뒤에야 실행을 시작합니다.",
+          "a": false,
+          "h": "파이프는 커널 버퍼 하나에 두 프로세스를 꽂아 두는 구조입니다. 자료의 '정상' 시나리오는 두 프로세스가 언제 실행되는지, 그리고 데이터가 버퍼를 거쳐 어떻게 흘러가는지를 보여 줍니다.",
+          "w": "파이프 양쪽 프로세스는 순서대로가 아니라 동시에 돕니다. 확인 문구 '| 왼쪽이 끝나기 전에 오른쪽이 시작할 수 있나요?'의 답도 '있다'입니다.",
+          "an": "OS Day3 S6 p.27 · p.29",
+          "src": "둘이 동시에 실행. sensor가 write → 버퍼 → \ngrep이 read → 필터 → 파일"
+        },
+        {
+          "id": "t9-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>cp a.txt b.txt &amp;&amp; echo 복사됨</code>에서 cp가 실패하면 echo는 fork조차 되지 않습니다.",
+          "a": true,
+          "h": "&&는 왼쪽 명령의 $?가 0일 때만 오른쪽을 실행합니다. cp가 실패해 종료 코드가 1이면 bash가 오른쪽 echo를 위해 자식 프로세스를 만들지 여부를 생각해 보세요.",
+          "w": "cp가 실패하면 종료 코드가 1이 되어 && 오른쪽의 echo는 fork조차 되지 않습니다. 반대로 ||는 왼쪽이 실패했을 때만 오른쪽을 실행합니다.",
+          "an": "OS Day3 S5 p.24",
+          "src": "cp a.txt b.txt && echo 복사됨 cp 성공 → 0 → echo 실행 cp 실패 → 1 → echo는 fork조차 안 됨"
+        },
+        {
+          "id": "t9-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "실행 방식·구문과 그 효과를 연결하세요.",
+          "pairs": [
+            [
+              "./collect.sh",
+              "자식 bash에서 실행, 변수 소멸"
+            ],
+            [
+              "source collect.sh",
+              "터미널 bash가 직접 실행, 변수 남음"
+            ],
+            [
+              "export LOG_DIR=…",
+              "execve 때 envp로 자식에 복사"
+            ],
+            [
+              "2>&1",
+              "stderr를 stdout과 같은 곳으로"
+            ]
+          ],
+          "h": "./ 실행은 자식 bash, source는 터미널 bash 자신이 실행하므로 변수의 수명이 다릅니다. export는 execve 시점의 envp 복사이고, 2>&1은 fd 2를 fd 1이 가리키는 곳으로 맞추는 리다이렉션입니다.",
+          "w": "./는 fork+execve로 자식 상자에, source는 터미널 상자에 변수를 만들고, export는 자식에게 복사만 합니다. 2>&1은 에러도 같은 로그에 남기는 리다이렉션입니다.",
+          "an": "OS Day3 S5 p.23 · S6 p.29–30",
+          "src": "./collect.sh\nfork+execve → 자식 bash\n자식의 상자에 LOG_DIR 생김\n자식 종료 → 상자 소멸\n터미널: echo $LOG_DIR → 빈 값\nsource collect.sh\nfork 없음\n터미널 bash가 직접 읽어 실행\n터미널 상자에 LOG_DIR 남음\n(.bashrc 를 source로 읽는 이유)\nexport LOG_DIR=…\nexecve 때 envp로 자식에 복사"
+        },
+        {
+          "id": "t9-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "셸이 파이프 <code>sensor | grep WARN</code>을 만드는 순서대로 나열하세요.",
+          "steps": [
+            "pipe()로 커널에 버퍼 하나 생성",
+            "fork 두 번으로 자식 둘 생성",
+            "각자 dup2로 fd 0·1을 파이프 끝에 연결",
+            "각자 execve로 sensor·grep 실행"
+          ],
+          "h": "도구 #14 설명은 파이프 생성 과정을 네 동작으로 요약합니다. 커널 버퍼를 먼저 만들고, 프로세스를 둘 만든 다음, 각자 fd를 파이프 끝에 연결하고, 마지막에 각자 실제 프로그램으로 변신합니다.",
+          "w": "pipe()로 버퍼를 만들고 fork 두 번, 각자 dup2, 각자 execve 순서입니다. 파이프는 S3의 dup2를 두 프로세스에 동시에 적용한 것입니다.",
+          "an": "OS Day3 S6 p.27–28",
+          "src": "도구 #14. pipe()로 커널에 버퍼 하나, fork 두 번, 각자 dup2, 각자 execve."
+        },
+        {
+          "id": "t9-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "<code>sensor | grep WARN &gt; log.txt</code> 파이프 구조에 대한 설명으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "데이터는 유저 공간을 거치지 않는다",
+            "sensor의 fd 1이 파이프 쓰기 끝이다",
+            "grep의 fd 0이 파이프 읽기 끝이다",
+            "두 프로세스는 같은 PID를 쓴다",
+            "버퍼가 차면 데이터가 버려진다"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "파이프 데이터는 커널 버퍼를 통해 전달되므로 유저 공간을 거치지 않습니다. 그림에서 sensor는 fd 1이 파이프 쓰기 쪽, grep은 fd 0이 파이프 읽기 쪽, fd 1은 log.txt에 연결되어 있습니다.",
+          "w": "sensor의 fd 1은 파이프 쓰기, grep의 fd 0은 파이프 읽기 끝이며 데이터는 커널 버퍼만 거칩니다. 두 프로세스는 서로 다른 PID(601·602)이고, 버퍼가 차면 데이터를 버리지 않고 write가 블록됩니다.",
+          "an": "OS Day3 S6 p.28",
+          "src": "도구 #14. pipe()로 커널에 버퍼 하나, fork 두 번, 각자 dup2, 각자 execve. 데이터는 유저 공간을 거치지 않습니다.\nLinux & Shell · Day 3 28\nsensor (601)\nfd 1 → 파이프(쓰기)\n파이프 버퍼 (커널, 64 KB)\n채움: 3 KB / 64 KB\ngrep WARN (602)\nfd 0 → 파이프(읽기)\nfd 1 → log.txt"
+        }
+      ]
+    },
+    {
+      "id": "t10",
+      "title": "SIGHUP·cron · systemd 서비스",
+      "ref": "OS Day3 S7–S8 · 교안 C09",
+      "qs": [
+        {
+          "id": "t10-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "SSH를 끊었을 때 <code>./collect.sh &amp;</code>로 띄운 스크립트를 죽인 것은 무엇입니까?",
+          "o": [
+            "셸(bash)",
+            "sshd",
+            "커널의 SIGHUP",
+            "systemd"
+          ],
+          "a": 2,
+          "h": "./collect.sh &로 띄운 스크립트는 터미널과 같은 세션에 속합니다. SSH가 끊기면 셸이나 sshd가 아니라 커널이 세션 전체에 '끊김' 시그널을 보내고, 기본 처리기가 종료이므로 스크립트가 죽습니다.",
+          "w": "터미널이 사라지면 커널이 그 세션 전체에 SIGHUP을 보내고, 기본 처리기가 종료이므로 스크립트가 죽습니다. 시그널은 세션(SID) 단위로 배달됩니다.",
+          "an": "OS Day3 S7 p.32 · p.34",
+          "src": "./collect.sh &\n같은 세션·같은 제어 터미널\nSSH 끊김 → 커널이 세션에 SIGHUP\n기본 처리기 = 종료\n재접속 후 ps → 없음"
+        },
+        {
+          "id": "t10-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>nohup ./collect.sh &amp;</code>가 SSH 종료 후에도 살아남는 원리는?",
+          "o": [
+            "SIGHUP 처리기를 무시로 바꿈",
+            "새 세션의 리더가 됨",
+            "PID 1이 직접 띄움",
+            "1분마다 다시 실행됨"
+          ],
+          "a": 0,
+          "h": "SSH가 끊기면 커널이 세션 전체에 SIGHUP을 보내고, 기본 처리기는 종료입니다. nohup은 exec하기 전에 이 시그널을 처리하는 방식을 바꿔 두므로 bash는 죽어도 스크립트는 살아남습니다.",
+          "w": "nohup은 SIGHUP 처리기를 '무시'로 바꾼 뒤 exec하고 출력은 nohup.out으로 보냅니다. 새 세션의 리더가 되어 신호 자체를 받지 않는 것은 setsid입니다.",
+          "an": "OS Day3 S7 p.32",
+          "src": "nohup ./collect.sh &\nSIGHUP 처리기를 '무시'로 바꾼 뒤 exec\n출력은 nohup.out\nbash는 죽고 스크립트는 생존\n재접속 후 ps → 있음"
+        },
+        {
+          "id": "t10-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "터미널에서는 되는데 cron에서만 실패하는 스크립트를 볼 때 1순위 원인은?",
+          "o": [
+            "실행 권한 부족",
+            "파이프 버퍼 부족",
+            "SIGHUP 수신",
+            "PATH 등 환경 차이"
+          ],
+          "a": 3,
+          "h": "cron이 띄운 자식은 PATH=/usr/bin:/bin, HOME 정도만 받고 터미널 변수는 받지 못합니다. 그래서 /usr/local/bin에 있는 명령을 찾지 못하는 일이 생기며, 절대경로나 crontab의 PATH 지정으로 해결합니다.",
+          "w": "cron의 자식은 PATH=/usr/bin:/bin 정도만 받으므로 /usr/local/bin의 python3를 못 찾아 exit 127이 납니다. 절대경로를 쓰거나 crontab 맨 위에 PATH= 한 줄을 넣어 해결합니다.",
+          "an": "OS Day3 S7 p.33–34",
+          "src": "자식이 받는 환경\nPATH=/usr/bin:/bin\nHOME=/home/user\n(터미널 변수 없음)\n→ S5의 envp 복사 그림과 같음\n'터미널에선 되는데 cron에선 안 됨' 1순위\npython3 가 /usr/local/bin 에 있으면 cron의 PATH로는 못 찾음 → exit \n127, 오류는 메일함/syslog로.\n해결\n절대경로(/usr/local/bin/python3) 또는 crontab 맨 위에 PATH=… 한 줄"
+        },
+        {
+          "id": "t10-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "crontab 항목 <code>0 9 * * 1 /home/user/backup.sh</code>는 언제 실행됩니까?",
+          "o": [
+            "매일 09:00",
+            "월요일 09:00",
+            "매월 1일 09:00",
+            "9분마다"
+          ],
+          "a": 1,
+          "h": "crontab의 다섯 칸은 분·시·일·월·요일 순서입니다. 0은 분, 9는 시이고 일·월은 *로 매번이며, 요일 칸의 1은 한 주의 첫 평일을 뜻합니다.",
+          "w": "분=0, 시=9, 일·월=*, 요일=1이므로 월요일 09:00입니다. <code>* * * * *</code>는 매 분 실행입니다.",
+          "an": "OS Day3 S7 p.33",
+          "src": "분\n0–59\n시\n0–23\n일\n1–31\n월\n1–12\n요일\n0–7\n* * * * * /home/user/collect.sh ← 매 분\n0 9 * * 1 /home/user/backup.sh ← 월요일 09:00"
+        },
+        {
+          "id": "t10-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "Restart=on-failure인 서비스를 <code>systemctl stop</code>으로 멈추면 재시작되지 않는 이유는?",
+          "o": [
+            "RestartSec이 0이라서",
+            "SIGHUP을 받아서",
+            "사람이 멈춘 건 성공 종료라서",
+            "unit 파일이 지워져서"
+          ],
+          "a": 2,
+          "h": "Restart=on-failure는 '실패로' 끝났을 때만 다시 fork합니다. systemctl stop은 systemd가 SIGTERM을 보내 멈추는 것이므로, 이 종료가 실패로 분류되는지 생각해 보세요.",
+          "w": "stop은 systemd가 SIGTERM을 보내 사람이 멈춘 것이므로 성공 종료로 처리되어 on-failure 조건이 아닙니다. 반면 exit 1이나 kill -9는 failed가 되어 RestartSec 뒤 새 PID로 다시 뜹니다.",
+          "an": "OS Day3 S8 p.37",
+          "src": "systemctl stop\nsystemd가 SIGTERM 전송\n사람이 멈춘 것 = 성공 종료\n→ on-failure 아님 → 재시작 안 함"
+        },
+        {
+          "id": "t10-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>setsid ./collect.sh &amp;</code>로 띄우면 새 세션의 리더가 되어 SSH를 끊어도 SIGHUP을 받지 않습니다.",
+          "a": true,
+          "h": "setsid로 띄운 프로세스는 새 세션(SID)의 리더가 되며 제어 터미널이 없습니다. 커널은 SSH가 끊긴 옛 세션에만 SIGHUP을 보내므로, 새 세션의 프로세스가 그 신호를 받는지 생각해 보세요.",
+          "w": "setsid는 제어 터미널 없는 새 세션(SID)의 리더가 되므로 신호 자체를 받지 않습니다. systemd 서비스가 사는 방식과 같습니다.",
+          "an": "OS Day3 S7 p.32",
+          "src": "setsid ./collect.sh &\n새 세션(SID)의 리더, 제어 터미널 없음\n커널은 옛 세션에만 SIGHUP\n신호 자체를 받지 않음\n= systemd 서비스가 사는 방식"
+        },
+        {
+          "id": "t10-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Restart=always만 설정하면 서비스 장애는 근본적으로 해결됩니다.",
+          "a": false,
+          "h": "시연 가이드의 Crash/Restart 시나리오는 failed→restart→running이 되거나 failed가 유지될 수 있음을 보여 줍니다. 자동 재시작은 증상을 덮을 뿐이므로 Restart count와 journal로 원인을 찾아야 한다는 점을 떠올려 보세요.",
+          "w": "자동 재시작은 근본 해결이 아닐 수 있으므로 Crash 원인은 journal 로그와 Restart 정책을 함께 봐야 합니다. 원인을 고치지 않으면 failed→restart가 반복될 수 있습니다.",
+          "an": "교안 C09 p.147 · p.151 · p.155",
+          "src": "Crash/Restart 서비스 Crash failed→restart→running 또는 failed 유지 Restart count, journal 자동 재시작이 근본 해결이 아닐 수 있는 이유는?"
+        },
+        {
+          "id": "t10-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "systemd unit 파일의 설정과 의미를 연결하세요.",
+          "pairs": [
+            [
+              "After=network.target",
+              "네트워크를 먼저 준비"
+            ],
+            [
+              "ExecStart=",
+              "실행할 루프형 스크립트"
+            ],
+            [
+              "Restart=on-failure",
+              "실패로 끝나면 다시 fork"
+            ],
+            [
+              "RestartSec=5",
+              "5초 뒤 재시작"
+            ]
+          ],
+          "h": "After=는 순서(무엇보다 나중에 시작할지), ExecStart=는 실행할 대상, Restart=on-failure는 실패 시 재실행 정책, RestartSec=는 재실행까지 기다릴 시간입니다. 각 키 이름을 영어 뜻 그대로 읽어 보면 짝이 보입니다.",
+          "w": "After는 의존성 순서, ExecStart는 collect_loop.sh 같은 상시형 스크립트, Restart=on-failure는 실패 시 재시작, RestartSec=5는 재시작 대기 시간입니다. 재시작은 사실 wait + fork를 다시 하는 것입니다.",
+          "an": "OS Day3 S8 p.37 · p.40",
+          "src": "After=network.target → 네트워크 먼저\nfork/exec → active (running)\n터미널·세션 없음 → SIGHUP 무관\n크래시\nexit 1 / kill -9 → 커널이 PID 1에 알림(wait)\n상태 failed → Restart=on-failure\nRestartSec=5 → 5초 뒤 다시 fork"
+        },
+        {
+          "id": "t10-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "Linux 부팅 순서대로 나열하세요.",
+          "steps": [
+            "Firmware가 기본 장치 확인",
+            "Bootloader가 Kernel 적재",
+            "Kernel이 CPU·Memory·Driver 초기화",
+            "PID 1 systemd 시작",
+            "의존성 순서에 따라 서비스 시작"
+          ],
+          "h": "전원이 들어오면 먼저 펌웨어가 기본 장치를 확인하고, 부트로더가 커널을 메모리에 올립니다. 커널이 하드웨어를 초기화한 뒤 첫 프로세스(PID 1)가 시작되고, 그 프로세스가 의존성 순서대로 서비스를 띄웁니다.",
+          "w": "전원이 들어오면 Firmware, Bootloader, Kernel을 거쳐 PID 1 systemd가 unit을 읽고 의존성 순서대로 서비스를 띄웁니다. 부팅 성공과 서비스 준비 완료는 다른 시점입니다.",
+          "an": "교안 C09 p.142 · p.147 · OS Day3 p.37",
+          "src": "2\nFirmware\nFirmware가 기본 장치 확인\n→\n3\nBootloader\nBootloader가 Kernel 적재\n→\n4\nKernel\nKernel이 CPU/Memory/Driver 초기화\n→\n5\nsystemd\nPID 1 systemd 시작\n→\n6\nDependency → Services\n의존성 순서에 따라 서비스 시작"
+        },
+        {
+          "id": "t10-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "camera.service가 부팅 때마다 실패하지만 수동 재시작하면 성공합니다. 알맞은 대응을 모두 고르세요.",
+          "o": [
+            "After/Requires/Wants 관계를 확인한다",
+            "journalctl로 부팅 시점 오류를 본다",
+            "sleep으로 늦추는 것이 최선이다",
+            "선행 자원이 늦게 준비됐을 수 있다",
+            "Restart=always로 근본 해결된다"
+          ],
+          "a": [
+            0,
+            1,
+            3
+          ],
+          "h": "수동 재시작은 되는데 부팅 때만 실패한다면 서비스 자체보다 시작 시점이 의심됩니다. 자료는 선행 자원 준비 시점, 서비스 간 의존 관계, 부팅 시점 로그를 확인하고 단순 sleep보다 올바른 Dependency를 설계하라고 권합니다.",
+          "w": "장치나 network 같은 선행 자원이 늦게 준비됐을 수 있으므로 의존성 관계와 journalctl 로그를 확인합니다. 단순 sleep보다 올바른 Dependency와 Restart 정책을 설계하는 것이 바람직합니다.",
+          "an": "교안 C09 문제 상황 p.150",
+          "src": "1 STEP 1\n장치 초기화 또는 network 등 선행 자원이 늦게 준비될 수 있다.\n2 STEP 2\n서비스의 After/Requires/Wants 관계를 확인한다.\n3 STEP 3\njournalctl로 부팅 시점의 실제 오류를 확인한다.\n4 STEP 4\n단순 sleep보다 올바른 Dependency와 Restart 정책을 설계하는 것이 바람직하다."
+        }
+      ]
+    }
+  ]
+}

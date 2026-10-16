@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Android 프레임워크 3일차 · sp/wp · Thread·Looper · JNI · SurfaceFlinger · 공유 메모리 · 문제은행</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* Quiz Bank 디자인 토큰 v2
+   타이포 기준: AI_Voice day07 워크시트 (본문 15px / 행간 1.55, 요소 13~14px)
+   다크 팔레트: day07 워크시트(#0b1220 남색 + 앰버·틸 포인트) / 라이트: 같은 구조의 중립 팔레트
+   build.py가 이 파일을 엔진 <style> 맨 앞에 그대로 넣는다. */
+:root{
+  /* 타이포 */
+  --font:"Pretendard Variable","Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"JetBrains Mono","D2Coding",Consolas,"SF Mono",monospace;
+  --fs-base:15px;--lh:1.55;
+  --fs-h1:24px;--fs-h2:17px;--fs-q:15px;--fs-opt:14px;--fs-btn:13px;--fs-btn-pri:14px;
+  --fs-sm:13px;--fs-xs:12px;--fs-2xs:11px;--fs-ox:22px;
+  /* 형태 */
+  --r-sm:6px;--r:8px;--r-md:10px;--r-lg:12px;--maxw:880px;
+
+  /* 라이트 */
+  --bg:#F5F6F8;--panel:#FFFFFF;--raised:#FFFFFF;--field:#FFFFFF;
+  --ink:#141A26;--muted:#5A6375;--faint:#8A93A4;--line:#E2E6EC;--line-2:#CDD3DC;--soft:#F0F2F5;
+  --title:#141A26;--link:#0E8C80;--accent:#B7791F;
+  --ok:#15803D;--bad:#D23B32;--combo:#7C3AED;--gold:#B7891F;
+  --btn-bg:#FFFFFF;--btn-line:#D5DAE2;--pri-bg:#141A26;--pri-line:#141A26;--pri-ink:#FFFFFF;
+  --ty-mc:#0E8C80;--ty-multi:#7C3AED;--ty-ox:#64748B;--ty-match:#C2417A;--ty-order:#B7791F;--ty-num:#2563EB;
+  --timer-hi:#16A34A;--timer-mid:#D97706;--timer-lo:#DC2626;
+  --lv1:#16A34A;--lv2:#EAB308;--lv3:#DC2626;  /* 난이도 1·2·3 */
+  --shadow:0 1px 2px rgb(16 24 40 / .04);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0B1220;--panel:#111A2E;--raised:#0E1628;--field:#0A0F1C;
+  --ink:#DBE4F0;--muted:#8A9BB8;--faint:#5E6F8E;--line:#1F2B45;--line-2:#2A3A5C;--soft:#16203A;
+  --title:#F5B942;--link:#2DD4BF;--accent:#F5B942;
+  --ok:#4ADE80;--bad:#F87171;--combo:#C084FC;--gold:#F5B942;
+  --btn-bg:#172239;--btn-line:#2A3A5C;--pri-bg:#123D33;--pri-line:#2DD4BF;--pri-ink:#2DD4BF;
+  --ty-mc:#2DD4BF;--ty-multi:#C084FC;--ty-ox:#8A9BB8;--ty-match:#F472B6;--ty-order:#F5B942;--ty-num:#60A5FA;
+  --timer-hi:#4ADE80;--timer-mid:#F5B942;--timer-lo:#F87171;
+  --lv1:#4ADE80;--lv2:#FACC15;--lv3:#F87171;
+  --shadow:none;
+  color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0B1220;--panel:#111A2E;--raised:#0E1628;--field:#0A0F1C;
+  --ink:#DBE4F0;--muted:#8A9BB8;--faint:#5E6F8E;--line:#1F2B45;--line-2:#2A3A5C;--soft:#16203A;
+  --title:#F5B942;--link:#2DD4BF;--accent:#F5B942;
+  --ok:#4ADE80;--bad:#F87171;--combo:#C084FC;--gold:#F5B942;
+  --btn-bg:#172239;--btn-line:#2A3A5C;--pri-bg:#123D33;--pri-line:#2DD4BF;--pri-ink:#2DD4BF;
+  --ty-mc:#2DD4BF;--ty-multi:#C084FC;--ty-ox:#8A9BB8;--ty-match:#F472B6;--ty-order:#F5B942;--ty-num:#60A5FA;
+  --timer-hi:#4ADE80;--timer-mid:#F5B942;--timer-lo:#F87171;
+  --lv1:#4ADE80;--lv2:#FACC15;--lv3:#F87171;
+  --shadow:none;
+  color-scheme:dark;}
+@media (max-width:560px){:root{--fs-base:14.5px;--fs-h1:20px;--fs-h2:16px;--fs-q:14.5px;--fs-ox:20px}}
+
+/* ── 기본 ───────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:110px;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:var(--fs-base);line-height:var(--lh);
+  -webkit-font-smoothing:antialiased;letter-spacing:-.003em;padding-bottom:env(safe-area-inset-bottom,0px)}
+a{color:inherit}
+b,strong{font-weight:650}
+code{font-family:var(--mono);font-size:.88em;color:var(--link);background:var(--soft);padding:1px 5px;border-radius:4px}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px 56px}
+.muted{color:var(--muted)}
+/* 상단 바 */
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;height:calc(52px + env(safe-area-inset-top,0px));margin:0 -20px 22px;padding:env(safe-area-inset-top,0px) 20px 0;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.brand{font-size:var(--fs-xs);color:var(--muted);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;letter-spacing:.01em}
+.brand b{color:var(--ink);font-weight:600}
+.iconbtn{font:inherit;font-size:14px;border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);width:32px;height:32px;border-radius:var(--r);cursor:pointer;flex:0 0 auto;display:grid;place-items:center}
+.iconbtn:hover{border-color:var(--muted)}
+/* 제목 */
+h1{font-size:var(--fs-h1);line-height:1.3;margin:0 0 6px;letter-spacing:-.02em;font-weight:700;color:var(--title)}
+h2{font-size:var(--fs-h2);line-height:1.4;margin:0;font-weight:650;letter-spacing:-.01em}
+.ph{font-size:14px;color:var(--muted);font-weight:600;margin:0 0 10px;letter-spacing:0}
+.sh{font-size:var(--fs-sm);color:var(--muted);font-weight:600;margin:16px 0 6px}
+.sub{color:var(--muted);margin:0 0 4px}
+.meta{font-size:var(--fs-xs);color:var(--faint);margin:0 0 18px;font-family:var(--mono);letter-spacing:-.01em}
+.crumbs{display:flex;gap:8px;align-items:center;margin-bottom:12px;font-size:var(--fs-sm);color:var(--faint)}
+.crumbs a{text-decoration:none;color:var(--muted)}
+.crumbs a:hover{color:var(--ink)}
+.part{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--link);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:1px 7px;white-space:nowrap;max-width:100%;font-weight:500;letter-spacing:0}
+.tabhead .part,.ngroup .part{white-space:normal;overflow-wrap:anywhere}  /* 긴 자료 위치(예: voice-ai 교시 라벨)는 줄바꿈 */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.center{text-align:center}
+.note-sm{font-size:var(--fs-sm);color:var(--muted)}
+.lbl{display:block;font-size:var(--fs-xs);color:var(--muted);margin-bottom:2px}
+/* 버튼 */
+.btn{font:inherit;font-size:var(--fs-btn);display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);
+  padding:7px 12px;border-radius:var(--r);cursor:pointer;text-decoration:none;min-height:34px;line-height:1.3;white-space:nowrap;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--pri-bg);color:var(--pri-ink);border-color:var(--pri-line);font-weight:650;font-size:var(--fs-btn-pri);padding:8px 18px}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.locked{opacity:.5}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,var(--btn-line))}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn .cnt{font-family:var(--mono);font-size:var(--fs-2xs);background:var(--bad);color:#fff;border-radius:99px;padding:0 6px;min-width:18px;line-height:16px;text-align:center}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0}
+button:focus-visible,a:focus-visible,input:focus-visible,.opt:focus-within{outline:2px solid var(--link);outline-offset:2px}
+/* 입력 */
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;max-width:300px}
+.field label{font-size:var(--fs-xs);color:var(--muted)}
+.field input{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--field);color:var(--ink)}
+.field input::placeholder{color:var(--faint)}
+/* 진행 바 */
+.bar{flex:1;height:4px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bar>div{height:100%;width:0;background:var(--link);transition:width .25s}
+.progress{position:sticky;top:calc(52px + env(safe-area-inset-top,0px));z-index:5;background:var(--bg);padding:8px 0;margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.progress span,.homeprog span{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.homeprog{display:flex;align-items:center;gap:12px;margin:2px 0 16px}
+/* 홈 탭 카드 */
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:6px}
+.tcard{display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;text-decoration:none;color:var(--ink);transition:border-color .15s;box-shadow:var(--shadow)}
+.tcard:hover{border-color:var(--line-2)}
+.tcard .tn{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint)}
+.tcard .tt{font-weight:600;font-size:14px;line-height:1.45}
+.tcard .ts{margin-top:auto;padding-top:8px;font-size:var(--fs-xs);color:var(--faint);display:flex;justify-content:space-between;align-items:center;font-family:var(--mono)}
+.tcard.done .ts b{color:var(--ok);font-weight:600}
+.tcard.perfect{border-color:color-mix(in srgb,var(--gold) 55%,var(--line))}
+.lockmsg{font-size:var(--fs-xs);color:var(--faint);margin:-6px 0 16px}
+/* 탭 바 */
+/* 학습 탭 선택: 웹(≥1024) 자유 배치 · 태블릿(560~1023) 3개 · 모바일(<560) 2개 */
+.tabbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+@media (max-width:1023px){.tabbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tabchip{min-width:0;display:flex;align-items:center;gap:6px;font-size:var(--fs-btn);padding:6px 10px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);text-decoration:none;color:var(--ink);line-height:1.35;word-break:keep-all}
+.tabchip .tl{min-width:0}
+.tabchip .qc{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--muted);white-space:nowrap;margin-left:auto}
+.tabchip[aria-selected="true"] .qc{color:var(--link)}
+.tabchip .sc{white-space:nowrap}
+.btn .qc{font-family:var(--mono);font-weight:500;opacity:.85}
+.tabchip b{font-family:var(--mono);font-weight:600;color:var(--faint)}
+.tabchip:hover{border-color:var(--muted)}
+.tabchip[aria-selected="true"]{border-color:var(--link);color:var(--link);background:color-mix(in srgb,var(--link) 9%,var(--btn-bg))}
+.tabchip[aria-selected="true"] b{color:var(--link)}
+.tabchip .sc{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--ok)}
+.tabchip.sum{border-color:color-mix(in srgb,var(--gold) 60%,var(--btn-line));color:var(--gold)}
+.tabhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 2px}
+.tabhead h2{color:var(--title)}
+/* 문항 카드 */
+.q{background:var(--raised);border:1px solid var(--line);border-left:3px solid var(--tc);border-radius:var(--r-md);padding:12px 14px;margin:0 0 10px;box-shadow:var(--shadow)}
+.q.correct{border-color:color-mix(in srgb,var(--ok) 45%,var(--line));border-left-color:var(--ok)}
+.q.wrong{border-color:color-mix(in srgb,var(--bad) 45%,var(--line));border-left-color:var(--bad)}
+.qhead{display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap}
+.qn{font-family:var(--mono);font-size:var(--fs-xs);color:var(--faint);font-weight:500}
+.tbadge{font-size:var(--fs-2xs);font-weight:600;padding:0 7px;line-height:18px;border-radius:var(--r-sm);color:var(--tc);border:1px solid color-mix(in srgb,var(--tc) 45%,transparent);background:color-mix(in srgb,var(--tc) 8%,transparent);white-space:nowrap}
+/* 난이도: 점 1 녹색 · 점 2 노랑 · 점 3 빨강 (쉬움 ●○○ / 보통 ●●○ / 어려움 ●●●) + 글자 */
+.lv{display:inline-flex;align-items:center;gap:4px;line-height:1}
+.lv .dots{font-size:9px;letter-spacing:1px}
+.lv i{font-style:normal}
+.lv .d1{color:var(--lv1)} .lv .d2{color:var(--lv2)} .lv .d3{color:var(--lv3)} .lv .off{color:var(--line-2)}
+.lv em{font-style:normal;font-size:var(--fs-2xs);font-weight:600}
+.lv1 em{color:var(--lv1)} .lv2 em{color:color-mix(in srgb,var(--lv2) 80%,var(--ink))} .lv3 em{color:var(--lv3)}
+.verdict{margin-left:auto;font-weight:650;font-size:var(--fs-xs)}
+.correct .verdict{color:var(--ok)} .wrong .verdict{color:var(--bad)}
+.qsrc{margin-left:auto;font-size:var(--fs-2xs);color:var(--faint)}
+.qt{font-size:var(--fs-q);font-weight:500;margin:4px 0 8px}
+.guide{font-size:var(--fs-xs);color:var(--faint);margin:-4px 0 8px}
+.opts{display:grid;gap:6px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r);cursor:pointer;background:var(--panel);font-size:var(--fs-opt);transition:border-color .12s,background .12s}
+.opt:hover{border-color:var(--line-2)}
+.opt input{margin:4px 0 0;accent-color:var(--link);flex:0 0 auto;width:14px;height:14px}
+.opt:has(input:checked){border-color:var(--link);background:color-mix(in srgb,var(--link) 7%,var(--panel))}
+.opt.ans{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--panel))}
+.opt.miss{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 9%,var(--panel))}
+.ox{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:360px}
+.ox button{font:inherit;font-size:var(--fs-ox);font-weight:700;padding:8px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);cursor:pointer;line-height:1.3}
+.ox button:hover{border-color:var(--muted)}
+.ox button[aria-pressed="true"]{border-color:var(--link);color:var(--link);background:color-mix(in srgb,var(--link) 10%,var(--btn-bg))}
+.ox button.ans{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,var(--btn-bg));color:var(--ok)}
+.ox button.miss{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--btn-bg));color:var(--bad)}
+/* 짝 맞추기 */
+.match{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 14px}
+.mcol{display:flex;flex-direction:column;gap:6px}
+.mitem{font:inherit;font-size:var(--fs-opt);text-align:left;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--ink);padding:7px 10px;cursor:pointer;min-height:38px;display:flex;align-items:center;gap:8px;line-height:1.45}
+.mitem:hover{border-color:var(--line-2)}
+.mitem .tag{flex:0 0 auto;width:20px;height:20px;border-radius:var(--r-sm);border:1px dashed var(--line-2);display:grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);font-weight:600}
+.mitem.linked{border-color:color-mix(in srgb,var(--pc) 70%,var(--line))}
+.mitem.linked .tag{border:0;background:var(--pc);color:var(--bg)}
+.mitem.sel{border-color:var(--link);box-shadow:0 0 0 3px color-mix(in srgb,var(--link) 18%,transparent)}
+.mitem.okm{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--panel))}
+.mitem.nom{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--panel))}
+.mleft .mitem{font-weight:600}
+/* 순서 */
+.olist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.oitem{font:inherit;font-size:var(--fs-opt);text-align:left;width:100%;display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--ink);cursor:pointer;transition:border-color .12s,background .12s}
+.oitem:hover{border-color:var(--line-2)}
+.oitem .num{width:22px;height:22px;border-radius:50%;border:1px dashed var(--line-2);display:grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);font-weight:600;color:var(--muted);flex:0 0 auto}
+.oitem.on{border-color:var(--link);background:color-mix(in srgb,var(--link) 7%,var(--panel))}
+.oitem.on .num{border:0;background:var(--link);color:var(--bg)}
+.oitem .txt{flex:1;line-height:1.45}
+.oitem .ofix{flex:0 0 auto;font-size:var(--fs-2xs);color:var(--ok);font-weight:600}
+.oitem.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--panel))}
+.oitem.ok .num{background:var(--ok)}
+.oitem.no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--panel))}
+.oitem.no.on .num{background:var(--bad)}
+.numrow{display:flex;align-items:center;gap:8px;font-size:var(--fs-opt)}
+.numrow input{font-family:var(--mono);font-size:14px;width:120px;padding:6px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--field);color:var(--ink);text-align:right}
+.numrow input.ans{border-color:var(--ok)} .numrow input.miss{border-color:var(--bad)}
+.locked .mitem,.locked .ox button,.locked .opt{pointer-events:none}
+.locked .oitem{pointer-events:none}
+.opt .onum{flex:0 0 auto;min-width:18px;height:18px;padding:0 4px;border-radius:var(--r-sm);border:1px solid var(--line-2);display:inline-grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);color:var(--muted);margin-top:1px}
+.opt:has(input:checked) .onum{border-color:var(--link);color:var(--link)}
+.opt.ans .onum{border-color:var(--ok);color:var(--ok)} .opt.miss .onum{border-color:var(--bad);color:var(--bad)}
+/* 힌트 토글 (빨간색 = Hint) */
+.hintwrap{margin:-2px 0 8px}
+.hintbtn{font:inherit;font-size:var(--fs-xs);font-weight:650;display:inline-flex;align-items:center;gap:4px;color:var(--bad);background:color-mix(in srgb,var(--bad) 7%,transparent);border:1px solid color-mix(in srgb,var(--bad) 40%,transparent);border-radius:var(--r-sm);padding:2px 9px;cursor:pointer;line-height:1.5}
+.hintbtn:hover{background:color-mix(in srgb,var(--bad) 13%,transparent)}
+.hintbtn .caret{font-size:.85em}
+.srcwrap{margin-top:8px}
+.srcbtn{font:inherit;font-size:var(--fs-xs);font-weight:600;display:inline-flex;align-items:center;gap:4px;color:var(--link);background:transparent;border:1px solid var(--line-2);border-radius:var(--r-sm);padding:1px 8px;cursor:pointer;line-height:1.5}
+.srcbtn:hover{border-color:var(--link)}
+.src{margin:6px 0 0;padding:6px 10px;border-left:3px solid var(--link);background:var(--soft);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:var(--fs-xs);color:var(--muted)}
+.src p{margin:0;white-space:pre-wrap;word-break:break-word}
+.src cite{display:block;margin-top:4px;font-style:normal;font-size:var(--fs-2xs);color:var(--faint)}
+.hint{margin-top:6px;padding:6px 10px;border-left:3px solid var(--bad);background:color-mix(in srgb,var(--bad) 6%,transparent);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:var(--fs-sm);color:var(--ink)}
+/* 해설 */
+.exp{margin-top:10px;padding:2px 0 2px 10px;border-left:3px solid var(--line-2);font-size:var(--fs-sm);color:var(--muted)}
+.correct .exp{border-left-color:color-mix(in srgb,var(--ok) 55%,var(--line))}
+.wrong .exp{border-left-color:color-mix(in srgb,var(--bad) 55%,var(--line))}
+.exp p{margin:0 0 3px}
+.exp b{color:var(--ink);font-weight:650;margin-right:4px}
+.an{font-family:var(--mono);color:var(--link);font-size:var(--fs-xs);margin:4px 0 0}
+.mine{color:var(--bad)}
+.onlywrong .q.correct{display:none}
+.warn{color:var(--bad);font-size:var(--fs-sm);min-height:1.3em;margin:4px 0 0}
+/* 결과 */
+.score{font-family:var(--mono);font-size:32px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--title);letter-spacing:-.02em}
+.score small{font-family:var(--font);font-size:14px;color:var(--muted);font-weight:400;letter-spacing:0}
+.score.xl{font-size:44px}
+.msg{margin:6px 0 10px;color:var(--muted);font-size:var(--fs-sm)}
+.bd{display:grid;gap:7px;margin:6px 0}
+.bd div{display:grid;grid-template-columns:minmax(90px,190px) 1fr 44px;gap:10px;align-items:center;font-size:var(--fs-sm)}
+.bd .b{height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bd .b i{display:block;height:100%;background:var(--tc,var(--link));border-radius:99px}
+.bd span:last-child{text-align:right;font-family:var(--mono);font-size:var(--fs-xs);color:var(--muted)}
+.rcode{font-family:var(--mono);font-size:16px;font-weight:600;letter-spacing:.06em;color:var(--accent);background:var(--soft);padding:2px 8px;border-radius:var(--r-sm)}
+/* 오답노트 · 해설지 */
+.ngroup{margin:18px 0 8px;font-size:14px;font-weight:650;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ngroup .ref{font-family:var(--mono);font-size:var(--fs-2xs);font-weight:400;color:var(--faint)}
+.note{background:var(--raised);border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:var(--r-md);padding:12px 14px;margin-bottom:10px}
+.note.solved{border-left-color:var(--ok)}
+.note .qt{margin:0 0 8px}
+.note dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0;font-size:var(--fs-sm)}
+.note dt{color:var(--faint)}
+.note dd{margin:0}
+.note .foot{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font-size:var(--fs-xs);color:var(--faint);font-family:var(--mono)}
+.note .foot span:first-child{color:var(--link)}
+details.more{margin-top:14px;font-size:var(--fs-sm)}
+details.more summary{cursor:pointer;color:var(--muted);padding:4px 0}
+.keyitem{padding:10px 0;border-bottom:1px solid var(--line)}
+.keyitem .kq{font-weight:500;font-size:14px}
+.keyitem .ka{margin:4px 0 2px;color:var(--ok);font-weight:600;font-size:var(--fs-sm)}
+.keyitem .kw{font-size:var(--fs-sm);color:var(--muted);margin:0}
+.keylock{padding:12px;border:1px dashed var(--line-2);border-radius:var(--r-md);color:var(--faint);text-align:center;margin:8px 0;font-size:var(--fs-sm)}
+.printhead{display:none}
+/* 게임 */
+.game{max-width:620px;margin:0 auto}
+.gpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.gcard{display:flex;flex-direction:column;gap:4px;min-height:120px;padding:14px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--panel);color:var(--ink);text-decoration:none;transition:border-color .15s,background .15s}
+a.gcard:hover{border-color:var(--link);background:color-mix(in srgb,var(--link) 6%,var(--panel))}
+.gcard .gn{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint);letter-spacing:.05em}
+.gcard b{font-size:15px}
+.gcard .gd{font-size:var(--fs-xs);color:var(--muted);line-height:1.5}
+.gcard.soon{border-style:dashed;opacity:.6;cursor:not-allowed}
+@media (max-width:560px){.gpick{gap:6px}.gcard{min-height:84px;padding:10px 8px;align-items:center;text-align:center;justify-content:center}.gcard b{font-size:13px;word-break:keep-all}.gcard .gd{display:none}}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 14px}
+.chip{font:inherit;font-size:var(--fs-btn);padding:6px 12px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);cursor:pointer;min-height:32px}
+.chip:hover{border-color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--link);color:var(--link);background:color-mix(in srgb,var(--link) 9%,var(--btn-bg));font-weight:600}
+.chip:disabled{opacity:.4;cursor:not-allowed}
+.rules{font-size:var(--fs-xs);color:var(--muted);border-left:3px solid var(--line-2);padding:2px 0 2px 10px;margin:4px 0 16px}
+.rules p{margin:0 0 2px}
+.play{display:flex;flex-direction:column;min-height:calc(100dvh - 130px)}
+.hud{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:var(--fs-sm);color:var(--muted);margin-bottom:8px}
+.hud .pts{font-size:18px;font-weight:600;color:var(--title)}
+.combo{font-family:var(--font);font-size:var(--fs-xs);padding:2px 9px;border-radius:var(--r-sm);border:1px solid var(--line-2);color:var(--muted)}
+.combo.hot{border-color:var(--combo);color:var(--combo);background:color-mix(in srgb,var(--combo) 12%,transparent)}
+.timer{height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
+.timer>div{height:100%;width:100%;background:var(--timer-hi);border-radius:99px}
+.timer.mid>div{background:var(--timer-mid)}
+.timer.lo>div{background:var(--timer-lo)}
+.timer.out{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.tleft{font-family:var(--mono);font-size:var(--fs-xs);color:var(--faint);text-align:right;font-variant-numeric:tabular-nums;margin:4px 0 12px;min-height:1.2em}
+.gtype{font-size:var(--fs-2xs);color:var(--faint);margin-bottom:4px;letter-spacing:.02em}
+.gq{font-size:18px;font-weight:600;line-height:1.5;margin:0 0 16px;letter-spacing:-.01em}
+.gbottom{margin-top:4px}
+.gopts{display:grid;gap:8px}
+.gopt{font:inherit;font-size:var(--fs-opt);text-align:left;display:flex;gap:12px;align-items:center;padding:10px 14px;min-height:46px;border:1px solid var(--btn-line);border-radius:var(--r-md);background:var(--panel);color:var(--ink);cursor:pointer;transition:background .12s,border-color .12s;line-height:1.45}
+.gopt:hover{border-color:var(--muted)}
+.gopt kbd{flex:0 0 auto;width:22px;height:22px;border-radius:var(--r-sm);border:1px solid var(--line-2);display:grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint)}
+.gopt[aria-pressed="true"]{border-color:var(--link);background:color-mix(in srgb,var(--link) 9%,var(--panel))}
+.gopt.ans{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--panel))}
+.gopt.miss{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--panel))}
+.gox{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gox .gopt{justify-content:center;font-size:28px;font-weight:700;min-height:76px}
+.gfloat{text-align:center;font-weight:650;font-size:16px;min-height:1.6em;margin-top:10px;font-family:var(--mono)}
+.gfloat.ok{color:var(--ok)} .gfloat.no{color:var(--bad)}
+.gfloat.pop{animation:pop .45s ease-out}
+@keyframes pop{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+.gsub{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px}
+.board{width:100%;border-collapse:collapse;font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
+.board th,.board td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.board th{font-size:var(--fs-xs);color:var(--faint);font-weight:500}
+.board .r{text-align:right;font-family:var(--mono)}
+.board tr.me td{background:color-mix(in srgb,var(--combo) 12%,transparent);font-weight:600}
+.bignum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 2px}
+.bignum div{border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;text-align:left}
+.bignum b{display:block;font-family:var(--mono);font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+.bignum span{font-size:var(--fs-2xs);color:var(--faint)}
+/* 토스트 */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(16px);background:var(--panel);color:var(--ink);border:1px solid var(--line-2);
+  padding:8px 14px;border-radius:var(--r);font-size:var(--fs-sm);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:calc(100% - 32px);box-shadow:0 6px 24px rgb(0 0 0 / .18)}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+/* 문제풀이 페이지(학습·오답 재도전): 탭 제목(h2)을 뺀 모든 글자 10px — 사용자 지정 */
+/* 문제풀이·오답노트·해설지 공통: 제목(h1·h2·탭 묶음 제목)을 뺀 글자 10px, 문제 11px, 자간 +0.03em, 행간 1.7 */
+.sheet,.sheet :where(*:not(h1,h2,.ngroup,.ngroup *)){font-size:10px!important;letter-spacing:.03em!important}  /* :where = 명시도 0 → 아래 11px 규칙이 이김 */
+.sheet :is(.qt,.opt,.exp,.exp p,.guide,.mitem,.oitem .txt,.hint,.warn,.msg,.sub,.note dt,.note dd,.note .foot,.kq,.ka,.kw,.keylock){line-height:1.7!important}
+.sheet :is(.qt,.kq),.sheet :is(.qt,.kq) *{font-size:11px!important}  /* 문제 문장만 11px */
+/* 한글이 섞인 숫자 요소는 mono 대신 본문 글꼴 + 고정폭 숫자 (mono 한글 자간이 벌어짐) */
+.meta,.tcard .tn,.tcard .ts,.progress span,.homeprog span,.note .foot,.an,.hud,.tleft,.gfloat,.bignum b{font-family:var(--font);font-variant-numeric:tabular-nums;letter-spacing:0}
+/* ── 반응형 ─────────────────────────────────────── */
+@media (max-width:560px){
+  .wrap{padding:0 16px 48px}
+  .topbar{margin:0 -16px 18px;padding-left:16px;padding-right:16px}
+  /* 홈 탭 카드: 모바일에서도 한 줄 3개 (사용자 지정) */
+  .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .tcard{padding:8px 9px;gap:2px}
+  .tcard .tn{font-size:10px}
+  .tcard .tt{font-size:12px;line-height:1.35;word-break:keep-all}
+  .tcard .ts{flex-direction:column;align-items:flex-start;gap:0;padding-top:6px;font-size:10px}
+  .tabbar{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  .tabchip{padding:6px 8px;gap:4px}
+  .q{padding:12px}
+  .match{grid-template-columns:1fr}
+  .mright{margin-top:6px;padding-top:8px;border-top:1px dashed var(--line-2)}
+  .btn,.chip{min-height:40px}
+  .actions .btn{flex:1 1 calc(50% - 8px)}
+  .actions .btn.primary{flex-basis:100%}
+  .ox{max-width:none}
+  .ox button{min-height:48px}
+  .oitem{min-height:40px}
+  .bd div{grid-template-columns:96px 1fr 40px}
+  .bignum{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .field{max-width:none}
+  /* 게임: 보기를 엄지 영역(화면 아래)으로 */
+  .play .gtop{position:sticky;top:calc(52px + env(safe-area-inset-top,0px));background:var(--bg);padding:6px 0 0;z-index:4}
+  .play .gbottom{margin-top:auto;padding-top:12px}
+  .gq{font-size:17px}
+  .gopt{min-height:50px}
+  .board th:nth-child(6),.board td:nth-child(6){display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{
+  :root{--bg:#fff;--panel:#fff;--raised:#fff;--ink:#000;--muted:#333;--faint:#555;--line:#bbb;--line-2:#999;--soft:#f1f1f1;--title:#000;--link:#055}
+  body{background:#fff;color:#000;font-size:12.5px}
+  .noprint,.topbar,.actions,.tabbar,.progress,.toast{display:none!important}
+  .printhead{display:block;margin-bottom:12px;font-size:12px}
+  .q,.note,.keyitem{break-inside:avoid;box-shadow:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar noprint">
+    <a class="brand" href="../index.html" title="전체 문제은행 목록">디지털노마드연구소 · <b>문제은행</b></a>
+    <button class="iconbtn" id="themeBtn" type="button" aria-label="라이트/다크 전환">🌓</button>
+  </header>
+  <main id="app"></main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="sr" id="live" aria-live="polite"></div>
+<script>
+(()=>{
+'use strict';
+const BANK={"id":"aosp-d3","code":"AF3","title":"Android 프레임워크 3일차 · sp/wp · Thread·Looper · JNI · SurfaceFlinger · 공유 메모리","subtitle":"sp/wp·Thread·Looper · JNI·SurfaceFlinger · 공유 메모리·LMKD","course":"09 · Android 프레임워크","source":"09-android_framework-main/Day3/Day3.pdf + md/*.md","salt":"aosp-d3","version":1,"updated":"2026-10-16","tabs":[{"id":"t1","title":"sp 4단계 · RefBase","ref":"Day3 p.5 · 02_sp_impl","qs":[{"id":"t1-01","ty":"mc","lv":1,"game":true,"p":"Android <code>sp&lt;T&gt;<\/code>가 참조 카운트를 저장하는 위치는?","o":["sp 내부의 static 변수","별도의 control block","T가 상속한 RefBase 내부","Binder Driver"],"a":2,"h":"Worksheet Q1 해설은 RefBase가 mStrong/mWeak 카운트를 직접 가지고, sp는 incStrong/decStrong만 부른다고 설명합니다. shared_ptr처럼 별도 control block을 쓰는 방식(non-intrusive)과 달리 카운트가 객체 쪽에 들어 있는 intrusive 방식입니다.","w":"RefBase가 카운트를 가지고 sp는 <code>incStrong<\/code>·<code>decStrong<\/code>만 부릅니다. 별도 control block을 쓰는 것은 non-intrusive 방식인 <code>std::shared_ptr<\/code>입니다.","an":"Day3_Worksheet Q1 · 02_sp_impl 핵심 정리","src":"void decStrong() { if (--mRefs == 0) delete this; } // 객체가 스스로 사라\n진다\nvirtual ~RefBase();\n};\ntemplate<class T> class sp {\nsp(T* p) : mPtr(p) { mPtr->incStrong(); } sp(const sp& r) { mPtr->incSt\nrong(); }\n~sp() { mPtr->decStrong(); }\n};\n• intrusive: 카운트가 객체 안에 → raw 를 다시 sp 로 감싸도 안전"},{"id":"t1-02","ty":"mc","lv":2,"game":true,"p":"단계 ①처럼 sp 소멸자에서 <code>delete mPtr<\/code>를 하면 sp를 복사할 때 어떤 문제가 생기나요?","o":["double free로 crash","객체 2개일 때 누수","소멸자가 안 불림","컴파일 오류"],"a":0,"h":"단계 ①은 sp 소멸자가 바로 <code>delete mPtr<\/code>를 합니다. sp를 복사하면 두 sp가 같은 객체를 가리키고, 각각 소멸할 때 같은 메모리를 두 번 해제하게 됩니다.","w":"복사된 두 sp가 각각 소멸하면서 같은 객체를 두 번 delete해 double free가 납니다. 객체 2개일 때의 누수는 단계 ② static 카운트의 문제입니다.","an":"02_sp_impl 단계 ① · Day3 p.5","src":"→ 복사하면 double free\n② static 카운트\nsp<T>::mRefs 공유\n→ 객체 2개면 누수"},{"id":"t1-03","ty":"mc","lv":2,"game":true,"p":"단계 ②의 <code>static int mRefs<\/code> 방식이 잘못된 이유는?","o":["복사 시 double free","모든 객체가 카운트를 공유","클래스마다 코드 반복","소멸자가 virtual이 아님"],"a":1,"h":"단계 ②는 <code>static int mRefs<\/code>를 쓰는데, static 멤버는 객체마다가 아니라 클래스 전체에 하나만 존재합니다. 실습 2 요점은 이 때문에 '모든 객체가 카운트를 공유하는 오류'가 생기고, 객체가 2개면 소멸자가 1번만 불려 누수가 난다고 적습니다.","w":"static 카운트는 <code>sp&lt;T&gt;<\/code> 전체가 공유하므로 객체가 두 개면 한쪽만 delete되고 다른 쪽은 누수됩니다. 카운트는 객체마다 있어야 합니다.","an":"02_sp_impl 단계 ② · 핵심 정리","src":"- ② `static int mRefs` → 모든 객체가 카운트를 공유하는 오류"},{"id":"t1-04","ty":"mc","lv":1,"game":true,"p":"RefBase의 <code>decStrong()<\/code>은 카운트가 0이 되면 무엇을 하나요?","o":["delete mPtr","free(mPtr)","카운트를 1로 되돌림","delete this"],"a":3,"h":"Day3 p.5의 RefBase 코드에서 decStrong()은 <code>if (--mRefs == 0)<\/code> 조건을 검사합니다. 조건이 참이면 주석대로 '객체가 스스로 사라지는' 문장을 실행합니다.","w":"<code>if (--mRefs == 0) delete this;<\/code>로 객체가 자기 자신을 지웁니다. sp가 <code>delete mPtr<\/code>를 하던 단계 ①과 대비됩니다.","an":"Day3 p.5 RefBase 코드 · 02_sp_impl 단계 ④","src":"공통 부모 · delete this\n= Android 구조\nclass RefBase {\nint mRefs;\nvoid incStrong() { mRefs++; }\nvoid decStrong() { if (--mRefs == 0) delete this; } // 객체가 스스로 사라\n진다\nvirtual ~RefBase();\n};\ntemplate<class T> class sp {\nsp(T* p) : mPtr(p) { mPtr->incStrong(); } sp(const sp& r) { mPtr->incSt\nrong(); }"},{"id":"t1-05","ty":"mc","lv":3,"game":true,"p":"단계 ④에서 <code>~RefBase()<\/code>를 virtual로 선언하지 않으면 어떤 일이 생기나요?","o":["RefBase 생성자 미호출","AAA::~AAA()가 안 불림","double free 발생","after가 안 찍힘"],"a":1,"h":"RefBase의 decStrong()은 RefBase 포인터(this)로 delete를 실행합니다. 기반 클래스 소멸자가 virtual이 아니면 파생 클래스 소멸자로 동적 디스패치되지 않아, 확인 포인트의 실험처럼 AAA 쪽 소멸자가 실행되지 않습니다.","w":"virtual 소멸자여야 <code>delete this<\/code>가 파생 클래스 소멸자까지 부릅니다. 확인 포인트의 실험처럼 virtual이 아니면 <code>AAA::~AAA()<\/code>가 호출되지 않습니다.","an":"02_sp_impl 단계 ④ 주석 · 확인 포인트","src":"- [ ] ④ 에서 `~RefBase` 가 `virtual` 이 아니면 `AAA::~AAA()` 가 안 불림을 실험"},{"id":"t1-06","ty":"ox","lv":1,"game":true,"p":"Android의 sp는 <code>std::shared_ptr<\/code>처럼 별도 control block에 카운트를 둔다.","a":false,"h":"실습 2 핵심 정리는 std::shared_ptr이 카운트를 별도 control block에 두는 non-intrusive 방식이라고 설명합니다. Android는 RefBase + sp로 카운트를 객체 안에 두는 intrusive 방식을 택했습니다.","w":"틀렸습니다. Android sp는 카운트가 객체(RefBase) 안에 있는 intrusive 방식이고, control block을 쓰는 것은 non-intrusive인 <code>std::shared_ptr<\/code>입니다.","an":"02_sp_impl 핵심 정리","src":"| ③ | 클래스마다 반복 | 공통 부모로 뽑는다 |\n| ④ | — | `RefBase` + `sp` = Android 방식 (**intrusive** 참조 카운트) |\n\n`std::shared_ptr` 은 카운트를 별도 control block 에 두는 non-intrusive 방식이다. Android 가 intrusive 를 택한 이유: Binder 객체처럼 `this` 를 여기저기 넘겨야 하는 상황에서 카운트가 객체 안에 있어야 안전하게 `sp` 로 다시 감쌀 수 있다."},{"id":"t1-07","ty":"ox","lv":2,"game":true,"p":"RefBase 객체는 new 직후 sp에 담고, delete는 직접 쓰지 않는다.","a":true,"h":"RefBase 객체는 카운트가 0이 되면 decStrong()에서 delete this로 스스로 사라집니다. Day3 p.5는 그래서 'new 직후 sp에 담고, delete는 절대 쓰지 않는다'고 정리합니다.","w":"맞습니다. 마지막 sp가 사라질 때 <code>decStrong<\/code>이 <code>delete this<\/code>를 하므로 직접 delete하지 않습니다. Day 2의 <code>sp&lt;IBinder&gt;<\/code>가 delete 없이 사라지는 이유입니다.","an":"Day3 p.5 · 03_refbase_wp 핵심 정리","src":"• new 직후 sp 에 담고, delete 는 절대 쓰지 않는다"},{"id":"t1-08","ty":"match","lv":2,"game":false,"p":"sp 구현 단계와 그 단계의 문제·교훈을 연결하세요.","pairs":[["① sp 소멸자에서 delete","복사 시 double free"],["② static 카운트","객체 간 카운트 공유로 누수"],["③ 객체 안 카운트","클래스마다 코드 반복"],["④ RefBase 분리","공통 부모의 intrusive 카운트"]],"h":"실습 2 요점은 ① 소멸자 delete는 복사 시 double free, ② static 카운트는 모든 객체가 카운트를 공유하는 오류라고 적습니다. ③ AAA 안에 mRefs를 두면 동작하지만 클래스마다 반복되고, ④ RefBase로 분리하면 공통 부모의 intrusive 카운트가 됩니다.","w":"① 소유권을 세지 않아 double free, ② 카운트가 객체마다 있지 않아 누수, ③ 동작하지만 클래스마다 반복, ④ 공통 부모 RefBase로 뽑아 Android 구조에 도달합니다.","an":"02_sp_impl 핵심 정리 표 · Day3 p.5","src":"### 실습별 요점\n**실습 2. `sp<>` 직접 구현 4단계 — 25분** (`sp_test/sp.cpp`, `#if` 전환)\n- ① `sp` 소멸자에서 `delete mPtr` → 복사하면 double free\n- ② `static int mRefs` → 모든 객체가 카운트를 공유하는 오류\n- ③ `AAA` 안에 `mRefs` + `incStrong/decStrong` → 동작하지만 클래스마다 반복"},{"id":"t1-09","ty":"order","lv":1,"game":false,"p":"실습 2에서 sp를 발전시킨 4단계를 순서대로 놓으세요.","steps":["sp 소멸자에서 delete","static 카운트","객체 안에 카운트","RefBase로 분리"],"h":"실습 2 제목은 'raw delete → static 카운트 → 객체 내 카운트 → RefBase 분리' 4단계를 차례로 보여 줍니다. 각 단계는 앞 단계의 문제(double free, 카운트 공유, 코드 반복)를 하나씩 해결합니다.","w":"raw delete → static 카운트 → 객체 내 카운트 → RefBase 분리 순서로 Android 구조에 도달합니다.","an":"Day3_커리큘럼 실습 2 · 02_sp_impl","src":"# 실습 2. `sp<>` 직접 구현 4단계 — raw delete → static 카운트 → 객체 내 카운트 → RefBase 분리\n\n> **소요시간:** 25분 · **난이도:** ★★☆ · **챕터:** Ch 1 libutils\n> **디렉토리:** `~/android/day3/sp_test/sp.cpp` (`#if` 로 단계 전환)"},{"id":"t1-10","ty":"multi","lv":3,"game":true,"p":"Android가 intrusive 참조 카운트를 쓰는 것과 관련해 옳은 설명을 모두 고르세요.","o":["카운트가 객체 안에 있다","raw를 다시 sp로 감싸도 안전","this를 넘기는 Binder 객체에 적합","별도 control block을 할당","sp 클래스 전체가 카운트 공유"],"a":[0,1,2],"h":"Day3 p.5는 intrusive 방식에서 카운트가 객체 안에 있으므로 raw 포인터를 다시 sp로 감싸도 안전하다고 설명합니다. 실습 2 핵심 정리는 Binder 객체처럼 this를 여기저기 넘기는 구조에 이 방식이 맞는다고 적습니다.","w":"카운트가 객체 안에 있어 raw 포인터를 다시 sp로 감싸도 같은 카운트를 쓰므로, this를 여기저기 넘기는 Binder 객체에 안전합니다. control block은 shared_ptr, 전체 공유는 단계 ②의 오류입니다.","an":"Day3 p.5 · 02_sp_impl 핵심 정리","src":"| ③ | 클래스마다 반복 | 공통 부모로 뽑는다 |\n| ④ | — | `RefBase` + `sp` = Android 방식 (**intrusive** 참조 카운트) |\n\n`std::shared_ptr` 은 카운트를 별도 control block 에 두는 non-intrusive 방식이다. Android 가 intrusive 를 택한 이유: Binder 객체처럼 `this` 를 여기저기 넘겨야 하는 상황에서 카운트가 객체 안에 있어야 안전하게 `sp` 로 다시 감쌀 수 있다."}]},{"id":"t2","title":"wp · promote · 순환 참조","ref":"Day3 p.6 · 03_refbase_wp","qs":[{"id":"t2-01","ty":"mc","lv":1,"game":true,"p":"<code>wp&lt;T&gt;<\/code>가 가리키는 객체에 접근하는 올바른 방법은?","o":["wp->method()로 직접 호출","promote()로 sp를 얻고 null 검사","get()으로 raw 포인터 획득","incStrong()을 직접 호출"],"a":1,"h":"Worksheet Q2 해설은 wp에는 -> 연산자가 없다고 설명합니다. promote()는 객체가 살아 있으면 sp를, 아니면 nullptr를 돌려주므로 결과를 반드시 검사해야 합니다.","w":"wp에는 <code>-&gt;<\/code>가 없고 <code>promote()<\/code>로만 접근합니다. 객체가 살아 있으면 sp를, 아니면 nullptr를 주므로 반드시 검사합니다.","an":"Day3_Worksheet Q2 · 03_refbase_wp 핵심 정리","src":"**2. ②**\nwp 에는 -> 가 없다. promote() 는 객체가 살아 있으면 sp 를, 아니면 nullptr 를 반환하므로 반드시 검사한다.\n**3. ②**"},{"id":"t2-02","ty":"mc","lv":1,"game":true,"p":"첫 sp가 붙는 순간(mStrong 0→1) 한 번 호출되는 RefBase 훅 함수는?","o":["readyToRun()","threadLoop()","incStrong()","onFirstRef()"],"a":3,"h":"Worksheet Q9 해설은 생성자 안에서는 sp&lt;this&gt;를 만들 수 없으므로 이 훅에서 run()을 부른다고 설명합니다. RefBase가 첫 sp가 붙는 순간(mStrong 0→1) 한 번 호출하는 함수입니다.","w":"<code>onFirstRef()<\/code>는 첫 sp가 붙을 때 1회 호출되며, 실습 4에서 <code>Thread::run<\/code>을 부르는 곳입니다. 생성자 안에서는 sp&lt;this&gt;를 만들 수 없기 때문입니다.","an":"Day3_Worksheet Q9 · Day3 p.6","src":"**9. onFirstRef()**\n생성자 안에서는 sp<this> 를 만들 수 없으므로 onFirstRef 에서 run() 을 부른다.\n**10. wake()**"},{"id":"t2-03","ty":"mc","lv":2,"game":true,"p":"<code>wp&lt;AAA&gt; p = new AAA();<\/code>만 있을 때 일어나는 일은?","o":["즉시 소멸, promote는 nullptr","sp처럼 객체가 유지된다","컴파일 오류가 난다","프로세스 종료 때 소멸"],"a":0,"h":"wp는 강한 카운트(mStrong)를 올리지 않으므로 wp만 있으면 mStrong이 한 번도 1이 되지 않습니다. 실습 3 진행 순서는 'wp만 → 즉시 소멸'과 promote 실패를 함께 관찰한다고 적습니다.","w":"강한 참조가 0이라 생성 직후 소멸하고, 이후 <code>promote()<\/code>는 nullptr를 반환해 'promote failed'가 찍힙니다.","an":"03_refbase_wp ②","src":"3. 실습 3: my_sp.cpp — Android sp / wp 만 → 즉시 소멸 / promote 성공·실패\n4. 실습 3: A"},{"id":"t2-04","ty":"mc","lv":2,"game":true,"p":"mWeak 카운트가 0이 될 때 소멸하는 것은?","o":["AAA 객체 자체","sp 포인터 변수","weakref_impl 카운트 블록","RefBase의 vtable"],"a":2,"h":"Day3 p.6 카운트 표에서 mStrong이 0이 되면 객체가 delete this로 소멸합니다. mWeak는 sp와 wp가 모두 올리며, 0이 될 때 객체가 아니라 weakref_impl이라는 별도 블록이 소멸합니다.","w":"mStrong이 0이면 객체가 <code>delete this<\/code>로 소멸하고, mWeak가 0이 되어야 카운트 블록(weakref_impl)이 소멸합니다. 그래서 wp는 객체가 죽은 뒤에도 안전하게 실패를 압니다.","an":"Day3 p.6 카운트 표","src":"카운트 올리는 것 0 이 되면\nmStrong sp 객체 소멸 (delete this)\nmWeak sp + wp weakref_impl (카운트 블록) 소멸\n• wp 는 객체가 죽은 뒤에도 안전하게 \"죽었다\" 를 안다 — mWeak 가 블록을 유\n지\n• Listener · Callback · 부모\n 자식 은 한쪽을 wp\n• onFirstRef(): mStrong 0→1 순간 1회 — Thread::run 의 트리거 (다음 슬라이드)\n• 실습 3: promote 실패 · 순환 누수 · wp 로 해결 3가지 확인"},{"id":"t2-05","ty":"mc","lv":3,"game":true,"p":"AAA가 <code>sp&lt;BBB&gt;<\/code>, BBB가 <code>sp&lt;AAA&gt;<\/code>를 가져 소멸자가 안 불립니다. 해결책은?","o":["한쪽 멤버를 wp로 바꾼다","양쪽 소멸자를 virtual로","main에서 delete 호출","sp를 static으로 선언"],"a":0,"h":"서로 sp로 잡고 있으면 두 객체의 mStrong이 0이 되지 않아 소멸자가 불리지 않습니다. 실습 3은 'A↔B sp 순환 → 소멸자 없음'을 재현한 뒤 한쪽 참조를 약한 참조로 바꿔 고리를 끊습니다.","w":"순환 참조는 서로의 카운트를 1로 유지해 누수가 납니다. BBB의 멤버를 <code>wp&lt;AAA&gt;<\/code>로 바꾸면 순환이 끊겨 둘 다 소멸합니다.","an":"03_refbase_wp ④⑤ · Day3 p.6","src":"B sp 순환 → 소멸자 없음 → 한쪽 wp 로 해결\n5. m sp_test my_sp_test → adb push → 실행\n확인 포인트"},{"id":"t2-06","ty":"ox","lv":1,"game":true,"p":"wp는 강한 참조 카운트(mStrong)를 올리지 않는다.","a":true,"h":"실습 3 목표는 wp<>가 카운트를 올리지 않고, promote()는 살아 있을 때만 sp를 준다고 적습니다. mStrong을 올리는 것은 sp뿐이며 wp는 mWeak만 올립니다.","w":"맞습니다. wp는 강한 카운트와 무관하므로 wp만으로는 객체를 살려 둘 수 없습니다.","an":"Day3 p.6 · 03_refbase_wp ③","src":"## 목표\n\n- 실습 2 의 자작 `sp` 를 Android 실제 `utils/RefBase.h` 로 바꿔 같은 동작을 확인한다.\n- `wp<>` 는 카운트를 올리지 않는다 · `promote()` 는 살아 있을 때만 `sp` 를 준다.\n- 순환 참조를 만들고 `wp` 로 푼다."},{"id":"t2-07","ty":"ox","lv":2,"game":true,"p":"promote()는 항상 유효한 sp를 반환하므로 결과를 검사할 필요가 없다.","a":false,"h":"Worksheet Q2 해설은 promote()가 객체가 살아 있으면 sp를, 아니면 nullptr를 반환하므로 반드시 검사하라고 합니다. 실습 3 ③에서도 owner.clear() 뒤 promote 결과로 '대상 객체가 이미 소멸됨'이 출력되었습니다.","w":"틀렸습니다. 객체가 이미 소멸했다면 <code>promote()<\/code>는 nullptr를 반환하므로 반드시 검사해야 합니다.","an":"03_refbase_wp ③ · Day3 p.6","src":"**2. ②**\nwp 에는 -> 가 없다. promote() 는 객체가 살아 있으면 sp 를, 아니면 nullptr 를 반환하므로 반드시 검사한다.\n**3. ②**"},{"id":"t2-08","ty":"match","lv":2,"game":false,"p":"RefBase 관련 API와 의미를 연결하세요.","pairs":[["sp<T>","강한 참조, 생성·복사 시 incStrong"],["wp<T>","약한 참조, 카운트 무관·-> 없음"],["promote()","살아 있으면 sp, 아니면 nullptr"],["onFirstRef()","첫 sp가 붙을 때 1회 호출"]],"h":"실습 3 핵심 정리 표에서 sp&lt;T&gt;는 강한 참조로 생성·복사 시 incStrong을, wp&lt;T&gt;는 약한 참조로 카운트와 무관하며 -> 없이 promote()로만 접근합니다. promote()는 살아 있으면 sp, 아니면 nullptr이고, onFirstRef()는 첫 sp가 붙을 때 1회 호출됩니다.","w":"sp는 카운트를 올리고 내리는 강한 참조, wp는 카운트와 무관한 약한 참조입니다. promote는 wp를 sp로 바꾸며, onFirstRef는 첫 sp에서 불리는 훅입니다.","an":"03_refbase_wp 핵심 정리 표","src":"|---|---|\n| `sp<T>` | 강한 참조. 생성/복사 `incStrong`, 소멸 `decStrong` |\n| `wp<T>` | 약한 참조. 카운트 무관, `->` 없음, `promote()` 로만 접근 |\n| `promote()` | 객체가 살아 있으면 `sp`, 아니면 `nullptr` — 반드시 검사 |\n| `onFirstRef()` | 첫 `sp` 가 붙을 때 1회 호출 — 실습 4 의 `Thread::run` 트리거 |\n| 순환 참조 | Listener · Callback · 부모↔자식 은 한쪽을 `wp` |"},{"id":"t2-09","ty":"order","lv":3,"game":false,"p":"실습 3 ③ 코드(owner·wp·promote·clear)의 출력 순서를 맞추세요.","steps":["AAA::AAA()","AAA::foo()","step 1","AAA::~AAA()","대상 객체가 이미 소멸됨"],"h":"실습 3 ③은 생성자 출력 → promote 성공 후 foo() → 'step 1' → owner.clear()로 소멸자 출력 → 다시 promote 실패 메시지 순으로 진행됩니다. 마지막에 'step 2'가 찍힙니다.","w":"생성 후 promote 성공으로 foo가 찍히고 'step 1' 뒤 <code>owner.clear()<\/code>로 강한 카운트가 0이 되어 소멸합니다. 이후 promote는 nullptr라 '대상 객체가 이미 소멸됨'이 찍힙니다.","an":"03_refbase_wp ③ 실행 결과","src":"if (r != nullptr) r->foo(); else printf(\"대상 객체가 이미 소멸됨\\n\");\n }\n printf(\"step 2\\n\");\n return 0;\n}\n```\n\n```text\nAAA::AAA()\nAAA::foo()\nstep 1\nAAA::~AAA()\n대상 객체가 이미 소멸됨\nstep 2\n```"},{"id":"t2-10","ty":"multi","lv":1,"game":true,"p":"순환 참조를 피하려고 한쪽을 wp로 두는 관계로 자료가 든 것을 모두 고르세요.","o":["pthread와 Thread","Transaction과 Layer","Listener","Callback","부모↔자식"],"a":[2,3,4],"h":"Day3 p.6은 순환 참조를 피하기 위해 Listener · Callback · 부모↔자식 관계에서 한쪽을 wp로 둔다고 정리합니다. 서로를 가리키기 쉬운 알림 대상과 계층 관계입니다.","w":"Listener·Callback·부모↔자식은 서로 참조하기 쉬우므로 한쪽을 wp로 둡니다. 나머지 두 보기는 순환 참조 예로 나오지 않습니다.","an":"Day3 p.6 · 03_refbase_wp 핵심 정리","src":"|---|---|\n| `sp<T>` | 강한 참조. 생성/복사 `incStrong`, 소멸 `decStrong` |\n| `wp<T>` | 약한 참조. 카운트 무관, `->` 없음, `promote()` 로만 접근 |\n| `promote()` | 객체가 살아 있으면 `sp`, 아니면 `nullptr` — 반드시 검사 |\n| `onFirstRef()` | 첫 `sp` 가 붙을 때 1회 호출 — 실습 4 의 `Thread::run` 트리거 |\n| 순환 참조 | Listener · Callback · 부모↔자식 은 한쪽을 `wp` |"}]},{"id":"t3","title":"Thread 단계별 구현","ref":"Day3 p.7 · 04_thread_impl","qs":[{"id":"t3-01","ty":"mc","lv":1,"game":true,"p":"<code>android::Thread::threadLoop()<\/code>가 true를 반환하면?","o":["Thread가 종료된다","threadLoop이 다시 호출된다","readyToRun이 다시 불린다","join()이 반환된다"],"a":1,"h":"Worksheet Q3 해설은 threadLoop()의 반환값이 'true = 반복, false = 종료'라고 설명합니다. while(1)을 직접 쓰지 않고 반환값으로 루프를 제어합니다.","w":"true는 반복, false는 종료입니다. readyToRun은 처음 1회만 불리고, join은 false로 종료된 뒤에 반환됩니다.","an":"Day3_Worksheet Q3 · 04_thread_impl 핵심 정리","src":"**3. ②**\ntrue = 반복, false = 종료. while(1) 을 직접 쓰지 않고 반환값으로 루프를 제어한다.\n**4. ③**"},{"id":"t3-02","ty":"mc","lv":2,"game":true,"p":"멤버 함수를 pthread 엔트리로 넘기려면 ( 1 ) 멤버 함수를 만들고 void* 인자로 ( 2 )를 전달합니다. 알맞은 짝은?","o":["virtual / mData","inline / nullptr","const / sp","static / this"],"a":3,"h":"Worksheet Q14 해설은 pthread가 C 함수 포인터만 받으므로 클래스 소속이지만 this가 없는 트램폴린 함수를 두고, void* 인자로 객체 자신을 넘긴다고 설명합니다. 이 패턴은 Looper 콜백·JNI·PoolThread에도 반복됩니다.","w":"static 트램폴린 <code>__handler(void*)<\/code>에 this를 넘기고 그 안에서 객체를 복원합니다. 이 관용구는 Looper 콜백·JNI·PoolThread에도 반복됩니다.","an":"Day3_Worksheet Q14 · 04_thread_impl 단계 ②","src":"**14. (1) static / (2) this**\npthread 는 C 함수 포인터만 받는다. static 트램폴린 + this 전달은 Looper 콜백·JNI·PoolThread 에도 반복되는 패턴이다."},{"id":"t3-03","ty":"mc","lv":2,"game":true,"p":"멤버 함수를 <code>pthread_create<\/code>에 직접 넘길 수 없는 이유는?","o":["숨은 this 인자 때문에 타입이 달라서","멤버 함수는 private이라서","pthread가 C++을 몰라서","virtual 함수만 넘길 수 있어서"],"a":0,"h":"실습 4 단계 ②는 멤버 함수에는 숨은 this 인자가 있어 <code>void*(*)(void*)<\/code> 타입이 아니라고 설명합니다. 그래서 static 함수로 받아 this를 void*로 넘긴 뒤 원래 객체를 복원합니다.","w":"멤버 함수에는 숨은 this 인자가 있어 <code>void*(*)(void*)<\/code> 타입이 아닙니다. 그래서 static 함수로 받고 this를 복원합니다.","an":"04_thread_impl 단계 ② 설명","src":"return 0;\n }\n void run() { pthread_create(&mThread, 0, __handler, this); } // ★ this 를 4번째 인자로\n void join() { pthread_join(mThread, 0); }\n};\n```\n\n멤버 함수는 숨은 `this` 인자가 있어 `void*(*)(void*)` 타입이 아니다. static 함수로 받아 `this` 를 복원하는 것이 C++ 에서 콜백을 다루는 표준 패턴이다 (실습 5 의 Looper 콜백, JNI 콜백도 같다)."},{"id":"t3-04","ty":"mc","lv":1,"game":true,"p":"<code>readyToRun()<\/code>의 역할은?","o":["threadLoop 반복 여부 결정","밖에서 종료 요청","첫 threadLoop 전 1회 초기화","Thread 이름 지정"],"a":2,"h":"실습 4 핵심 정리 표에서 readyToRun()은 첫 threadLoop 전에 한 번 불리는 초기화 함수입니다. NO_ERROR 외의 값을 반환하면 Thread 시작이 취소됩니다.","w":"readyToRun은 첫 threadLoop 전에 1회 불리는 초기화이며, NO_ERROR 외 값을 반환하면 시작이 취소됩니다. 반복 여부는 threadLoop의 반환값, 종료 요청은 requestExit입니다.","an":"04_thread_impl 핵심 정리","src":"|---|---|\n| `run(name)` | pthread 생성. 이름은 `ps -T` 와 `binder_logs` 에 보인다 |\n| `readyToRun()` | 첫 `threadLoop` 전 1회 초기화. `NO_ERROR` 외 반환 시 시작 취소 |\n| `threadLoop()` | **true = 다시 호출, false = 종료**. 무한 루프를 직접 쓰지 않는다 |\n| `requestExit()` / `exitPending()` | 밖에서 종료 요청 → 루프 안에서 확인 |\n| `join()` | 종료 대기 |"},{"id":"t3-05","ty":"mc","lv":3,"game":true,"p":"<code>{ sp&lt;Thread&gt; p = new MyThread; }<\/code>로 sp를 바로 버려도 threadLoop이 끝까지 도는 이유는?","o":["run()이 자신을 sp로 잡아서","main이 join을 자동 호출해서","pthread가 객체를 복사해서","onFirstRef가 다시 불려서"],"a":0,"h":"실습 4 실험은 sp가 바로 사라져도 threadLoop이 3번 돈다고 보여 줍니다. Thread::run()이 내부에서 자기 자신을 sp&lt;Thread&gt;로 한 번 더 잡아(mHoldSelf) 실행 중에는 소멸되지 않게 하기 때문입니다.","w":"<code>Thread::run()<\/code>이 내부에서 자기 자신을 sp로 한 번 더 잡아(mHoldSelf) 실행 중에는 소멸되지 않습니다. 그래서 main이 sp를 버려도 끝까지 돕니다.","an":"04_thread_impl 실험 · Day3 p.7","src":"int main() {\n { sp<Thread> p = new MyThread; } // sp 가 바로 사라짐\n sleep(5);\n printf(\"parent\\n\");\n}\n```\n\n그래도 `threadLoop` 이 3번 돈다. `Thread::run()` 이 내부에서 **자기 자신을 `sp<Thread>` 로 한 번 더 잡아** 실행 중에는 소멸되지 않게 한다 (`Thread::_threadLoop` 의 `sp<Thread> strong(self->mHoldSelf)`). `:tag Thread::_threadLoop` 로 확인."},{"id":"t3-06","ty":"ox","lv":2,"game":true,"p":"<code>requestExit()<\/code>를 부르면 Thread가 그 자리에서 즉시 강제 종료된다.","a":false,"h":"Day3 p.7은 requestExit()가 플래그만 세운다고 정리합니다. 실제 종료는 threadLoop 안에서 exitPending()을 확인하고 false를 반환할 때 일어납니다.","w":"틀렸습니다. requestExit는 플래그만 세우며, 루프 안에서 <code>exitPending()<\/code>을 확인해 false를 반환해야 종료됩니다.","an":"Day3 p.7 · 04_thread_impl 핵심 정리","src":"• requestExit() 는 플래그만 — 루프에서 exitPending() 확인해 false 반환\n애니메이션 3 · Thread 단계별"},{"id":"t3-07","ty":"ox","lv":1,"game":true,"p":"<code>android::Thread<\/code>는 RefBase를 상속한다.","a":true,"h":"Day3 p.7은 'Thread : RefBase'라고 적고, run()이 자기 자신을 sp로 잡는다고 설명합니다. 그래서 sp&lt;Thread&gt;로 담을 수 있고 onFirstRef() 훅에서 run()을 부를 수 있습니다.","w":"맞습니다. Thread : RefBase이므로 sp로 관리되고 onFirstRef 훅에서 run을 부를 수 있습니다.","an":"Day3 p.7 · Day3_커리큘럼 Ch 1 sp × Thread","src":"• Thread : RefBase — run() 이 자기 자신을 sp 로 잡음(mHoldSelf) → mai\nn 이 sp 를 버려도 끝까지 돈다"},{"id":"t3-08","ty":"match","lv":1,"game":false,"p":"android::Thread API와 의미를 연결하세요.","pairs":[["run(name)","pthread 생성, 이름이 ps -T에 보임"],["threadLoop()","true면 반복, false면 종료"],["requestExit()","밖에서 종료를 요청"],["join()","종료될 때까지 대기"]],"h":"핵심 정리 표에서 run(name)은 pthread를 생성하며 이름이 ps -T와 binder_logs에 보입니다. threadLoop()은 true면 다시 호출·false면 종료, requestExit()는 밖에서 종료를 요청하고, join()은 종료될 때까지 기다립니다.","w":"run이 pthread를 만들고, threadLoop 반환값이 반복을 정하며, requestExit로 종료를 요청하고 join으로 끝나기를 기다립니다.","an":"04_thread_impl 핵심 정리 표","src":"| android::Thread | 의미 |\n|---|---|\n| `run(name)` | pthread 생성. 이름은 `ps -T` 와 `binder_logs` 에 보인다 |\n| `readyToRun()` | 첫 `threadLoop` 전 1회 초기화. `NO_ERROR` 외 반환 시 시작 취소 |\n| `threadLoop()` | **true = 다시 호출, false = 종료**. 무한 루프를 직접 쓰지 않는다 |\n| `requestExit()` / `exitPending()` | 밖에서 종료 요청 → 루프 안에서 확인 |"},{"id":"t3-09","ty":"order","lv":2,"game":false,"p":"<code>sp&lt;Thread&gt; p = new MyThread; p-&gt;join();<\/code>의 생명주기를 순서대로 놓으세요.","steps":["생성자 MyThread()","onFirstRef() → run(name)","readyToRun() 1회","threadLoop() 반복 (true 동안)","threadLoop() false → join() 반환"],"h":"Worksheet Q18 해설은 생성자 → onFirstRef(sp에 담기는 순간) → run → readyToRun → threadLoop 반복 → false → join 반환 순서를 제시합니다. sp에 담기는 순간 실행이 시작된다는 점이 핵심입니다.","w":"생성자 다음 sp에 담기는 순간 onFirstRef가 run을 부르고, readyToRun 1회 후 threadLoop이 반복되다 false를 반환하면 join이 반환됩니다.","an":"Day3_Worksheet Q18 · 04_thread_impl my_thread.cpp 출력","src":"**18. 생성자 MyThread() → onFirstRef() → run(\"name\") → readyToRun() 1회 → threadLoop() 반복 (true 반환 동안) → threadLoop() 이 false 반환 → join() 반환**\n생성자 → onFirstRef(sp 에 담기는 순간) → run → readyToRun → threadLoop 반복 → false → join 반환."},{"id":"t3-10","ty":"multi","lv":3,"game":true,"p":"실습 4 <code>my_thread.cpp<\/code>(threadLoop이 <code>return ++n &lt; 3;<\/code>)에 대해 옳은 것을 모두 고르세요.","o":["생성자 안에서 run() 호출","new MyThread만으로 실행 시작","readyToRun은 1회 호출","threadLoop은 3번 호출","p->join()은 즉시 반환"],"a":[1,2,3],"h":"확인 포인트는 <code>sp&lt;Thread&gt; p = new MyThread;<\/code>만으로 실행이 시작되고, readyToRun 1회 → threadLoop 반복 → false로 종료 → join 반환을 확인하라고 합니다. <code>return ++n &lt; 3;<\/code>은 n이 1, 2일 때 true, 3일 때 false가 됩니다.","w":"onFirstRef가 run을 부르므로 sp에 담는 것만으로 시작하고, readyToRun 1회 후 threadLoop이 0·1·2 세 번 돕니다. join은 종료까지 기다리며, run은 생성자가 아니라 onFirstRef에서 부릅니다.","an":"04_thread_impl ④ my_thread.cpp · 확인 포인트","src":"## 확인 포인트\n\n- [ ] ② `this` 없이 static 함수에서 멤버 접근이 안 됨을 확인\n- [ ] ④ `sp<Thread> p = new MyThread;` 만으로 실행 시작\n- [ ] `readyToRun` 1회 → `threadLoop` 반복 → `false` 로 종료 → `join` 반환\n- [ ] `sp` 를 바로 버려도 Thread 가 끝까지 도는 것 (`mHoldSelf`)"}]},{"id":"t4","title":"Looper의 두 얼굴","ref":"Day3 p.8 · 05_looper_impl","qs":[{"id":"t4-01","ty":"mc","lv":1,"game":true,"p":"<code>Looper::pollOnce()<\/code>가 내부적으로 사용하는 시스템 콜은?","o":["select","poll","epoll_wait","ioctl(BINDER_WRITE_READ)"],"a":2,"h":"Worksheet Q4 해설은 Looper가 epoll fd를 만들고 wake용 eventfd와 addFd로 등록한 fd들을 한꺼번에 기다린다고 설명합니다. 실습 5 핵심 정리 표의 ① pollOnce(timeout) 행에 해당 시스템 콜이 적혀 있습니다.","w":"Looper는 epoll fd에 wake용 eventfd와 addFd로 등록한 fd들을 넣고 <code>epoll_wait<\/code>로 기다립니다. ioctl 블로킹은 Binder Thread의 대기 방식입니다.","an":"Day3_Worksheet Q4 · 05_looper_impl 단계 ①","src":"**4. ③**\nLooper 는 epoll fd 를 만들고 wake 용 eventfd 와 addFd 로 등록한 fd 들을 epoll_wait 로 기다린다.\n**5. ②**"},{"id":"t4-02","ty":"mc","lv":1,"game":true,"p":"다른 Thread에서 Looper를 깨워 pollOnce가 POLL_WAKE를 반환하게 하는 메서드는?","o":["addFd()","wake()","sendMessage()","pollAll()"],"a":1,"h":"실습 5 단계 ②에서 다른 Thread가 Looper를 '깨우면' pollOnce가 POLL_WAKE를 반환합니다. 이 메서드는 내부적으로 eventfd에 write하는 동작입니다.","w":"<code>wake()<\/code>는 eventfd에 1을 써서 epoll을 깨웁니다. Java Handler.post의 nativeWake가 이것입니다.","an":"Day3_Worksheet Q10 · 05_looper_impl 단계 ②","src":"① pollOnce(1000) epoll_wait POLL_TIMEOUT\n② 다른 Thread 의 wake() write(eventfd) POLL_WAKE"},{"id":"t4-03","ty":"mc","lv":2,"game":true,"p":"Looper는 ( 1 )로 등록한 fd 이벤트 루프와 ( 2 )로 넣은 Message 큐를 가집니다. 알맞은 짝은?","o":["wake / pollOnce","pollOnce / addFd","requestNextVsync / wake","addFd / sendMessage"],"a":3,"h":"Worksheet Q15 해설은 ③④가 fd 이벤트 루프(VSync fd가 여기로), ⑤가 메시지 큐(Java Handler의 실체)라고 설명합니다. fd를 '추가'하는 API와 메시지를 '보내는' API(지연 버전 포함)가 짝입니다.","w":"addFd로 등록한 fd 이벤트(단계 ③④)와 sendMessage·sendMessageDelayed로 넣은 메시지 큐(단계 ⑤)가 한 Looper 안에 있습니다.","an":"Day3_Worksheet Q15 · 05_looper_impl 핵심 정리","src":"**15. (1) addFd / (2) sendMessage / sendMessageDelayed**\n③④ 가 fd 이벤트 루프(VSync fd 가 여기로), ⑤ 가 메시지 큐(Java Handler 의 실체)."},{"id":"t4-04","ty":"mc","lv":2,"game":true,"p":"<code>wake()<\/code>가 실제로 하는 시스템 수준의 동작은?","o":["write(eventfd)","epoll_ctl(ADD)","ioctl 블로킹","pipe 생성"],"a":0,"h":"실습 5 핵심 정리 표의 ② wake() 행에는 대응 시스템 콜이 적혀 있습니다. Looper는 생성 시 eventfd 하나를 epoll에 등록해 두고, 여기에 값을 쓰면 epoll_wait가 깨어납니다.","w":"wake()는 생성 시 등록해 둔 eventfd에 write해 epoll_wait를 깨웁니다. <code>epoll_ctl(ADD)<\/code>는 addFd의 실체입니다.","an":"05_looper_impl 단계 ② · 핵심 정리 표","src":"## 핵심 정리\n\n| 단계 | Looper 기능 | 시스템 콜 |\n|---|---|---|\n| ① | `pollOnce(timeout)` | `epoll_wait` |\n| ② | `wake()` | `write(eventfd)` |\n| ③ ④ | `addFd(fd, …, callback, data)` — **fd 이벤트 루프** | `epoll_ctl(ADD)` |\n| ⑤ | `sendMessage[Delayed]` + `MessageHandler` — **메시지 큐** | 큐 + `wake` |"},{"id":"t4-05","ty":"mc","lv":3,"game":true,"p":"sendMessage(1), sendMessage(2), sendMessageDelayed(3초, 3)를 차례로 보내면?","o":["3, 1, 2 순서로 즉시","1·2 즉시, 3은 3초 후","1·2·3 모두 3초 후","3은 처리되지 않음"],"a":1,"h":"Looper의 메시지 큐는 uptime 순으로 정렬되고 만기가 되면 handleMessage가 불립니다. 확인 포인트 ⑤는 sendMessage로 넣은 1·2와 sendMessageDelayed로 넣은 3의 처리 시점 차이를 '큐 순서와 지연'으로 관찰하라고 합니다.","w":"메시지는 uptime 순으로 정렬되어 만기 시 handleMessage로 전달됩니다. 1·2는 바로, 3은 3초 뒤에 처리됩니다.","an":"05_looper_impl 단계 ⑤ 출력 · Day3 p.8","src":"## 확인 포인트\n\n- [ ] ① `POLL_TIMEOUT`, ② 3초 후 `POLL_WAKE`, ③ `foo(...)` + `POLL_CALLBACK`\n- [ ] ④ `this` 를 `data` 로 넘겨 가상 함수가 호출됨\n- [ ] ⑤ 1, 2 는 즉시, 3 은 3초 후 — 큐 순서와 지연\n- [ ] `strace -e epoll_wait,epoll_ctl,eventfd2 /data/looper_test` 로 내부 시스템 콜 확인"},{"id":"t4-06","ty":"ox","lv":2,"game":true,"p":"Java Looper/Handler/MessageQueue는 C++ Looper와 무관하게 Java만으로 구현된 루프이다.","a":false,"h":"Day3 p.8은 Java Looper/Handler/MessageQueue가 이 C++ Looper의 JNI wrapper(nativePollOnce)라고 정리합니다. Java 쪽 대기·깨우기는 결국 C++ Looper의 pollOnce·wake로 내려갑니다.","w":"틀렸습니다. Java Looper/Handler/MessageQueue는 C++ Looper의 JNI wrapper이며, <code>nativePollOnce<\/code>가 <code>Looper::pollOnce<\/code>를 부릅니다.","an":"Day3 p.8 · 05_looper_impl 핵심 정리","src":"• callback 은 Looper Thread 에서\n메시지 큐 (⑤)\n• uptime 순 정렬, 만기 시 handleMessage\n• Java Handler.sendMessageDelayed 의 실체\n• 한 Looper 에 두 기능\n• Java Looper/Handler/MessageQueue = 이 C++ Looper 의 JNI \nwrapper (nativePollOnce)\n• 실습 5 ⑤ 는 Message.what 으로 분기 — Day 1 Messenger 와\n같은 모양\n애니메이션 4 · Looper 의 두 얼굴"},{"id":"t4-07","ty":"ox","lv":1,"game":true,"p":"아무 이벤트도 없으면 <code>pollOnce(1000)<\/code>은 1초 뒤 POLL_TIMEOUT을 반환한다.","a":true,"h":"실습 5 단계 ①은 <code>p->pollOnce(1000)<\/code>에 '1초 대기' 주석을 달고 있습니다. 핵심 정리 표에서 ① pollOnce(1000)은 epoll_wait로 기다리다 아무 일이 없으면 시간 초과 결과를 돌려줍니다.","w":"맞습니다. 단계 ①에서 아무 일도 없으면 1초 후 POLL_TIMEOUT이 반환됩니다.","an":"05_looper_impl 단계 ①","src":"① pollOnce(1000) epoll_wait POLL_TIMEOUT"},{"id":"t4-08","ty":"match","lv":1,"game":false,"p":"Looper 상황과 pollOnce 반환값을 연결하세요.","pairs":[["pollOnce(1000) 동안 아무 일 없음","POLL_TIMEOUT"],["다른 Thread의 wake()","POLL_WAKE"],["addFd한 fd에 데이터 write","POLL_CALLBACK"]],"h":"Day3 p.8 표는 ① 아무 일 없으면 POLL_TIMEOUT, ② 다른 Thread의 wake()는 write(eventfd)로 POLL_WAKE, ③ addFd한 fd에 이벤트가 오면 callback 실행 후 POLL_CALLBACK을 반환한다고 정리합니다.","w":"타임아웃은 POLL_TIMEOUT, wake는 POLL_WAKE, 등록된 fd의 콜백이 실행되면 POLL_CALLBACK입니다.","an":"Day3 p.8 표 · 05_looper_impl 확인 포인트","src":"① pollOnce(1000) epoll_wait POLL_TIMEOUT\n② 다른 Thread 의 wake() write(eventfd) POLL_WAKE\n③ addFd(fd, 0, EVENT_INPUT, foo, data) epoll_ctl(ADD) → callback(fd, events, data) POLL_CALLBACK"},{"id":"t4-09","ty":"order","lv":2,"game":false,"p":"실습 5의 Looper 단계를 순서대로 놓으세요.","steps":["pollOnce(1000) → TIMEOUT","다른 Thread의 wake()","addFd + 콜백 함수","콜백을 클래스로 (LooperCallback)","sendMessage[Delayed] + MessageHandler"],"h":"실습 5는 ① pollOnce(timeout)의 POLL_TIMEOUT → ② 다른 Thread의 wake() → ③ addFd + pipe 콜백 → ④ static 트램폴린 + 가상 함수로 콜백 클래스화(LooperCallback) → ⑤ sendMessage[Delayed] + MessageHandler 순으로 진행합니다.","w":"① pollOnce → ② wake → ③ addFd 콜백 함수 → ④ 콜백 클래스(LooperCallback) → ⑤ sendMessage 순으로 fd 이벤트 루프와 메시지 큐를 차례로 봅니다.","an":"Day3_커리큘럼 실습 5 · Day3 p.11","src":"| `Looper` 단계별 | ① `pollOnce(timeout)` → `POLL_TIMEOUT` → ② 다른 Thread 에서 `wake()` → `POLL_WAKE` → ③ `addFd(fd, ident, events, callback, data)` — pipe 로 `POLL_CALLBACK` → ④ 콜백을 클래스로 (`static` 트램폴린 + 가상 함수 = `LooperCallback`) → ⑤ `sendMessage / sendMessageDelayed` + `MessageHandler::handleMessage` |"},{"id":"t4-10","ty":"multi","lv":3,"game":true,"p":"단계 ③ addFd 콜백 <code>foo(fd, events, data)<\/code>에 대해 옳은 것을 모두 고르세요.","o":["data로 넘긴 값이 그대로 돌아온다","fd를 read해야 다시 안 깨어난다","반환값 1이면 콜백이 유지된다","콜백은 write한 Thread에서 실행","반환값 0이면 콜백이 유지된다"],"a":[0,1,2],"h":"단계 ③ 출력 <code>foo(3, 1, 0x1234)<\/code>는 addFd에 data로 넘긴 0x1234가 그대로 돌아온 것입니다. 콜백 안에서 fd를 read해 비우지 않으면 계속 깨어나며, 반환값 1은 콜백 등록을 유지한다는 뜻입니다.","w":"data(0x1234)는 그대로 돌아오고, 읽어 줘야 다시 깨어나지 않으며, 1은 유지·0은 제거입니다. 콜백은 write한 Thread가 아니라 Looper Thread에서 실행됩니다.","an":"05_looper_impl 단계 ③ 주석 · Day3 p.8","src":"if (result == Looper::POLL_WAKE) printf(\"POLL_WAKE\\n\");\n if (result == Looper::POLL_CALLBACK) printf(\"POLL_CALLBACK\\n\");\n }\n return 0;\n}\n```\n```text\nfoo(3, 1, 0x1234)\nPOLL_CALLBACK\n```\n`data` 로 넘긴 `0x1234` 가 그대로 돌아온다 — 실습 4 ② 의 `this` 전달 자리가 여기다."}]},{"id":"t5","title":"Binder Thread vs Looper","ref":"Day3 p.9·p.12 · 06_binder_thread_looper","qs":[{"id":"t5-01","ty":"mc","lv":2,"game":true,"p":"Binder Thread에서 Java UI를 직접 갱신할 수 없는 근본 이유는?","o":["권한이 없어서","Looper가 없어 UI 큐에 속하지 않아서","커널 Thread라서","JNIEnv가 없어서"],"a":1,"h":"Worksheet Q5 해설은 Binder Thread는 joinThreadPool로 Driver를 기다리는 루프이고, Main Thread는 Looper 루프라고 구분합니다. UI 작업은 Main Looper의 큐에 넣어야 하므로 Handler.post로 넘깁니다.","w":"Binder Thread는 joinThreadPool로 Driver를 기다리는 루프이고 Looper가 없습니다. 그래서 Handler.post로 Main Looper 큐에 넣어 넘깁니다.","an":"Day3_Worksheet Q5 · Day3 p.9","src":"**5. ②**\nBinder Thread 는 joinThreadPool 로 Driver 를 기다리는 루프이고 Main Thread 는 Looper 루프다. Handler.post 로 Looper 큐에 넣어 넘긴다.\n**6. ②**"},{"id":"t5-02","ty":"mc","lv":1,"game":true,"p":"spawnPooledThread가 만들며 threadLoop에서 joinThreadPool을 부르는 클래스는?","o":["PoolThread","IPCThreadState","JavaBBinder","NativeMessageQueue"],"a":0,"h":"Worksheet Q11 해설은 <code>class ___ : public Thread<\/code> 선언이 Binder Thread의 정체가 android::Thread임을 보여 준다고 설명합니다. 이름은 Thread Pool(풀)에 들어가는 Thread라는 뜻입니다.","w":"<code>class PoolThread : public Thread<\/code>로 Binder Thread의 정체가 android::Thread임을 보여 줍니다. IPCThreadState는 joinThreadPool을 가진 쪽입니다.","an":"Day3_Worksheet Q11 · 06_binder_thread_looper Step 1","src":"**11. PoolThread**\nclass PoolThread : public Thread — Binder Thread 의 정체가 android::Thread 임을 보여 준다."},{"id":"t5-03","ty":"mc","lv":2,"game":true,"p":"<code>IPCThreadState::joinThreadPool<\/code>이 기다리는 대상은?","o":["fd 집합 (epoll_wait)","wake용 eventfd","메시지 큐 만기","Binder Driver (ioctl 블로킹)"],"a":3,"h":"실습 6 Step 2 비교표에서 Binder Thread의 대기 대상은 Binder Driver(ioctl 블로킹)이고, Looper Thread는 fd 집합(epoll_wait)입니다. Binder Thread를 깨우는 것은 다른 Process의 transact입니다.","w":"joinThreadPool은 talkWithDriver → <code>ioctl(BINDER_WRITE_READ)<\/code>로 Binder Driver를 기다립니다. fd 집합·eventfd·메시지 만기는 Looper::pollOnce가 기다리는 것입니다.","an":"06_binder_thread_looper Step 2 비교표","src":"|---|---|---|\n| 대기 대상 | Binder Driver (`ioctl` 블로킹) | fd 집합 (`epoll_wait`) |\n| 깨우는 것 | 다른 Process 의 `transact` | fd 이벤트 · `wake()` · 메시지 만기 |\n| 실행되는 것 | `BBinder::onTransact` | `LooperCallback::handleEvent` · `MessageHandler::handleMessage` |"},{"id":"t5-04","ty":"mc","lv":1,"game":true,"p":"<code>ps -T<\/code>로 본 Binder Thread 이름의 형식은?","o":["main_<n>","looper:<pid>","binder:<pid>_<n>","pool_<tid>"],"a":2,"h":"확인 포인트는 ps -T에 보이는 'binder:PID_N' 이름이 Thread::run(name)으로 붙은 이름이라고 적습니다. 앞부분은 binder, 그 뒤에 Process ID와 Thread 번호가 밑줄로 이어집니다.","w":"Binder Thread 이름은 <code>binder:&lt;pid&gt;_&lt;n&gt;<\/code>이며, Thread::run(name)에 넘긴 이름이 그대로 ps -T에 보입니다.","an":"06_binder_thread_looper Step 1·3","src":"• ps -T 에 binder:PID_N 이름 = Thread::run(name)"},{"id":"t5-05","ty":"mc","lv":3,"game":true,"p":"서버에서 <code>startThreadPool()<\/code>을 주석 처리하고 Client 3개가 동시 호출하면?","o":["tid가 모두 같고 순차 처리","tid가 3개로 분산","서버가 즉시 종료","호출이 모두 실패"],"a":0,"h":"실습 6 Step 3은 my_server.cpp에서 startThreadPool()을 주석 처리하면 main 하나만 joinThreadPool에 있다고 설명합니다. 요청을 받는 Thread가 하나뿐이니 동시 호출 3개의 tid와 처리 순서를 생각해 보세요.","w":"main 하나만 joinThreadPool에 있으므로 tid가 모두 같고 순차 처리됩니다. startThreadPool이 있으면 tid가 분산됩니다.","an":"06_binder_thread_looper Step 3","src":"# 동시 호출 3개 → 서버 로그의 tid 가 달라진다 (Thread Pool)\nfor i in 1 2 3; do adb shell /data/my_client_test_4 $i & done; wait\n```\n\n`my_server.cpp` 에서 `startThreadPool()` 줄을 주석 처리하고 다시 빌드·실행하면 main 하나만 `joinThreadPool` 에 있어 tid 가 모두 같고 순차 처리된다."},{"id":"t5-06","ty":"ox","lv":1,"game":true,"p":"<code>runOnUiThread(r)<\/code>는 <code>new Handler(Looper.getMainLooper()).post(r)<\/code>와 같다.","a":true,"h":"Day3 p.9 코드 주석은 <code>runOnUiThread(r) == new Handler(Looper.getMainLooper()).post(r)<\/code>라고 적습니다. 이후 enqueueMessage → nativeWake → C++ Looper::wake()로 이어집니다.","w":"맞습니다. runOnUiThread는 Main Looper 큐에 넣는 것이며, 결국 C++ Looper::wake로 Main Thread를 깨웁니다.","an":"Day3 p.9 · 06_binder_thread_looper Step 4","src":", 반환 안 함\nreturn false;\n}\n};\n// Java 콜백 → Main Thread\nrunOnUiThread(r) == new Handler(Looper.getMainLooper()).post(r)\n→ enqueueMessage → nativeWake → C++ Looper::wake() // ← 실습 5 ②\nBinder Thread Main (Looper) Thread\n루프 joinThreadPool → ioctl 블로킹 Looper::pollOnce → epoll_wait"},{"id":"t5-07","ty":"ox","lv":2,"game":true,"p":"Binder Thread는 <code>Looper::pollOnce<\/code>로 fd 이벤트를 기다린다.","a":false,"h":"Day3 p.9 표에서 Binder Thread의 루프는 joinThreadPool → ioctl 블로킹이고, Looper::pollOnce → epoll_wait는 Main (Looper) Thread의 루프입니다. PoolThread의 threadLoop도 joinThreadPool만 부르고 반환하지 않습니다.","w":"틀렸습니다. Binder Thread는 joinThreadPool로 Binder Driver를 ioctl 블로킹으로 기다리고, Looper::pollOnce는 Main(Looper) Thread의 대기 루프입니다.","an":"Day3 p.9 표 · 06_binder_thread_looper 핵심 정리","src":"루프 joinThreadPool → ioctl 블로킹 Looper::pollOnce → epoll_wait\n깨우는 것 다른 Process 의 transact fd 이벤트 · wake · 메시지 만기"},{"id":"t5-08","ty":"match","lv":1,"game":false,"p":"두 대기 루프의 항목과 내용을 연결하세요.","pairs":[["Binder Thread의 루프","joinThreadPool → ioctl 블로킹"],["Main Thread의 루프","Looper::pollOnce → epoll_wait"],["Binder Thread에서 실행","BBinder::onTransact"],["Main Thread에서 실행","handleEvent · handleMessage · UI"]],"h":"Day3 p.9 비교표에서 Binder Thread는 joinThreadPool → ioctl 블로킹으로 Driver를 기다리고 BBinder::onTransact를 실행합니다. Main Thread는 Looper::pollOnce → epoll_wait로 fd·메시지를 기다리고 handleEvent·handleMessage·UI 작업을 실행합니다.","w":"Binder Thread는 joinThreadPool로 Driver를 기다려 onTransact를 실행하고, Main Thread는 pollOnce로 기다려 handleEvent·handleMessage·UI를 실행합니다.","an":"Day3 p.9 비교표","src":"→ enqueueMessage → nativeWake → C++ Looper::wake() // ← 실습 5 ②\nBinder Thread Main (Looper) Thread\n루프 joinThreadPool → ioctl 블로킹 Looper::pollOnce → epoll_wait\n깨우는 것 다른 Process 의 transact fd 이벤트 · wake · 메시지 만기\n실행 BBinder::onTransact handleEvent · handleMessage · UI\nLooper 없다 → UI 접근 불가 있다"},{"id":"t5-09","ty":"order","lv":2,"game":false,"p":"Binder 콜백에서 Handler.post한 작업이 Main Thread를 깨우는 경로를 순서대로 놓으세요.","steps":["Handler.post(r)","MessageQueue.enqueueMessage","nativeWake","C++ Looper::wake()"],"h":"실습 6 Step 4는 Handler.post에서 시작해 Java MessageQueue에 메시지를 넣고, JNI의 nativeWake를 거쳐 C++ Looper::wake로 내려간다고 설명합니다. 실습 5 ②의 wake()와 같은 동작입니다.","w":"Handler.post → enqueueMessage → nativeWake → C++ Looper::wake 순서이며, 실습 5 ②의 wake 그대로입니다.","an":"Day3 p.9 코드 · 06_binder_thread_looper Step 4","src":"runOnUiThread(() -> ...); // = new Handler(Looper.getMainLooper()).post(r)\n}\n```\n\n`Handler.post` → `MessageQueue.enqueueMessage` → `nativeWake` → C++ `Looper::wake` — 실습 5 ② 그대로다.\n\n```bash\ncd ~/android/frameworks/base/core/jni\nvim android_os_MessageQueue.cpp"},{"id":"t5-10","ty":"multi","lv":3,"game":true,"p":"ProcessState의 PoolThread에 대해 옳은 것을 모두 고르세요.","o":["joinThreadPool은 보통 반환 안 함","자체 Looper를 가진다","threadLoop이 true를 반환해 반복","android::Thread를 상속한다","루프 안에서 joinThreadPool 호출"],"a":[0,3,4],"h":"실습 6 Step 1 소스에서 PoolThread는 실습 4의 android::Thread를 상속하고, threadLoop() 안에서 IPCThreadState::self()->joinThreadPool(mIsMain)을 호출합니다. 주석대로 이 Driver 대기 루프는 보통 반환하지 않습니다.","w":"PoolThread는 Thread를 상속하고 threadLoop에서 반환하지 않는 joinThreadPool을 부른 뒤 <code>return false<\/code>입니다. Binder Thread에는 Looper가 없습니다.","an":"06_binder_thread_looper Step 1 · Day3 p.9","src":":tag ProcessState::spawnPooledThread\n```\n\n```cpp\nclass PoolThread : public Thread { // ★ 실습 4 의 android::Thread\npublic:\n explicit PoolThread(bool isMain) : mIsMain(isMain) {}\nprotected:\n virtual bool threadLoop() {\n IPCThreadState::self()->joinThreadPool(mIsMain); // ★ 반환하지 않는 대기 루프\n return false;"}]},{"id":"t6","title":"JNI 두 방향 · Invocation","ref":"Day3 p.14–15 · 07_jni_native_method · 08_jni_invocation_framework","qs":[{"id":"t6-01","ty":"mc","lv":1,"game":true,"p":"JNI에서 <code>Java_Hello_foo<\/code> 같은 이름 규칙 없이 C 함수를 매핑하는 방법은?","o":["System.load에 함수 이름 전달","extern 'C' 선언","RegisterNatives 테이블 등록","javac -h로 헤더 생성"],"a":2,"h":"Worksheet Q6 해설은 {Java 이름, 시그니처, 함수 포인터} 테이블을 등록하는 방식이 Framework JNI 전부에 쓰인다고 설명합니다. 실습 7 Third에서는 JNI_OnLoad 안에서 이 테이블을 등록합니다.","w":"RegisterNatives는 {Java 이름, 시그니처, 함수 포인터} 테이블을 등록하며 Framework JNI는 전부 이 방식입니다. javac -h는 이름 규칙(First) 방식에서 쓰는 도구입니다.","an":"Day3_Worksheet Q6 · 07_jni_native_method Third","src":"**6. ②**\nRegisterNatives 는 {Java 이름, 시그니처, 함수 포인터} 테이블을 등록한다. Framework JNI 는 전부 이 방식이다.\n**7. ③**"},{"id":"t6-02","ty":"mc","lv":1,"game":true,"p":"Native 프로세스가 JVM/ART를 직접 생성할 때 호출하는 JNI 함수는?","o":["JNI_OnLoad","JNI_CreateJavaVM","AttachCurrentThread","RegisterNatives"],"a":1,"h":"Worksheet Q12 해설은 이 함수가 Invocation API이며, AndroidRuntime::startVm이 이것을 부른 뒤 startReg로 Framework JNI를 등록한다고 설명합니다. 이름은 'Java VM을 만든다'는 뜻입니다.","w":"<code>JNI_CreateJavaVM<\/code>은 Invocation API이며, AndroidRuntime::startVm이 이것을 부른 뒤 startReg로 Framework JNI를 등록합니다.","an":"Day3_Worksheet Q12 · 08_jni_invocation_framework Step 1","src":"**12. JNI_CreateJavaVM**\nInvocation API. AndroidRuntime::startVm 이 이것을 부른 뒤 startReg 로 Framework JNI 를 등록한다."},{"id":"t6-03","ty":"mc","lv":2,"game":false,"p":"Java Binder는 C++에서 ( 1 ) 클래스로 감싸지고, Java Surface의 long 필드 ( 2 )가 sp&lt;Surface&gt;를 담습니다. 알맞은 짝은?","o":["JavaBBinder / mNativeObject","BpBinder / mPtr","NativeMessageQueue / mObject","IPCThreadState / mHandle"],"a":0,"h":"Worksheet Q16 해설은 BBinder를 상속한 C++ 클래스의 onTransact가 Java execTransact를 역호출한다고 설명합니다. 또한 'Java 객체 안의 long 하나가 C++ 객체'라는 패턴으로 Surface의 native 객체 필드가 sp&lt;Surface&gt; 포인터를 담습니다.","w":"JavaBBinder : BBinder가 onTransact에서 Java execTransact를 역호출하고, Surface는 <code>mNativeObject<\/code>에 C++ 포인터를 담습니다. mPtr은 MessageQueue의 필드입니다.","an":"Day3_Worksheet Q16 · 08_jni_invocation_framework Step 3","src":"**16. (1) JavaBBinder / (2) mNativeObject**\nJavaBBinder::onTransact 가 Java execTransact 를 역호출한다. \"Java 객체 안의 long 하나가 C++ 객체\" 가 Framework JNI 의 공통 패턴이다.\n**17. (1) Transaction / (2) 16.67**"},{"id":"t6-04","ty":"mc","lv":2,"game":true,"p":"<code>JNIEnv<\/code>에 대한 올바른 규칙은?","o":["Process당 1개, 전역 공유","함수가 끝나면 무효가 된다","VM 생성 때만 쓸 수 있다","Thread당 1개, 넘기지 않는다"],"a":3,"h":"Day3 p.14 개념 표는 JavaVM은 Process당 1, JNIEnv는 Thread당 1(TLS)이라고 적습니다. 그래서 JNIEnv를 다른 Thread에 넘기지 않는다는 규칙이 붙어 있습니다.","w":"JavaVM은 Process당 1개, JNIEnv는 Thread당 1개(TLS)이므로 다른 Thread에 넘기지 않습니다. 함수 반환 시 무효가 되는 것은 Local ref입니다.","an":"Day3 p.14 개념 표 · 07_jni_native_method 핵심 정리","src":"jobject obj = env->NewObject(cls, mid, 100); // new JniTest(100)\n개념 규칙\nJavaVM / JNIEnv Process 당 1 / Thread 당 1 (TLS) — JNIEnv 를 다른 Thread 에 넘기지 않는다\nLocal ref jobject·jclass 는 함수 반환 시 무효 · 보관하려면 NewGlobalRef\n시그니처 (I)V · (Ljava/lang/String;)V · [I — javap -s 로 확인"},{"id":"t6-05","ty":"mc","lv":3,"game":false,"p":"android::Thread 같은 Native Thread에서 Java 메서드를 호출하려면 무엇이 필요한가요?","o":["AttachCurrentThread + Global ref","main의 JNIEnv를 그대로 사용","Local ref를 static에 보관","JNI_OnLoad를 다시 호출"],"a":0,"h":"Day3 p.14 표의 'Native Thread에서 Java' 행에 필요한 두 가지가 적혀 있습니다. JNIEnv는 Thread마다 따로이므로 현재 Thread를 VM에 붙여 env를 얻어야 하고, Local ref는 함수 반환 시 무효라 오래 쓸 객체는 Global ref로 바꿔야 합니다.","w":"Native Thread는 AttachCurrentThread로 자기 JNIEnv를 얻고, 객체는 Global ref로 보관해야 합니다. JNIEnv를 다른 Thread에서 빌려 쓰거나 Local ref를 보관하면 안 됩니다.","an":"Day3 p.14 개념 표 · Day3_커리큘럼 Ch 2","src":"Native Thread 에서 Java AttachCurrentThread + Global ref"},{"id":"t6-06","ty":"ox","lv":2,"game":true,"p":"jclass·jobject 같은 Local ref는 함수 반환 뒤에도 static 변수에 두고 계속 쓸 수 있다.","a":false,"h":"Day3 p.14 개념 표는 jobject·jclass 같은 Local ref가 함수 반환 시 무효가 된다고 적습니다. 오래 보관하려면 NewGlobalRef로 Global ref를 만들어야 합니다.","w":"틀렸습니다. Local ref는 함수 반환 시 무효이며, 보관하려면 <code>NewGlobalRef<\/code>로 Global ref를 만들어야 합니다.","an":"Day3 p.14 · 07_jni_native_method 핵심 정리","src":"개념 규칙\nJavaVM / JNIEnv Process 당 1 / Thread 당 1 (TLS) — JNIEnv 를 다른 Thread 에 넘기지 않는다\nLocal ref jobject·jclass 는 함수 반환 시 무효 · 보관하려면 NewGlobalRef\n시그니처 (I)V · (Ljava/lang/String;)V · [I — javap -s 로 확인\nNative Thread 에서 Java AttachCurrentThread + Global ref"},{"id":"t6-07","ty":"ox","lv":1,"game":true,"p":"<code>GetMethodID<\/code>로 생성자를 찾을 때 메서드 이름은 <code>&lt;init&gt;<\/code>이다.","a":true,"h":"실습 7 Second는 C에서 FindClass / GetMethodID / NewObject로 <code>new JniTest(100)<\/code>을 만듭니다. JNI에서 생성자는 일반 메서드 이름 대신 꺾쇠로 감싼 특수 이름으로 찾고, 시그니처는 (I)V입니다.","w":"맞습니다. 생성자는 <code>&lt;init&gt;<\/code>이고 시그니처 '(I)V'로 찾은 뒤 NewObject로 객체를 만듭니다.","an":"07_jni_native_method Second · Day3 p.14","src":"시그니처 문자열 규칙: `I`=int, `J`=long, `Z`=boolean, `V`=void, `Ljava/lang/String;`=객체, `[I`=int[]. `javap -s JniTest` 로 확인할 수 있다."},{"id":"t6-08","ty":"match","lv":1,"game":false,"p":"JNI 시그니처 문자와 타입을 연결하세요.","pairs":[["I","int"],["J","long"],["Z","boolean"],["V","void"],["[I","int[]"]],"h":"실습 7 Second의 시그니처 규칙은 I=int, J=long, Z=boolean, V=void, Ljava/lang/String;=객체, [I=int[]입니다. javap -s로 실제 시그니처를 확인할 수 있습니다.","w":"I=int, J=long, Z=boolean, V=void, [I=int[]입니다. 객체는 'Ljava/lang/String;'처럼 L…;로 씁니다.","an":"07_jni_native_method Second 시그니처 규칙","src":"시그니처 문자열 규칙: `I`=int, `J`=long, `Z`=boolean, `V`=void, `Ljava/lang/String;`=객체, `[I`=int[]. `javap -s JniTest` 로 확인할 수 있다."},{"id":"t6-09","ty":"order","lv":2,"game":false,"p":"app_process가 Zygote를 띄우는 AndroidRuntime::start의 흐름을 순서대로 놓으세요.","steps":["app_process 실행","startVm → JNI_CreateJavaVM","startReg → RegisterNatives 등록","ZygoteInit.main 호출"],"h":"실습 8 Step 2는 init.zygote64_32.rc가 실행하는 app_process64에서 AndroidRuntime::startVm이 ART를 JNI_CreateJavaVM으로 만든다고 설명합니다. 이어 startReg에서 Framework JNI 수백 개를 RegisterNatives로 등록한 뒤 ZygoteInit.main을 부릅니다.","w":"startVm이 ART를 JNI_CreateJavaVM으로 만들고, startReg에서 Framework JNI를 RegisterNatives로 등록한 뒤 ZygoteInit.main을 부릅니다. 실습 7 Third와 실습 8 Step 1을 합친 것이 Zygote입니다.","an":"08_jni_invocation_framework Step 2","src":"```\n\nDay 1 의 `init.zygote64_32.rc` 가 실행하는 `app_process64` 가 바로 이 코드다. `AndroidRuntime::startVm` 이 ART 를 `JNI_CreateJavaVM` 으로 만들고, `startReg` 에서 Framework JNI 수백 개를 `RegisterNatives` 로 등록한 뒤 `ZygoteInit.main` 을 부른다. 실습 7 Third + 실습 8 Step 1 을 합친 것이 Zygote 다."},{"id":"t6-10","ty":"multi","lv":3,"game":true,"p":"실습 7 Third의 <code>RegisterNatives<\/code> 방식에 대해 옳은 것을 모두 고르세요.","o":["C 함수를 static으로 둘 수 있다","여러 메서드를 테이블로 등록","함수명이 Java_ 규칙을 따라야 함","앱은 쓰고 Framework는 안 씀","javac -h 헤더가 필요 없다"],"a":[0,1,4],"h":"실습 7 Third는 RegisterNatives가 심볼 이름을 노출하지 않아도 되므로(static) C 함수를 감출 수 있고, 한 번에 여러 Method를 테이블로 매핑한다고 설명합니다. Java_Class_method 이름 규칙에 기대지 않으므로 javac -h 헤더도 쓰지 않습니다.","w":"RegisterNatives는 심볼 이름을 노출하지 않아도 되므로 static 함수와 테이블 등록이 가능하고 -h도 필요 없습니다. 앱은 이름 규칙, Framework는 RegisterNatives를 씁니다.","an":"07_jni_native_method Third · 핵심 정리","src":"g++ -shared -fPIC -o libjnimap.so foo.cpp -I$JAVA_HOME/include -I$JAVA_HOME/include/linux\nLD_LIBRARY_PATH=. java JniFuncMain\n```\n`RegisterNatives` 는 심볼 이름을 노출하지 않아도 되고(`static`), 한 번에 여러 Method 를 테이블로 매핑한다. `frameworks/base/core/jni` 의 모든 파일이 이 방식이다 (`gMethods[]` + `RegisterMethodsOrDie`)."}]},{"id":"t7","title":"SurfaceFlinger · VSync","ref":"Day3 p.17–18 · 09_surface_client · 10_vsync_anim","qs":[{"id":"t7-01","ty":"mc","lv":2,"game":true,"p":"SurfaceFlinger와 App이 GraphicBuffer를 공유하는 방식은?","o":["Parcel에 픽셀을 복사","Socket으로 전송","ashmem에 매 프레임 memcpy","dmabuf FD를 Binder로 전달"],"a":3,"h":"Worksheet Q7 해설은 BufferQueue의 버퍼가 dmabuf이며 FD만 Binder로 넘어간다고 설명합니다. 400×400 픽셀은 한 번도 복사되지 않습니다.","w":"BufferQueue의 버퍼는 dmabuf이며 FD만 Binder로 넘어가 400×400 픽셀은 한 번도 복사되지 않습니다.","an":"Day3_Worksheet Q7 · Day3 p.17","src":"**7. ③**\nBufferQueue 의 버퍼는 dmabuf 이며 FD 만 Binder 로 넘어간다. 400×400 픽셀은 한 번도 복사되지 않는다.\n**8. ②**"},{"id":"t7-02","ty":"mc","lv":1,"game":true,"p":"Client는 ( 1 )으로 setLayer·setPosition을 모아 apply()하고, 60Hz 한 프레임 예산은 약 ( 2 )ms입니다.","o":["Looper / 33.3","Parcel / 8.33","Transaction / 16.67","BufferQueue / 60"],"a":2,"h":"SurfaceComposerClient의 이 클래스는 setLayer·setPosition 같은 속성을 모아 apply() 때 한 VSync에 원자적으로 적용합니다. 60 Hz의 한 프레임 예산은 1000 ms를 60으로 나눈 값입니다.","w":"Transaction은 한 VSync에 원자 적용되며, 60Hz의 한 프레임은 약 16.67ms입니다. handleEvent가 이를 넘기면 다음 프레임을 놓쳐 Jank가 됩니다.","an":"Day3_Worksheet Q17 · Day3 p.17","src":"**17. (1) Transaction / (2) 16.67**"},{"id":"t7-03","ty":"mc","lv":2,"game":true,"p":"픽셀 주소를 계산할 때 width 대신 <code>stride<\/code>를 써야 하는 이유는?","o":["버퍼 한 줄이 width보다 길 수 있어서","stride가 픽셀당 바이트 수라서","width는 높이를 뜻해서","dmabuf가 압축되어 있어서"],"a":0,"h":"실습 9 실험 표는 stride 대신 width로 주소를 계산하면 사각형이 비뚤어지거나 crash가 난다고 적습니다. 픽셀 주소는 <code>(y * buf.stride + x) * 4<\/code>로 계산하며, 실습 12에서 400 너비 버퍼의 stride는 448로 보였습니다.","w":"버퍼 한 줄이 width보다 길 수 있어(예: 400 너비에 stride 448) width로 계산하면 사각형이 비뚤어지거나 crash가 납니다.","an":"09_surface_client Step 4 · 12_graphics_memory_lmkd Step 1","src":"| `setAlpha(sc, 0.5f)` 추가 | 반투명 |\n| `stride` 대신 `width` 로 계산 | 사각형이 비뚤어지거나 crash — 버퍼 한 줄이 width 보다 길 수 있다 |\n| `while(true)` 삭제 | 프로세스 종료 → `sp<SurfaceControl>` 소멸 → Layer 즉시 제거 |\n| `ANativeWindow_lock` 두 번 연속 | 두 번째는 **다른 버퍼**(triple buffering) — 이전 픽셀이 없다 |"},{"id":"t7-04","ty":"mc","lv":1,"game":true,"p":"Native 프로세스가 만든 Layer의 수명을 결정하는 것은?","o":["ANativeWindow_lock 횟수","sp<SurfaceControl>의 수명","Transaction.apply 호출 수","VSync rate 설정값"],"a":1,"h":"실습 9 목표는 'Layer의 수명 = sp&lt;SurfaceControl&gt;의 수명'이라고 적습니다. SurfaceControl은 RefBase이므로 마지막 sp가 사라지면 Layer가 제거되고, while(true)를 지우면 프로세스 종료와 함께 Layer가 즉시 사라집니다.","w":"Layer 수명은 <code>sp&lt;SurfaceControl&gt;<\/code> 수명과 같아, while(true)를 지워 프로세스가 끝나면 Layer가 즉시 제거됩니다.","an":"Day3 p.17 · 09_surface_client 핵심 정리","src":"## 목표\n\n- Java/WMS 없이 **Native 프로세스가 SurfaceFlinger 에 직접 Layer 를 만든다**.\n- `Transaction` 으로 z-order·위치·가시성을 원자적으로 적용하고, `ANativeWindow` 로 픽셀을 그린다.\n- Layer 의 수명 = `sp<SurfaceControl>` 의 수명 (실습 3 연결)."},{"id":"t7-05","ty":"mc","lv":3,"game":true,"p":"vsync_anim의 handleEvent에서 <code>requestNextVsync()<\/code>를 지우면?","o":["첫 VSync 한 번만 오고 멈춤","30 fps로 느려진다","속도가 두 배가 된다","컴파일 오류가 난다"],"a":0,"h":"실습 10 실험 표는 requestNextVsync()가 1회성 요청이라고 설명합니다. handleEvent에서 매 프레임 다시 요청하지 않으면 다음 VSync 이벤트가 오지 않습니다.","w":"requestNextVsync는 1회성이므로 지우면 첫 VSync만 오고 멈춥니다. 30 fps가 되는 것은 setVsyncRate(2)입니다.","an":"10_vsync_anim Step 4 · 핵심 정리","src":"| `setVsyncRate(2)` | 30 fps — 이동 속도 절반 |\n| `mX += 8` | 480 px/s |\n| `handleEvent` 에 `usleep(20000)` | 16.67 ms 예산 초과 → 프레임 드롭·끊김 (실습 13 Perfetto 로 확인) |\n| `requestNextVsync()` 제거 | 첫 VSync 한 번만 오고 멈춤 — 1회성 요청임 |\n| `recv` 를 `sp` 로 바꾸려 하면 | 컴파일 오류 — `DisplayEventReceiver` 는 `RefBase` 가 아니다 |"},{"id":"t7-06","ty":"ox","lv":2,"game":true,"p":"DisplayEventReceiver는 RefBase를 상속하므로 sp로 관리한다.","a":false,"h":"vsync_anim 코드에서 <code>sp&lt;SurfaceControl&gt; mSurface<\/code>에는 'RefBase → sp' 주석이, <code>DisplayEventReceiver* mReceiver<\/code>에는 'non-RefBase → raw' 주석이 붙어 있습니다. 소유자는 main의 unique_ptr입니다.","w":"틀렸습니다. DisplayEventReceiver는 RefBase가 아니라 <code>unique_ptr<\/code>로 관리하며, sp로 바꾸면 컴파일 오류가 납니다. RefBase인 SurfaceControl은 sp로 관리합니다.","an":"10_vsync_anim Step 4 · 핵심 정리","src":"DisplayEventReceiver* mReceiver; // non-RefBase → raw (소유자는 main 의 unique_ptr)\n int32_t mScreenW, mX = 0;"},{"id":"t7-07","ty":"ox","lv":1,"game":true,"p":"<code>ANativeWindow_unlockAndPost<\/code>는 버퍼를 queue해 SurfaceFlinger가 다음 VSync에 합성하게 한다.","a":true,"h":"실습 9 코드의 <code>ANativeWindow_unlockAndPost<\/code> 줄에는 '★ queue → SurfaceFlinger가 다음 VSync에 합성' 주석이 있습니다. lock은 BufferQueue에서 버퍼를 dequeue하는 쪽입니다.","w":"맞습니다. lock이 dequeue, unlockAndPost가 queue이며 SurfaceFlinger가 다음 VSync에 합성합니다.","an":"Day3 p.17 코드 · 09_surface_client 핵심 정리","src":"ANativeWindow_unlockAndPost(window.get()); // ★ queue → SurfaceFlinger 가 다음 VSync 에 합성\n std::cout << \"Surface drawn. Ctrl+C to exit.\\n\";\n while (true) sleep(1); // 프로세스가 살아 있는 동안 Layer 유지\n return 0;\n}\n```"},{"id":"t7-08","ty":"match","lv":1,"game":false,"p":"SurfaceFlinger Client API와 역할을 연결하세요.","pairs":[["SurfaceComposerClient","SurfaceFlinger의 Binder Proxy"],["createSurface → SurfaceControl","Layer 핸들"],["Transaction","속성을 모아 한 VSync에 원자 적용"],["lock / unlockAndPost","dequeueBuffer / queueBuffer"]],"h":"실습 9 핵심 정리 표에서 SurfaceComposerClient는 SurfaceFlinger의 ISurfaceComposer Binder Proxy이고, createSurface가 돌려주는 SurfaceControl은 Layer 핸들입니다. Transaction은 속성을 모아 한 VSync에 원자 적용하고, lock / unlockAndPost는 BufferQueue의 dequeue / queue에 해당합니다.","w":"SurfaceComposerClient는 ISurfaceComposer Proxy, SurfaceControl은 Layer 핸들, Transaction은 원자 적용, lock/unlockAndPost는 버퍼 dequeue/queue입니다.","an":"09_surface_client 핵심 정리 표","src":"| `SurfaceComposerClient` | SurfaceFlinger 의 `ISurfaceComposer` Binder Proxy |\n| `createSurface` → `SurfaceControl` | Layer 핸들. `RefBase` — 마지막 `sp` 가 사라지면 Layer 제거 |\n| `Transaction` | 여러 속성을 모아 `apply()` 시 한 VSync 에 원자 적용 |\n| `getSurface()` → `Surface` = `ANativeWindow` | BufferQueue 의 producer 쪽 |"},{"id":"t7-09","ty":"order","lv":2,"game":false,"p":"Client가 그린 픽셀이 화면에 나오기까지의 순서를 맞추세요.","steps":["createSurface + Transaction.apply로 Layer 준비","ANativeWindow_lock — dequeue","픽셀 write 후 unlockAndPost — queue","SurfaceFlinger가 다음 VSync에 acquire → composite","HWC/Display 출력 후 release"],"h":"Worksheet Q19 해설은 createSurface + Transaction.apply로 Layer를 준비하고, ANativeWindow_lock으로 BufferQueue에서 dequeue합니다. 픽셀을 쓴 뒤 unlockAndPost로 queue하면 SurfaceFlinger가 다음 VSync에 acquire → composite하고, HWC/Display 출력 후 release합니다.","w":"Layer 준비 → dequeue → 그리기·queue → SF acquire·합성 → HWC 출력·release 순서입니다.","an":"Day3_Worksheet Q19 · Day3 p.17","src":"**19. createSurface + Transaction.apply 로 Layer 준비 → ANativeWindow_lock — BufferQueue 에서 dequeue → 픽셀 write 후 unlockAndPost — queueBuffer → SurfaceFlinger 가 다음 VSync 에 acquire → composite → HWC / Display 출력 후 release → FREE**\nLayer 준비 → dequeue → 그리기·queue → SF acquire·합성 → HWC 출력·release."},{"id":"t7-10","ty":"multi","lv":3,"game":true,"p":"실습 10 VSync 애니메이션 실험의 관찰로 옳은 것을 모두 고르세요.","o":["setVsyncRate(2) → 30 fps","mX += 8 → 480 px/s","usleep(20000) → Jank","setLayer(0) → 이동 속도 증가","requestNextVsync 제거 → 2배속"],"a":[0,1,2],"h":"실습 10 실험 표는 setVsyncRate(2)면 30 fps로 이동 속도가 절반, mX += 8이면 60 fps × 8 px로 480 px/s가 된다고 적습니다. handleEvent에 usleep(20000)을 넣으면 16.67 ms 예산을 넘어 프레임 드롭·끊김이 생깁니다.","w":"setVsyncRate(2)는 30 fps로 속도 절반, mX += 8은 60×8=480 px/s, usleep(20000)은 16.67ms 예산 초과로 Jank입니다. setLayer는 z-order, requestNextVsync 제거는 멈춤입니다.","an":"10_vsync_anim Step 4 실험 표","src":"## Step 4. 실험\n\n| 실험 | 관찰 |\n|---|---|\n| `setVsyncRate(2)` | 30 fps — 이동 속도 절반 |\n| `mX += 8` | 480 px/s |\n| `handleEvent` 에 `usleep(20000)` | 16.67 ms 예산 초과 → 프레임 드롭·끊김 (실습 13 Perfetto 로 확인) |\n| `requestNextVsync()` 제거 | 첫 VSync 한 번만 오고 멈춤 — 1회성 요청임 |"}]},{"id":"t8","title":"공유 메모리 · FD 전달","ref":"Day3 p.20·p.22 · 11_shared_memory","qs":[{"id":"t8-01","ty":"mc","lv":2,"game":true,"p":"memfd에 <code>F_SEAL_WRITE<\/code>를 걸면 수신 프로세스에서 일어나는 일은?","o":["읽기도 불가능해진다","fd가 자동으로 닫힌다","ashmem으로 변환된다","PROT_WRITE mmap이 EPERM"],"a":3,"h":"Worksheet Q8 해설은 seal을 커널이 보장하므로 받는 쪽이 내용·크기를 바꿀 수 없다고 설명합니다. 실습 11 ③ client 코드는 PROT_WRITE로 mmap을 시도하고, 그 줄의 주석에 실패 오류 코드가 적혀 있습니다.","w":"F_SEAL_WRITE가 걸리면 수신 측의 PROT_WRITE mmap이 EPERM으로 실패합니다. PROT_READ로 읽는 것은 됩니다.","an":"Day3_Worksheet Q8 · 11_shared_memory ③","src":"**8. ②**\nseal 은 커널이 보장한다. 받는 쪽이 내용·크기를 바꿀 수 없으므로 신뢰 경계를 넘는 버퍼 공유에 쓴다.\n**9. onFirstRef()**"},{"id":"t8-02","ty":"mc","lv":1,"game":true,"p":"ashmem/memfd를 mmap하고 IMemoryHeap Binder 객체로 감싸 주는 libbinder 클래스는?","o":["MemoryHeapBase","MemoryBase","SharedMemory","ParcelFileDescriptor"],"a":0,"h":"Worksheet Q13의 정답 클래스는 실습 11 핵심 정리에서 ashmem/memfd + mmap을 IMemoryHeap Binder 객체로 감싼다고 설명됩니다. 그 일부를 IMemory로 공개하는 것은 MemoryBase이며, 이름은 Heap의 기반(Base)이라는 뜻입니다.","w":"<code>MemoryHeapBase<\/code>가 ashmem/memfd + mmap을 IMemoryHeap으로 감쌉니다. MemoryBase는 그 heap의 일부를 IMemory로 공개합니다.","an":"Day3_Worksheet Q13 · 11_shared_memory 핵심 정리","src":"- `MemoryHeapBase` = ashmem/memfd + mmap 을 `IMemoryHeap` Binder 객체로, `MemoryBase` = 그 일부를 `IMemory` 로. `interface_cast` 가 FD 를 받아 mmap 까지 해 준다.\n- 실습 12 의 `dumpsys meminfo` 에서 이 페이지들이 `Ashmem` / `Other mmap` 항목에 잡힌다."},{"id":"t8-03","ty":"mc","lv":2,"game":true,"p":"<code>writeFileDescriptor<\/code>로 보낸 FD를 Binder Driver는 어떻게 전달하나요?","o":["fd 숫자를 그대로 전달","파일 내용을 복사해 전달","수신 측 fd 테이블에 dup","ashmem으로 변환해 전달"],"a":2,"h":"Day3 커리큘럼은 writeFileDescriptor가 Parcel의 flat_binder_object(BINDER_TYPE_FD)가 되고, Driver가 수신 Process의 fd 테이블에 이를 복제한다고 설명합니다. 그래서 Client가 받은 fd 번호는 서버와 다를 수 있습니다.","w":"Driver는 커널 file 객체에 대한 참조를 수신 Process의 fd 테이블에 dup합니다. 그래서 서버 7번이 Client에서는 5번처럼 다른 번호가 됩니다.","an":"Day3 p.20 · 11_shared_memory FD 전달 원리","src":"| 주제 | 핵심 내용 |\n|---|---|\n| FD 가 Binder 를 타는 원리 | `writeFileDescriptor` → Parcel 의 `flat_binder_object` (`BINDER_TYPE_FD`) → Driver 가 수신 Process 의 fd 테이블에 **복제**(`dup`) — Day 1 실습 11 · Day 2 Callback(IBinder) 과 같은 메커니즘 |"},{"id":"t8-04","ty":"mc","lv":1,"game":true,"p":"<code>MemoryBase(heap, 2048, 1024)<\/code>가 Client에 공개하는 영역은?","o":["heap 전체 4096바이트","offset 2048부터 1 KB","offset 1024부터 2 KB","새로 만든 4 KB heap"],"a":1,"h":"MemoryBase의 인자 순서는 (heap, offset, size)입니다. 실습 11 ② ashmem2 서버는 heap->getBase() + 2048 위치에 문자열을 쓰며, 확인 포인트에 offset=2048 size=1024가 찍힙니다.","w":"MemoryBase는 heap의 offset 2048부터 1 KB만 IMemory로 공개합니다. AudioFlinger가 큰 heap의 일부를 잘라 주는 구조입니다.","an":"11_shared_memory ② ashmem2","src":"- [ ] ② ashmem2: `offset=2048 size=1024`\n- [ ] ③ seals=0xf, `PROT_WRITE` mmap 과 `ftruncate` 가 EPERM"},{"id":"t8-05","ty":"mc","lv":3,"game":true,"p":"Binder로는 보낼 수 없는 8 MB 데이터를 한 번 순차 전달하기에 알맞은 방식은?","o":["pipe","memfd + F_SEAL","dmabuf","MemoryBase"],"a":0,"h":"Day3 커리큘럼의 선택 기준은 순차 스트림 → pipe, 구조화된 공유 버퍼 → ashmem/memfd, 그래픽 버퍼 → dmabuf(Gralloc)입니다. 실습 11 ①에서 8 MB를 Binder 서버가 넘긴 FD로 한 번 스트리밍했습니다.","w":"순차 스트림은 pipe가 적합하며 실습 11 ①에서 8 MB를 pipe로 받았습니다. memfd·MemoryBase는 구조화된 공유 버퍼, dmabuf는 그래픽 버퍼용입니다.","an":"11_shared_memory ① · Day3_커리큘럼 Ch 4 선택 기준","src":"| 선택 기준 | 순차 스트림 → pipe · 구조화된 공유 버퍼 → ashmem/memfd · 그래픽 버퍼 → dmabuf(Gralloc) · 표: 복사 여부 / 크기 / 회수 가능성 / API 수준 |\n| 지표 · LMKD | VSS / RSS / PSS / USS · `dumpsys meminfo` 항목 · `procrank` · `showmap` · Zygote COW · `oom_score_adj` · `lmkd` + PSI · `ro.lmk.*` · `logcat -s lmkd` |"},{"id":"t8-06","ty":"ox","lv":1,"game":true,"p":"pipe는 커널 버퍼를 거쳐 데이터가 복사되며, 한 번 읽으면 사라진다.","a":true,"h":"Day3 커리큘럼은 pipe를 커널 링 버퍼(64 KB)를 거치는 복사 기반 스트림이며 단방향이고 한 번 읽으면 사라진다고 정리합니다. ParcelFileDescriptor.createPipe()로 대용량 순차 전달에 씁니다.","w":"맞습니다. pipe는 커널 링 버퍼를 거치는 복사 기반 단방향 스트림이며 순차·1회 접근입니다.","an":"Day3_커리큘럼 Ch 4 pipe · 11_shared_memory 비교표","src":"| pipe | `pipe(fd)` → 커널 링 버퍼(64 KB) · **복사** 기반 스트림 · 단방향 · 한 번 읽으면 사라짐 · `ParcelFileDescriptor.createPipe()` · 대용량 순차 전달에 적합 |"},{"id":"t8-07","ty":"ox","lv":2,"game":true,"p":"ashmem으로 공유하면 서버가 내용을 바꿀 때마다 Client로 데이터가 복사된다.","a":false,"h":"Worksheet Q20 해설은 ashmem / MemoryHeapBase가 같은 물리 페이지를 mmap하며 unpin으로 회수 가능하다고 정리합니다. 양쪽이 같은 페이지를 보므로 서버가 바꾼 내용을 Client가 그대로 봅니다.","w":"틀렸습니다. ashmem은 같은 물리 페이지를 양쪽이 매핑하므로 복사가 없고, 서버가 바꾼 내용을 Client가 바로 봅니다.","an":"11_shared_memory ② ashmem1 · Day3 p.20","src":"**20. pipe ↔ 복사 기반 순차 스트림, 1회 읽기, ashmem / MemoryHeapBase ↔ 같은 물리 페이지를 mmap, unpin 으로 회수 가능, memfd + F_SEAL ↔ 수신 측이 내용·크기를 못 바꾸도록 커널이 보장, dmabuf (GraphicBuffer) ↔ GPU·디스플레이·코덱이 같은 버퍼 접근, Binder writeFileDescriptor ↔ FD 참조를 수신 프로세스 fd 테이블에 dup**"},{"id":"t8-08","ty":"match","lv":2,"game":false,"p":"공유 메모리 방식과 특징을 연결하세요.","pairs":[["pipe","복사 기반 순차 스트림, 1회 읽기"],["ashmem / MemoryHeapBase","같은 물리 페이지 mmap, unpin으로 회수 가능"],["memfd + F_SEAL","수신 측이 내용·크기를 못 바꾸게 커널 보장"],["dmabuf (GraphicBuffer)","GPU·디스플레이·코덱이 같은 버퍼 접근"],["Binder writeFileDescriptor","FD 참조를 수신 프로세스 fd 테이블에 dup"]],"h":"Worksheet Q20 해설은 pipe를 복사 기반 순차 스트림, ashmem/MemoryHeapBase를 같은 물리 페이지 mmap, memfd + F_SEAL을 커널이 보장하는 변경 금지로 정리합니다. dmabuf는 GPU·디스플레이·코덱이 같은 버퍼에 접근하고, Binder writeFileDescriptor는 FD 참조를 수신 프로세스 fd 테이블에 dup합니다.","w":"pipe=복사 스트림, ashmem=페이지 공유·회수, memfd=봉인, dmabuf=HW 공유, writeFileDescriptor=dup 전달입니다.","an":"Day3_Worksheet Q20 · 11_shared_memory 비교표","src":"**20. pipe ↔ 복사 기반 순차 스트림, 1회 읽기, ashmem / MemoryHeapBase ↔ 같은 물리 페이지를 mmap, unpin 으로 회수 가능, memfd + F_SEAL ↔ 수신 측이 내용·크기를 못 바꾸도록 커널이 보장, dmabuf (GraphicBuffer) ↔ GPU·디스플레이·코덱이 같은 버퍼 접근, Binder writeFileDescriptor ↔ FD 참조를 수신 프로세스 fd 테이블에 dup**"},{"id":"t8-09","ty":"order","lv":1,"game":false,"p":"memfd_server가 봉인된 공유 페이지를 준비해 보내는 순서를 맞추세요.","steps":["memfd_create(MFD_ALLOW_SEALING)","ftruncate(4096)","mmap 후 문자열 쓰기","fcntl F_ADD_SEALS로 봉인","writeFileDescriptor로 전달"],"h":"Day3 p.22의 진행 순서는 memfd_create + ftruncate + mmap + F_ADD_SEALS로 정리됩니다. 봉인 가능한 memfd를 만들고 크기를 4096으로 정한 뒤 mmap해 문자열을 쓰고, fcntl로 봉인한 다음 writeFileDescriptor로 넘깁니다.","w":"memfd를 만들고 크기를 정해 mmap으로 내용을 쓴 뒤 F_ADD_SEALS로 봉인하고, Client 요청 시 writeFileDescriptor로 보냅니다. 봉인 뒤에는 서버 자신도 쓸 수 없습니다.","an":"11_shared_memory ③ memfd_server.cpp · Day3 p.22","src":"4. ③ memfd: memfd_create + ftruncate + mmap + F_ADD_SEALS → Client PROT_"},{"id":"t8-10","ty":"multi","lv":3,"game":true,"p":"실습 11 ③ memfd_client 실행 결과로 옳은 것을 모두 고르세요.","o":["ftruncate(8192)는 성공","fd 번호가 서버와 반드시 같다","seals=0xf로 표시된다","PROT_READ mmap으로 읽힌다","PROT_WRITE mmap은 EPERM"],"a":[2,3,4],"h":"실습 11 확인 포인트 ③은 seals=0xf가 표시되고, PROT_WRITE mmap과 ftruncate가 모두 EPERM으로 실패한다고 적습니다. 읽기 전용(PROT_READ) mmap으로는 서버가 쓴 문자열이 정상적으로 읽힙니다.","w":"seals=0xf가 찍히고 읽기 mmap은 성공하지만 쓰기 mmap은 EPERM입니다. F_SEAL_GROW로 ftruncate도 EPERM이며, fd 번호는 dup되어 서버와 다를 수 있습니다.","an":"11_shared_memory ③ 실행 결과 · 확인 포인트","src":"- [ ] ② ashmem2: `offset=2048 size=1024`\n- [ ] ③ seals=0xf, `PROT_WRITE` mmap 과 `ftruncate` 가 EPERM"}]},{"id":"t9","title":"Memory 측정 · LMKD","ref":"Day3 p.21·p.23–24 · 12_graphics_memory_lmkd · 13_demo_perfetto","qs":[{"id":"t9-01","ty":"mc","lv":1,"game":true,"p":"공유 페이지를 공유하는 프로세스 수 n으로 나눠 배분하는 메모리 지표는?","o":["VSS","RSS","PSS","USS"],"a":2,"h":"Day3 p.21 지표 표에서 VSS는 가상 주소 공간, RSS는 공유 페이지를 중복 계산한 물리 페이지입니다. 공유 페이지를 n분의 1로 배분하는 지표는 프로세스 비교·합산에 쓰며, 이름이 '비례(Proportional)'로 시작합니다.","w":"PSS는 공유 페이지를 n분의 1로 배분해 프로세스 비교·합산에 씁니다. RSS는 공유 페이지를 중복 계산합니다.","an":"Day3 p.21 지표 표 · 12_graphics_memory_lmkd Step 2","src":"지표 정의 언제\nVSS 가상 주소 공간 거의 안 봄\nRSS 물리 페이지 (공유 중복 계산) 대략\nPSS 공유 페이지를 n 분의 1 로 배분 프로세스 비교·합산\nUSS 이 프로세스만의 페이지 죽이면 돌아오는 양\n$ dumpsys meminfo com.android.car\nNative Heap · Dalvik Heap · .so mmap (shared clean ← Zygote COW)\nAshmem / Other mmap ← 실습 11 · Graphics ← 실습 9·10 · TOTAL PSS"},{"id":"t9-02","ty":"mc","lv":1,"game":true,"p":"프로세스를 죽였을 때 돌아오는 메모리 양을 볼 때 쓰는 지표는?","o":["VSS","RSS","PSS","USS"],"a":3,"h":"Day3 p.21 지표 표에서 '이 프로세스만의 페이지'를 세는 지표는 '죽이면 돌아오는 양'을 볼 때 씁니다. 이름은 Unique Set Size의 약자입니다.","w":"USS는 그 프로세스만의 페이지라서 죽이면 돌아오는 양입니다. VSS는 가상 주소 공간이라 거의 보지 않습니다.","an":"Day3 p.21 지표 표","src":"지표 정의 언제\nVSS 가상 주소 공간 거의 안 봄\nRSS 물리 페이지 (공유 중복 계산) 대략\nPSS 공유 페이지를 n 분의 1 로 배분 프로세스 비교·합산\nUSS 이 프로세스만의 페이지 죽이면 돌아오는 양\n$ dumpsys meminfo com.android.car\nNative Heap · Dalvik Heap · .so mmap (shared clean ← Zygote COW)\nAshmem / Other mmap ← 실습 11 · Graphics ← 실습 9·10 · TOTAL PSS"},{"id":"t9-03","ty":"mc","lv":2,"game":true,"p":"App의 PSS가 작게 나오는 주된 이유는?","o":["Zygote COW 페이지 공유","LMKD가 페이지를 회수해서","Dalvik Heap이 없어서","ashmem이 압축해서"],"a":0,"h":"실습 12 핵심 정리는 'PSS로 비교하고 USS로 회수량을 본다'며 PSS가 작은 이유를 함께 적습니다. preload된 페이지가 Copy-on-Write로 공유되어 shared clean으로 잡히기 때문입니다.","w":"Zygote가 preload한 페이지를 COW로 공유하므로 shared clean이 크고, n분의 1로 나누는 PSS가 작아집니다.","an":"Day3 p.21 · 12_graphics_memory_lmkd 핵심 정리","src":"## 핵심 정리\n\n- PSS 로 비교하고 USS 로 회수량을 본다. Zygote COW 덕에 App 의 PSS 는 작다.\n- 공유 메모리(ashmem/memfd/dmabuf) 는 `meminfo` 의 별도 항목 — Native Heap 이 아니다.\n- LMKD 는 `oom_score_adj` 가 높은 캐시 프로세스부터, PSI 압박 시점에 죽인다. Foreground 는 마지막."},{"id":"t9-04","ty":"mc","lv":2,"game":true,"p":"메모리 압박 시 LMKD가 가장 먼저 kill하는 프로세스는?","o":["Foreground (0)","system_server (-900)","Cached (900~999)","Persistent (-800)"],"a":2,"h":"실습 12 Step 3 표는 상태별 oom_score_adj를 보여 주며, 값이 높을수록 먼저 죽는다고 표시합니다. 가장 높은 900~999 범위의 상태가 '먼저 죽는다'로 적혀 있습니다.","w":"LMKD는 oom_score_adj가 높은 Cached·Empty부터 kill하고 Foreground는 마지막입니다.","an":"12_graphics_memory_lmkd Step 3·4 · Day3 p.21","src":"```\n\n| 상태 | oom_score_adj (대략) |\n|---|---|\n| system_server | -900 |\n| Persistent (car service) | -800 |\n| Foreground | 0 |\n| Visible | 100~200 |\n| Service | 500 |\n| Cached / Empty | 900~999 ← **먼저 죽는다** |\n\nSettings 앱을 열었다 홈으로 나가면 값이 0 → 900 대로 바뀐다."},{"id":"t9-05","ty":"mc","lv":3,"game":true,"p":"vsync_anim의 step()에 <code>usleep(20000)<\/code>을 넣고 Perfetto로 보면 어떻게 보이나요?","o":["VSync 주기가 20ms로 바뀜","Actual Timeline에 빨간 프레임","SF가 합성을 멈춘다","Layer가 사라진다"],"a":1,"h":"실습 13 Step 3은 step()에 usleep(20000)을 넣어 handleEvent 슬라이스가 16.67 ms를 넘어 다음 VSync를 침범하게 합니다. Perfetto의 Actual Timeline에는 App Deadline Missed / Buffer Stuffing이 특정 색의 프레임으로 표시됩니다.","w":"handleEvent가 16.67ms를 넘어 다음 VSync를 침범하므로 Actual Timeline에 빨간 프레임(Jank)이 보입니다. SurfaceFlinger는 제때 합성하지만 새 Transaction이 없어 화면이 끊깁니다.","an":"13_demo_perfetto Step 3 · Day3 p.24","src":"## Step 3. Jank 재현\n\n`vsync_anim.cpp` 의 `step()` 에 `usleep(20000)` 을 넣고 재빌드 후 다시 캡처.\n\n- Actual Timeline 에 **빨간 프레임** (App Deadline Missed / Buffer Stuffing)\n- `handleEvent` 슬라이스가 16.67 ms 를 넘어 다음 VSync 를 침범 → 프레임 드롭\n- SurfaceFlinger 는 제때 합성하지만 새 Transaction 이 없어 같은 위치 → 화면이 툭툭 끊김"},{"id":"t9-06","ty":"ox","lv":2,"game":true,"p":"ashmem·memfd로 공유한 메모리는 <code>dumpsys meminfo<\/code>의 Native Heap 항목에 잡힌다.","a":false,"h":"실습 12 핵심 정리는 ashmem/memfd/dmabuf 같은 공유 메모리가 meminfo의 별도 항목이며 Native Heap이 아니라고 적습니다. 실습 11 페이지는 Ashmem / Other mmap 항목에서 보였습니다.","w":"틀렸습니다. 공유 메모리는 Native Heap이 아닌 별도 항목(Ashmem / Other mmap)에 잡힙니다. Native Heap은 malloc 할당입니다.","an":"Day3 p.21 · 12_graphics_memory_lmkd 핵심 정리","src":"• 공유 메모리는 Native Heap 이 아닌 별도 항목"},{"id":"t9-07","ty":"ox","lv":1,"game":true,"p":"Settings 앱을 열었다가 홈으로 나가면 oom_score_adj가 0에서 900대로 바뀐다.","a":true,"h":"실습 12 Step 3 표에서 Foreground는 oom_score_adj 0, Cached / Empty는 900~999입니다. Settings 앱을 열었다가 홈으로 나가면 백그라운드 캐시 상태로 바뀌어 값이 크게 오릅니다.","w":"맞습니다. Foreground는 0이고 백그라운드로 가면 900대(Cached)가 되어 LMKD가 먼저 죽이는 대상이 됩니다.","an":"12_graphics_memory_lmkd Step 3","src":"```\n\n| 상태 | oom_score_adj (대략) |\n|---|---|\n| system_server | -900 |\n| Persistent (car service) | -800 |\n| Foreground | 0 |\n| Visible | 100~200 |\n| Service | 500 |\n| Cached / Empty | 900~999 ← **먼저 죽는다** |\n\nSettings 앱을 열었다 홈으로 나가면 값이 0 → 900 대로 바뀐다."},{"id":"t9-08","ty":"match","lv":1,"game":false,"p":"<code>dumpsys meminfo<\/code> 항목과 의미를 연결하세요.","pairs":[["Native Heap","malloc — C/C++ 할당"],["Dalvik Heap","Java 객체"],[".so mmap","라이브러리, 대부분 shared clean"],["Graphics","GraphicBuffer (dmabuf)"],["Ashmem / Other mmap","실습 11의 공유 메모리"]],"h":"실습 12 Step 2 표에서 Native Heap은 malloc(C/C++ 할당), Dalvik Heap은 Java 객체, .so mmap은 대부분 shared clean인 라이브러리입니다. Ashmem / Other mmap에는 실습 11의 공유 메모리가, Graphics에는 GraphicBuffer(dmabuf)가 잡힙니다.","w":"Native Heap은 malloc, Dalvik Heap은 Java 객체, .so mmap은 Zygote와 공유되는 라이브러리, Graphics는 dmabuf 버퍼, Ashmem/Other mmap은 공유 메모리입니다.","an":"12_graphics_memory_lmkd Step 2 표","src":"| `Native Heap` | `malloc` — C/C++ 할당 |\n| `Dalvik Heap` | Java 객체 |\n| `.so mmap` / `.dex mmap` | 라이브러리 — 대부분 **shared clean** (Zygote 와 공유) |\n| `Ashmem` / `Other mmap` | 실습 11 의 공유 메모리 · `CursorWindow` |\n| `Graphics` | GraphicBuffer (dmabuf) — 실습 9·10 |"},{"id":"t9-09","ty":"order","lv":2,"game":false,"p":"프로세스 상태를 oom_score_adj가 낮은 것부터 높은 순으로 놓으세요.","steps":["system_server (-900)","Persistent (-800)","Foreground (0)","Service (500)","Cached / Empty (900~999)"],"h":"실습 12 Step 3 표는 system_server -900, Persistent(car service) -800, Foreground 0, Visible 100~200, Service 500, Cached / Empty 900~999 순으로 적습니다. 시스템 핵심일수록 낮고 캐시일수록 높습니다.","w":"system_server -900 → Persistent -800 → Foreground 0 → Service 500 → Cached/Empty 900~999 순이며, 높은 쪽부터 LMKD가 kill합니다.","an":"12_graphics_memory_lmkd Step 3 표","src":"```\n\n| 상태 | oom_score_adj (대략) |\n|---|---|\n| system_server | -900 |\n| Persistent (car service) | -800 |\n| Foreground | 0 |\n| Visible | 100~200 |\n| Service | 500 |\n| Cached / Empty | 900~999 ← **먼저 죽는다** |\n\nSettings 앱을 열었다 홈으로 나가면 값이 0 → 900 대로 바뀐다."},{"id":"t9-10","ty":"multi","lv":3,"game":true,"p":"LMKD에 대한 설명으로 옳은 것을 모두 고르세요.","o":["USS가 큰 순서로 kill","PSI 압박 시점에 kill한다","oom_score_adj 높은 순으로 kill","ro.lmk.* 속성으로 조정","Foreground를 가장 먼저 kill"],"a":[1,2,3],"h":"Day3 p.21의 LMKD 설명은 PSI(/proc/pressure/memory)로 압박을 감지하고 oom_score_adj가 높은 순으로, Cached 먼저 Foreground는 마지막에 kill한다고 정리합니다. 동작은 ro.lmk.* 속성으로 조정합니다.","w":"LMKD는 PSI(/proc/pressure/memory) 압박 시점에 oom_score_adj가 높은 프로세스부터 죽이며 ro.lmk.*로 조정합니다. Foreground는 마지막이고, 기준은 USS가 아니라 oom_score_adj입니다.","an":"Day3 p.21 LMKD · 12_graphics_memory_lmkd 핵심 정리","src":"• PSI /proc/pressure/memory\n• oom_score_adj 높은 순\n• Cached 먼저, Foreground 마지\n막\n• ro.lmk.* 로 조정"}]}]};
+const app=document.getElementById('app');
+if(!BANK){app.innerHTML='<p>문제은행 데이터가 없습니다. <code>python develop/build.py</code>로 빌드한 파일을 여세요.</p>';return;}
+
+/* ── 상수 · 인덱스 ─────────────────────── */
+const TYPES={mc:['객관식','--ty-mc'],multi:['복수 선택','--ty-multi'],ox:['O / X','--ty-ox'],match:['짝 맞추기','--ty-match'],order:['순서 맞추기','--ty-order'],num:['계산','--ty-num']};
+const GUIDE={mc:'알맞은 답을 하나 고르세요.',multi:'알맞은 것을 모두 고르세요.',ox:'맞으면 O, 틀리면 X를 고르세요.',
+  match:'왼쪽 항목을 누른 뒤 짝이 되는 오른쪽 항목을 누르세요. 연결된 항목을 다시 누르면 풀립니다.',
+  order:'첫 번째부터 순서대로 클릭하세요. 번호가 붙은 항목을 다시 누르면 그 번호부터 뒤 번호가 지워집니다.',num:'숫자만 입력하세요.'};
+/* 게임 모드 목록 — 새 게임은 여기에 항목을 추가한다 (설정·출제 유형·규칙 문구를 모드별로) */
+const GAME_MODES={
+  timeattack:{title:'⚡ 타임어택',desc:'제한시간 안에 풀수록 점수가 커집니다. 시간이 다 되면 오답!',
+    types:['mc','ox','multi'],times:[5,7,10,15],defaultTime:10},
+};
+// 게임 선택 화면의 버튼 3칸: 모드 id 또는 null(준비 중). 새 게임을 만들면 null 자리에 id를 넣는다.
+const GAME_SLOTS=['timeattack',null,null];
+const PAL=['--ty-mc','--ty-order','--ty-match','--ty-num','--ty-multi'];
+const LETTER='ABCDEFGH';
+const TABS=BANK.tabs, QMAP={}, QTAB={};
+TABS.forEach((t,ti)=>{t.idx=ti;t.qs.forEach(q=>{QMAP[q.id]=q;QTAB[q.id]=t;});});
+const ALLQ=TABS.flatMap(t=>t.qs);
+const RM=matchMedia('(prefers-reduced-motion: reduce)');
+
+/* ── 저장소 (실패해도 동작) ─────────────── */
+const KEY='qb:'+BANK.id+':v1';
+const blank=()=>({name:'',tabs:{},wrong:{},board:[],drafts:{}});  // drafts: 채점 전 탭별 풀던 답
+let S=blank();
+try{const raw=localStorage.getItem(KEY);if(raw)S=Object.assign(blank(),JSON.parse(raw));}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+const gameUnlocked=()=>Object.keys(S.tabs).length>0;
+const allGraded=()=>TABS.every(t=>S.tabs[t.id]);
+
+/* 순위 저장소 — 공유 순위로 바꿀 때 이 객체만 교체 */
+// 순위는 같은 조건(게임 모드 + 풀이 시간)끼리만 비교한다. key = 'timeattack:10'
+const boardKey=r=>`${r.mode||'timeattack'}:${r.time||'-'}`;
+const Leaderboard={
+  load(key){return S.board.filter(r=>boardKey(r)===key).sort((a,b)=>b.score-a.score||b.rate-a.rate||a.at-b.at);},
+  add(rec){S.board.push(rec);
+    const list=this.load(boardKey(rec)), rank=list.findIndex(r=>r.id===rec.id)+1;
+    // 조건별 상위 50개만 보관
+    const keep=new Set(Object.values(S.board.reduce((m,r)=>{(m[boardKey(r)]=m[boardKey(r)]||[]).push(r);return m;},{}))
+      .flatMap(l=>l.sort((a,b)=>b.score-a.score||b.rate-a.rate||a.at-b.at).slice(0,50)).map(r=>r.id));
+    S.board=S.board.filter(r=>keep.has(r.id));save();return rank;}
+};
+
+/* ── 유틸 ──────────────────────────────── */
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const strip=s=>String(s??'').replace(/<[^>]+>/g,'');
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
+const range=n=>[...Array(n).keys()];
+const derange=n=>{if(n<2)return range(n);let s;do{s=shuffle(range(n));}while(s.every((v,i)=>v===i));return s;};
+const sortN=a=>a.slice().sort((x,y)=>x-y);
+const today=()=>new Date().toLocaleDateString('ko-KR');
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+function hash(s){let h=5381;for(const c of s)h=((h<<5)+h+c.codePointAt(0))>>>0;return h.toString(36).toUpperCase().padStart(6,'0').slice(-6);}
+function letter(p){return p>=90?'A':p>=80?'B':p>=70?'C':p>=60?'D':'F';}
+let toastT;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200);}
+function say(msg){const l=document.getElementById('live');l.textContent='';setTimeout(()=>l.textContent=msg,30);}
+async function copy(text){
+  try{await navigator.clipboard.writeText(text);toast('📋 클립보드에 복사했습니다');return;}catch(e){}
+  const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0;top:0';document.body.appendChild(ta);ta.select();
+  let ok=false;try{ok=document.execCommand('copy');}catch(e){}ta.remove();
+  toast(ok?'📋 클립보드에 복사했습니다':'복사하지 못했습니다. 인쇄 기능을 이용하세요.');
+}
+
+/* ── 채점 · 답 표시 ───────────────────── */
+function isCorrect(q,a){
+  if(a==null)return false;
+  switch(q.ty){
+    case 'mc':case 'ox':return a===q.a;
+    case 'multi':{if(!Array.isArray(a)||a.length!==q.a.length)return false;const x=sortN(a),y=sortN(q.a);return x.every((v,i)=>v===y[i]);}
+    case 'match':return q.pairs.every((_,i)=>a[i]===i);
+    case 'order':return a.length===q.steps.length&&a.every((v,i)=>v===i);
+    case 'num':return String(a).trim()!==''&&Math.abs(Number(a)-q.a)<=(q.tol??1e-6);
+  }
+  return false;
+}
+function correctText(q){
+  switch(q.ty){
+    case 'mc':return q.o[q.a];
+    case 'multi':return q.a.map(i=>q.o[i]).join(', ');
+    case 'ox':return q.a?'O':'X';
+    case 'match':return q.pairs.map(p=>p[0]+' → '+p[1]).join(' / ');
+    case 'order':return q.steps.join(' → ');
+    case 'num':return q.a+(q.unit||'');
+  }
+}
+function answerText(q,a){
+  if(a==null)return '(미응답)';
+  switch(q.ty){
+    case 'mc':return q.o[a]??'(미응답)';
+    case 'multi':return a.length?sortN(a).map(i=>q.o[i]).join(', '):'(미응답)';
+    case 'ox':return a?'O':'X';
+    case 'match':return q.pairs.map((p,i)=>p[0]+' → '+(a[i]!=null?q.pairs[a[i]][1]:'?')).join(' / ');
+    case 'order':return a.map(i=>q.steps[i]).join(' → ');
+    case 'num':return a+(q.unit||'');
+  }
+}
+
+/* ── 오답노트 ──────────────────────────── */
+function addWrong(id,ans){const w=S.wrong[id]||{n:0};w.n++;w.last=ans;w.at=Date.now();w.solved=false;S.wrong[id]=w;}
+function markSolved(id){if(S.wrong[id]&&!S.wrong[id].solved){S.wrong[id].solved=true;S.wrong[id].at=Date.now();}}
+const wrongList=solved=>Object.keys(S.wrong).filter(id=>QMAP[id]&&!!S.wrong[id].solved===solved)
+  .sort((a,b)=>QTAB[a].idx-QTAB[b].idx||ALLQ.indexOf(QMAP[a])-ALLQ.indexOf(QMAP[b]));
+
+/* ── 문항 풀이 상태(학습·재도전 공용) ───── */
+let cur=null;  // {mode,list,ans,touched,msel,shuf,graded,armed,tab}
+function newSheet(mode,list,tab){
+  const c={mode,list,tab,ans:{},touched:new Set(),msel:{},shuf:{},hints:new Set(),srcs:new Set(),graded:false,armed:false,onlyWrong:false};
+  list.forEach(q=>{
+    if(q.ty==='match')c.shuf[q.id]=derange(q.pairs.length);
+    if(q.ty==='order')c.shuf[q.id]=derange(q.steps.length);  // 화면 배치(고정). 답 = 클릭한 순서의 단계 인덱스 배열
+  });
+  return c;
+}
+const answered=q=>isAnswered(q,cur.ans[q.id]);
+function isAnswered(q,a){
+  switch(q.ty){
+    case 'mc':return Number.isInteger(a);
+    case 'ox':return typeof a==='boolean';
+    case 'multi':return Array.isArray(a)&&a.length>0;
+    case 'match':return !!a&&Object.keys(a).length===q.pairs.length;
+    case 'order':return Array.isArray(a)&&a.length===q.steps.length;
+    case 'num':return a!=null&&String(a).trim()!==''&&!isNaN(Number(a));
+  }
+}
+const finalAns=q=>answered(q)?cur.ans[q.id]:null;
+
+function cardHTML(q,n){
+  const [label,color]=TYPES[q.ty];
+  const g=cur.graded, a=cur.ans[q.id], fa=finalAns(q), ok=g&&isCorrect(q,fa);
+  const lock=g?' disabled':'';
+  let body='';
+  if(q.ty==='mc'||q.ty==='multi'){
+    const multi=q.ty==='multi', mine=multi?(a||[]):[a];
+    body='<div class="opts">'+q.o.map((o,i)=>{
+      const right=multi?q.a.includes(i):q.a===i, picked=mine.includes(i);
+      const cls=g?(right?' ans':picked?' miss':''):'';
+      return `<label class="opt${cls}"><span class="onum">${i+1}</span><input type="${multi?'checkbox':'radio'}" name="r-${q.id}" data-act="${multi?'tick':'pick'}" data-q="${q.id}" data-i="${i}"${picked?' checked':''}${lock}><span>${esc(o)}</span></label>`;
+    }).join('')+'</div>';
+  }else if(q.ty==='ox'){
+    body='<div class="ox">'+[true,false].map(v=>{
+      const cls=g?(q.a===v?' ans':a===v?' miss':''):'';
+      return `<button type="button" class="${cls.trim()}" data-act="ox" data-q="${q.id}" data-v="${v?1:0}" data-fk="${q.id}-ox${v?1:0}" aria-pressed="${a===v}" aria-label="${v?'맞다 O':'틀리다 X'}"${lock}>${v?'O':'X'}</button>`;
+    }).join('')+'</div>';
+  }else if(q.ty==='match'){
+    const m=a||{}, sel=cur.msel[q.id], linkedBy={};
+    Object.entries(m).forEach(([l,r])=>linkedBy[r]=+l);
+    const left=q.pairs.map((p,i)=>{
+      const linked=m[i]!=null, cls=(linked?' linked':'')+(sel===i?' sel':'')+(g?(m[i]===i?' okm':' nom'):'');
+      return `<button type="button" class="mitem${cls}" style="--pc:var(${PAL[i%PAL.length]})" data-act="ml" data-q="${q.id}" data-i="${i}" data-fk="${q.id}-l${i}"${lock}><span class="tag">${LETTER[i]}</span>${esc(p[0])}</button>`;
+    }).join('');
+    const right=cur.shuf[q.id].map(j=>{
+      const by=linkedBy[j], linked=by!=null, cls=(linked?' linked':'')+(g&&linked?(by===j?' okm':' nom'):'');
+      return `<button type="button" class="mitem${cls}" style="--pc:var(${linked?PAL[by%PAL.length]:'--line'})" data-act="mr" data-q="${q.id}" data-j="${j}" data-fk="${q.id}-r${j}"${lock}><span class="tag">${linked?LETTER[by]:''}</span>${esc(q.pairs[j][1])}</button>`;
+    }).join('');
+    body=`<div class="match"><div class="mcol mleft">${left}</div><div class="mcol mright">${right}</div></div>`;
+  }else if(q.ty==='order'){
+    const seq=a||[], full=seq.length===q.steps.length;
+    body='<div class="olist">'+(cur.shuf[q.id]||range(q.steps.length)).map(si=>{
+      const pos=seq.indexOf(si), on=pos>=0;
+      const cls=(on?' on':'')+(g?(pos===si?' ok':' no'):'');
+      const fix=g&&pos!==si?`<span class="ofix">정답 ${si+1}</span>`:'';
+      return `<button type="button" class="oitem${cls}" data-act="ord" data-q="${q.id}" data-s="${si}" data-fk="${q.id}-o${si}" aria-pressed="${on}"${lock}>`+
+        `<span class="num">${on?pos+1:''}</span><span class="txt">${esc(q.steps[si])}</span>${fix}</button>`;
+    }).join('')+'</div>'+(g&&!full?'<p class="guide">(순서를 끝까지 매기지 않아 미응답 처리)</p>':'');
+  }else if(q.ty==='num'){
+    const cls=g?(ok?'ans':'miss'):'';
+    body=`<div class="numrow"><input class="${cls}" type="text" inputmode="decimal" data-act="num" data-q="${q.id}" value="${esc(a??'')}" aria-label="숫자 답"${lock}><span>${esc(q.unit||'')}</span></div>`;
+  }
+  const numAns=q.ty==='mc'?`${q.a+1}번 · `:q.ty==='multi'?q.a.map(i=>i+1).join('·')+'번 · ':'';
+  const exp=g?`<div class="exp"><p><b>정답</b> ${numAns}${esc(correctText(q))}</p>${ok?'':`<p class="mine">내 답: ${esc(answerText(q,fa))}</p>`}<p>${q.w}</p><p class="an">📖 자료 위치: ${esc(q.an)}</p></div>`:'';
+  const src=cur.mode==='retry'?`<span class="qsrc">${QTAB[q.id].idx+1}. ${esc(QTAB[q.id].title)}</span>`:'';
+  return `<article class="q${g?(ok?' correct':' wrong')+' locked':''}" id="card-${q.id}" data-n="${n}" style="--tc:var(${color})">`+
+    `<div class="qhead"><span class="qn">Q${n}</span><span class="tbadge">${label}</span>${lvHTML(q.lv)}${src}${g?`<span class="verdict">${ok?'✓ 정답':'✗ 오답'}</span>`:''}</div>`+
+    `<div class="qt">${q.p}</div>${hintHTML(q)}${g?'':`<p class="guide">${GUIDE[q.ty]}</p>`}${body}${exp}</article>`;
+}
+const LV_NAME=['쉬움','보통','어려움'];
+function lvHTML(lv){
+  lv=lv||1;
+  const dots=[1,2,3].map(k=>k<=lv?`<i class="d${k}">●</i>`:'<i class="off">○</i>').join('');
+  return `<span class="lv lv${lv}" title="난이도 ${LV_NAME[lv-1]}"><span class="dots" aria-hidden="true">${dots}</span><em>${LV_NAME[lv-1]}</em></span>`;
+}
+// 자료 발췌: 이스케이프 후 마크다운 기호만 가볍게 서식으로 (**굵게**, `코드`, 머리 #)
+const srcText=t=>esc(t).replace(/^#{1,6}\s*/gm,'').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`([^`\n]+)`/g,'<code>$1</code>');
+function hintHTML(q){
+  if(!q.h)return '';
+  const open=cur.hints.has(q.id), label=q.ty==='num'?'Hint · 계산식':'Hint';
+  // 2단계: ① 자세한 힌트(h) ② 자료 보기 — 자료 원문 발췌(src) + 위치(an)
+  const sopen=cur.srcs.has(q.id);
+  const src=q.src?`<div class="srcwrap"><button type="button" class="srcbtn" data-act="src" data-q="${q.id}" data-fk="${q.id}-src" aria-expanded="${sopen}" aria-controls="src-${q.id}">`+
+    `<span class="caret" aria-hidden="true">${sopen?'▾':'▸'}</span>📖 자료 보기</button>`+
+    (sopen?`<blockquote class="src" id="src-${q.id}"><p>${srcText(q.src)}</p>${q.an?`<cite>${esc(q.an)}</cite>`:''}</blockquote>`:'')+`</div>`:'';
+  return `<div class="hintwrap"><button type="button" class="hintbtn" data-act="hint" data-q="${q.id}" data-fk="${q.id}-hint" aria-expanded="${open}" aria-controls="hint-${q.id}">`+
+    `<span class="caret" aria-hidden="true">${open?'▾':'▸'}</span>${label}</button>`+
+    (open?`<div class="hint" id="hint-${q.id}">${q.h}${src}</div>`:'')+`</div>`;
+}
+function refreshCard(q){
+  const el=document.getElementById('card-'+q.id);if(!el)return;
+  const fk=document.activeElement&&document.activeElement.dataset?document.activeElement.dataset.fk:null;
+  el.outerHTML=cardHTML(q,el.dataset.n);
+  if(fk){const f=app.querySelector(`[data-fk="${fk}"]`);if(f&&!f.disabled)f.focus();}
+  updateProgress();
+}
+const pad2=n=>String(n).padStart(2,'0');
+const fmtCnt=(n,t)=>`(${pad2(n)}/${pad2(t)})`;
+// 탭별 푼 문항 수: 지금 보는 탭 → 화면 상태, 그 외 → 풀던 답(drafts) → 채점 기록
+function tabAnswered(t){
+  const src=cur&&cur.mode==='study'&&cur.tab===t?cur.ans:(S.drafts[t.id]||(S.tabs[t.id]&&S.tabs[t.id].answers)||{});
+  return t.qs.filter(q=>isAnswered(q,src[q.id])).length;
+}
+function updateProgress(){
+  const p=document.getElementById('pbar');if(!p||!cur)return;
+  const n=cur.list.filter(answered).length, cnt=fmtCnt(n,cur.list.length);
+  p.style.width=pct(n,cur.list.length)+'%';
+  document.getElementById('ptxt').textContent=`${n} / ${cur.list.length} 응답`;
+  const g=document.getElementById('gradeCnt');if(g)g.textContent=cnt;
+  if(cur.mode==='study'){
+    const c=document.getElementById('qc-'+cur.tab.id);if(c)c.textContent=cnt;
+    if(!cur.graded){  // 풀던 답 저장 → 탭을 옮겨도 유지
+      if(n||Object.keys(cur.ans).some(k=>{const v=cur.ans[k];return Array.isArray(v)?v.length:v&&typeof v==='object'?Object.keys(v).length:v!=null&&v!=='';}))
+        S.drafts[cur.tab.id]=JSON.parse(JSON.stringify(cur.ans));
+      else delete S.drafts[cur.tab.id];
+      save();
+    }
+  }
+}
+
+/* 학습 화면 상호작용 */
+function onSheetClick(el){
+  const q=QMAP[el.dataset.q];if(!q)return;
+  if(el.dataset.act==='hint'){cur.hints.has(q.id)?cur.hints.delete(q.id):cur.hints.add(q.id);refreshCard(q);return;}  // 채점 후에도 열고 닫기 가능
+  if(el.dataset.act==='src'){cur.srcs.has(q.id)?cur.srcs.delete(q.id):cur.srcs.add(q.id);refreshCard(q);return;}  // 채점 후에도 열고 닫기 가능
+  if(cur.graded)return;
+  const act=el.dataset.act;
+  if(act==='ox'){cur.ans[q.id]=el.dataset.v==='1';}
+  else if(act==='ml'){
+    const i=+el.dataset.i, m=cur.ans[q.id]||(cur.ans[q.id]={});
+    if(m[i]!=null){delete m[i];cur.msel[q.id]=null;}
+    else cur.msel[q.id]=cur.msel[q.id]===i?null:i;
+  }else if(act==='mr'){
+    const j=+el.dataset.j, m=cur.ans[q.id]||(cur.ans[q.id]={}), sel=cur.msel[q.id];
+    const by=Object.keys(m).find(l=>m[l]===j);
+    if(by!=null)delete m[by];
+    if(sel!=null){m[sel]=j;cur.msel[q.id]=null;}
+  }else if(act==='ord'){
+    const si=+el.dataset.s, seq=cur.ans[q.id]||(cur.ans[q.id]=[]), pos=seq.indexOf(si);
+    if(pos>=0)seq.length=pos;  // 1번을 누르면 전부 리셋, 2번을 누르면 1번은 남고 2번부터 삭제
+    else seq.push(si);
+  }else return;
+  cur.armed=false;
+  refreshCard(q);
+}
+function onSheetChange(el){
+  const q=QMAP[el.dataset.q];if(!q||cur.graded)return;
+  if(el.dataset.act==='pick')cur.ans[q.id]=+el.dataset.i;
+  else if(el.dataset.act==='tick'){
+    cur.ans[q.id]=[...app.querySelectorAll(`input[data-act="tick"][data-q="${q.id}"]:checked`)].map(x=>+x.dataset.i);
+  }
+  cur.armed=false;updateProgress();
+}
+function onSheetInput(el){
+  if(el.dataset.act==='num'&&!cur.graded){cur.ans[el.dataset.q]=el.value;cur.armed=false;updateProgress();}
+}
+
+/* ── 화면: 홈 ──────────────────────────── */
+function viewHome(){
+  const done=TABS.filter(t=>S.tabs[t.id]).length, open=wrongList(false).length, unlocked=gameUnlocked();
+  const firstTodo=(TABS.find(t=>!S.tabs[t.id])||TABS[0]).id;
+  app.innerHTML=`
+  <nav class="crumbs"><a href="../index.html#09">← 과정 목록</a></nav>
+  <h1>${esc(BANK.title)}</h1>
+  ${BANK.subtitle?`<p class="sub">${esc(BANK.subtitle)}</p>`:''}
+  <p class="meta">${ALLQ.length}문항 · ${TABS.length}탭 · 출처 ${esc(BANK.course||BANK.source)}${BANK.updated?' · '+esc(BANK.updated):''}</p>
+  <div class="field"><label for="nm">이름 (결과 코드·순위에 사용)</label><input id="nm" data-act="name" autocomplete="nickname" maxlength="20" value="${esc(S.name)}" placeholder="이름 또는 닉네임"></div>
+  <div class="homeprog"><div class="bar"><div style="width:${pct(done,TABS.length)}%"></div></div><span>${done} / ${TABS.length} 탭 채점 완료</span></div>
+  <div class="grid">${TABS.map((t,i)=>{const r=S.tabs[t.id];
+    return `<a class="tcard${r?' done':''}${r&&r.score===r.total?' perfect':''}" href="#study/${t.id}">
+      <span class="tn">탭 ${i+1} · ${esc(t.ref||'')}</span><span class="tt">${esc(t.title)}</span>
+      <span class="ts">${t.qs.length}문항 ${r?`<b>✓ ${r.score}/${r.total}${r.score===r.total?' ⭐':''}</b>`:'<span>미응시</span>'}</span></a>`;}).join('')}
+  </div>
+  <div class="actions">
+    <a class="btn primary" href="#study/${firstTodo}">📘 학습 시작</a>
+    <a class="btn${unlocked?'':' locked'}" href="#game">⚡ 게임 모드${unlocked?'':' 🔒'}</a>
+    <a class="btn" href="#notes">📒 오답노트${open?` <span class="cnt">${open}</span>`:''}</a>
+    <a class="btn${unlocked?'':' locked'}" href="#key">📄 해설지${unlocked?'':' 🔒'}</a>
+    ${allGraded()?'<a class="btn" href="#summary">★ 종합 결과</a>':''}
+  </div>
+  ${unlocked?'':'<p class="lockmsg">🔒 게임 모드와 해설지는 탭 하나를 채점하면 열립니다.</p>'}
+  <details class="more noprint"><summary>기록 관리</summary>
+    <p class="note-sm">진행 기록·오답노트·순위는 이 브라우저에만 저장됩니다. 다른 기기와 공유되지 않습니다.</p>
+    <button class="btn danger" type="button" data-act="reset">이 문제은행 기록 모두 지우기</button>
+  </details>`;
+}
+
+/* ── 화면: 학습 ────────────────────────── */
+function viewStudy(tid,fresh){
+  const tab=TABS.find(t=>t.id===tid)||TABS[0];
+  cur=newSheet('study',tab.qs,tab);
+  const rec=S.tabs[tab.id], draft=S.drafts[tab.id];
+  if(fresh){delete S.drafts[tab.id];save();}
+  else if(draft){Object.assign(cur.ans,JSON.parse(JSON.stringify(draft)));}  // 풀던 중이면 이어서
+  else if(rec&&rec.answers){
+    Object.assign(cur.ans,JSON.parse(JSON.stringify(rec.answers)));
+    (rec.touched||[]).forEach(id=>cur.touched.add(id));
+    cur.graded=true;
+  }
+  renderSheet();
+}
+function renderSheet(){
+  const study=cur.mode==='study', tab=cur.tab;
+  const tabbar=study?`<nav class="tabbar noprint" role="tablist" aria-label="탭">${TABS.map((t,i)=>{const r=S.tabs[t.id];
+      return `<a class="tabchip" role="tab" href="#study/${t.id}" aria-selected="${t===tab}"><b>${i+1}</b><span class="tl">${esc(t.title)}</span><span class="qc" id="qc-${t.id}">${fmtCnt(tabAnswered(t),t.qs.length)}</span>${r?`<span class="sc" title="채점 점수">✓${r.score}</span>`:''}</a>`;}).join('')}
+      ${allGraded()?'<a class="tabchip sum" href="#summary">★ 종합</a>':''}</nav>`:'';
+  const head=study?`<div class="tabhead"><h2>${tab.idx+1}. ${esc(tab.title)}</h2>${tab.ref?`<span class="part">${esc(tab.ref)}</span>`:''}</div>`
+                  :`<div class="tabhead"><h2>🔁 오답 다시 풀기</h2><span class="part">${cur.list.length}문항</span></div>`;
+  const next=study?(tab.idx+1<TABS.length?`<a class="btn" href="#study/${TABS[tab.idx+1].id}">다음 탭 →</a>`:(allGraded()?'<a class="btn" href="#summary">★ 종합 결과</a>':'')):'<a class="btn" href="#notes">오답노트로</a>';
+  app.innerHTML=`<div class="sheet">
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>${study?'학습 모드':'오답노트'}</span></nav>
+  ${tabbar}${head}
+  <div class="progress"><div class="bar"><div id="pbar"></div></div><span id="ptxt"></span></div>
+  <div id="sheetResult">${cur.graded?sheetResultHTML():''}</div>
+  <div id="cards" class="${cur.onlyWrong?'onlywrong':''}">${cur.list.map((q,i)=>cardHTML(q,i+1)).join('')}</div>
+  <p class="warn" id="warn" role="status"></p>
+  <div class="actions">
+    ${cur.graded?'':`<button class="btn primary" type="button" data-act="grade">${study?'이 탭 채점하기':'채점하기'} <span class="qc" id="gradeCnt"></span></button>`}
+    ${cur.graded?`<button class="btn" type="button" data-act="onlywrong">${cur.onlyWrong?'전체 보기':'오답만 보기'}</button>`:''}
+    ${study?'<button class="btn" type="button" data-act="retab">다시 풀기</button>':''}
+    ${next}
+  </div></div>`;
+  const on=app.querySelector('.tabchip[aria-selected="true"]');
+  if(on)on.parentElement.scrollLeft=on.offsetLeft-on.parentElement.offsetLeft-16;
+  updateProgress();
+}
+function sheetResultHTML(){
+  const n=cur.list.length, score=cur.list.filter(q=>isCorrect(q,finalAns(q))).length, p=pct(score,n);
+  const msg=p===100?'만점입니다! 🎉':p>=80?'잘했어요. 틀린 문항의 해설과 자료 위치를 확인하세요.':p>=60?'절반 이상 이해했어요. 오답노트로 다시 풀어 보세요.':'자료를 한 번 더 읽고 다시 풀어 보세요.';
+  return `<div class="panel"><div class="score">${score}<small> / ${n} · ${p}%</small></div><p class="msg">${msg}</p>
+    ${cur.mode==='study'&&gameUnlocked()?'<a class="btn" href="#game">⚡ 게임 모드 도전</a>':''}</div>`;
+}
+function gradeSheet(){
+  const miss=cur.list.map((q,i)=>answered(q)?0:i+1).filter(Boolean);
+  if(miss.length&&!cur.armed){
+    cur.armed=true;
+    document.getElementById('warn').textContent=`미응답 ${miss.length}문항 (Q${miss.join(', Q')}). 한 번 더 누르면 미응답은 오답으로 채점합니다.`;
+    return;
+  }
+  const firstUnlock=!gameUnlocked();
+  cur.graded=true;
+  const snap={};let score=0;
+  cur.list.forEach(q=>{
+    const a=finalAns(q);
+    if(a!=null)snap[q.id]=a;
+    if(isCorrect(q,a)){score++;markSolved(q.id);}
+    else addWrong(q.id,answerText(q,a));
+  });
+  if(cur.mode==='study'){
+    S.tabs[cur.tab.id]={score,total:cur.list.length,answers:snap,touched:[...cur.touched],at:Date.now()};
+    delete S.drafts[cur.tab.id];
+  }
+  save();
+  renderSheet();
+  window.scrollTo({top:0,behavior:RM.matches?'auto':'smooth'});
+  say(`채점 결과 ${score}점, ${cur.list.length}문항 중`);
+  if(cur.mode==='study'&&firstUnlock)setTimeout(()=>toast('⚡ 게임 모드와 해설지가 열렸습니다!'),300);
+  else if(cur.mode==='study'&&allGraded())setTimeout(()=>toast('★ 모든 탭 완료! 종합 결과를 확인하세요.'),300);
+}
+
+/* ── 화면: 종합 결과 ───────────────────── */
+function summaryStats(){
+  let score=0,total=0;const byType={},byTab=[];
+  TABS.forEach(t=>{const r=S.tabs[t.id];if(!r)return;let s=0;
+    t.qs.forEach(q=>{const ok=isCorrect(q,r.answers?r.answers[q.id]:null);if(ok)s++;
+      const b=byType[q.ty]||(byType[q.ty]=[0,0]);b[1]++;if(ok)b[0]++;});
+    byTab.push([t,s,t.qs.length]);score+=s;total+=t.qs.length;});
+  return {score,total,byType,byTab};
+}
+function resultCode(score,total){return `${BANK.code||'QB'}-${letter(pct(score,total))}-${hash([S.name.trim(),score,total,BANK.salt].join('|'))}`;}
+function viewSummary(){
+  if(!allGraded()){location.hash='#home';return;}
+  const st=summaryStats(), p=pct(st.score,st.total), code=resultCode(st.score,st.total);
+  app.innerHTML=`
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>종합 결과</span></nav>
+  <div class="printhead">${esc(BANK.title)} · ${esc(S.name||'이름 없음')} · ${today()}</div>
+  <div class="panel">
+    <h2 class="ph">★ 종합 결과</h2>
+    <div class="score">${st.score}<small> / ${st.total} · ${p}%</small></div>
+    <p class="msg">${esc(S.name||'이름 없음')} · 결과 코드 <span class="rcode">${code}</span></p>
+    <h3 class="sh">탭별</h3>
+    <div class="bd">${st.byTab.map(([t,s,n])=>`<div><span>${t.idx+1}. ${esc(t.title)}</span><span class="b"><i style="width:${pct(s,n)}%"></i></span><span>${s}/${n}</span></div>`).join('')}</div>
+    <h3 class="sh">유형별</h3>
+    <div class="bd">${Object.entries(st.byType).map(([ty,[s,n]])=>`<div style="--tc:var(${TYPES[ty][1]})"><span>${TYPES[ty][0]}</span><span class="b"><i style="width:${pct(s,n)}%"></i></span><span>${s}/${n}</span></div>`).join('')}</div>
+  </div>
+  <div class="actions">
+    <button class="btn primary" type="button" data-act="copyreport">📋 결과 리포트 복사</button>
+    <a class="btn" href="#notes">📒 오답노트</a>
+    <a class="btn" href="#game">⚡ 게임 모드</a>
+    <button class="btn" type="button" data-act="print">🖨 인쇄</button>
+  </div>`;
+}
+function reportMD(){
+  const st=summaryStats();
+  let md=`# ${BANK.title} 결과\n\n- 이름: ${S.name||'-'}\n- 날짜: ${today()}\n- 점수: ${st.score}/${st.total} (${pct(st.score,st.total)}%)\n- 결과 코드: ${resultCode(st.score,st.total)}\n\n| 탭 | 점수 |\n|---|---|\n`;
+  st.byTab.forEach(([t,s,n])=>md+=`| ${t.idx+1}. ${t.title} | ${s}/${n} |\n`);
+  md+='\n'+notesMD(true);
+  return md;
+}
+
+/* ── 화면: 오답노트 ────────────────────── */
+function noteHTML(id){
+  const q=QMAP[id], w=S.wrong[id];
+  return `<div class="note${w.solved?' solved':''}"><div class="qt">${q.p}</div><dl>
+    <dt>내 답</dt><dd>${esc(w.last||'-')}</dd><dt>정답</dt><dd><b>${esc(correctText(q))}</b></dd><dt>해설</dt><dd>${q.w}</dd></dl>
+    <div class="foot"><span>📖 ${esc(q.an)}</span><span>${w.solved?'✓ 극복':'틀린 횟수 '+w.n}</span></div></div>`;
+}
+function groupByTab(ids){
+  const out=[];let last=null;
+  ids.forEach(id=>{const t=QTAB[id];if(t!==last){out.push(`<h3 class="ngroup"><span class="part">탭 ${t.idx+1}</span>${esc(t.title)}</h3>`);last=t;}out.push(noteHTML(id));});
+  return out.join('');
+}
+function viewNotes(){
+  const open=wrongList(false), solved=wrongList(true);
+  app.classList.add('sheet');
+  app.innerHTML=`
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>오답노트</span></nav>
+  <div class="printhead">${esc(BANK.title)} 오답노트 · ${esc(S.name||'')} · ${today()}</div>
+  <h1>📒 오답노트</h1>
+  <p class="sub">남은 오답 ${open.length} · 극복 ${solved.length}. 학습 모드와 게임 모드에서 틀린 문항이 모입니다.</p>
+  <div class="actions">
+    <a class="btn primary${open.length?'':' locked'}" href="#retry"${open.length?'':' aria-disabled="true"'}>🔁 오답만 다시 풀기</a>
+    <button class="btn" type="button" data-act="copynotes"${open.length+solved.length?'':' disabled'}>📋 마크다운 복사</button>
+    <button class="btn" type="button" data-act="print">🖨 인쇄</button>
+  </div>
+  ${open.length?groupByTab(open):'<div class="keylock">남은 오답이 없습니다. 👏</div>'}
+  ${solved.length?`<details class="more"><summary>✓ 극복한 문항 ${solved.length}개</summary>${groupByTab(solved)}
+    <button class="btn danger noprint" type="button" data-act="clearsolved">극복한 항목 비우기</button></details>`:''}`;
+}
+function notesMD(onlyOpen){
+  const ids=onlyOpen?wrongList(false):wrongList(false).concat(wrongList(true));
+  let md=`## 오답노트 (${ids.length}문항)\n`;let last=null;
+  ids.forEach(id=>{const q=QMAP[id],w=S.wrong[id],t=QTAB[id];
+    if(t!==last){md+=`\n### 탭 ${t.idx+1}. ${t.title}\n`;last=t;}
+    md+=`\n- **Q. ${strip(q.p)}**${w.solved?' ✓극복':''}\n  - 내 답: ${w.last||'-'}\n  - 정답: ${correctText(q)}\n  - 해설: ${strip(q.w)}\n  - 자료 위치: ${q.an} · 틀린 횟수 ${w.n}\n`;});
+  return md;
+}
+function viewRetry(){
+  const ids=wrongList(false);
+  if(!ids.length){location.hash='#notes';return;}
+  cur=newSheet('retry',ids.map(id=>QMAP[id]),null);
+  renderSheet();
+}
+
+/* ── 화면: 해설지 ──────────────────────── */
+function viewKey(){
+  if(!gameUnlocked()){
+    app.innerHTML=`<nav class="crumbs"><a href="#home">← 홈</a></nav><h1>📄 해설지 🔒</h1><div class="keylock">탭 하나를 채점하면 그 탭의 해설지가 열립니다.<br><br><a class="btn primary" href="#study/${TABS[0].id}">학습 시작</a></div>`;return;
+  }
+  app.classList.add('sheet');
+  app.innerHTML=`
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>해설지</span></nav>
+  <div class="printhead">${esc(BANK.title)} 해설지 · ${esc(S.name||'')} · ${today()}</div>
+  <h1>📄 해설지</h1>
+  <p class="sub">채점한 탭의 정답과 해설입니다. 아직 풀지 않은 탭은 채점 후 공개됩니다.</p>
+  <div class="actions"><button class="btn primary" type="button" data-act="print">🖨 인쇄 / PDF 저장</button></div>
+  ${TABS.map(t=>`<h3 class="ngroup"><span class="part">탭 ${t.idx+1}</span>${esc(t.title)}${t.ref?` <span class="ref">${esc(t.ref)}</span>`:''}</h3>`+
+    (S.tabs[t.id]?t.qs.map((q,i)=>`<div class="keyitem"><div class="kq">${i+1}. ${q.p} <span class="part">${TYPES[q.ty][0]}</span></div>
+      <p class="ka">정답: ${esc(correctText(q))}</p><p class="kw">${q.w}</p><span class="an">📖 ${esc(q.an)}</span></div>`).join('')
+      :`<div class="keylock">🔒 채점 후 공개 · <a href="#study/${t.id}">이 탭 풀기</a></div>`)).join('')}`;
+}
+
+/* ── 화면: 게임 ────────────────────────── */
+let G=null;
+const gameSetup={mode:'timeattack',count:10,scope:'all',time:GAME_MODES.timeattack.defaultTime};
+function gamePool(scope){
+  const M=GAME_MODES[gameSetup.mode];
+  const base=ALLQ.filter(q=>q.game&&M.types.includes(q.ty));
+  if(scope==='played')return shuffle(base.filter(q=>S.tabs[QTAB[q.id].id]));
+  if(scope==='wrong'){const w=new Set(wrongList(false));return shuffle(base.filter(q=>w.has(q.id))).concat(shuffle(base.filter(q=>!w.has(q.id))));}
+  return shuffle(base);
+}
+function viewGamePick(){
+  stopGame();
+  if(!gameUnlocked())return viewGameSetup();
+  app.innerHTML=`
+  <nav class="crumbs"><a href="#home">← 홈</a><span>/</span><span>게임 모드</span></nav>
+  <div class="game">
+    <h1>🎮 게임 모드</h1>
+    <p class="sub">플레이할 게임을 고르세요.</p>
+    <div class="gpick">${GAME_SLOTS.map((id,i)=>{const m=id&&GAME_MODES[id];
+      return m?`<a class="gcard" href="#game/${id}"><span class="gn">GAME ${i+1}</span><b>${m.title}</b><span class="gd">${m.desc}</span></a>`
+              :`<div class="gcard soon" aria-disabled="true"><span class="gn">GAME ${i+1}</span><b>🔒 준비 중</b><span class="gd">새 게임이 추가될 자리입니다.</span></div>`;}).join('')}
+    </div>
+  </div>`;
+}
+function viewGameSetup(modeId){
+  stopGame();
+  if(modeId&&GAME_MODES[modeId])gameSetup.mode=modeId;
+  if(!gameUnlocked()){
+    app.innerHTML=`<nav class="crumbs"><a href="#home">← 홈</a></nav><div class="game"><h1>⚡ 게임 모드 🔒</h1>
+      <div class="keylock">학습 모드에서 <b>탭 하나</b>를 먼저 채점하면 열립니다.<br><br><a class="btn primary" href="#study/${TABS[0].id}">학습 시작</a></div></div>`;return;
+  }
+  const poolN=gamePool(gameSetup.scope).length;
+  const counts=[10,20,30].filter(n=>n<poolN).concat([poolN]);
+  if(!counts.includes(gameSetup.count))gameSetup.count=counts.includes(10)?10:counts[0];
+  const M=GAME_MODES[gameSetup.mode];
+  if(!M.times.includes(gameSetup.time))gameSetup.time=M.defaultTime;
+  const chip=(grp,v,label,dis)=>`<button type="button" class="chip" data-act="gset" data-g="${grp}" data-v="${v}" aria-pressed="${gameSetup[grp]==v}"${dis?' disabled':''}>${label}</button>`;
+  app.innerHTML=`
+  <nav class="crumbs"><a href="#home">← 홈</a><span>/</span><a href="#game">게임 모드</a><span>/</span><span>${M.title.replace(/^\S+\s/,'')}</span></nav>
+  <div class="game">
+    <h1>${M.title}</h1>
+    <p class="sub">${M.desc}</p>
+    <div class="panel">
+      ${Object.keys(GAME_MODES).length>1?`<span class="lbl">게임 종류</span>
+      <div class="chips">${Object.entries(GAME_MODES).map(([id,m])=>chip('mode',id,m.title)).join('')}</div>`:''}
+      <span class="lbl">풀이 시간 (문항당)</span>
+      <div class="chips">${M.times.map(t=>chip('time',t,t+'초')).join('')}</div>
+      <span class="lbl">문항 수</span>
+      <div class="chips">${counts.map(n=>chip('count',n,n===poolN&&!([10,20,30].includes(n))?`전체 ${n}`:String(n))).join('')}</div>
+      <span class="lbl">출제 범위</span>
+      <div class="chips">${chip('scope','all','전체 탭')}${chip('scope','played','풀어본 탭만')}${chip('scope','wrong','오답 우선',!wrongList(false).length)}</div>
+      <div class="field"><label for="gnm">닉네임</label><input id="gnm" data-act="name" maxlength="20" value="${esc(S.name)}" placeholder="순위표에 표시"></div>
+      <div class="rules"><p>⏱ 모든 문항 ${gameSetup.time}초 · 순위는 같은 풀이 시간끼리 비교</p><p>🎯 정답 100점 + 남은 1초당 10점 · 🔥 3연속 ×1.2, 5연속 ×1.5</p><p>⌨ 숫자 1~5로 선택, O/X 키, 복수 선택은 Enter로 제출</p></div>
+      <button class="btn primary block" type="button" data-act="gstart">시작하기</button>
+    </div>
+  </div>`;
+}
+function startGame(){
+  const pool=gamePool(gameSetup.scope).slice(0,gameSetup.count);
+  if(!pool.length){toast('출제할 문항이 없습니다.');return;}
+  G={qs:pool,i:0,score:0,combo:0,maxCombo:0,results:[],locked:false,mode:gameSetup.mode,time:gameSetup.time};
+  renderGameQ();
+}
+function renderGameQ(){
+  const q=G.qs[G.i];
+  G.locked=false;G.elapsed=0;G.last=performance.now();G.limit=G.time*1000;G.warned=false;G.pick=[];
+  G.view=q.ty==='ox'?[true,false]:shuffle(range(q.o.length));
+  const opts=q.ty==='ox'
+    ?`<div class="gox">${G.view.map((v,k)=>`<button type="button" class="gopt" data-act="gans" data-k="${k}" aria-label="${v?'O 맞다':'X 틀리다'}">${v?'O':'X'}</button>`).join('')}</div>`
+    :`<div class="gopts">${G.view.map((oi,k)=>`<button type="button" class="gopt" data-act="gans" data-k="${k}"${q.ty==='multi'?' aria-pressed="false"':''}><kbd>${k+1}</kbd><span>${esc(q.o[oi])}</span></button>`).join('')}</div>`;
+  app.innerHTML=`
+  <div class="game play">
+    <div class="gtop"><div class="hud"><span>${G.i+1} / ${G.qs.length}</span><span class="combo${G.combo>=3?' hot':''}">🔥 콤보 ${G.combo}</span><span class="pts">${G.score.toLocaleString()}점</span></div>
+    <div class="timer" id="timer"><div id="tbar"></div></div><div class="tleft" id="tleft"></div></div>
+    <div class="gtype">${TYPES[q.ty][0]}${q.ty==='multi'?' · 모두 고른 뒤 제출':''}</div>
+    <div class="gq">${q.p}</div>
+    <div class="gbottom">${opts}
+    <div class="gfloat" id="gfloat" aria-live="polite"></div>
+    <div class="gsub"><button class="btn" type="button" data-act="gquit">그만하기</button>
+      ${q.ty==='multi'?'<button class="btn primary" type="button" data-act="gsubmit">제출 (Enter)</button>':''}</div></div>
+  </div>`;
+  G.raf=requestAnimationFrame(tick);
+}
+function tick(now){
+  if(!G||G.locked)return;
+  G.elapsed+=now-G.last;G.last=now;
+  const rem=Math.max(0,G.limit-G.elapsed), ratio=rem/G.limit;
+  const shown=RM.matches?Math.ceil(rem/1000)*1000/G.limit:ratio;
+  const bar=document.getElementById('tbar'), tm=document.getElementById('timer');
+  if(bar){bar.style.width=(Math.min(1,shown)*100)+'%';tm.className='timer'+(ratio<.25?' lo':ratio<.5?' mid':'');
+    document.getElementById('tleft').textContent=(rem/1000).toFixed(1)+'초';}
+  if(!G.warned&&rem<=5000){G.warned=true;say('5초 남았습니다');}
+  if(rem<=0){judge(null,true);return;}
+  G.raf=requestAnimationFrame(tick);
+}
+function judge(ans,timeout){
+  if(!G||G.locked)return;
+  G.locked=true;cancelAnimationFrame(G.raf);
+  const q=G.qs[G.i], used=Math.min(G.elapsed,G.limit), ok=!timeout&&isCorrect(q,ans);
+  let gain=0;
+  if(ok){G.combo++;G.maxCombo=Math.max(G.maxCombo,G.combo);
+    const mult=G.combo>=5?1.5:G.combo>=3?1.2:1;
+    gain=Math.round((100+Math.floor((G.limit-used)/100))*mult);G.score+=gain;}
+  else G.combo=0;
+  G.results.push({id:q.id,ok,ans,timeout,ms:used,gain});
+  // 판정 표시
+  app.querySelectorAll('[data-act="gans"]').forEach(b=>{
+    const k=+b.dataset.k, v=G.view[k];
+    const right=q.ty==='ox'?q.a===v:q.ty==='mc'?q.a===v:q.a.includes(v);
+    const picked=q.ty==='ox'||q.ty==='mc'?ans===v:(ans||[]).includes(v);
+    if(right)b.classList.add('ans');else if(picked)b.classList.add('miss');
+    b.disabled=true;
+  });
+  const f=document.getElementById('gfloat');
+  f.className='gfloat pop '+(ok?'ok':'no');
+  f.textContent=ok?`+${gain}${G.combo>=3?` 🔥×${G.combo>=5?'1.5':'1.2'}`:''}`:timeout?'⏰ 시간 초과':'✗ 오답';
+  if(timeout){const tm=document.getElementById('timer');tm&&tm.classList.add('out');}
+  const sb=app.querySelector('[data-act="gsubmit"]');if(sb)sb.disabled=true;
+  app.querySelector('.pts').textContent=G.score.toLocaleString()+'점';
+  const c=app.querySelector('.combo');c.textContent='🔥 콤보 '+G.combo;c.classList.toggle('hot',G.combo>=3);
+  G.next=setTimeout(()=>{if(!G)return;G.i++;G.i<G.qs.length?renderGameQ():finishGame();},ok?900:1400);
+}
+function gameAnswer(k){
+  if(!G||G.locked)return;
+  const q=G.qs[G.i];if(k<0||k>=G.view.length)return;
+  if(q.ty==='multi'){
+    const v=G.view[k], i=G.pick.indexOf(v);
+    i<0?G.pick.push(v):G.pick.splice(i,1);
+    const b=app.querySelector(`[data-act="gans"][data-k="${k}"]`);b&&b.setAttribute('aria-pressed',i<0);
+  }else judge(G.view[k],false);
+}
+function gameSubmit(){if(G&&!G.locked&&G.qs[G.i].ty==='multi')judge(G.pick.slice(),false);}
+function stopGame(){if(G){cancelAnimationFrame(G.raf);clearTimeout(G.next);G=null;}}
+function finishGame(){
+  const R=G.results, correct=R.filter(r=>r.ok).length, M=GAME_MODES[G.mode];
+  R.forEach(r=>{const q=QMAP[r.id];if(r.ok)markSolved(r.id);else addWrong(r.id,r.timeout?'(시간 초과)':answerText(q,r.ans));});
+  const rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:(S.name||'').trim()||'익명',score:G.score,
+    correct,total:R.length,rate:pct(correct,R.length),avg:Math.round(R.reduce((s,r)=>s+r.ms,0)/R.length/100)/10,combo:G.maxCombo,mode:G.mode,time:G.time,at:Date.now()};
+  const rank=Leaderboard.add(rec);
+  save();
+  const board=Leaderboard.load(boardKey(rec)), top=board.slice(0,10), mine=board.find(r=>r.id===rec.id);
+  const medal=i=>i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1;
+  const row=(r,i)=>`<tr class="${r.id===rec.id?'me':''}"><td>${medal(i)}</td><td>${esc(r.name)}</td><td class="r">${r.score.toLocaleString()}</td><td class="r">${r.rate}%</td><td class="r">${r.correct}/${r.total}</td><td class="r">${new Date(r.at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})}</td></tr>`;
+  const wrong=R.filter(r=>!r.ok);
+  G=null;
+  app.innerHTML=`
+  <div class="game">
+    <div class="panel center">
+      <p class="note-sm" style="margin:0">최종 점수</p>
+      <div class="score xl">${rec.score.toLocaleString()}</div>
+      <p class="msg">${M.title} · ${rec.time}초 — ${rank===1?'🏆 이 조건 최고 기록!':`이 조건 순위 ${rank}위`}</p>
+      <div class="bignum"><div><b>${correct}/${rec.total}</b><span>정답</span></div><div><b>${rec.rate}%</b><span>정답률</span></div><div><b>${rec.avg}초</b><span>평균 응답</span></div><div><b>${rec.combo}</b><span>최고 콤보</span></div></div>
+    </div>
+    <div class="panel"><h2 class="ph">🏆 순위 · ${M.title.replace(/^\S+\s/,'')} ${rec.time}초 · 이 브라우저 기록</h2>
+      <table class="board"><thead><tr><th>#</th><th>이름</th><th class="r">점수</th><th class="r">정답률</th><th class="r">정답</th><th class="r">날짜</th></tr></thead>
+      <tbody>${top.map(row).join('')}${rank>10&&mine?row(mine,rank-1):''}</tbody></table></div>
+    ${wrong.length?`<details class="more panel"><summary>틀린 문항 ${wrong.length}개 · 해설 보기 (오답노트에 저장됨)</summary>
+      ${wrong.map(r=>{const q=QMAP[r.id];return `<div class="keyitem"><div class="kq">${q.p}</div><p class="mine" style="margin:4px 0">내 답: ${esc(r.timeout?'(시간 초과)':answerText(q,r.ans))}</p><p class="ka">정답: ${esc(correctText(q))}</p><p class="kw">${q.w}</p><span class="an">📖 ${esc(q.an)}</span></div>`;}).join('')}</details>`:''}
+    <div class="actions"><button class="btn primary" type="button" data-act="gagain">↻ 다시 하기</button><a class="btn" href="#notes">📒 오답노트</a><a class="btn" href="#home">홈</a></div>
+  </div>`;
+}
+
+/* ── 라우터 · 이벤트 ───────────────────── */
+function route(){
+  stopGame();cur=null;app.classList.remove('sheet');
+  const [v,arg]=(location.hash.slice(1)||'home').split('/');
+  ({study:()=>viewStudy(arg),notes:viewNotes,retry:viewRetry,key:viewKey,game:()=>arg?viewGameSetup(arg):viewGamePick(),summary:viewSummary}[v]||viewHome)();
+  window.scrollTo(0,0);
+}
+let resetArmed=false;
+app.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el||el.disabled)return;
+  const act=el.dataset.act;
+  if(cur&&['ox','ml','mr','ord','hint','src'].includes(act))return onSheetClick(el);
+  switch(act){
+    case 'grade':gradeSheet();break;
+    case 'retab':viewStudy(cur.tab.id,true);window.scrollTo(0,0);break;  // 이전 점수는 다시 채점할 때까지 유지
+    case 'onlywrong':cur.onlyWrong=!cur.onlyWrong;document.getElementById('cards').classList.toggle('onlywrong',cur.onlyWrong);el.textContent=cur.onlyWrong?'전체 보기':'오답만 보기';break;
+    case 'copyreport':copy(reportMD());break;
+    case 'copynotes':copy(`# ${BANK.title}\n\n- 이름: ${S.name||'-'} · ${today()}\n\n`+notesMD(false));break;
+    case 'clearsolved':wrongList(true).forEach(id=>delete S.wrong[id]);save();viewNotes();break;
+    case 'print':window.print();break;
+    case 'reset':
+      if(!resetArmed){resetArmed=true;el.textContent='정말 지울까요? 한 번 더 누르세요';setTimeout(()=>{resetArmed=false;if(el.isConnected)el.textContent='이 문제은행 기록 모두 지우기';},4000);break;}
+      resetArmed=false;const nm=S.name;S=blank();S.name=nm;save();toast('기록을 지웠습니다');viewHome();break;
+    case 'gset':gameSetup[el.dataset.g]=['count','time'].includes(el.dataset.g)?+el.dataset.v:el.dataset.v;viewGameSetup();break;
+    case 'gstart':startGame();break;
+    case 'gans':gameAnswer(+el.dataset.k);break;
+    case 'gsubmit':gameSubmit();break;
+    case 'gquit':stopGame();viewGameSetup(gameSetup.mode);break;
+    case 'gagain':startGame();break;
+  }
+});
+app.addEventListener('change',e=>{const el=e.target;if(cur&&el.dataset&&(el.dataset.act==='pick'||el.dataset.act==='tick'))onSheetChange(el);});
+app.addEventListener('input',e=>{
+  const el=e.target;if(!el.dataset)return;
+  if(el.dataset.act==='name'){S.name=el.value;save();}
+  else if(cur)onSheetInput(el);
+});
+document.addEventListener('keydown',e=>{
+  if(!G||G.locked||e.altKey||e.ctrlKey||e.metaKey)return;
+  if(e.target.matches&&e.target.matches('input,textarea'))return;
+  const q=G.qs[G.i], k=e.key.toLowerCase();
+  if(q.ty==='ox'){if(k==='o'||k==='1'){e.preventDefault();gameAnswer(0);}else if(k==='x'||k==='2'){e.preventDefault();gameAnswer(1);}return;}
+  if(/^[1-9]$/.test(k)){e.preventDefault();gameAnswer(+k-1);}
+  else if(k==='enter'&&q.ty==='multi'){e.preventDefault();gameSubmit();}
+});
+document.addEventListener('visibilitychange',()=>{if(G&&!document.hidden)G.last=performance.now();});
+// 탭 바 좌우 화살표
+app.addEventListener('keydown',e=>{
+  const t=e.target.closest&&e.target.closest('.tabchip');if(!t||(e.key!=='ArrowRight'&&e.key!=='ArrowLeft'))return;
+  const n=e.key==='ArrowRight'?t.nextElementSibling:t.previousElementSibling;if(n){e.preventDefault();n.focus();}
+});
+/* 테마 */
+let theme=null;try{theme=localStorage.getItem('qb:theme');}catch(e){}
+const applyTheme=()=>{if(theme)document.documentElement.dataset.theme=theme;else delete document.documentElement.dataset.theme;};
+applyTheme();
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const dark=theme?theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  theme=dark?'light':'dark';try{localStorage.setItem('qb:theme',theme);}catch(e){}applyTheme();
+});
+document.title=BANK.title+' · 문제은행';
+window.addEventListener('hashchange',route);
+route();
+})();
+</script>
+</body>
+</html>

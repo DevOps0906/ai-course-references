@@ -1,0 +1,1332 @@
+{
+  "id": "lc-d10",
+  "code": "LC10",
+  "title": "LangChain 10일차 · 다문서 RAG QA 챗봇과 Text Splitter",
+  "subtitle": "Chroma 다문서 RAG 챗봇 · Chunk 품질 평가 · Text Splitter·토큰 분할",
+  "course": "05 · LangChain · RAG · Agent",
+  "source": "05-langchain-agent/day10/10일차_Agent_LLM_여러 문서에서 답변찾는 RAG 기반_QA챗봇_시스템 단계-1_배포_new.ipynb",
+  "salt": "lc-d10",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "다문서 QA 챗봇 기본 구조",
+      "ref": "10일차 여러 문서에서 찾아서 답변하는 챗봇 만들기 · 기본 구조",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "다문서 QA 챗봇 기본 구조에서 벡터 DB로 쓴 것은?",
+          "o": [
+            "FAISS",
+            "Chroma",
+            "BM25",
+            "EnsembleRetriever"
+          ],
+          "a": 1,
+          "h": "노트북 첫 머리 목록은 QA Chatbot · Langchain · ChatGPT 다음에 사용할 DB 이름을 적고, 설치 셀에서도 같은 이름의 패키지를 받습니다. 기본 구조 코드의 \"6. Vector DB 생성\" 블록이 <code>langchain_community.vectorstores</code>에서 import한 클래스로 저장소를 만듭니다.",
+          "w": "10일차 기본 구조는 Chroma를 벡터 DB로 씁니다. FAISS는 9일차와 Text Splitter 실습에서, BM25·EnsembleRetriever는 9일차 리트리버 비교에서 썼습니다.",
+          "an": "10일차 여러 문서에서 찾아서 답변하는 챗봇 만들기 · 기본 구조 6",
+          "src": "여러 문서에서 찾아서 답변하는 챗봇 만들기\n - QA Chatbot\n - Langchain\n - ChatGPT\n - ChromaDB\n\n```python\n# setting langchain\n# 설치 후 세션 반드시 다시 시작\n# !pip uninstall -y langchain langchain-core langchain-community langchain-openai\n!pip install -q langchain langchain-community langchain-core langchain-openai langchain-text-splitters openai tiktoken chromadb\n```\n\n```python\n# OpenAI API 키를 환경 변수에 설정합니다."
+        },
+        {
+          "id": "t1-02",
+          "ty": "num",
+          "lv": 1,
+          "game": false,
+          "p": "기사 압축 파일을 풀고 txt 파일 목록을 모은 뒤 <code>print(len(files))</code>를 실행하면 출력되는 값은?",
+          "a": 21,
+          "unit": "개",
+          "h": "계산식: 출력값 = articles 폴더 안 txt 파일 수. wget 셀 주석에 받은 기사의 개수가 적혀 있고, 압축을 articles 폴더에 푼 뒤 txt를 모두 모으므로 파일 하나가 기사 하나입니다.",
+          "w": "받은 데이터셋은 기사 21개이고, 실행 결과도 21이었습니다. 이후 DirectoryLoader로 읽어도 총 문서 수는 21입니다.",
+          "an": "10일차 기본 구조 4. 문서 로딩 실행 결과",
+          "src": "# 실제 API 키는 보안상 직접 코드에 넣지 않고 환경 변수나 secrets manager를 사용하는 것이 좋습니다.\nimport os\nfrom google.colab import userdata\n\nos.environ['OPENAI_API_KEY'] = userdata.get(\"OPENAI_API_KEY\")\n```\n\n```python\n# 기사 21개\n!wget -q https://github.com/kairess/toy-datasets/raw/master/techcrunch-articles.zip\n```\n\n```python\n# 압축 파일 해제"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Query Rewriting 프롬프트가 입력으로 받는 두 가지는?",
+          "o": [
+            "context와 answer",
+            "session_id와 k",
+            "chat_history와 question",
+            "embedding과 docs"
+          ],
+          "a": 2,
+          "h": "7. Query Rewriting 블록의 역할 주석은 \"○○ + ○○ → standalone question\"입니다. 템플릿에는 대화 기록 제목과 현재 질문 제목이 각각 중괄호 변수로 들어 있습니다.",
+          "w": "query_rewrite_prompt는 {chat_history}와 {question}을 받아 독립 질문으로 바꿉니다. context는 그 질문으로 검색한 뒤 build_context에서 만들어집니다.",
+          "an": "10일차 기본 구조 7. Query Rewriting",
+          "src": "{chat_history}\n\nQuestion:\n{question}\n\nRewrite into a standalone question.\n\"\"\"\n)\n\nquery_rewriter =\n# =========================================================\n# 8. Context Builder (핵심 pipeline)\n# =========================================================\n# 역할: 1) 질문 재작성 → 2) retrieval → 3) context 생성\n\ndef build_context(inputs):\n\n # (1) query rewriting"
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "기본 구조 실행 때 나온 경고는 RunnableWithMessageHistory 대신 무엇을 쓰라고 권하나요?",
+          "o": [
+            "LangGraph 내장 persistence",
+            "langchain-chroma 패키지",
+            "RetrievalQA 체인",
+            "get_relevant_documents"
+          ],
+          "a": 0,
+          "h": "실행 출력의 LangChainDeprecationWarning은 이 메모리 래퍼가 deprecated라고 알리고 바로 뒤에 대안을 적습니다. 그 대안은 14일차에 다루는 그래프 기반 에이전트 라이브러리의 기본 기능입니다.",
+          "w": "경고 문구는 \"Use LangGraph's built-in persistence instead.\"입니다. langchain-chroma는 Chroma 클래스 경고의 대안이고, RetrievalQA·get_relevant_documents는 오히려 legacy 방식입니다.",
+          "an": "10일차 기본 구조 실행 결과 · LangChainDeprecationWarning",
+          "src": "from langchain_core.runnables.history import RunnableWithMessageHistory # session memory\n# =========================================================\n# 2. Memory Store (세션 기반 대화 저장소)\n# =========================================================\n# 역할: session_id 기준으로 대화 상태 저장 (stateful RAG 핵심)"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>for f in files:</code> 안에서 <code>loader = TextLoader(f)</code> 다음 줄(주석: Document 누적)에 알맞은 코드는?",
+          "o": [
+            "docs = loader.load()",
+            "docs.append(f)",
+            "docs.clear()",
+            "docs.extend(loader.load())"
+          ],
+          "a": 3,
+          "h": "반복문 위에서 <code>docs = []</code>로 전체 문서를 담을 빈 리스트를 만듭니다. <code>loader.load()</code>는 Document 리스트를 돌려주므로, 파일마다 결과를 덮어쓰지 않고 이어 붙여야 21개 파일 내용이 모두 남습니다.",
+          "w": "extend로 각 파일의 Document 리스트를 docs에 이어 붙입니다. docs = loader.load()는 매번 덮어써서 마지막 파일만 남고, append(f)는 파일 경로 문자열만 넣습니다.",
+          "an": "10일차 기본 구조 4. 문서 로딩 (txt dataset)",
+          "src": "print(len(files)) # 모든 txt 파일 수집\n\ndocs = [] # 전체 문서 저장\n\nfor f in files:\n loader = # txt 로딩\n # Document 누적\n# =========================================================\n# 5. Chunking\n# =========================================================\n# 역할: 긴 문서를 검색 가능한 단위로 분리"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "기사 압축 파일은 <code>!unzip -q techcrunch-articles.zip -d articles</code>로 articles 폴더에 푼다.",
+          "a": true,
+          "h": "unzip의 <code>-d</code> 옵션은 압축을 풀 대상 폴더를 지정하고, <code>-q</code>는 출력을 조용히 합니다. 이후 로딩 코드는 './articles' 경로에서 txt 파일을 찾습니다.",
+          "w": "맞습니다. -d articles로 압축을 풀고, 이후 DirectoryLoader('./articles', ...)로 읽습니다.",
+          "an": "10일차 압축 파일 해제 셀",
+          "src": "# 압축 파일 해제\n!unzip -q techcrunch-articles.zip -d articles"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 3,
+          "game": true,
+          "p": "기본 구조의 RAG 체인은 메모리 없이 질문마다 독립적으로 처리한다.",
+          "a": false,
+          "h": "기본 구조 2. Memory Store 블록은 session_id 기준으로 대화 상태를 저장하며 이를 \"stateful RAG 핵심\"이라고 부릅니다. 11번 블록은 체인을 세션과 연결하고, 테스트도 같은 user-1로 세 번 이어서 묻습니다.",
+          "w": "틀렸습니다. 세션 메모리 + Query Rewriting + RunnableWithMessageHistory로 multi-turn 대화를 유지합니다. \"아까 내용을 더 쉽게 설명해줘\" 같은 후속 질문이 그 예입니다.",
+          "an": "10일차 기본 구조 2 · 11 · 13. TEST",
+          "src": "from langchain_core.runnables.history import RunnableWithMessageHistory # session memory\n# =========================================================\n# 2. Memory Store (세션 기반 대화 저장소)\n# =========================================================\n# 역할: session_id 기준으로 대화 상태 저장 (stateful RAG 핵심)"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "기본 구조에서 import한 구성 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "TextLoader",
+              "txt 파일 로더"
+            ],
+            [
+              "Chroma",
+              "벡터 DB"
+            ],
+            [
+              "RunnableLambda",
+              "일반 함수를 체인에 래핑"
+            ],
+            [
+              "RunnableWithMessageHistory",
+              "세션 메모리 연결"
+            ]
+          ],
+          "h": "기본 구조 1. 라이브러리 임포트의 각 줄 끝 주석이 역할을 짧게 적습니다(txt 로더, vector DB, 함수 래핑, session memory). 클래스 이름의 Loader·Lambda·History가 단서입니다.",
+          "w": "TextLoader는 txt 로딩, Chroma는 벡터 저장·검색, RunnableLambda는 build_context 같은 함수를 체인에 넣고, RunnableWithMessageHistory는 세션 기록을 붙입니다.",
+          "an": "10일차 기본 구조 1. 라이브러리 임포트",
+          "src": "# 1. 라이브러리 임포트\n# =========================================================\n\nimport glob # 파일 탐색 (여러 txt 로딩용)\n\nfrom langchain_community.document_loaders import TextLoader # txt 로더\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter # chunk 분할\nfrom langchain_openai import ChatOpenAI, OpenAIEmbeddings # LLM + Embedding\n\nfrom langchain_community.vectorstores import Chroma # vector DB"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "기본 구조의 <code>build_context</code>와 이후 생성 흐름을 순서대로 맞추세요.",
+          "steps": [
+            "query rewriting",
+            "retrieval",
+            "context formatting",
+            "prompt로 한국어 답변 생성"
+          ],
+          "h": "8. Context Builder 주석은 \"1) 질문 재작성 → 2) retrieval → 3) context 생성\"이라고 적습니다. 9. Prompt는 그 결과를 받아 \"Answer in Korean:\"으로 답을 요청합니다.",
+          "w": "재작성한 독립 질문으로 검색하고, 검색 문서를 context로 만든 뒤 최종 프롬프트로 답변을 생성합니다.",
+          "an": "10일차 기본 구조 8 · 9",
+          "src": "# 8. Context Builder (핵심 pipeline)\n# =========================================================\n# 역할: 1) 질문 재작성 → 2) retrieval → 3) context 생성\n\ndef build_context(inputs):\n\n # (1) query rewriting\n standalone_question =\n\n\n\n # (2) retrieval\n docs =\n\n\n # (3) context formatting\n context =\n\n\n return\n# =========================================================\n# 9. Prompt (최종 생성용)"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "기본 구조(통합 버전)에 들어간 요소를 모두 고르세요.",
+          "o": [
+            "세션 메모리",
+            "Query Rewriting",
+            "Chroma 검색",
+            "BM25 앙상블",
+            "JSON 출력 파서"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "10. Conversational RAG Chain의 역할 주석은 \"Memory + Query Rewrite + Retrieval + Generation 통합\"입니다. 출력은 StrOutputParser로 문자열을 돌려주고, 검색은 하나의 벡터 DB로만 합니다.",
+          "w": "세션 메모리, 질문 재작성, Chroma 기반 검색을 통합했습니다. BM25 앙상블은 9일차 실험, JSON 출력 파서는 5일차 내용입니다.",
+          "an": "10일차 기본 구조 10. Conversational RAG Chain",
+          "src": "# 역할: 긴 문서를 검색 가능한 단위로 분리\n\nsplitter =\n\n\n\nsplit_docs =\n# =========================================================\n# 6. Vector DB 생성 (Chroma)\n# =========================================================\n# 역할: semantic search 기반 retrieval\n\nvectorstore =\n\n\n\nretriever =\n# =========================================================\n# 7. Query Rewriting (Conversational 핵심)"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "문서 로딩·청킹·품질 평가",
+      "ref": "10일차 실무 · 문서 로딩 · chunking · Chunk Quality",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "폴더 안의 txt 파일을 한꺼번에 불러오는 로더는?",
+          "o": [
+            "WebBaseLoader",
+            "PyPDFLoader",
+            "DirectoryLoader",
+            "PDFPlumberLoader"
+          ],
+          "a": 2,
+          "h": "기존 코드 주석은 \"디렉토리 내 txt 파일을 로딩하는 기본 방식\"이며, 경로·glob 패턴·loader_cls=TextLoader를 인자로 받습니다. 웹이나 PDF용 로더는 파일 하나나 URL을 대상으로 합니다.",
+          "w": "DirectoryLoader가 폴더 경로와 glob 패턴으로 여러 파일을 찾아 loader_cls(TextLoader)로 읽습니다. 나머지는 웹 또는 PDF용입니다.",
+          "an": "10일차 실무 - 문서 로딩",
+          "src": "# 1. 기존 코드 (Original Code)\n# =========================================================\n# 목적: 디렉토리 내 txt 파일을 로딩하는 기본 방식\n# loader = DirectoryLoader('./articles', glob=\"*.txt\", loader_cls=TextLoader)"
+        },
+        {
+          "id": "t2-02",
+          "ty": "num",
+          "lv": 1,
+          "game": false,
+          "p": "기사 21개를 <code>chunk_size=1000, chunk_overlap=200</code>으로 분할한 뒤 출력된 총 chunk 수는?",
+          "a": 233,
+          "unit": "개",
+          "h": "계산식: 총 chunk 수 = 21개 문서 각각을 1000자 이하로 나눈 조각 수의 합. 실행 결과의 \"총 chunk 수\"는 이후 Chroma DB 생성 셀의 \"문서 수\"와 같은 값입니다.",
+          "w": "분할 결과는 233개 chunk였고, Chroma DB 생성 후에도 \"문서 수: 233\"이 출력되었습니다.",
+          "an": "10일차 실무 - chunking 실행 결과",
+          "src": "chunk_overlap=200,\n\n # -----------------------------------------\n # length_function\n # -----------------------------------------\n # 역할: chunk 길이 계산 기준 함수\n # 기본: len → 문자 수 기준\n length_function=len\n)\n```\n\n```python\n# 문서를 설정된 분할기로 분할\ntexts = text_splitter.split_documents(pages)\n```\n\n```python\n# 분할된 텍스트 덩어리 개수 출력\nlen(texts)\n```\n\n```python\n# 각 텍스트 덩어리의 문자 길이 리스트 생성 및 출력"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "로딩 직후 <code>len(documents)</code>를 출력해 확인하는 이유로 제시된 것은?",
+          "o": [
+            "임베딩 비용 계산",
+            "빈 문서로 인한 RAG 실패 방지",
+            "청크 크기 결정",
+            "세션 초기화"
+          ],
+          "a": 1,
+          "h": "\"4. 데이터 검증 (실무 필수)\" 주석은 로딩 성공 여부를 즉시 확인하라고 합니다. 자료는 RAG 실패 원인 1순위를 괄호 안에 영어로 적어 두었습니다(로딩 결과가 비어 있는 경우).",
+          "w": "로딩이 비어 있으면(empty docs) 이후 RAG 전체가 실패하므로 바로 개수를 확인합니다. 비용이나 청크 크기 결정과는 관계가 없습니다.",
+          "an": "10일차 실무 - 문서 로딩 · 4. 데이터 검증",
+          "src": "# 4. 데이터 검증 (실무 필수)\n# =========================================================\n# 개선 포인트:\n# - 로딩 성공 여부 즉시 확인\n# - RAG 실패 원인 1순위 (empty docs) 방지\n\nprint(\"총 문서 수:\", len(documents))"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "chunk 개수가 지나치게 많을 때 생기는 문제로 적힌 것은?",
+          "o": [
+            "검색 노이즈 증가",
+            "정보 뭉침",
+            "문서 누락",
+            "토큰 초과"
+          ],
+          "a": 0,
+          "h": "\"5. 결과 검증\" 주석은 chunk 개수를 RAG 검색 난이도 지표라고 부르고, 너무 적을 때와 너무 많을 때의 문제를 하나씩 적습니다. 너무 적으면 한 chunk에 정보가 뭉친다고 합니다.",
+          "w": "chunk가 너무 많으면 검색 노이즈가 늘고, 너무 적으면 정보가 뭉칩니다. 두 경우의 설명을 서로 바꾸지 않도록 주의합니다.",
+          "an": "10일차 실무 - chunking · 5. 결과 검증",
+          "src": "# 5. 결과 검증 (실무 필수)\n# =========================================================\n# 개선 포인트:\n# - chunk 개수 확인 = RAG 검색 난이도 지표\n# - 너무 적으면 정보 뭉침 / 너무 많으면 검색 노이즈 증가"
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "<code>evaluate_chunks</code>에서 \"너무 짧은 chunk\"로 세는 기준은?",
+          "o": [
+            "232자 미만",
+            "1000자 미만",
+            "1200자 초과",
+            "200자 미만"
+          ],
+          "a": 3,
+          "h": "함수는 짧은 chunk와 긴 chunk 목록을 리스트 컴프리헨션으로 만들고, 긴 쪽은 <code>len(c.page_content) &gt; 1200</code>입니다. Quality Issues 출력 줄의 괄호 안에 짧은 쪽 기준값도 함께 표시됩니다.",
+          "w": "출력 \"너무 짧은 chunk (&lt;200)\"처럼 200자 미만을 노이즈 가능 chunk로 셉니다. 232는 실제 최소 길이, 1200 초과는 너무 긴 chunk 기준입니다.",
+          "an": "10일차 실무 - Chunk Quality 자동 평가 · 3~4",
+          "src": "long_chunks = [c for c in chunks if len(c.page_content) > 1200]\nprint(\"\\n===================================\")\n print(\"Quality Issues\")\n print(\"===================================\\n\")\n print(f\"너무 짧은 chunk (<200): {len(short_chunks)}\")\n print(f\"너무 긴 chunk (>1200): {len(long_chunks)}\")"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "자료는 Chunk quality가 RAG 성능의 60~70%를 결정하는 숨은 핵심 변수라고 설명한다.",
+          "a": true,
+          "h": "Chunk Quality 자동 평가 단원의 소개 문장은 chunk 품질을 RAG 성능을 좌우하는 \"숨은 핵심 변수\"라고 부르며 비율을 함께 적습니다. 그래서 RAG 디버깅용으로 품질을 자동 평가합니다.",
+          "w": "맞습니다. 그래서 chunk 길이·문장 깨짐을 자동 점검하는 리포트를 만듭니다.",
+          "an": "10일차 실무 - Chunk Quality 자동 평가 코드",
+          "src": "- Chunk Quality 자동 평가 코드 (RAG 디버깅용)\n- Chunk quality는 RAG 성능의 60~70%를 결정하는 숨은 핵심 변수다\n\n```python\n# =========================================================\n# 1. Chunk Quality 자동 평가 코드\n# =========================================================\n# 목적:\n# - chunk가 너무 짧거나 긴지 확인\n# - 문장 깨짐 여부 간단 점검\n# - RAG 입력 품질 사전 검증"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 3,
+          "game": true,
+          "p": "품질 리포트에서 너무 짧거나 긴 chunk가 0개였으므로 문장 깨짐 의심 chunk도 0개였다.",
+          "a": false,
+          "h": "길이 검사와 문장 깨짐 검사는 따로 동작합니다. 문장 깨짐은 문장 끝이 비정상이거나 공백이 지나치게 많은지를 보는 휴리스틱으로 세고, 리포트에 별도 줄로 출력됩니다.",
+          "w": "틀렸습니다. 길이 이상은 0개였지만 문장 깨짐 의심 chunk는 57개였습니다. 길이 검사와 문장 깨짐 검사는 서로 다른 기준입니다.",
+          "an": "10일차 실무 - Chunk Quality Report 실행 결과",
+          "src": "print(f\"너무 긴 chunk (>1200): {len(long_chunks)}\")\n # =========================================================\n # 5. 문장 깨짐 간단 체크 (heuristic)\n # =========================================================\n broken = 0\n for c in chunks:\n text =\n # 문장 끝이 비정상적인 경우 체크\n # 너무 많은 공백 or 깨진 텍스트\n print(f\"\\n의심 chunk (문장 깨짐 가능): {broken}\")\n # =========================================================\n # 6. 샘플 출력"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "Chunk Quality Report 항목과 출력값을 연결하세요.",
+          "pairs": [
+            [
+              "평균 길이",
+              "760.18"
+            ],
+            [
+              "최소 길이",
+              "232"
+            ],
+            [
+              "최대 길이",
+              "998"
+            ],
+            [
+              "문장 깨짐 의심",
+              "57"
+            ]
+          ],
+          "h": "233개 chunk를 1000자 기준으로 나눴으므로 최대 길이는 1000에 가깝고, 최소 길이는 짧은 chunk 기준(200)보다 조금 큽니다. 평균은 소수 둘째 자리까지 출력되고, 개수 항목은 정수입니다.",
+          "w": "리포트는 총 233개, 평균 760.18, 최소 232, 최대 998, 표준편차 171.46, 문장 깨짐 의심 57개를 보여 주었습니다.",
+          "an": "10일차 실무 - Chunk Quality Report 실행 결과",
+          "src": "print(\"Chunk Quality Report\")\n print(\"===================================\\n\")\n # 기본 통계\n print(f\"총 chunk 수: {len(chunks)}\")\n print(f\"평균 길이: {np.mean(lengths):.2f}\")\n print(f\"최소 길이: {np.min(lengths)}\")\n print(f\"최대 길이: {np.max(lengths)}\")\n print(f\"표준편차: {np.std(lengths):.2f}\")\n # =========================================================\n # 3. 너무 짧은 chunk (노이즈 가능)"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "<code>evaluate_chunks</code> 리포트가 출력하는 순서를 맞추세요.",
+          "steps": [
+            "기본 통계(평균·최소·최대·표준편차)",
+            "너무 짧은 chunk 집계",
+            "너무 긴 chunk 집계",
+            "문장 깨짐 휴리스틱 점검",
+            "샘플 chunk 미리보기"
+          ],
+          "h": "함수 안 번호 주석은 2. 기본 통계 → 3. 너무 짧은 chunk → 4. 너무 긴 chunk → 5. 문장 깨짐 체크 → 6. 샘플 출력입니다. 샘플은 앞 3개 chunk를 300자씩 보여 줍니다.",
+          "w": "통계 → 짧은/긴 chunk(Quality Issues) → 문장 깨짐 → Sample Chunk Preview 순서로 출력됩니다.",
+          "an": "10일차 실무 - Chunk Quality 자동 평가 2~6",
+          "src": "print(\"Chunk Quality Report\")\n print(\"===================================\\n\")\n # 기본 통계\n print(f\"총 chunk 수: {len(chunks)}\")\n print(f\"평균 길이: {np.mean(lengths):.2f}\")\n print(f\"최소 길이: {np.min(lengths)}\")\n print(f\"최대 길이: {np.max(lengths)}\")\n print(f\"표준편차: {np.std(lengths):.2f}\")\n # =========================================================\n # 3. 너무 짧은 chunk (노이즈 가능)"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "실무 chunking 설정과 주석 설명으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "chunk_size=1000",
+            "chunk_overlap=200",
+            "overlap으로 문맥 손실 감소",
+            "overlap=0으로 독립 분할",
+            "chunk_size는 토큰 기준"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "기존 코드 주석은 텍스트 덩어리의 최대 크기를 자 단위로 정해 토큰 초과를 막고, 덩어리끼리 일정 글자씩 겹치게 해 문맥 손실을 줄인다고 설명합니다. length_function을 따로 주지 않았으므로 길이는 문자 수로 셉니다.",
+          "w": "chunk_size=1000(최대 1000자), chunk_overlap=200(200자 겹침으로 문맥 손실 감소)입니다. 토큰 기준 분할과 overlap 0은 뒤의 토큰 분할 실습에서 다룹니다.",
+          "an": "10일차 실무 - chunking · 기존 코드 주석",
+          "src": "print(documents[0].page_content[:300])\n```\n\n실무\n- chunking\n\n```python\n# =========================================================\n# 1. 기존 코드 (Original Code)\n# =========================================================\n# 목적: 문서를 단순히 chunk_size 기준으로 분할\n# split texts\n# 텍스트 분할기 설정\n# chunk_size = 1000 : 텍스트 덩어리의 최대크기를 1000자로 설정(토큰 초과 방지)\n# chunk_overlap = 200 : 텍스트 덩어리 간에 200자씩 겹치도록 설정(문맥손실을 줄임)"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "Chroma DB 저장과 로드",
+      "ref": "10일차 Create Chroma DB",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "실습에서 Chroma DB를 저장한 <code>persist_directory</code> 값은?",
+          "o": [
+            "faiss_index",
+            "articles",
+            "db",
+            "/tmp"
+          ],
+          "a": 2,
+          "h": "Create Chroma DB 단원 설명의 2단계는 \"○○ 폴더에 데이터 저장\", 4단계는 \"○○ 폴더로부터 DB로드\"이며 같은 폴더 이름이 들어갑니다. 실행 결과의 \"저장 위치:\" 줄에도 출력됩니다.",
+          "w": "persist_directory는 'db'였고 출력도 \"저장 위치: db\"였습니다. faiss_index는 9일차 FAISS 저장 폴더, articles는 기사 원본 폴더입니다.",
+          "an": "10일차 Create Chroma DB · 실행 결과",
+          "src": "Create Chroma DB\n 1. text-> Embeddings\n 2. db 폴더에 데이터 저장\n 3. DB 초기화\n 4. db 폴더로부터 DB로드\n\n```python\n# attr버전 상의 오류가 발생되면 업데이트 해준다\n\n!pip install -qU chromadb attrs langchain langchain-core langchain-community langchain-openai\n```\n\n```python\n\"\"\"\n구조흐름\n\n[1] texts\n → embedding\n[2] Chroma.from_documents()\n → db 저장\n[3] persist()\n → disk 저장\n[4] Chroma(persist_directory=...)"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "분할된 texts와 임베딩으로 Chroma 벡터 DB를 만드는 메서드는?",
+          "o": [
+            "FAISS.from_texts",
+            "Chroma.from_documents",
+            "vectordb.persist",
+            "loader.load_and_split"
+          ],
+          "a": 1,
+          "h": "구조흐름 [2]가 이 메서드 이름이며, documents=texts, embedding=embedding, persist_directory 세 인자를 받습니다. texts는 Document 리스트이므로 문자열 리스트용 메서드와 구분하세요.",
+          "w": "Chroma.from_documents가 texts → embedding → vector DB 생성과 저장을 한 번에 합니다. persist는 저장만, from_texts는 FAISS용 문자열 입력 메서드입니다.",
+          "an": "10일차 Create Chroma DB · 5. Chroma DB 생성",
+          "src": "# texts → embedding → vector DB 생성 + 디스크 저장\n# 분할된 텍스트 덩어리(texts)와 임베딩 모델(embedding)을 사용하여 Chroma 벡터 데이터베이스를 생성\n# persist_directory에 데이터베이스 파일이 저장\n\nvectordb = Chroma.from_documents(\n documents=texts, # chunked documents"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>vectordb.persist()</code> 실행 때 나온 경고의 내용은?",
+          "o": [
+            "persist_directory가 없음",
+            "임베딩 모델이 없음",
+            "Chroma 0.4.x부터 자동 저장됨",
+            "메모리가 부족함"
+          ],
+          "a": 2,
+          "h": "경고는 LangChainDeprecationWarning으로, 수동 persistence 방식이 더 이상 지원되지 않는다고 알립니다. 그 이유로 특정 Chroma 버전 이후 문서가 어떻게 저장되는지를 설명합니다.",
+          "w": "\"Since Chroma 0.4.x the manual persistence method is no longer supported as docs are automatically persisted.\"라는 경고입니다. 저장 자체는 자동으로 이루어집니다.",
+          "an": "10일차 Create Chroma DB · persist 실행 결과",
+          "src": "# 목적: 생성된 벡터 DB를 디스크에 저장하고 메모리 해제\n# vectordb.persist()\n# vectordb = None\n# =========================================================\n# 2. DB 디스크 저장 (Persistence)\n# =========================================================\n# 역할: 메모리 기반 vector DB → 로컬 디스크로 저장"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "저장 후 <code>vectordb = None</code>을 실행하는 이유는?",
+          "o": [
+            "RAM 누적을 막으려고",
+            "db 폴더를 지우려고",
+            "검색 속도를 높이려고",
+            "임베딩을 다시 계산하려고"
+          ],
+          "a": 0,
+          "h": "이 블록 주석은 \"메모리 해제 (Resource Optimization)\"이며, 하지 않으면 무엇이 쌓여 어떤 오류가 생기는지 화살표로 적습니다. 대규모 RAG에서 특히 필수라고 합니다.",
+          "w": "메모리 객체를 제거해 RAM 사용량을 줄입니다. 안 하면 RAM이 누적되어 Out of memory가 날 수 있습니다. 디스크의 db 폴더는 그대로 남습니다.",
+          "an": "10일차 Create Chroma DB · 3. 메모리 해제",
+          "src": "# 역할: 메모리 기반 vector DB → 로컬 디스크로 저장\n\n # Chroma DB를 disk에 저장\n# =========================================================\n# 3. 메모리 해제 (Resource Optimization) -> 안하면 RAM 누적 → Out of memory 발생\n# =========================================================\n# 역할: RAM 사용량 줄이기 (대규모 RAG 필수)\n\n # 메모리 객체 제거"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "Chroma를 다시 로드할 때 경고는 <code>langchain_community</code>의 Chroma 대신 어떤 import를 권했나요?",
+          "o": [
+            "from chromadb import Chroma",
+            "from langchain_core import Chroma",
+            "from langchain_openai import Chroma",
+            "from langchain_chroma import Chroma"
+          ],
+          "a": 3,
+          "h": "경고는 Chroma 클래스가 LangChain 0.2.9에서 deprecated되었다고 알리고, 업데이트된 클래스가 별도 패키지 langchain-chroma에 있다고 안내합니다. pip 패키지 이름의 하이픈은 import할 때 밑줄로 바뀝니다.",
+          "w": "경고는 <code>pip install -U langchain-chroma</code> 후 <code>from langchain_chroma import Chroma</code>를 쓰라고 권합니다. chromadb는 Chroma 엔진 패키지입니다.",
+          "an": "10일차 Create Chroma DB · DB 로드 실행 결과",
+          "src": "# 1. DB 로드 (Persistence → Memory)\n# =========================================================\n# 역할:\n# disk(db 폴더)에 저장된 벡터 DB를 다시 불러와서 사용"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Chroma DB 생성 후 출력된 문서 수는 233이다.",
+          "a": true,
+          "h": "Chroma.from_documents에는 실무 chunking에서 만든 texts를 그대로 넘깁니다. 생성 확인 셀은 <code>len(texts)</code>를 \"문서 수\"로 출력합니다.",
+          "w": "맞습니다. 233개 chunk를 그대로 넣어 \"문서 수: 233\"이 출력되었습니다.",
+          "an": "10일차 Create Chroma DB · 6. DB 생성 확인",
+          "src": "vectordb = Chroma.from_documents(\n documents=texts, # chunked documents\n embedding=embedding, # embedding function\n persist_directory= # DB 저장 경로\n)\n# =========================================================\n# 6. DB 생성 확인 (실무 필수)\n# =========================================================\n# 역할: indexing 성공 여부 확인\n\nprint(\"DB 생성 완료\")\nprint(\"저장 위치:\", persist_directory)\nprint(\"문서 수:\", len(texts))"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 3,
+          "game": true,
+          "p": "<code>vectordb = None</code>을 실행하면 db 폴더의 저장 파일도 함께 삭제된다.",
+          "a": false,
+          "h": "None 대입은 파이썬 변수가 가리키던 메모리 객체만 놓아 줍니다. 다음 셀은 같은 persist_directory에서 DB를 다시 불러오며, \"Chroma DB 로드 완료\"가 출력됩니다.",
+          "w": "틀렸습니다. 메모리 객체만 해제되고 디스크(db 폴더)의 데이터는 남아 있어서 Chroma(persist_directory=...)로 다시 로드할 수 있었습니다.",
+          "an": "10일차 Create Chroma DB · 메모리 해제 · DB 로드",
+          "src": "print(\"Chroma DB 저장 완료 (persist 완료)\")\nprint(\"vectordb 메모리 해제 상태:\", vectordb)\n```\n\n```python\n# =========================================================\n# 1. DB 로드 (Persistence → Memory)\n# =========================================================\n# 역할:\n# disk(db 폴더)에 저장된 벡터 DB를 다시 불러와서 사용"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "Chroma 구조흐름 단계와 코드를 연결하세요.",
+          "pairs": [
+            [
+              "texts → embedding",
+              "OpenAIEmbeddings"
+            ],
+            [
+              "DB 생성·저장",
+              "Chroma.from_documents()"
+            ],
+            [
+              "disk 저장",
+              "persist()"
+            ],
+            [
+              "다시 로드",
+              "Chroma(persist_directory=...)"
+            ]
+          ],
+          "h": "구조흐름 주석은 [1] texts → embedding, [2] 생성 메서드 → db 저장, [3] 저장 메서드 → disk 저장, [4] 생성자에 저장 경로 → 다시 로드로 적습니다. 로드할 때는 클래스 생성자에 폴더 경로를 넘깁니다.",
+          "w": "임베딩 모델 준비 → from_documents로 생성 → persist로 디스크 저장 → 생성자에 persist_directory를 넘겨 재로드합니다.",
+          "an": "10일차 Create Chroma DB · 구조흐름",
+          "src": "구조흐름\n\n[1] texts\n → embedding\n[2] Chroma.from_documents()\n → db 저장\n[3] persist()\n → disk 저장\n[4] Chroma(persist_directory=...)\n → 다시 로드\n \"\"\"\n# =========================================================\n# 1. 기존 코드 (Original Code)\n# =========================================================\n# 목적: texts → embedding → Chroma DB 생성 및 저장\n# persist_directory = 'db'\n# embedding = OpenAIEmbeddings()"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "Create Chroma DB 단계를 순서대로 맞추세요.",
+          "steps": [
+            "text → Embeddings",
+            "db 폴더에 데이터 저장",
+            "DB 초기화",
+            "db 폴더로부터 DB 로드"
+          ],
+          "h": "단원 제목 아래 1~4번 목록입니다. 먼저 벡터로 바꾸고 저장한 뒤, 메모리의 DB를 비우고(None), 마지막에 디스크에서 다시 읽어 옵니다.",
+          "w": "임베딩 → 저장 → 초기화(메모리 해제) → 폴더에서 로드 순서로, 저장한 DB를 재사용할 수 있는지 확인합니다.",
+          "an": "10일차 Create Chroma DB 1~4",
+          "src": "Create Chroma DB\n 1. text-> Embeddings\n 2. db 폴더에 데이터 저장\n 3. DB 초기화\n 4. db 폴더로부터 DB로드\n\n```python\n# attr버전 상의 오류가 발생되면 업데이트 해준다\n\n!pip install -qU chromadb attrs langchain langchain-core langchain-community langchain-openai\n```\n\n```python\n\"\"\"\n구조흐름\n\n[1] texts\n → embedding\n[2] Chroma.from_documents()\n → db 저장\n[3] persist()\n → disk 저장\n[4] Chroma(persist_directory=...)\n → 다시 로드"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "attr 버전 오류가 날 때 Chroma 실습 전에 업데이트 설치한 패키지를 모두 고르세요.",
+          "o": [
+            "chromadb",
+            "attrs",
+            "langchain-openai",
+            "faiss-gpu",
+            "rank_bm25"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "설치 셀 주석은 \"attr버전 상의 오류가 발생되면 업데이트 해준다\"이고, <code>pip install -qU</code> 뒤에 Chroma 엔진, attr 관련 패키지, langchain 계열 패키지들을 나열합니다. 검색 실험용 패키지는 9일차에서 설치했습니다.",
+          "w": "<code>!pip install -qU chromadb attrs langchain langchain-core langchain-community langchain-openai</code>였습니다. faiss-gpu와 rank_bm25는 이 셀에 없습니다.",
+          "an": "10일차 Create Chroma DB · 설치 셀",
+          "src": "# attr버전 상의 오류가 발생되면 업데이트 해준다\n\n!pip install -qU chromadb attrs langchain langchain-core langchain-community langchain-openai\n```\n\n```python\n\"\"\"\n구조흐름\n\n[1] texts\n → embedding\n[2] Chroma.from_documents()"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "Retriever와 RAG 체인",
+      "ref": "10일차 Retriever 생성 · Chain 생성 · Query",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "deprecated된 <code>get_relevant_documents</code> 대신 쓰는 최신 retriever 메서드는?",
+          "o": [
+            "invoke",
+            "run",
+            "predict",
+            "call"
+          ],
+          "a": 0,
+          "h": "개선 코드 주석은 이 메서드를 \"LCEL 표준 인터페이스\"라고 부릅니다. 7일차 Runnable 인터페이스에서 체인과 모델을 실행할 때 쓰던 것과 같은 이름입니다.",
+          "w": "retriever.invoke(query)가 최신 방식입니다. get_relevant_documents는 최신 버전에서 사용할 수 없다고 적혀 있습니다.",
+          "an": "10일차 Retriever 생성 · 기존 코드 (Deprecated 방식)",
+          "src": "# 1. 기존 코드 (Deprecated 방식)\n# =========================================================\n# LangChain 최신 버전에서는 사용 불가\n#\n# docs = retriever.get_relevant_documents(\"What is Generative AI?\")\n# =========================================================\n# 2. 개선 코드 (최신 LangChain 방식)\n# =========================================================\n# 역할: retriever에서 관련 문서 Top-K 검색 수행\n# - invoke()는 LCEL 표준 인터페이스"
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>vectordb.as_retriever(search_kwargs={'k': 4})</code>의 의미는?",
+          "o": [
+            "4번 다시 검색",
+            "4개 세션 유지",
+            "상위 4개 chunk 검색",
+            "청크를 4개로 분할"
+          ],
+          "a": 2,
+          "h": "주석은 k를 \"Top-K 검색 개수 (중요)\"라고 설명합니다. 뒤 셀에서는 같은 인자를 3으로 바꿔 가장 관련성 높은 문서 3개만 반환하게 합니다.",
+          "w": "k는 검색해 돌려줄 상위 chunk 개수입니다. 재검색 횟수나 분할 개수와는 무관합니다.",
+          "an": "10일차 Retriever 생성 · 2. 검색 성능 설정",
+          "src": "# k = Top-K 검색 개수 (중요)\n\nretriever = vectordb.as_retriever(\n search_kwargs={\"k\": 4} # 상위 4개 chunk 검색\n)\n\n```\n\n```python\n# 검색기를 사용하여 'What is Generative AI?' 쿼리와 관련된 문서를 검색\n# =========================================================\n# 1. Query 설정\n# =========================================================\n# 역할:\n# query → vector search → 관련 document 반환"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "dict 입력을 받는 체인에서 <code>retrieve(inputs)</code> 함수로 retriever를 감싼 이유는?",
+          "o": [
+            "문서를 문자열로 합치려고",
+            "dict에서 질문 문자열을 꺼내려고",
+            "프롬프트를 만들려고",
+            "답변을 파싱하려고"
+          ],
+          "a": 1,
+          "h": "기존 방식 설명은 retriever가 dict 입력을 받거나 LLM에 dict가 그대로 전달되면 tiktoken error·type error가 난다고 적습니다. 주석 \"inputs는 {'question': '...'} 형태\"와 \"dict → string 변환 후 retriever 전달\"을 함께 보세요.",
+          "w": "retrieve는 inputs['question']처럼 질문 문자열만 꺼내 retriever에 넘깁니다. 문서를 합치는 일은 format_docs, 프롬프트는 build_prompt가 맡습니다.",
+          "an": "10일차 Retriever 생성 · 3. Retriever 안전 래핑",
+          "src": "# 역할: dict → string 변환 후 retriever 전달\n\ndef retrieve(inputs):\n # inputs는 {\"question\": \"...\"} 형태\n query =\n\n return\n\n\nretriever_runnable =\n# =========================================================\n# 4. 문서 포맷팅 함수\n# =========================================================\n# 역할: Document 리스트 → 하나의 문자열로 변환\n\ndef format_docs(docs):"
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "LCEL/invoke 구조에서 legacy 코드 <code>llm_response['result']</code>가 동작하지 않는 이유는?",
+          "o": [
+            "source 문서가 없어서",
+            "k 값이 작아서",
+            "프롬프트가 영어라서",
+            "반환이 str 또는 AIMessage라서"
+          ],
+          "a": 3,
+          "h": "기존 RetrievalQA는 result와 source_documents 키를 가진 dict를 돌려주었습니다. 자료는 invoke 기반 구조에서 반환 타입이 바뀌었다고 설명하고, 그래서 결과를 <code>.content</code>로 꺼냅니다.",
+          "w": "invoke 결과는 str(파서 사용 시) 또는 AIMessage라서 dict 키로 접근할 수 없습니다. 그래서 process_llm_response가 content 여부를 처리하고 source는 docs에서 따로 출력합니다.",
+          "an": "10일차 Chain 생성 · process_llm_response 기존 방식 설명",
+          "src": "# 1. 기존 방식 (RetrievalQA 기반 출력 구조)\n# =========================================================\n# llm_response가 dict 형태일 때만 동작\n#\n# llm_response['result']\n# llm_response['source_documents']\n#\n# 문제:\n# - LCEL / invoke 기반 구조에서는 사용 불가\n# - 반환 타입이 str 또는 AIMessage로 바뀜"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "같은 질문으로 k=3 검색 후 <code>doc.metadata.get('source', 'no source')</code>를 출력했더니 같은 파일 경로가 세 번 나왔습니다. 올바른 해석은?",
+          "o": [
+            "한 기사에서 chunk 3개가 검색됨",
+            "검색이 실패함",
+            "k가 1로 설정됨",
+            "DB에 중복 저장 오류"
+          ],
+          "a": 0,
+          "h": "metadata의 source는 chunk가 나온 원본 파일 경로입니다. 기사 하나는 여러 chunk로 나뉘어 저장되므로, 검색된 상위 3개가 모두 같은 원본에서 왔을 수 있습니다.",
+          "w": "한 기사에서 나온 서로 다른 chunk 3개가 상위 3개로 검색된 것입니다. 실제로 그 기사 내용으로 질문에 답했으므로 검색 실패가 아닙니다.",
+          "an": "10일차 Query · 한글 질의 셀 실행 결과",
+          "src": "# 역할: 검색된 chunk 내용 확인\n\nprint(\"\\n================ 검색 결과 ================\\n\")\n\nfor i, doc in enumerate(results):\n print(f\"[Chunk {i+1}]\")\n print(doc.page_content[:500]) # 너무 길어서 500자만 출력\n print(\"\\nSOURCE:\", doc.metadata.get(\"source\", \"no source\"))\n print(\"-\" * 60)\n```\n\nCharacterTextSplitter\n - 가장 간단한 텍스트 분할기, 특정 구분자를 기준으로 텍스트를 분할\n\n```python\n# 로컬 파일에서 텍스트 읽기"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>vectordb.as_retriever()</code>를 인자 없이 호출해도 기본 설정으로 retriever가 만들어진다.",
+          "a": true,
+          "h": "1. Retriever 생성 블록은 먼저 인자 없이 호출해 Chroma DB를 \"검색 가능한 인터페이스\"로 바꿉니다. 이어지는 (선택) 블록에서만 search_kwargs로 k를 지정합니다.",
+          "w": "맞습니다. 기본 Retriever 생성 방식이며, search_kwargs로 k를 지정하는 것은 선택(실무 권장) 설정입니다.",
+          "an": "10일차 Retriever 생성 · 1. Retriever 생성",
+          "src": "# Chroma DB를 \"검색 가능한 인터페이스\"로 변환\n\nretriever = vectordb.as_retriever()\n# =========================================================\n# 2. (선택) 검색 성능 설정 - 실무 필수\n# =========================================================\n# k = Top-K 검색 개수 (중요)\n\nretriever = vectordb.as_retriever(\n search_kwargs={\"k\": 4} # 상위 4개 chunk 검색"
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "직렬 RAG 함수 <code>rag_pipeline</code>은 LCEL 파이프 <code>|</code>로만 구성된다.",
+          "a": false,
+          "h": "Chain 생성 셀은 기존 LCEL 방식이 환경에 따라 TypeError를 반복한다고 설명하고, \"직렬 RAG - 안정 구조\"를 대안으로 씁니다. 함수 본문은 1)~5) 번호 주석을 따라 한 줄씩 변수에 값을 받아 진행합니다.",
+          "w": "틀렸습니다. rag_pipeline은 검색 → 문자열 변환 → f-string 프롬프트 → llm.invoke → 반환을 함수 안에서 직접 순서대로 실행합니다.",
+          "an": "10일차 Chain 생성 · 2. 개선 방식 (직렬 RAG)",
+          "src": "# dict LCEL pipeline\n# function + pipe 혼합\n#\n# 문제:\n# - LangChain 버전/환경에 따라 graph 변환 실패\n# - TypeError 반복 발생\n# - 디버깅 어려움\n# =========================================================\n# 2. 개선 방식 (직렬 RAG - 안정 구조)\n# =========================================================\n# 역할: Retriever → Format → Prompt → LLM 순서로 직접 실행"
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "Chain 생성 단원의 함수와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "retrieve_docs",
+              "query로 Top-K 문서 검색"
+            ],
+            [
+              "format_docs",
+              "Document 리스트를 문자열로"
+            ],
+            [
+              "build_prompt",
+              "context와 question을 LLM 입력으로"
+            ],
+            [
+              "process_llm_response",
+              "응답과 source 출력"
+            ]
+          ],
+          "h": "각 함수 위 역할 주석을 떠올리세요: 검색, 문서 포맷, 프롬프트 생성, 결과 출력. process_llm_response는 legacy RetrievalQA 출력 함수를 대체합니다.",
+          "w": "검색(retrieve_docs) → 문자열화(format_docs) → 프롬프트(build_prompt) → 출력(process_llm_response)으로 역할이 나뉩니다.",
+          "an": "10일차 Retriever 생성 · Chain 생성",
+          "src": "# 역할: query → 관련 문서 검색 (Top-K)\n\ndef retrieve_docs(query):\n return retriever.invoke(query)\n# =========================================================\n# 5. 문서 포맷 함수\n# =========================================================\n# 역할: Document 리스트 → LLM 입력용 문자열 변환\n\ndef format_docs(docs):"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "<code>rag_pipeline(query)</code>의 실행 순서를 맞추세요.",
+          "steps": [
+            "문서 검색",
+            "문서 문자열 변환",
+            "프롬프트 생성",
+            "LLM 실행",
+            "결과 반환"
+          ],
+          "h": "전체 흐름 주석은 \"query → retriever → docs → format → prompt → LLM → answer\"입니다. 함수 본문도 1)~5) 번호 주석이 같은 순서로 붙어 있습니다.",
+          "w": "검색한 docs를 format_docs로 문자열 context로 만들고, f-string 프롬프트에 넣어 LLM을 호출한 뒤 content를 반환합니다.",
+          "an": "10일차 Chain 생성 · 6. RAG Pipeline (직렬 구조)",
+          "src": "# 전체 흐름:\n# query → retriever → docs → format → prompt → LLM → answer\n\ndef rag_pipeline(query):\n\n # 1) 문서 검색\n docs =\n\n # 2) 문서 문자열 변환\n context =\n\n # 3) 프롬프트 생성\n prompt = f\"\"\"\nYou are a helpful assistant.\n\nUse the context below to answer the question.\n\nContext:\n{context}\n\nQuestion:\n{query}\n\"\"\"\n\n # 4) LLM 실행\n response =\n\n # 5) 결과 반환"
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "안정 구조 RAG 체인에서 <code>RunnableLambda</code>로 감싸 체인에 넣은 함수를 모두 고르세요.",
+          "o": [
+            "retrieve",
+            "format_docs",
+            "build_prompt",
+            "StrOutputParser",
+            "ChatOpenAI"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "이 셀은 일반 파이썬 함수 세 개를 정의하고 각각 <code>retriever_runnable</code>, <code>format_runnable</code>, <code>prompt_runnable</code>로 감쌉니다. 파서와 모델은 원래 Runnable이라 감쌀 필요가 없습니다.",
+          "w": "retrieve·format_docs·build_prompt를 RunnableLambda로 감싸 파이프에 연결했습니다. StrOutputParser와 ChatOpenAI는 그 자체로 Runnable입니다.",
+          "an": "10일차 Retriever 생성 · 2. 개선된 안정 구조 (LCEL 표준 방식)",
+          "src": "def retrieve(inputs):\n # inputs는 {\"question\": \"...\"} 형태\n query =\n\n return\n\n\nretriever_runnable =\n# =========================================================\n# 4. 문서 포맷팅 함수\n# =========================================================\n# 역할: Document 리스트 → 하나의 문자열로 변환\n\ndef format_docs(docs):\n\n return\n\n\nformat_runnable ="
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "Text Splitter와 Character 분할",
+      "ref": "10일차 Text Splitter · CharacterTextSplitter",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Text Splitter는 RAG 전체 흐름에서 몇 번째 단계인가요?",
+          "o": [
+            "첫 번째",
+            "세 번째",
+            "두 번째",
+            "다섯 번째"
+          ],
+          "a": 2,
+          "h": "\"RAG 전체 흐름에서 위치\" 셀은 Load Documents, Text Splitter, Embedding, Vector DB 저장, Retrieval, LLM 생성 순으로 번호를 붙입니다. 문서를 불러온 직후에 오는 단계입니다.",
+          "w": "자료는 Text Splitter를 \"RAG 시스템의 두번째 단계\"라고 설명합니다. 첫 번째는 문서 로드, 세 번째는 임베딩입니다.",
+          "an": "10일차 Text Splitter · RAG 전체 흐름에서 위치",
+          "src": "- RAG 시스템의 두번째 단계로 로드된 문서를 효율적으로 처리하고 시스템이 정보를 보다 잘 활용할 수 있도록 준비하는 과정\n - LLM이 받아들일 수 있는 효율적인 작은 규모의 조각으로 나누는 작업\n - 문서분할 과정\n 1. 문서 구조 파악\n 2. 단위 설정\n 3. chunk_size\n 4. chunk_overlap\n\n```python\n\"\"\"\nRAG 전체 흐름에서 위치\n1. Load Documents\n2. Text Splitter ← 여기\n3. Embedding\n4. Vector DB 저장\n5. Retrieval\n6. LLM 생성"
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "CharacterTextSplitter가 텍스트를 나누는 기준은?",
+          "o": [
+            "문장 의미",
+            "특정 구분자",
+            "토큰 수",
+            "임베딩 유사도"
+          ],
+          "a": 1,
+          "h": "자료는 이 분할기를 \"가장 간단한 텍스트 분할기\"라고 소개합니다. 주석은 기준이 \"문장 의미가 아니라\" 문자 단위의 무엇이라고 적고, 실습에서는 문단 단위 분리를 그 기준으로 지정합니다.",
+          "w": "CharacterTextSplitter는 separator로 지정한 특정 구분자로 나눕니다. 의미 보존은 Recursive가, 토큰 기준은 tiktoken length_function이 담당합니다.",
+          "an": "10일차 CharacterTextSplitter",
+          "src": "CharacterTextSplitter\n - 가장 간단한 텍스트 분할기, 특정 구분자를 기준으로 텍스트를 분할\n\n```python\n# 로컬 파일에서 텍스트 읽기"
+        },
+        {
+          "id": "t5-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>length_function=len</code>이면 chunk 길이를 무엇으로 계산하나요?",
+          "o": [
+            "토큰 수",
+            "단어 수",
+            "문장 수",
+            "문자 수"
+          ],
+          "a": 3,
+          "h": "파이썬 <code>len()</code>은 문자열에 들어 있는 글자 개수를 돌려줍니다. 주석은 이것이 기본값이라고 하고, 뒤 단원에서는 tokenizer.encode 결과의 길이를 쓰는 함수로 바꿉니다.",
+          "w": "len()은 문자열 길이, 즉 문자 수를 셉니다. 토큰 수로 세려면 tiktoken_len 같은 함수를 length_function에 넣어야 합니다.",
+          "an": "10일차 CharacterTextSplitter · length_function",
+          "src": "# 역할: chunk 길이 계산 기준 함수\n # 기본: len → 문자 수 기준\n length_function=len\n)\n```\n\n```python\n# 문서를 설정된 분할기로 분할\ntexts = text_splitter.split_documents(pages)\n```\n\n```python\n# 분할된 텍스트 덩어리 개수 출력\nlen(texts)\n```\n\n```python\n# 각 텍스트 덩어리의 문자 길이 리스트 생성 및 출력\nchar_list = []\nfor i in range(len(texts)):\n char_list.append(len(texts[i].page_content))\nprint(char_list)\n```\n\n토큰단위 텍스트 분할기"
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "CharacterTextSplitter(chunk_size 1000) 실행 때 \"Created a chunk of size 1163\" 경고가 난 이유는?",
+          "o": [
+            "구분자로만 나눠 큰 문단이 남아서",
+            "overlap이 너무 커서",
+            "토큰 기준으로 세서",
+            "파일 인코딩 오류"
+          ],
+          "a": 0,
+          "h": "CharacterTextSplitter는 지정한 구분자 한 가지로만 자르기 때문에, 구분자 사이 문단이 원래 길면 더 잘게 나눌 방법이 없습니다. 같은 텍스트를 재귀 분할기로 나누면 이 경고가 사라집니다.",
+          "w": "문단 구분자 사이 문단 자체가 1000자를 넘으면 더 자를 수 없어 1163자 chunk가 생깁니다. Recursive 분할기는 '\\n' 등 다음 구분자로 다시 나누어 최대 996자가 되었습니다.",
+          "an": "10일차 CharacterTextSplitter · 분할 실행 결과",
+          "src": "CharacterTextSplitter\n - 가장 간단한 텍스트 분할기, 특정 구분자를 기준으로 텍스트를 분할"
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>text_splitter.create_documents([state_of_the_union])</code>가 반환하는 것은?",
+          "o": [
+            "문자열 리스트",
+            "Document 객체 리스트",
+            "chunk 길이 리스트",
+            "벡터 리스트"
+          ],
+          "a": 1,
+          "h": "셀 주석은 \"문서를 ○○ 객체로 생성하고 분할\"이라고 적고, 출력에는 metadata={}와 page_content가 함께 보입니다. 반면 split_text 결과인 texts[0]은 바로 print해 원문만 나옵니다.",
+          "w": "create_documents는 page_content와 metadata를 가진 Document 리스트를 돌려줍니다. split_text는 문자열 리스트를 돌려줍니다.",
+          "an": "10일차 CharacterTextSplitter · create_documents 실행 결과",
+          "src": "# 문서를 Document 객체로 생성하고 분할\ntext_splitter.create_documents([state_of_the_union])"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "CharacterTextSplitter는 빠르지만 문맥이 깨질 수 있다.",
+          "a": true,
+          "h": "\"기존 방식 vs CharacterTextSplitter 특징\" 주석은 두 분할기를 비교합니다. Character 쪽은 단순 문자열 기준 분할이라 속도의 장점과 문맥 측면의 단점을 함께 적고, Recursive를 실전 RAG 추천으로 둡니다.",
+          "w": "맞습니다. 단순 문자열 기준이라 빠르지만 문맥이 깨질 수 있어, 실전 RAG에는 Recursive를 추천합니다.",
+          "an": "10일차 CharacterTextSplitter · 2. 특징",
+          "src": "# 2. 기존 방식 vs CharacterTextSplitter 특징\n# =========================================================\n# RecursiveCharacterTextSplitter\n# → 의미 기반 분할 (실전 RAG 추천)\n#\n# CharacterTextSplitter\n# → 단순 문자열 기준 분할\n# → 빠르지만 문맥 깨질 수 있음"
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "CharacterTextSplitter는 chunk_size를 넘는 chunk를 절대 만들지 않는다.",
+          "a": false,
+          "h": "분할 실행 결과에는 langchain_text_splitters의 WARNING 줄이 두 번 나옵니다. 경고에는 생성된 chunk 크기와 지정한 크기가 함께 적혀 있고, 길이 목록에서도 1000보다 큰 값을 찾을 수 있습니다.",
+          "w": "틀렸습니다. 1163자, 1015자 chunk가 생기며 \"longer than the specified 1000\" 경고가 나왔습니다.",
+          "an": "10일차 CharacterTextSplitter · 분할 실행 결과",
+          "src": "# 역할: 텍스트를 나누는 기준\n # 여기서는 \"문단 단위 분리\"\n separator= ,\n\n # -----------------------------------------\n # chunk_size\n # -----------------------------------------\n # 역할: 하나의 chunk 최대 길이"
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "CharacterTextSplitter 파라미터와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "separator",
+              "텍스트를 나누는 기준"
+            ],
+            [
+              "chunk_size",
+              "하나의 chunk 최대 길이"
+            ],
+            [
+              "chunk_overlap",
+              "chunk 간 겹치는 영역"
+            ],
+            [
+              "length_function",
+              "chunk 크기 계산 기준"
+            ]
+          ],
+          "h": "초기화 코드는 파라미터마다 \"역할:\" 주석을 답니다. 구분자는 여기서 문단 단위, 크기는 최대 길이, 겹침은 문맥 유지용, 길이 함수는 기본 len()입니다.",
+          "w": "separator로 나누고, chunk_size로 최대 길이를, chunk_overlap으로 문맥 유지 영역을, length_function으로 길이 계산 방식을 정합니다.",
+          "an": "10일차 CharacterTextSplitter · 3. 초기화",
+          "src": "# 역할: 텍스트를 나누는 기준\n # 여기서는 \"문단 단위 분리\"\n separator= ,\n\n # -----------------------------------------\n # chunk_size\n # -----------------------------------------\n # 역할: 하나의 chunk 최대 길이\n chunk_size= ,\n\n # -----------------------------------------\n # chunk_overlap\n # -----------------------------------------\n # 역할: chunk 간 문맥 유지용 겹치는 영역"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "자료가 제시한 문서분할 과정을 순서대로 맞추세요.",
+          "steps": [
+            "문서 구조 파악",
+            "단위 설정",
+            "chunk_size 설정",
+            "chunk_overlap 설정"
+          ],
+          "h": "Text Splitter 소개의 \"문서분할 과정\"은 4단계 번호 목록입니다. 먼저 문서가 어떻게 생겼는지 보고 무엇을 기준으로 자를지 정한 뒤, 크기와 겹침 숫자를 정합니다.",
+          "w": "구조 파악 → 단위 설정 → chunk_size → chunk_overlap 순서입니다. 숫자 파라미터는 구조와 단위를 정한 뒤 결정합니다.",
+          "an": "10일차 Text Splitter · 문서분할 과정",
+          "src": "Text Splitter\n - RAG 시스템의 두번째 단계로 로드된 문서를 효율적으로 처리하고 시스템이 정보를 보다 잘 활용할 수 있도록 준비하는 과정\n - LLM이 받아들일 수 있는 효율적인 작은 규모의 조각으로 나누는 작업\n - 문서분할 과정\n 1. 문서 구조 파악\n 2. 단위 설정\n 3. chunk_size\n 4. chunk_overlap"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "같은 연설문을 CharacterTextSplitter로 나눈 결과로 옳은 것을 모두 고르세요.",
+          "o": [
+            "총 55개 chunk",
+            "1163자 chunk 경고",
+            "1015자 chunk 경고",
+            "총 57개 chunk",
+            "모든 chunk 1000자 이하"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Character 분할 실행은 경고 두 줄을 먼저 보여 주고 \"총 chunk 개수\"를 출력합니다. Recursive 분할은 같은 텍스트에서 chunk 수가 2개 더 많았고 경고가 없었습니다.",
+          "w": "Character 분할은 55개 chunk에 1163·1015자 경고가 났습니다. 57개는 Recursive(1000/100) 결과이고, 1000자 초과 chunk가 있었으므로 마지막 보기는 틀립니다.",
+          "an": "10일차 CharacterTextSplitter · 분할·길이 분석 실행 결과",
+          "src": "# 1. 텍스트 분할 실행\n# =========================================================\n# 역할: 입력 텍스트(state_of_the_union)를 chunk로 분할\n\ntexts = text_splitter.split_text(state_of_the_union)\n# =========================================================\n# 2. chunk 개수 확인\n# =========================================================\n# 역할: 전체 문서가 몇 개 chunk로 나뉘었는지 확인\n\nprint(\"총 chunk 개수:\", len(texts))"
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "Recursive 분할과 품질 점수",
+      "ref": "10일차 RecursiveCharacterTextSplitter · 한국어 임베딩 · Embedding 기반 Chunk Quality",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "RecursiveCharacterTextSplitter가 '\\n\\n'으로 나눈 뒤에도 청크가 크면 다음 기준은?",
+          "o": [
+            "'\\n' 줄바꿈",
+            "'\\t' 탭",
+            "';' 세미콜론",
+            "'#' 해시"
+          ],
+          "a": 0,
+          "h": "단원 설명은 먼저 빈 줄(문단)로 나누고, 그래도 청크 크기가 크면 한 단계 더 작은 구분자로 다시 나눈다고 적습니다. 주석은 이를 문단 → 문장 → 문자 순의 \"재귀적\" 분할이라고 부릅니다.",
+          "w": "'\\n\\n'으로 나눈 뒤 여전히 크면 '\\n'으로 다시 나눕니다. 이렇게 단계적으로 나누어 의미 보존 능력이 높습니다.",
+          "an": "10일차 RecursiveCharacterTextSplitter",
+          "src": "- '\\n\\n'을 기준으로 문서를 분할한 후 여전히 청크 크기가 큰 경우 '\\n'을 기준으로 문서를 분할한다\n\n```python\n# =========================================================\n# 1. RecursiveCharacterTextSplitter 개념\n# =========================================================\n# 역할: 의미 구조를 최대한 유지하면서 텍스트를 분할하는 splitter\n# 특징: 문단 → 문장 → 문자 순으로 \"재귀적으로\" 분할"
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "혁신성장 PDF 검색에 쓴 한국어 임베딩 모델 이름은?",
+          "o": [
+            "text-embedding-3-small",
+            "cl100k_base",
+            "jhgan/ko-sbert-nli",
+            "gpt-4o-mini"
+          ],
+          "a": 2,
+          "h": "기존 방식 주석은 OpenAI embedding만 쓰면 한국어 성능이 떨어질 수 있다고 지적합니다. 그래서 HuggingFaceEmbeddings에 한국어 문장 임베딩용 SBERT 계열 모델 이름을 넘깁니다.",
+          "w": "model_name = 'jhgan/ko-sbert-nli'로 HuggingFaceEmbeddings를 만들었습니다. cl100k_base는 tokenizer, gpt-4o-mini는 LLM입니다.",
+          "an": "10일차 Text Splitter · 6. 한국어 Embedding 모델",
+          "src": "# 6. 한국어 Embedding 모델\n# =========================================================\n# 역할: 문장을 vector로 변환 (한국어 최적화)\n\nmodel_name = \"jhgan/ko-sbert-nli\"\n\nmodel_kwargs = {\n # GPU 없을 때 안전 설정\n}\n\nencode_kwargs = {\n # cosine similarity 안정화\n}\n\nko = HuggingFaceEmbeddings("
+        },
+        {
+          "id": "t6-03",
+          "ty": "num",
+          "lv": 1,
+          "game": false,
+          "p": "18페이지 PDF를 <code>RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)</code>로 나눈 뒤 <code>len(texts)</code>의 출력값은?",
+          "a": 37,
+          "unit": "개",
+          "h": "계산식: len(texts) = 18개 페이지 Document를 각각 1000자 이하로 나눈 조각 수의 합. 바로 다음 셀의 char_list에 나열된 길이 값 개수와 같습니다.",
+          "w": "분할 결과는 37개였고, 각 chunk 길이(char_list)도 37개 값으로 출력되었습니다.",
+          "an": "10일차 RecursiveCharacterTextSplitter · PDF 분할 실행 결과",
+          "src": "chunk_overlap=200,\n\n # -----------------------------------------\n # length_function\n # -----------------------------------------\n # 역할: chunk 길이 계산 기준 함수\n # 기본: len → 문자 수 기준\n length_function=len\n)\n```\n\n```python\n# 문서를 설정된 분할기로 분할\ntexts = text_splitter.split_documents(pages)\n```\n\n```python\n# 분할된 텍스트 덩어리 개수 출력\nlen(texts)\n```\n\n```python\n# 각 텍스트 덩어리의 문자 길이 리스트 생성 및 출력\nchar_list = []"
+        },
+        {
+          "id": "t6-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "최종 Chunk Quality Score에서 가중치 50%가 붙는 지표는?",
+          "o": [
+            "chunk 간 중복(낮을수록)",
+            "chunk 내부 coherence",
+            "chunk 길이 안정성",
+            "chunk 개수"
+          ],
+          "a": 1,
+          "h": "평가 목적 주석은 세 기준(내부 의미 일관성, chunk 간 중복, 길이 안정성)을 듭니다. 최종 점수 식의 주석은 세 지표에 50%·30%·20% 가중치를 차례로 붙이며, 맨 앞 지표가 가장 큰 비중입니다.",
+          "w": "내부 일관성(coherence)이 50%, 중복이 낮을수록 좋은 항목이 30%, 길이 안정성이 20%입니다. chunk 개수는 점수에 들어가지 않습니다.",
+          "an": "10일차 Embedding 기반 Chunk Quality · 8. 최종 Score",
+          "src": "# 8. 최종 Chunk Quality Score (heuristic)\n# =========================================================\n# 역할: 3가지 지표를 합쳐 하나의 quality score 생성\n\nquality_score = (\n # 내부 일관성 (가중치 50%)\n # 중복 낮을수록 좋음 (30%)\n # 길이 안정성 (20%)"
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "<code>split_half</code>로 chunk를 둘로 나눠 두 임베딩의 <code>cosine_similarity</code>를 구하는 코드가 재는 것은?",
+          "o": [
+            "chunk 간 중복",
+            "chunk 길이 안정성",
+            "chunk 내부 의미 일관성",
+            "검색 정확도"
+          ],
+          "a": 2,
+          "h": "이 단계 주석은 \"하나의 chunk가 의미적으로 얼마나 일관된지 평가\"하며, 방법으로 chunk를 반으로 나누고 코사인 유사도를 계산한다고 적습니다. chunk끼리 비교하는 것은 다음 6번 단계입니다.",
+          "w": "한 chunk의 앞·뒤 절반이 비슷할수록 내부 coherence가 높습니다. chunk 간 중복은 similarity_matrix의 위쪽 삼각형 값으로 따로 봅니다.",
+          "an": "10일차 Embedding 기반 Chunk Quality · 5. 내부 coherence 평가",
+          "src": "# 5. Chunk 내부 coherence 평가\n# =========================================================\n# 역할: 하나의 chunk가 의미적으로 얼마나 일관된지 평가\n# 방법: chunk를 반으로 나누고 cosine similarity 계산\n\ndef split_half(text):\n # chunk를 단순히 반으로 분할 (proxy 방식)\n\n\n return\n\n\ncoherence_scores = []\n\nfor chunk in texts:\n\n # chunk를 두 부분으로 나눔\n a, b =\n\n # 각 부분 embedding 생성\n vec_a =\n\n vec_b =\n\n # cosine similarity 계산 (의미 일관성)"
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": false,
+          "p": "임베딩 import를 <code>langchain.embeddings</code>에서 <code>langchain_community.embeddings</code>로 고쳐 HuggingFaceEmbeddings를 불러왔다.",
+          "a": true,
+          "h": "라이브러리 임포트 블록에는 \"# 기존\" 주석 아래 옛 경로가, \"# 수정 (정상)\" 주석 아래 새 경로가 있습니다. 실행 때는 이 클래스도 deprecated이며 langchain-huggingface 패키지를 쓰라는 경고가 추가로 나왔습니다.",
+          "w": "맞습니다. community 경로로 수정했고, 실행 시 langchain-huggingface 패키지 사용을 권하는 경고가 함께 나왔습니다.",
+          "an": "10일차 Text Splitter · 2. 라이브러리 임포트",
+          "src": "# OpenAI embedding만 사용하면 한국어 성능 저하 가능\n# =========================================================\n# 2. 라이브러리 임포트\n# =========================================================\n\nfrom langchain_community.document_loaders import PyPDFLoader\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\n# 기존\n# from langchain.embeddings import HuggingFaceEmbeddings\n# 수정 (정상)"
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Embedding 기반 품질 평가에서 chunk 간 평균 similarity가 높을수록 품질 점수가 올라간다.",
+          "a": false,
+          "h": "평가 목적 주석은 chunk 간 비교를 \"중복 여부(diversity)\"라고 부르고, 최종 점수 주석에 \"중복 낮을수록 좋음 (30%)\"이라고 적습니다. 즉 이 항목은 similarity를 1에서 뺀 방향으로 반영됩니다.",
+          "w": "틀렸습니다. chunk끼리 너무 비슷하면 중복이 많다는 뜻이므로 낮을수록 좋습니다. 실습에서는 평균 0.80, 최종 점수는 약 0.62였습니다.",
+          "an": "10일차 Embedding 기반 Chunk Quality · 6 · 8",
+          "src": "print(\"평균 chunk 길이:\", avg_len)\nprint(\"chunk 길이 표준편차:\", std_len)\n# =========================================================\n# 8. 최종 Chunk Quality Score (heuristic)\n# =========================================================\n# 역할: 3가지 지표를 합쳐 하나의 quality score 생성\n\nquality_score = (\n # 내부 일관성 (가중치 50%)\n # 중복 낮을수록 좋음 (30%)"
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "설정 코드와 의도를 연결하세요.",
+          "pairs": [
+            [
+              "model_kwargs",
+              "GPU 없을 때 안전 설정"
+            ],
+            [
+              "encode_kwargs",
+              "cosine similarity 안정화"
+            ],
+            [
+              "chunk_overlap=200",
+              "문장 끊김 방지·임베딩 품질 향상"
+            ],
+            [
+              "length_function=len",
+              "문자 수 기준 길이 계산"
+            ]
+          ],
+          "h": "HuggingFaceEmbeddings에는 모델 로딩용 인자(장치 설정)와 인코딩용 인자(벡터 정규화)가 따로 있습니다. 재귀 분할기의 overlap 주석은 문장 끊김과 임베딩 품질을, length_function 주석은 기본 len을 언급합니다.",
+          "w": "model_kwargs는 실행 장치를, encode_kwargs는 벡터 인코딩 방식을, overlap은 문맥 연결을, length_function은 길이 기준을 정합니다.",
+          "an": "10일차 Text Splitter · 6. 한국어 Embedding · RecursiveCharacterTextSplitter 설정",
+          "src": "length_function= # 핵심: token 기반 길이 계산\n)\n\ndocs = text_splitter.split_documents(pages)\n# =========================================================\n# 6. 한국어 Embedding 모델\n# =========================================================\n# 역할: 문장을 vector로 변환 (한국어 최적화)\n\nmodel_name = \"jhgan/ko-sbert-nli\"\n\nmodel_kwargs = {\n # GPU 없을 때 안전 설정\n}\n\nencode_kwargs = {\n # cosine similarity 안정화"
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "Embedding 기반 Chunk Quality 평가 순서를 맞추세요.",
+          "steps": [
+            "chunk 임베딩 생성",
+            "chunk 내부 coherence 계산",
+            "chunk 간 similarity 분석",
+            "chunk 길이 안정성 계산",
+            "가중합으로 최종 점수 산출"
+          ],
+          "h": "코드 블록 번호는 4. chunk embedding 생성 → 5. 내부 coherence → 6. chunk 간 similarity → 7. 길이 분석 → 8. 최종 Score입니다. 마지막 단계는 앞의 세 지표에 50·30·20% 가중치를 줍니다.",
+          "w": "임베딩을 만든 뒤 내부 일관성, chunk 간 중복, 길이 안정성을 차례로 구하고 가중합으로 FINAL CHUNK QUALITY SCORE를 냅니다.",
+          "an": "10일차 Embedding 기반 Chunk Quality 4~8",
+          "src": "# 8. 최종 Chunk Quality Score (heuristic)\n# =========================================================\n# 역할: 3가지 지표를 합쳐 하나의 quality score 생성\n\nquality_score = (\n # 내부 일관성 (가중치 50%)\n # 중복 낮을수록 좋음 (30%)\n # 길이 안정성 (20%)\n)\n\n\nprint(\"\\n==============================\")\nprint(\"FINAL CHUNK QUALITY SCORE:\", quality_score)"
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "연설문을 Recursive(1000/100)로 나눈 chunk 길이 통계로 옳은 것을 모두 고르세요.",
+          "o": [
+            "평균 약 722자",
+            "최대 996자",
+            "최소 116자",
+            "최대 1163자",
+            "총 55개 chunk"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Recursive 분할은 큰 문단을 다시 나누므로 chunk_size 1000을 넘는 chunk가 없습니다. 대신 잘린 뒤 남은 짧은 조각이 생겨 최소 길이가 Character 분할보다 작아지고, chunk 수는 57개였습니다.",
+          "w": "평균 722.4, 최대 996, 최소 116, 표준편차 196.4였습니다. 최대 1163자와 55개는 CharacterTextSplitter 결과입니다.",
+          "an": "10일차 RecursiveCharacterTextSplitter · 길이 통계 실행 결과",
+          "src": "# 기본 통계\n print(f\"총 chunk 수: {len(chunks)}\")\n print(f\"평균 길이: {np.mean(lengths):.2f}\")\n print(f\"최소 길이: {np.min(lengths)}\")\n print(f\"최대 길이: {np.max(lengths)}\")\n print(f\"표준편차: {np.std(lengths):.2f}\")\n # =========================================================\n # 3. 너무 짧은 chunk (노이즈 가능)"
+        }
+      ]
+    },
+    {
+      "id": "t7",
+      "title": "토큰 단위 분할 (문제)",
+      "ref": "10일차 토큰단위 텍스트 분할기 · 문제) 빈칸 채우기",
+      "qs": [
+        {
+          "id": "t7-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "실습에서 tokenizer로 초기화한 인코딩 이름은?",
+          "o": [
+            "ko-sbert-nli",
+            "utf-8",
+            "cl100k_base",
+            "text-embedding-3-small"
+          ],
+          "a": 2,
+          "h": "tokenizer 초기화 주석은 \"GPT 모델에서 사용하는 표준 인코딩 방식\"이며 GPT-3.5 / GPT-4 계열 공통 tokenizer라고 설명합니다. 문자 인코딩이나 임베딩 모델 이름과는 다릅니다.",
+          "w": "<code>tiktoken.get_encoding('cl100k_base')</code>처럼 cl100k_base 인코딩을 씁니다. ko-sbert-nli와 text-embedding-3-small은 임베딩 모델입니다.",
+          "an": "10일차 토큰단위 텍스트 분할기 · 2. tokenizer 초기화",
+          "src": "# 2. tokenizer 초기화\n# =========================================================\n# 역할: GPT 모델에서 사용하는 표준 인코딩 방식 설정\n# cl100k_base = GPT-3.5 / GPT-4 계열 공통 tokenizer\n\ntokenizer =\n# =========================================================\n# 3. 토큰 길이 계산 함수 정의\n# =========================================================\n# 역할: 문자열을 token 단위로 변환 후 길이를 반환"
+        },
+        {
+          "id": "t7-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "토큰 단위로 텍스트를 분할하는 목적으로 자료가 든 것은?",
+          "o": [
+            "문자 수를 늘리려고",
+            "LLM이 소화할 토큰 내로 맞추려고",
+            "임베딩을 생략하려고",
+            "한국어를 번역하려고"
+          ],
+          "a": 1,
+          "h": "단원 소개는 텍스트 분할의 목적을 \"LLM이 소화할 수 있을 정도의 텍스트만\" 호출하게 하는 것이라고 합니다. LLM은 정해진 토큰 이상을 받아들일 수 없으므로, 그 단위로 나누면 최대한 많은 글을 담을 수 있다고 설명합니다.",
+          "w": "LLM은 정해진 토큰 수 이상을 받을 수 없어서 토큰 기준으로 나누면 한도 안에서 최대한 많은 글을 담을 수 있습니다.",
+          "an": "10일차 토큰단위 텍스트 분할기 소개",
+          "src": "- 텍스트 분할의 목적은 LLM이 소화할 수 있을 정도의 텍스트만 호출하도록 만드는 것이다\n - LLM은 텍스트를 받아들일 때, 정해진 토큰 이상으로 소화할 수 없기때문에 글을 토큰 단위로 분할한다면 최대한 많은 글을 포함하도록 청크를 분할할 수 있다\n\n```python\n# =========================================================\n# 1. tiktoken 설치\n# =========================================================\n# 역할: OpenAI 모델 기준 토큰 단위로 텍스트를 인코딩/디코딩하기 위한 라이브러리\n# 용도: chunk size를 \"문자\"가 아니라 \"token\" 기준으로 제어할 때 사용"
+        },
+        {
+          "id": "t7-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "<code>def tiktoken_len(text): tokens = tokenizer.encode(text); return len(tokens)</code>가 반환하는 것은?",
+          "o": [
+            "텍스트의 문자 수",
+            "텍스트의 단어 수",
+            "토큰 ID 리스트",
+            "텍스트의 토큰 개수"
+          ],
+          "a": 3,
+          "h": "<code>tokenizer.encode</code>는 문자열을 token list로 바꿉니다. 함수는 그 리스트 자체가 아니라 리스트에 <code>len()</code>을 적용한 값을 돌려줍니다.",
+          "w": "encode로 만든 token list의 길이, 즉 토큰 개수를 반환합니다. 토큰 ID 리스트는 중간 결과이고, 문자 수는 len(text)입니다.",
+          "an": "10일차 토큰단위 텍스트 분할기 · 3. 토큰 길이 계산 함수",
+          "src": "# 3. 토큰 길이 계산 함수 정의\n# =========================================================\n# 역할: 문자열을 token 단위로 변환 후 길이를 반환\n# 중요성: RAG chunk size를 \"token 기준\"으로 설정할 때 사용\n\ndef tiktoken_len(text):\n\n # text → token list 변환\n tokens = tokenizer.encode(text)\n\n # token 개수 반환\n return len(tokens)"
+        },
+        {
+          "id": "t7-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "문제) 빈칸에서 토큰 기준으로 길이를 세도록 <code>length_function=</code>에 넣을 것은?",
+          "o": [
+            "tiktoken_len",
+            "len",
+            "tokenizer.encode",
+            "cosine_similarity"
+          ],
+          "a": 0,
+          "h": "빈칸 위 주석은 \"여기서는 tiktoken 기반 token 수 사용\"입니다. length_function에는 문자열을 받아 정수 길이를 돌려주는 함수가 들어가야 하며, 기본값은 문자 수를 세는 함수입니다.",
+          "w": "앞에서 정의한 tiktoken_len을 넣어야 chunk 크기가 토큰 수로 계산됩니다. len은 문자 수, tokenizer.encode는 정수가 아닌 리스트를 돌려줍니다.",
+          "an": "10일차 문제) 빈칸 채우기 · length_function",
+          "src": "# 3. 토큰 길이 계산 함수 정의\n# =========================================================\n# 역할: 문자열을 token 단위로 변환 후 길이를 반환\n# 중요성: RAG chunk size를 \"token 기준\"으로 설정할 때 사용\n\ndef tiktoken_len(text):\n\n # text → token list 변환\n tokens = tokenizer.encode(text)\n\n # token 개수 반환\n return len(tokens)\n```\n\n```python\nprint(texts[2].page_content)\n```\n\n```python\ntiktoken_len(texts[2].page_content)\n```\n\n문제) 빈칸 채우기"
+        },
+        {
+          "id": "t7-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "문제) 빈칸의 <code>chunk_overlap</code> 주석이 \"chunk 간 겹침 제거 (0이면 완전 독립 chunk)\"일 때 알맞은 값은?",
+          "o": [
+            "100",
+            "200",
+            "500",
+            "0"
+          ],
+          "a": 3,
+          "h": "overlap은 이웃 chunk끼리 겹치는 길이입니다. 주석은 겹침을 \"제거\"한다고 했고, 괄호 안에 완전히 독립된 chunk가 되는 조건값을 직접 적어 두었습니다.",
+          "w": "겹침을 없애려면 chunk_overlap=0입니다. 앞의 토큰 기반 예제도 chunk_overlap=0(overlap 없음, 명확한 분리)이었습니다.",
+          "an": "10일차 문제) 빈칸 채우기 · chunk_overlap",
+          "src": "# 역할: chunk 간 겹침 제거 (0이면 완전 독립 chunk)\n chunk_overlap= ,\n\n # -----------------------------------------\n # length_function\n # -----------------------------------------\n # 역할: chunk 길이 계산 기준 함수\n # 여기서는 tiktoken 기반 token 수 사용"
+        },
+        {
+          "id": "t7-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "tiktoken은 chunk 크기를 문자 수가 아니라 token 기준으로 제어할 때 쓴다.",
+          "a": true,
+          "h": "tiktoken 설치 셀 주석은 이 라이브러리를 \"OpenAI 모델 기준 토큰 단위로 텍스트를 인코딩/디코딩\"하는 도구라고 소개합니다. 용도 줄에서 chunk size를 무엇 기준으로 제어할 때 쓰는지 밝힙니다.",
+          "w": "맞습니다. 용도는 chunk size를 \"문자\"가 아니라 \"token\" 기준으로 제어하는 것입니다.",
+          "an": "10일차 토큰단위 텍스트 분할기 · 1. tiktoken 설치",
+          "src": "- 텍스트 분할의 목적은 LLM이 소화할 수 있을 정도의 텍스트만 호출하도록 만드는 것이다\n - LLM은 텍스트를 받아들일 때, 정해진 토큰 이상으로 소화할 수 없기때문에 글을 토큰 단위로 분할한다면 최대한 많은 글을 포함하도록 청크를 분할할 수 있다\n\n```python\n# =========================================================\n# 1. tiktoken 설치\n# =========================================================\n# 역할: OpenAI 모델 기준 토큰 단위로 텍스트를 인코딩/디코딩하기 위한 라이브러리\n# 용도: chunk size를 \"문자\"가 아니라 \"token\" 기준으로 제어할 때 사용"
+        },
+        {
+          "id": "t7-07",
+          "ty": "ox",
+          "lv": 3,
+          "game": true,
+          "p": "한국어 PDF chunk에서는 토큰 수가 항상 문자 수보다 크다.",
+          "a": false,
+          "h": "토큰 기준으로 다시 나눈 뒤 <code>texts[2]</code>의 <code>len()</code>과 <code>tiktoken_len()</code>을 함께 출력한 셀을 떠올리세요. 첫 줄은 문자 수, 둘째 줄은 토큰 수이며 두 값의 크기를 비교할 수 있습니다.",
+          "w": "틀렸습니다. 토큰 기준 분할 후 texts[2]는 956자, 881토큰으로 토큰 수가 더 작았습니다. \"항상\"이라는 단정은 실행 결과와 맞지 않습니다.",
+          "an": "10일차 문제) 빈칸 채우기 이후 실행 결과",
+          "src": "# 3. 토큰 길이 계산 함수 정의\n# =========================================================\n# 역할: 문자열을 token 단위로 변환 후 길이를 반환\n# 중요성: RAG chunk size를 \"token 기준\"으로 설정할 때 사용\n\ndef tiktoken_len(text):\n\n # text → token list 변환\n tokens = tokenizer.encode(text)\n\n # token 개수 반환\n return len(tokens)\n```\n\n```python\nprint(texts[2].page_content)"
+        },
+        {
+          "id": "t7-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "토큰 분할 요소와 의미를 연결하세요.",
+          "pairs": [
+            [
+              "tokenizer.encode",
+              "텍스트를 token list로 변환"
+            ],
+            [
+              "tiktoken_len",
+              "token 개수 반환"
+            ],
+            [
+              "cl100k_base",
+              "GPT-3.5/GPT-4 계열 tokenizer"
+            ],
+            [
+              "length_function",
+              "chunk 길이 계산 기준 함수"
+            ]
+          ],
+          "h": "tiktoken 셀의 주석은 encode를 \"text → token list 변환\", 직접 만든 함수를 \"token 개수 반환\"이라고 적습니다. 인코딩 이름은 GPT 모델 계열 공통이고, splitter 인자는 chunk 길이를 재는 함수입니다.",
+          "w": "encode로 토큰 리스트를 만들고, tiktoken_len이 그 개수를 세며, 이 함수를 length_function에 넣어 토큰 기준 분할을 합니다.",
+          "an": "10일차 토큰단위 텍스트 분할기 · 1~3",
+          "src": "# cl100k_base = GPT-3.5 / GPT-4 계열 공통 tokenizer\n\ntokenizer =\n# =========================================================\n# 3. 토큰 길이 계산 함수 정의\n# =========================================================\n# 역할: 문자열을 token 단위로 변환 후 길이를 반환\n# 중요성: RAG chunk size를 \"token 기준\"으로 설정할 때 사용\n\ndef tiktoken_len(text):\n\n # text → token list 변환\n tokens = tokenizer.encode(text)\n\n # token 개수 반환"
+        },
+        {
+          "id": "t7-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "토큰 기준 분할 문제를 푸는 순서를 맞추세요.",
+          "steps": [
+            "tiktoken 설치",
+            "tokenizer 초기화",
+            "tiktoken_len 함수 정의",
+            "토큰 기준 splitter 설정",
+            "split_documents로 pages 분할"
+          ],
+          "h": "단원은 설치 셀 → 임포트와 tokenizer 초기화 → 토큰 길이 함수 정의 순으로 준비한 뒤 문제 셀로 넘어갑니다. 문제 셀은 1. splitter 설정 → 2. PDF Document 분할 순서입니다.",
+          "w": "설치 → 인코딩 초기화 → 길이 함수 정의 → length_function에 연결한 splitter 설정 → pages 분할 순서입니다.",
+          "an": "10일차 토큰단위 텍스트 분할기 · 문제) 빈칸 채우기",
+          "src": "# 2. tokenizer 초기화\n# =========================================================\n# 역할: GPT 모델에서 사용하는 표준 인코딩 방식 설정\n# cl100k_base = GPT-3.5 / GPT-4 계열 공통 tokenizer\n\ntokenizer =\n# =========================================================\n# 3. 토큰 길이 계산 함수 정의\n# =========================================================\n# 역할: 문자열을 token 단위로 변환 후 길이를 반환\n# 중요성: RAG chunk size를 \"token 기준\"으로 설정할 때 사용"
+        },
+        {
+          "id": "t7-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "PDF의 <code>texts[2]</code>에 대한 실행 결과로 옳은 것을 모두 고르세요.",
+          "o": [
+            "문자 기준 분할 때 888토큰",
+            "토큰 기준 분할 후 956자",
+            "토큰 기준 분할 후 881토큰",
+            "토큰 기준 분할 후 1000토큰 초과",
+            "문자 기준 분할 때 22자"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "문자 기준(1000/200)으로 나눈 texts[2]는 char_list에서 962자였고, tiktoken_len 셀이 그 토큰 수를 출력했습니다. 토큰 기준으로 다시 나눈 뒤에는 문자 수와 토큰 수를 두 줄로 출력했으며, 토큰 수 목록의 최댓값은 998이었습니다.",
+          "w": "문자 기준 분할 때 texts[2]는 962자·888토큰, 토큰 기준 분할 후에는 956자·881토큰이었습니다. 22자는 다른 chunk(texts[1])의 길이이고, 1000토큰을 넘는 chunk는 없었습니다.",
+          "an": "10일차 토큰단위 텍스트 분할기 · 문제) 빈칸 채우기 실행 결과",
+          "src": "# 3. 토큰 길이 계산 함수 정의\n# =========================================================\n# 역할: 문자열을 token 단위로 변환 후 길이를 반환\n# 중요성: RAG chunk size를 \"token 기준\"으로 설정할 때 사용\n\ndef tiktoken_len(text):\n\n # text → token list 변환\n tokens = tokenizer.encode(text)\n\n # token 개수 반환\n return len(tokens)\n```\n\n```python\nprint(texts[2].page_content)"
+        }
+      ]
+    }
+  ]
+}

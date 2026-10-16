@@ -1,0 +1,201 @@
+{
+ "04-voice-ai/day01.json": [
+  "04-voice-ai/day01/*.pdf",
+  "04-voice-ai/day01/*.ipynb",
+  "04-voice-ai/day01/worksheet.html"
+ ],
+ "04-voice-ai/day02.json": [
+  "04-voice-ai/day02/*.pdf",
+  "04-voice-ai/day02/*.ipynb",
+  "04-voice-ai/day02/worksheet.html"
+ ],
+ "04-voice-ai/day03.json": [
+  "04-voice-ai/day03/*.pdf",
+  "04-voice-ai/day03/*.ipynb",
+  "04-voice-ai/day03/worksheet.html"
+ ],
+ "04-voice-ai/day04.json": [
+  "04-voice-ai/day04/*.pdf",
+  "04-voice-ai/day04/*.ipynb",
+  "04-voice-ai/day04/worksheet.html"
+ ],
+ "04-voice-ai/day05.json": [
+  "04-voice-ai/day05/*.pdf",
+  "04-voice-ai/day05/*.ipynb",
+  "04-voice-ai/day05/worksheet.html"
+ ],
+ "04-voice-ai/day06.json": [
+  "04-voice-ai/day06/*.pdf",
+  "04-voice-ai/day06/*.ipynb",
+  "04-voice-ai/day06/worksheet.html"
+ ],
+ "04-voice-ai/day07.json": [
+  "04-voice-ai/day07/*.pdf",
+  "04-voice-ai/day07/*.ipynb",
+  "04-voice-ai/day07/worksheet.html"
+ ],
+ "05-langchain-agent/day01.json": [
+  "05-langchain-agent/day01/*.ipynb"
+ ],
+ "05-langchain-agent/day02.json": [
+  "05-langchain-agent/day02/*.ipynb"
+ ],
+ "05-langchain-agent/day03.json": [
+  "05-langchain-agent/day03/*.ipynb"
+ ],
+ "05-langchain-agent/day04.json": [
+  "05-langchain-agent/day04/*.ipynb"
+ ],
+ "05-langchain-agent/day05.json": [
+  "05-langchain-agent/day05/*.ipynb"
+ ],
+ "05-langchain-agent/day06.json": [
+  "05-langchain-agent/day06/*.ipynb"
+ ],
+ "05-langchain-agent/day07.json": [
+  "05-langchain-agent/day07/*.ipynb"
+ ],
+ "05-langchain-agent/day08.json": [
+  "05-langchain-agent/day08/*.ipynb"
+ ],
+ "05-langchain-agent/day09.json": [
+  "05-langchain-agent/day09/*.ipynb"
+ ],
+ "05-langchain-agent/day10.json": [
+  "05-langchain-agent/day10/*.ipynb"
+ ],
+ "05-langchain-agent/day11.json": [
+  "05-langchain-agent/day11/*.ipynb"
+ ],
+ "05-langchain-agent/day12.json": [
+  "05-langchain-agent/day12/*.ipynb"
+ ],
+ "05-langchain-agent/day13.json": [
+  "05-langchain-agent/day13/*.ipynb"
+ ],
+ "05-langchain-agent/day14.json": [
+  "05-langchain-agent/day14/*.ipynb"
+ ],
+ "06-ai-openVino/05-opencv.json": [
+  "06-ai-openVino/OpenCV.pdf"
+ ],
+ "07-physical-ai/01-jetson-ubuntu.json": [
+  "07-NEPES_physicalAI_자율주행자동차/____/1___v2.pdf"
+ ],
+ "07-physical-ai/02-python.json": [
+  "07-NEPES_physicalAI_자율주행자동차/02.Python/*.ipynb"
+ ],
+ "07-physical-ai/03-cpp.json": [
+  "07-NEPES_physicalAI_자율주행자동차/03.C++/*.ipynb"
+ ],
+ "07-physical-ai/04-llm-training.json": [
+  "07-NEPES_physicalAI_자율주행자동차/____/2__.pdf",
+  "07-NEPES_physicalAI_자율주행자동차/04.LLM/*.ipynb"
+ ],
+ "07-physical-ai/05-llm-apps.json": [
+  "07-NEPES_physicalAI_자율주행자동차/____/_____2___v2.pdf",
+  "07-NEPES_physicalAI_자율주행자동차/04.LLM_v2/*.ipynb"
+ ],
+ "07-physical-ai/06-vlm.json": [
+  "07-NEPES_physicalAI_자율주행자동차/05.VLM_v2/*.ipynb",
+  "07-NEPES_physicalAI_자율주행자동차/05.VLM/02_*.ipynb",
+  "07-NEPES_physicalAI_자율주행자동차/05.VLM/04_*.ipynb",
+  "07-NEPES_physicalAI_자율주행자동차/____/_____2___v2.pdf"
+ ],
+ "07-physical-ai/07-opencv-mediapipe.json": [
+  "07-NEPES_physicalAI_자율주행자동차/____/_____3___v2.pdf",
+  "07-NEPES_physicalAI_자율주행자동차/06.OpenCV_v2/*.ipynb",
+  "07-NEPES_physicalAI_자율주행자동차/07.Mediapipe_v2/*.ipynb"
+ ],
+ "07-physical-ai/08-ros.json": [
+  "07-NEPES_physicalAI_자율주행자동차/08.ROS_v2/*.ipynb",
+  "07-NEPES_physicalAI_자율주행자동차/____/_____3___v2.pdf"
+ ],
+ "07-physical-ai/09-pseudo-vla.json": [
+  "07-NEPES_physicalAI_자율주행자동차/09.Pseudo-VLA_v2/*.ipynb",
+  "07-NEPES_physicalAI_자율주행자동차/____/_____4___v2.pdf"
+ ],
+ "07-physical-ai/10-vla.json": [
+  "07-NEPES_physicalAI_자율주행자동차/10.VLA_v2/*.ipynb",
+  "07-NEPES_physicalAI_자율주행자동차/____/_____5___v2.pdf"
+ ],
+ "08-embedded-sw/01-python.json": [
+  "08-AI_CAMPUS-main/python-day*/*.ipynb",
+  "08-AI_CAMPUS-main/python-day*/*.pdf"
+ ],
+ "08-embedded-sw/02-c.json": [
+  "08-AI_CAMPUS-main/C-day*/*.pdf",
+  "08-AI_CAMPUS-main/C-day2/C_Day2_lecture.md"
+ ],
+ "08-embedded-sw/03-computer-architecture.json": [
+  "08-AI_CAMPUS-main/컴퓨터구조_Day*.pdf"
+ ],
+ "08-embedded-sw/04-os.json": [
+  "08-AI_CAMPUS-main/os-day*/*.pdf",
+  "08-AI_CAMPUS-main/OS/운영체제활용교안.pdf"
+ ],
+ "08-embedded-sw/05-linux.json": [
+  "08-AI_CAMPUS-main/Linux-day*/*.pdf",
+  "08-AI_CAMPUS-main/Linux-day1/*.md",
+  "08-AI_CAMPUS-main/Linux-day*/src/**/*.c",
+  "08-AI_CAMPUS-main/Linux-day*/src/**/*.sh",
+  "08-AI_CAMPUS-main/Linux-day*/src/**/Makefile"
+ ],
+ "08-embedded-sw/06-mcu.json": [
+  "08-AI_CAMPUS-main/MCU-day*/*.pdf",
+  "08-AI_CAMPUS-main/MCU-day*/*.md"
+ ],
+ "08-embedded-sw/07-embedded-io.json": [
+  "08-AI_CAMPUS-main/EmbeddedIO-day*/*.pdf",
+  "08-AI_CAMPUS-main/EmbeddedIO-day*/*.md",
+  "08-AI_CAMPUS-main/EmbeddedIO-day*/src/**/*.c",
+  "08-AI_CAMPUS-main/EmbeddedIO-day*/src/**/*.py",
+  "08-AI_CAMPUS-main/EmbeddedIO-day*/src/**/*.sh"
+ ],
+ "09-android-framework/day1.json": [
+  "09-android_framework-main/Day1/Day1.pdf",
+  "09-android_framework-main/Day1/md/*.md",
+  "09-android_framework-main/Day1/*.md"
+ ],
+ "09-android-framework/day2.json": [
+  "09-android_framework-main/Day2/Day2.pdf",
+  "09-android_framework-main/Day2/md/*.md"
+ ],
+ "09-android-framework/day3.json": [
+  "09-android_framework-main/Day3/Day3.pdf",
+  "09-android_framework-main/Day3/md/*.md",
+  "09-android_framework-main/Day3/md/md/*.md"
+ ],
+ "09-android-framework/day4.json": [
+  "09-android_framework-main/Day4/Day4.pdf",
+  "09-android_framework-main/Day4/md/*.md"
+ ],
+ "10-go-programming/day1.json": [
+  "10-go_programming-main/Go언어프로그래밍_1일차*.md",
+  "10-go_programming-main/day1/**/*.go",
+  "10-go_programming-main/day1/**/*.c"
+ ],
+ "10-go-programming/day2.json": [
+  "10-go_programming-main/Go언어프로그래밍_2일차*.md",
+  "10-go_programming-main/day2/**/*.go",
+  "10-go_programming-main/day2/**/*.c",
+  "10-go_programming-main/go_cobra_step_by_step.md",
+  "10-go_programming-main/go_benchmark_practice.md"
+ ],
+ "10-go-programming/day3.json": [
+  "10-go_programming-main/Go언어프로그래밍_3일차*.md",
+  "10-go_programming-main/day3/**/*.go",
+  "10-go_programming-main/day3/**/*.c"
+ ],
+ "10-go-programming/day4.json": [
+  "10-go_programming-main/Go언어프로그래밍_4일차*.md",
+  "10-go_programming-main/day4/**/*.go",
+  "10-go_programming-main/day4/**/*.c"
+ ],
+ "10-go-programming/day5.json": [
+  "10-go_programming-main/Go언어프로그래밍_5일차*.md",
+  "10-go_programming-main/day5/**/*.go",
+  "10-go_programming-main/day5/**/*.c",
+  "10-go_programming-main/예제소스/**/*.go"
+ ]
+}

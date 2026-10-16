@@ -1,0 +1,781 @@
+{
+  "id": "lc-d02",
+  "code": "LC2",
+  "title": "LangChain 2일차 · LangGraph 어시스턴트와 LCEL 프롬프트 실습",
+  "subtitle": "LangGraph 어시스턴트 · stream·MessagePromptTemplate · LCEL 실습 문제",
+  "course": "05 · LangChain · RAG · Agent",
+  "source": "05-langchain-agent/day02/2일차_LangChain_프롬프트-2_new_배포.ipynb",
+  "salt": "lc-d02",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "LangGraph 어시스턴트 기초",
+      "ref": "2일차 §LangGraph + LangChain OpenAI Assistant · 그래프 시각화",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "LangGraph는 순차적인 체인 대신 어떤 구조를 설계할 때 쓰나요?",
+          "o": [
+            "단일 프롬프트 템플릿",
+            "상태 기반 순환 그래프",
+            "문자열 결합 템플릿",
+            "출력 파서 체인"
+          ],
+          "a": 1,
+          "h": "자료는 LangGraph를 LangChain의 에이전트 기능을 한 단계 발전시킨 라이브러리로 소개합니다. 순차적으로 흐르는 체인과 달리, 상태를 유지하면서 노드 사이를 다시 돌아갈 수 있는(Cycle) 구조를 설계합니다. 프롬프트·파서 같은 LangChain 부품과 구분하세요.",
+          "w": "LangGraph는 순차 체인이 아닌 상태 기반의 순환(Cycle) 그래프 구조를 설계할 때 쓰는 라이브러리입니다. 나머지는 LangChain 프롬프트·파서 쪽 개념입니다.",
+          "an": "2일차 §LangGraph + LangChain OpenAI 를 활용한 Assistant",
+          "src": "- LangGraph는 LangChain의 에이전트 기능을 한 단계 더 발전시킨 라이브러리로, 순차적인 체인(Chain)이 아닌 상태 기반의 순환(Cycle) 그래프 구조를 설계할 때 사용합니다."
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>langgraph.graph</code>에서 그래프의 시작점과 끝점으로 가져오는 상수는?",
+          "o": [
+            "BEGIN · STOP",
+            "HEAD · TAIL",
+            "START · END",
+            "IN · OUT"
+          ],
+          "a": 2,
+          "h": "어시스턴트 코드는 <code>from langgraph.graph import StateGraph, …, …</code>로 그래프 빌더와 두 상수를 가져옵니다. 주석 '시작점 -> 챗봇 -> 종료 순서로 연결'에서 두 상수가 각각 시작과 종료를 뜻합니다. 영어 '시작'과 '끝'에 해당하는 대문자 단어입니다.",
+          "w": "<code>from langgraph.graph import StateGraph, START, END</code>로 가져와 '시작점 → 챗봇 → 종료' 순서로 연결합니다.",
+          "an": "2일차 §LangGraph Assistant · import",
+          "src": "from langgraph.graph import StateGraph, START, END\nfrom langgraph.graph.message import add_messages"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "State 정의에 <code>add_messages</code>를 붙이는 목적은?",
+          "o": [
+            "대화 메시지를 누적 저장",
+            "마지막 메시지로 덮어쓰기",
+            "메시지를 문자열로 변환",
+            "오래된 메시지 자동 삭제"
+          ],
+          "a": 0,
+          "h": "State 정의 주석은 '대화 메시지를 누적 저장'이라고 적습니다. add_messages는 노드가 돌려준 새 메시지를 기존 목록에 덮어쓰지 않고 이어 붙이는 방식으로 messages를 갱신합니다. 대화 기록이 쌓이는 쪽인지 지워지는 쪽인지 생각하세요.",
+          "w": "주석대로 State는 '대화 메시지를 누적 저장'합니다. add_messages는 새 메시지를 기존 목록에 더해 대화가 이어지게 합니다.",
+          "an": "2일차 §LangGraph Assistant · 2. 상태(State) 정의",
+          "src": "# 2. 상태(State) 정의: 대화 메시지를 누적 저장\nclass State(TypedDict):"
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>graph = graph_builder.compile()</code>의 역할은?",
+          "o": [
+            "그래프를 이미지로 저장",
+            "노드를 하나 추가",
+            "상태 클래스를 정의",
+            "실행 가능한 앱으로 변환"
+          ],
+          "a": 3,
+          "h": "그래프 코드는 빌더를 만들고 노드와 엣지를 추가한 뒤, 마지막에 compile()을 호출해 graph 변수에 담습니다. 주석은 이 단계를 '실행 가능한 ○○으로 변환'이라고 설명하며, 그 뒤에야 invoke로 실행합니다. 노드 추가나 이미지 저장은 다른 단계입니다.",
+          "w": "compile()은 구성한 그래프를 실행 가능한 앱으로 변환합니다. 노드 추가는 add_node, 이미지 저장은 시각화 단계에서 합니다.",
+          "an": "2일차 §LangGraph Assistant · 그래프 컴파일",
+          "src": "# 노드 추가 (챗봇 노드)\n\n# 시작점 -> 챗봇 -> 종료 순서로 연결\n\n# 그래프 컴파일 (실행 가능한 앱으로 변환)"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "그래프 실행 후 <code>print(result['messages'][-1].content)</code>가 출력하는 것은?",
+          "o": [
+            "처음 보낸 사용자 질문",
+            "시스템 메시지 내용",
+            "마지막 메시지인 모델 응답",
+            "누적 메시지의 개수"
+          ],
+          "a": 2,
+          "h": "add_messages 덕분에 result['messages']에는 사용자 질문과 모델 응답이 차례로 쌓입니다. 파이썬에서 인덱스 -1은 리스트의 맨 끝 원소를 가리킵니다. 셀 출력에 실제로 찍힌 문장이 누구의 말이었는지 떠올리세요.",
+          "w": "messages는 누적된 대화 목록이고 [-1]은 마지막 원소, 즉 chatbot 노드가 만든 모델 응답입니다. 셀 출력에도 모델의 답변 문장이 나왔습니다.",
+          "an": "2일차 §LangGraph Assistant · 6. 실행 · 셀 출력",
+          "src": "# 6. 실행\nfrom langchain_core.messages import HumanMessage\n\nmessages =\n\nresult =\n\nprint(result[\"messages\"][-1].content)"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "LangGraph는 도구 사용·조건부 분기·상태 유지가 필요한 복잡한 어시스턴트에 적합하다.",
+          "a": true,
+          "h": "자료는 LangGraph가 단순 챗봇을 넘어 '도구 사용(Tool Use)', '조건부 분기(Conditional Branching)', '상태 유지(State Management)'가 필요한 복잡한 어시스턴트를 만들 때 최적이라고 설명합니다. 문장의 세 요소가 이 목록과 같은지 확인하세요.",
+          "w": "맞습니다. 자료는 도구 사용(Tool Use), 조건부 분기, 상태 유지가 필요한 복잡한 어시스턴트를 만들 때 LangGraph가 최적이라고 설명합니다.",
+          "an": "2일차 §LangGraph + LangChain OpenAI 를 활용한 Assistant",
+          "src": "- 단순 챗봇을 넘어, '도구 사용(Tool Use)', '조건부 분기(Conditional Branching)', '상태 유지(State Management)'가 필요한 복잡한 어시스턴트를 만들 때 최적입니다."
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "graphviz 코드에서 <code>dot.attr(rankdir='LR')</code>를 쓰면 흐름이 세로(위→아래)로 배치된다.",
+          "a": false,
+          "h": "graphviz 셀 주석은 rankdir='LR'이 흐름을 'Left-to-Right'로 배치해, 복잡한 에이전트 로직이 늘어날 때 가독성을 높인다고 설명합니다. 왼쪽에서 오른쪽으로 가는 배치가 가로인지 세로인지 생각하세요.",
+          "w": "틀렸습니다. rankdir='LR'은 흐름을 가로(왼쪽→오른쪽)로 배치해 복잡한 에이전트 로직이 늘어날 때 가독성을 높입니다.",
+          "an": "2일차 §graphviz 시각화 · 스타일 설정 주석",
+          "src": "# rankdir='LR': 흐름을 가로로(Left-to-Right) 배치하여,\n#복잡한 에이전트 로직이 추가될 때 가독성을 훨씬 높여줍니다.\n\n#dot.attr(rankdir='LR') ##### 해제"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "LangGraph 어시스턴트 코드의 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "StateGraph",
+              "워크플로(그래프 빌더) 생성"
+            ],
+            [
+              "chatbot 함수",
+              "메시지를 받아 응답을 만드는 노드"
+            ],
+            [
+              "compile()",
+              "실행 가능한 앱으로 변환"
+            ],
+            [
+              "dot.render()",
+              "그래프 이미지를 파일로 저장"
+            ]
+          ],
+          "h": "LangGraph 코드는 그래프 빌더를 만들고, State를 받아 모델 응답을 돌려주는 노드 함수를 추가하며, 컴파일로 실행 가능한 형태를 얻습니다. 별도의 graphviz 셀은 Digraph를 그린 뒤 render()로 assistant_graph.png를 남깁니다. 각 요소가 만들기·노드·실행 준비·저장 중 무엇인지 나눠 보세요.",
+          "w": "StateGraph로 그래프를 만들고, chatbot 노드가 응답을 생성하며, compile()로 앱을 만들고, graphviz의 render()로 assistant_graph.png를 저장합니다.",
+          "an": "2일차 §LangGraph Assistant · graphviz 시각화",
+          "src": "# 4. 노드 함수: 모델이 메시지를 받아 응답을 생성\ndef chatbot(state: State):\n\n# 5. 그래프 구성 (Workflow 생성)\ngraph_builder =\n\n# 노드 추가 (챗봇 노드)\n\n# 시작점 -> 챗봇 -> 종료 순서로 연결\n\n# 그래프 컴파일 (실행 가능한 앱으로 변환)"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "LangGraph 어시스턴트를 만드는 순서를 맞추세요.",
+          "steps": [
+            "State(TypedDict) 정의",
+            "chatbot 노드 함수 작성",
+            "StateGraph 생성 후 노드 추가",
+            "START → chatbot → END 연결",
+            "compile()로 앱 변환 후 실행"
+          ],
+          "h": "노드 함수는 <code>chatbot(state: State)</code>처럼 State를 입력으로 받으므로 상태 정의가 먼저 필요합니다. 그다음 빌더에 노드를 추가하고, 시작점→챗봇→종료로 엣지를 연결한 뒤 컴파일해야 실행할 수 있습니다. 주석 번호 2~6의 흐름을 따르세요.",
+          "w": "노드 함수는 State를 입력으로 받으므로 상태를 먼저 정의합니다. 그래프에 노드를 추가하고 엣지를 이은 뒤 compile()해야 invoke로 실행할 수 있습니다.",
+          "an": "2일차 §LangGraph Assistant · 코드 주석 2~6",
+          "src": "# 2. 상태(State) 정의: 대화 메시지를 누적 저장\nclass State(TypedDict):\n\n# 3. 모델 설정\nmodel = ChatOpenAI(model=\"gpt-4o\", temperature=0.7)\n\n# 4. 노드 함수: 모델이 메시지를 받아 응답을 생성\ndef chatbot(state: State):\n\n# 5. 그래프 구성 (Workflow 생성)\ngraph_builder =\n\n# 노드 추가 (챗봇 노드)\n\n# 시작점 -> 챗봇 -> 종료 순서로 연결\n\n# 그래프 컴파일 (실행 가능한 앱으로 변환)"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "2일차에서 그래프 구조를 눈으로 확인하는 방법으로 소개된 것을 모두 고르세요.",
+          "o": [
+            "Mermaid 출력을 뷰어에 붙여 넣기",
+            "graphviz로 노드·엣지 직접 그리기",
+            "dot.render()로 PNG 저장",
+            "ChatPromptTemplate으로 그리기",
+            "StrOutputParser로 이미지 생성"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "2일차는 그래프를 Mermaid 텍스트로 출력해 Mermaid 뷰어 사이트에 붙여 보는 셀과, graphviz.Digraph로 노드·엣지를 정의하고 dot.render()로 PNG를 저장해 출력하는 셀을 둡니다. 프롬프트 템플릿과 출력 파서는 텍스트를 다루는 도구입니다. 그림을 만드는 도구만 고르세요.",
+          "w": "Mermaid 출력을 뷰어 사이트에 붙여 넣거나, graphviz.Digraph로 노드·엣지를 정의하고 render()로 PNG를 저장합니다. 프롬프트 템플릿과 출력 파서는 시각화 도구가 아닙니다.",
+          "an": "2일차 §그래프 시각화 (Mermaid) · graphviz 셀",
+          "src": "# 2. 노드 정의 (형태와 색상 추가)\n\n# 3. 엣지 연결\n\n# 4. 렌더링 및 출력\nfilename = dot.render(filename='assistant_graph', cleanup=True)\nprint('saved image : ', filename)"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "stream·MessagePromptTemplate",
+      "ref": "2일차 §legacy ChatPromptTemplate · chain.stream() · MessagePromptTemplate",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "invoke()와 달리 응답을 청크 단위로 받아 실시간 처리하는 메서드는?",
+          "o": [
+            "batch()",
+            "invoke()",
+            "stream()",
+            "format()"
+          ],
+          "a": 2,
+          "h": "자료는 응답을 한 번에 받는 invoke()와 달리, 응답을 청크(chunk) 단위로 받아 실시간으로 처리하는 메서드를 소개합니다. 이 메서드는 긴 응답이나 빠른 피드백이 필요할 때 유용합니다. 여러 입력을 한꺼번에 처리하는 메서드와 헷갈리지 마세요.",
+          "w": "chain.stream()은 응답을 청크(chunk) 단위로 스트리밍합니다. invoke()는 응답을 한 번에 받습니다.",
+          "an": "2일차 §LangChain chain.stream() 활용 예제",
+          "src": "chain.stream()은 응답을 한 번에 받는 invoke()와 달리, 응답을 청크(chunk) 단위로 스트리밍하여 실시간으로 처리할 수 있게 해줍니다."
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "<code>('system', …), ('user', '{user_input}')</code> 템플릿의 <code>format_messages(user_input=…)</code> 결과는?",
+          "o": [
+            "SystemMessage·HumanMessage 리스트",
+            "두 메시지를 합친 문자열",
+            "SystemMessage·AIMessage 리스트",
+            "모델이 생성한 답변 문자열"
+          ],
+          "a": 0,
+          "h": "format_messages는 모델을 부르지 않고 템플릿 변수만 채워 메시지 객체들을 만듭니다. 'system' 튜플은 시스템 메시지가, 'user' 튜플은 사용자(Human) 메시지가 됩니다. 셀 출력은 대괄호로 감싼 두 객체였습니다.",
+          "w": "셀 출력은 [SystemMessage(…), HumanMessage(…)] 리스트입니다. format_messages는 모델을 부르지 않으므로 답변이 아니며, 'user' 튜플은 HumanMessage가 됩니다.",
+          "an": "2일차 §legacy ChatPromptTemplate · 셀 출력",
+          "src": "chat_prompt = ChatPromptTemplate.from_messages([\n ('system', '이 시스템은 인공지능 질문에 딥변을 할 수 있다'), # 시스템 메시지 정의\n ('user', '{user_input}'), # 사용자 메시지 템플릿 정의\n])\n\nmessages = chat_prompt.format_messages(user_input"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "모델의 성격·규칙·작업 제약 조건을 설정하는 템플릿 클래스는?",
+          "o": [
+            "HumanMessagePromptTemplate",
+            "AIMessagePromptTemplate",
+            "PromptTemplate",
+            "SystemMessagePromptTemplate"
+          ],
+          "a": 3,
+          "h": "자료는 두 가지 MessagePromptTemplate을 소개합니다. 하나는 모델의 성격·규칙·작업 제약을 정하는 '시스템 역할' 템플릿이고, 다른 하나는 사용자 입력 변수를 받아 모델에 전달하는 '사용자 역할' 템플릿입니다. 규칙을 정하는 쪽이 어느 클래스인지 고르세요.",
+          "w": "SystemMessagePromptTemplate은 모델의 성격·규칙·제약을 정하는 시스템 역할 템플릿입니다. HumanMessagePromptTemplate은 사용자 입력을 모델에 전달합니다.",
+          "an": "2일차 §MessagePromptTemplate",
+          "src": "- SystemMessagePromptTemplate: 모델의 성격, 규칙, 작업의 제약 조건을 설정하는 시스템 역할을 위한 템플릿입니다.\n\n- HumanMessagePromptTemplate: 사용자의 입력값(변수)을 받아 모델에게 전달하는 사용자 역할을 위한 템플릿입니다."
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "최신 LangChain이 MessagePromptTemplate 직접 생성 대신 권장하는 방식은?",
+          "o": [
+            "문자열 + 연산으로 결합",
+            "from_messages 안의 튜플",
+            "LLMChain으로 감싸기",
+            "format_prompt() 호출"
+          ],
+          "a": 1,
+          "h": "튜플 방식 셀의 주석은 MessagePromptTemplate을 직접 인스턴스화하기보다 ChatPromptTemplate.from_messages 안에서 더 간편한 형태로 정의하라고 권장합니다. 역할 문자열과 내용 문자열을 괄호로 묶은 형태입니다. 문자열 + 결합이나 LLMChain은 이전 방식입니다.",
+          "w": "자료는 MessagePromptTemplate을 직접 인스턴스화하기보다 <code>ChatPromptTemplate.from_messages</code> 안에서 튜플로 간편하게 정의하라고 권장합니다.",
+          "an": "2일차 §MessagePromptTemplate · 튜플 방식 권장 셀",
+          "src": "# 최신 LangChain에서는 MessagePromptTemplate을 직접 인스턴스화하기보다,\n\n# ChatPromptTemplate.from_messages 내에서 튜플 형태로 간편하게 정의하는 것을 권장합니다."
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "튜플 방식 빈칸 셀의 출력은 아래와 같습니다. 변수 이름을 code라고 할 때 human 튜플로 알맞은 것은? 출력: <code>HumanMessage(content=\"다음 코드에 대해 설명해줘: print('Hello World')\")</code>",
+          "o": [
+            "('human', '{code}')",
+            "('ai', '다음 코드에 대해 설명해줘: {code}')",
+            "('system', '다음 코드에 대해 설명해줘: {code}')",
+            "('human', '다음 코드에 대해 설명해줘: {code}')"
+          ],
+          "a": 3,
+          "h": "출력 메시지가 HumanMessage라는 것은 튜플의 역할이 사용자 쪽이라는 뜻입니다. 또 출력 내용에는 변수 값 앞에 고정 문구 '다음 코드에 대해 설명해줘: '가 붙어 있습니다. 역할과 고정 문구가 모두 출력과 일치하는 보기를 고르세요.",
+          "w": "HumanMessage이므로 역할은 'human'이고, 고정 문구 '다음 코드에 대해 설명해줘: ' 뒤에 변수가 들어가야 출력과 같아집니다. '{code}'만 쓰면 고정 문구가 빠집니다.",
+          "an": "2일차 §MessagePromptTemplate · 템플릿 테스트 셀 출력",
+          "src": "# 최신 LangChain에서는 MessagePromptTemplate을 직접 인스턴스화하기보다,\n\n# ChatPromptTemplate.from_messages 내에서 튜플 형태로 간편하게 정의하는 것을 권장합니다.\nfrom langchain_core.prompts import ChatPromptTemplate\n\n# 1. 시스템 템플릿과 사용자 템플릿을 결합하여 구성\nchat_prompt =\n\n # SystemMessagePromptTemplate 역할\n\n\n # HumanMessagePromptTemplate 역할"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "chain.stream()은 긴 응답을 받거나 사용자에게 더 빠른 피드백을 줄 때 유용하다.",
+          "a": true,
+          "h": "stream()은 응답을 청크 단위로 흘려보내 실시간으로 처리하게 해 줍니다. 자료는 이 방식이 긴 응답을 받거나 사용자에게 더 빠른 피드백을 제공할 때 특히 유용하다고 설명합니다. 문장이 이 설명과 같은지 확인하세요.",
+          "w": "맞습니다. 자료는 stream()이 긴 응답이나 빠른 피드백이 필요할 때 특히 유용하다고 설명합니다.",
+          "an": "2일차 §LangChain chain.stream() 활용 예제",
+          "src": "chain.stream()은 응답을 한 번에 받는 invoke()와 달리, 응답을 청크(chunk) 단위로 스트리밍하여 실시간으로 처리할 수 있게 해줍니다. 이는 특히 긴 응답을 받거나, 사용자에게 더 빠른 피드백을 제공할 때 유용합니다."
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>SystemMessagePromptTemplate</code>을 쓰는 legacy 방식만 시스템 역할을 지정할 수 있고, 튜플 방식은 지정할 수 없다.",
+          "a": false,
+          "h": "튜플 방식은 <code>('system', '…')</code>, <code>('human', '…')</code>처럼 첫 원소에 역할을 적습니다. 자료는 이 방식이 SystemMessagePromptTemplate·HumanMessagePromptTemplate의 역할을 그대로 대신한다고 주석으로 표시합니다. 튜플로 시스템 역할을 줄 수 있는지 생각하세요.",
+          "w": "틀렸습니다. 튜플 방식도 <code>('system', '…')</code>로 시스템 역할을 그대로 지정합니다. 그래서 최신 LangChain은 더 간편한 튜플 방식을 권장합니다.",
+          "an": "2일차 §MessagePromptTemplate · 튜플 방식 권장 셀",
+          "src": "# 최신 LangChain에서는 MessagePromptTemplate을 직접 인스턴스화하기보다,\n\n# ChatPromptTemplate.from_messages 내에서 튜플 형태로 간편하게 정의하는 것을 권장합니다.\nfrom langchain_core.prompts import ChatPromptTemplate\n\n# 1. 시스템 템플릿과 사용자 템플릿을 결합하여 구성\nchat_prompt =\n\n # SystemMessagePromptTemplate 역할\n\n\n # HumanMessagePromptTemplate 역할"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "메서드·구성 요소와 하는 일을 연결하세요.",
+          "pairs": [
+            [
+              "invoke()",
+              "응답을 한 번에 받는다"
+            ],
+            [
+              "stream()",
+              "응답을 청크 단위로 받는다"
+            ],
+            [
+              "format_messages()",
+              "메시지 객체 리스트를 만든다"
+            ],
+            [
+              "StrOutputParser()",
+              "모델 응답을 문자열로 바꾼다"
+            ]
+          ],
+          "h": "invoke는 응답을 한 번에, stream은 조각으로 받습니다. format_messages는 모델 호출 없이 템플릿을 채워 메시지 객체들을 만들고, StrOutputParser는 체인 끝에서 모델 응답을 텍스트로 바꿉니다. 각 이름이 하는 일을 결과 형태로 구분하세요.",
+          "w": "invoke는 한 번에, stream은 청크로 응답을 받습니다. format_messages는 모델 호출 없이 메시지 리스트를 만들고, StrOutputParser는 응답을 텍스트로 바꿉니다.",
+          "an": "2일차 §chain.stream() · legacy ChatPromptTemplate",
+          "src": "chain.stream()은 응답을 한 번에 받는 invoke()와 달리, 응답을 청크(chunk) 단위로 스트리밍하여 실시간으로 처리할 수 있게 해줍니다. 이는 특히 긴 응답을 받거나, 사용자에게 더 빠른 피드백을 제공할 때 유용합니다."
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "chain.stream() 예제 코드의 실행 흐름을 맞추세요.",
+          "steps": [
+            "ChatOpenAI 모델 설정",
+            "from_messages로 프롬프트 정의",
+            "prompt | llm | parser 체인 구성",
+            "'Streaming 응답:' 출력",
+            "stream()으로 받은 청크 출력",
+            "'스트리밍 완료.' 출력"
+          ],
+          "h": "stream 예제는 모델과 프롬프트를 준비하고 LCEL 체인을 만든 뒤, 안내 문구 'Streaming 응답:'을 찍고, 청크를 받는 대로 출력한 다음 완료 문구를 찍습니다. 셀 출력도 안내 문구 → 본문 → 완료 문구 순으로 나왔습니다.",
+          "w": "체인을 만든 뒤 'Streaming 응답:'을 찍고, 청크를 받는 대로 출력한 다음 '스트리밍 완료.'를 찍습니다. 셀 출력도 이 순서로 나왔습니다.",
+          "an": "2일차 §LangChain chain.stream() 활용 예제 · 셀 출력",
+          "src": "# LCEL 체인 구성\nchain = chat_prompt | llm | StrOutputParser()\nprint(\"Streaming 응답:\")\nprint(\"\\n\\n스트리밍 완료.\")"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "System·Human MessagePromptTemplate 예제 셀에 대해 옳은 것을 모두 고르세요.",
+          "o": [
+            "모델은 gpt-4o-mini이다",
+            "temperature는 0.3이다",
+            "invoke 입력 키는 user_input이다",
+            "결과는 AIMessage 객체로 출력된다",
+            "체인에 RunnableLambda가 있다"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "예제 셀의 1번 줄은 <code>ChatOpenAI(model='gpt-4o-mini', temperature=0.3)</code>, 4번 줄은 <code>chain.invoke({'user_input': …})</code>입니다. 체인은 <code>chat_prompt | llm | StrOutputParser()</code>라서 출력이 문자열로 바뀝니다. 코드에 실제로 있는 내용만 고르세요.",
+          "w": "<code>ChatOpenAI(model='gpt-4o-mini', temperature=0.3)</code>이고 <code>chain.invoke({'user_input': …})</code>로 실행합니다. 체인 끝에 StrOutputParser가 있어 결과는 문자열이며 RunnableLambda는 쓰지 않습니다.",
+          "an": "2일차 §MessagePromptTemplate · 1~4",
+          "src": "# 1. 모델 설정\nllm = ChatOpenAI(model='gpt-4o-mini', temperature=0.3)\n\n# 2. 메시지 템플릿 구성 (System & Human)\nchat_prompt = ChatPromptTemplate.from_messages([\n\n\n])\n\n# 3. 파이프라인 구축\nchain = chat_prompt | llm | StrOutputParser()\n\n# 4. 실행\nresponse = chain.invoke({'user_input': '현재 자율주행자동차의 기술 수준은 어떤가요?'})\nprint(response)"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "LCEL 구조 실습 TODO 0~6",
+      "ref": "2일차 §문제) LCEL 방식 (prompt | model | parser)",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "LCEL STRUCTURE MASTER EXERCISE의 TODO 0 모델 설정 조건은?",
+          "o": [
+            "gpt-4o · temperature 0.2",
+            "gpt-4o-mini · temperature 0.2",
+            "gpt-4o · temperature 0.7",
+            "gpt-4o · temperature 0.3"
+          ],
+          "a": 0,
+          "h": "LCEL STRUCTURE 실습의 '0. 모델 설정' 주석은 사용할 모델과 temperature 값 두 가지를 지정합니다. from_messages 실습(0.3)이나 1일차 예제(0.7)와 숫자가 다르니 주의하세요. 모델은 mini가 아닌 기본 4o 계열입니다.",
+          "w": "TODO 0은 gpt-4o 모델과 temperature = 0.2를 요구합니다. 0.3은 from_messages 실습의 조건입니다.",
+          "an": "2일차 §문제) LCEL 방식 · TODO 0",
+          "src": "# 0. 모델 설정\n\n# ============================================================\n\n# TODO 0:\n\n# - gpt-4o 모델 사용\n\n# - temperature = 0.2"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "TODO 2: legacy <code>model([SystemMessage(content='너는 영어 교정기'), HumanMessage(content=text)])</code>를 LCEL로 바꿀 때 human 튜플은?",
+          "o": [
+            "('human', '{topic}')",
+            "('ai', '{text}')",
+            "('human', '{text}')",
+            "('system', '{text}')"
+          ],
+          "a": 2,
+          "h": "legacy의 HumanMessage(content=text)는 LCEL에서 human 튜플 하나로 바뀌고, 변수 text가 중괄호 자리로 들어갑니다. TODO 6-2 테스트는 <code>grammar_chain.invoke({'text': …})</code>로 호출합니다. 역할과 변수 이름이 모두 이와 맞아야 합니다.",
+          "w": "HumanMessage(content=text)는 <code>('human', '{text}')</code>가 되고, 테스트도 <code>grammar_chain.invoke({'text': …})</code>로 호출합니다. system 튜플에는 '너는 영어 교정기'가 들어갑니다.",
+          "an": "2일차 §문제) LCEL 방식 · TODO 2 · TODO 6-2",
+          "src": "# 2. legacy → LCEL 변환 문제\n\n# ============================================================\n\n# TODO 2:\n\n# 아래 legacy 코드를 LCEL로 변환하라\n\n# legacy:\n\n# response = model([\n\n# SystemMessage(content=\"너는 영어 교정기\"),\n\n# HumanMessage(content=text)\n\n# ])\n\nprompt_grammar =\n # TODO\n\n\ngrammar_chain = (\n # TODO LCEL 변환"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "TODO 3 요약 체인에 '반드시' 포함해야 하는 구성 요소는?",
+          "o": [
+            "RunnableLambda",
+            "StrOutputParser",
+            "MessagesPlaceholder",
+            "StateGraph"
+          ],
+          "a": 1,
+          "h": "TODO 3의 제목은 'STR parser 포함 체인'이고, 요구 사항에 '반드시 ○○ 포함'이 명시돼 있습니다. 입력은 article, 출력은 summary 문자열입니다. 분기용 RunnableLambda나 LangGraph의 StateGraph는 이 과제의 요구가 아닙니다.",
+          "w": "TODO 3은 요약 chain에 StrOutputParser를 반드시 포함하라고 요구합니다(입력 article, 출력 summary). RunnableLambda는 TODO 5의 분기에 씁니다.",
+          "an": "2일차 §문제) LCEL 방식 · TODO 3",
+          "src": "# 3. STR parser 포함 체인\n\n# ============================================================\n\n# TODO 3:\n\n# - 요약 chain 만들기\n\n# - 반드시 StrOutputParser 포함\n\n# - 입력: article\n\n# - 출력: summary"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "TODO 4의 2-stage pipeline에서 prompt_answer가 받도록 지시된 입력은?",
+          "o": [
+            "원래 질문만",
+            "문서 요약본만",
+            "모델 이름과 온도",
+            "context와 question"
+          ],
+          "a": 3,
+          "h": "TODO 4는 Step 1에서 질문을 더 명확하게 재작성하고, Step 2에서 재작성된 질문을 바탕으로 답변을 만듭니다. prompt_answer 안 TODO 주석의 괄호에는 두 가지 입력이 + 로 적혀 있습니다. 1단계 결과와 원래 질문을 함께 쓰는 구조입니다.",
+          "w": "TODO 주석은 prompt_answer에 '(context + question)'을 넣으라고 합니다. 1단계에서 재작성한 결과를 2단계 답변의 재료로 쓰는 구조입니다.",
+          "an": "2일차 §문제) LCEL 방식 · TODO 4",
+          "src": "# 4. 2-stage LCEL pipeline (중요)\n\n# ============================================================\n\n# TODO 4:\n\n# 아래 pipeline을 만들어라\n\n# Step 1: 질문을 더 명확하게 재작성\n\n# Step 2: 재작성된 질문을 기반으로 답변 생성\n\n# prompt_q_rewrite\n\n# prompt_answer\n\nprompt_q_rewrite = ChatPromptTemplate.from_messages([\n # TODO\n])\n\nprompt_answer = ChatPromptTemplate.from_messages([\n # TODO (context + question)"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "TODO 5에서 길이 기준을 예로 20자로 정해 <code>return 'expand' if len(x) &lt; 20 else 'summarize'</code>로 구현했습니다. <code>router_chain.invoke('짧은 질문')</code>의 결과는?",
+          "o": [
+            "'summarize'",
+            "'짧은 질문'",
+            "None",
+            "'expand'"
+          ],
+          "a": 3,
+          "h": "TODO 5의 조건은 '짧으면 expand, 길면 summarize'입니다. 주어진 구현은 <code>len(x)</code>가 기준값보다 작을 때 앞쪽 문자열을 반환합니다. '짧은 질문'의 글자 수(공백 포함)를 세어 기준 20과 비교하세요.",
+          "w": "'짧은 질문'은 6자라 20보다 작으므로 'expand'를 반환합니다. 과제 조건도 짧으면 expand, 길면 summarize입니다.",
+          "an": "2일차 §문제) LCEL 방식 · TODO 5 · TODO 6-5",
+          "src": "# 5. RunnableLambda (조건 분기)\n\n# ============================================================\n\n# TODO 5:\n\n# - 질문 길이에 따라 분기\n\n# - 짧으면: \"expand\"\n\n# - 길면: \"summarize\"\n\ndef route_fn(x):\n # TODO: 조건 분기\n pass\n\nrouter_chain = RunnableLambda(route_fn)"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "이 실습 문제는 모두 LCEL 방식(prompt | model | parser)으로 해결하도록 요구한다.",
+          "a": true,
+          "h": "이 실습의 '문제)' 문장은 아래 문제를 전부 특정 방식으로 해결하라고 지시하고, 괄호 안에 prompt | model | parser를 적어 둡니다. 실습 제목도 'legacy → LCEL → multi-step pipeline까지 설계'입니다. 문장이 이 지시와 같은지 확인하세요.",
+          "w": "맞습니다. 문제 지시가 '전부 LCEL 방식 (prompt | model | parser) 기반으로 해결하라'입니다.",
+          "an": "2일차 §문제) 아래 문제를 전부 LCEL 방식 기반으로 해결하라",
+          "src": "문제) 아래 문제를 전부 LCEL 방식 (prompt | model | parser) 기반으로 해결하라.\n\n```python\n\n# ============================================================\n\n# LCEL STRUCTURE MASTER EXERCISE\n\n# 목표: legacy → LCEL → multi-step pipeline까지 설계"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "RunnableLambda는 프롬프트 전용 클래스라 일반 파이썬 함수를 체인 단계로 감쌀 수 없다.",
+          "a": false,
+          "h": "TODO 5는 조건 분기 함수 route_fn을 <code>def</code>로 직접 작성한 뒤 <code>RunnableLambda(route_fn)</code>에 넣어 router_chain을 만듭니다. RunnableLambda는 일반 파이썬 함수를 체인 단계(Runnable)로 바꿔 주는 도구입니다. 프롬프트 전용 클래스인지 따져 보세요.",
+          "w": "틀렸습니다. TODO 5는 일반 함수 route_fn을 <code>RunnableLambda(route_fn)</code>로 감싸 조건 분기 체인을 만듭니다.",
+          "an": "2일차 §문제) LCEL 방식 · TODO 5",
+          "src": "# 5. RunnableLambda (조건 분기)\n\n# ============================================================\n\n# TODO 5:\n\n# - 질문 길이에 따라 분기\n\n# - 짧으면: \"expand\"\n\n# - 길면: \"summarize\"\n\ndef route_fn(x):\n # TODO: 조건 분기\n pass\n\nrouter_chain = RunnableLambda(route_fn)"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "LCEL STRUCTURE MASTER EXERCISE의 TODO와 만들 체인을 연결하세요.",
+          "pairs": [
+            [
+              "TODO 1",
+              "Markdown 기술 문서 생성기"
+            ],
+            [
+              "TODO 2",
+              "legacy를 바꾼 영어 문법 교정기"
+            ],
+            [
+              "TODO 3",
+              "article을 받는 요약 체인"
+            ],
+            [
+              "TODO 4",
+              "질문 재작성 후 답변하는 2단계"
+            ],
+            [
+              "TODO 5",
+              "길이에 따른 expand/summarize 분기"
+            ]
+          ],
+          "h": "실습은 TODO 1 문서 생성(Markdown 구조 개요·핵심·코드·참고자료), TODO 2 legacy 메시지 호출의 LCEL 변환(영어 교정), TODO 3 article 요약, TODO 4 재작성→답변 2단계, TODO 5 RunnableLambda 길이 분기 순서로 진행됩니다. 번호와 과제를 이 순서로 맞추세요.",
+          "w": "TODO 1~5는 문서 생성기, 문법 교정기, 요약, 2-stage pipeline, RunnableLambda 라우터 순서이며 TODO 6에서 각각을 실행 테스트합니다.",
+          "an": "2일차 §문제) LCEL 방식 · TODO 1~5",
+          "src": "# 6. 실행 테스트\n\n# ============================================================\n\n# TODO 6-1: 문서 생성\n\n# print(doc_chain.invoke({\"topic\": \"LangChain LCEL 설명\"}))\n\n# TODO 6-2: 문법 교정\n\n# print(grammar_chain.invoke({\"text\": \"i goes to school yesterday\"}))\n\n# TODO 6-3: 요약\n\n# print(summary_chain.invoke({\"article\": \"긴 기사 텍스트 입력\"}))\n\n# TODO 6-4: 2-stage pipeline\n\n# question = \"LangChain이 뭐야?\"\n\n# print(answer_chain.invoke({\"question\": question}))\n\n# TODO 6-5: router\n\n# print(router_chain.invoke(\"짧은 질문\"))"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "TODO 4 2-stage pipeline의 처리 흐름을 맞추세요.",
+          "steps": [
+            "사용자 질문 입력",
+            "prompt_q_rewrite로 질문을 더 명확하게 재작성",
+            "재작성 결과를 context로 전달",
+            "prompt_answer로 답변 생성",
+            "파서로 문자열 답변 출력"
+          ],
+          "h": "TODO 4의 Step 1은 rewrite_chain으로 질문을 재작성하고, Step 2는 answer_chain이 재작성 결과와 원래 질문을 prompt_answer에 넣어 답변을 생성합니다. 모든 체인은 prompt | model | parser 구조라 마지막에 문자열이 나옵니다. 입력에서 출력까지 데이터가 흐르는 순서를 따르세요.",
+          "w": "Step 1에서 질문을 재작성하고, 그 결과와 질문을 Step 2의 prompt_answer(context + question)에 넣어 답변을 만듭니다. 마지막에 파서가 문자열로 바꿉니다.",
+          "an": "2일차 §문제) LCEL 방식 · TODO 4",
+          "src": "# Step 1: 질문을 더 명확하게 재작성\n\n# Step 2: 재작성된 질문을 기반으로 답변 생성\n\n# prompt_q_rewrite\n\n# prompt_answer\n\nprompt_q_rewrite = ChatPromptTemplate.from_messages([\n # TODO\n])\n\nprompt_answer = ChatPromptTemplate.from_messages([\n # TODO (context + question)"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "TODO 6 실행 테스트에서 체인과 invoke 입력이 올바르게 짝지어진 것을 모두 고르세요.",
+          "o": [
+            "doc_chain ← {'topic': …}",
+            "grammar_chain ← {'text': …}",
+            "summary_chain ← {'article': …}",
+            "answer_chain ← {'topic': …}",
+            "router_chain ← {'question': …}"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "TODO 6 주석은 doc_chain에 topic, grammar_chain에 text, summary_chain에 article 키를 넘깁니다. answer_chain은 question 키를 받고, router_chain은 딕셔너리가 아니라 문자열 자체를 받습니다. 각 보기의 키가 이 목록과 맞는지 확인하세요.",
+          "w": "doc_chain은 topic, grammar_chain은 text, summary_chain은 article을 받습니다. answer_chain은 {'question': …}, router_chain은 딕셔너리가 아닌 문자열을 받습니다.",
+          "an": "2일차 §문제) LCEL 방식 · TODO 6",
+          "src": "# 6. 실행 테스트\n\n# ============================================================\n\n# TODO 6-1: 문서 생성\n\n# print(doc_chain.invoke({\"topic\": \"LangChain LCEL 설명\"}))\n\n# TODO 6-2: 문법 교정\n\n# print(grammar_chain.invoke({\"text\": \"i goes to school yesterday\"}))\n\n# TODO 6-3: 요약\n\n# print(summary_chain.invoke({\"article\": \"긴 기사 텍스트 입력\"}))\n\n# TODO 6-4: 2-stage pipeline\n\n# question = \"LangChain이 뭐야?\"\n\n# print(answer_chain.invoke({\"question\": question}))\n\n# TODO 6-5: router\n\n# print(router_chain.invoke(\"짧은 질문\"))\n\n# print(router_chain.invoke(\"이건 매우 긴 질문입니다 ....\"))"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "요리사 리팩토링·from_messages",
+      "ref": "2일차 §ChatCPT와 프롬프트템플릿 · 문제) from_messages 기본·심화",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "from_messages 기본 문제 TODO 1의 모델 조건은?",
+          "o": [
+            "gpt-4o · temperature 0",
+            "gpt-4o · temperature 0.2",
+            "gpt-4o · temperature 0.3",
+            "gpt-4o-mini · temperature 0.5"
+          ],
+          "a": 2,
+          "h": "from_messages 기본 문제 TODO 1은 모델 이름과 temperature 두 조건을 줍니다. 같은 노트북에서 LCEL STRUCTURE 실습은 0.2, 요리사 LCEL 예제는 0.5, legacy 요리사 예제는 0을 씁니다. 기본 문제의 값은 이들과 다릅니다.",
+          "w": "기본 문제 TODO 1은 model='gpt-4o', temperature=0.3입니다. 0.2는 LCEL STRUCTURE 실습, 0.5는 요리사 LCEL 예제의 값입니다.",
+          "an": "2일차 §문제) from_messages · 기본 문제 TODO 1",
+          "src": "# TODO 1\n\n# GPT-4o 모델 생성\n#\n\n# 조건\n\n# - model=\"gpt-4o\"\n\n# - temperature=0.3"
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "from_messages 기본 문제 TODO 2의 system 메시지는?",
+          "o": [
+            "너는 친절한 파이썬 강사이다.",
+            "너는 여행 전문가이다.",
+            "너는 음식 추천 AI이다.",
+            "너는 전문 요리사야."
+          ],
+          "a": 0,
+          "h": "기본 문제는 TODO 4에서 '리스트와 튜플의 차이를 설명해줘.'라는 프로그래밍 질문을 넘기므로, system 메시지는 이 질문을 가르쳐 줄 역할을 정합니다. human에는 {question} 변수 하나만 둡니다. 여행 전문가·음식 추천·요리사 역할은 다른 문제의 system 메시지입니다.",
+          "w": "기본 문제는 system '너는 친절한 파이썬 강사이다.'와 human '{question}'으로 구성합니다. 여행 전문가는 심화 1, 음식 추천 AI는 심화 2입니다.",
+          "an": "2일차 §문제) from_messages · 기본 문제 TODO 2",
+          "src": "# TODO 2\n\n# ChatPromptTemplate 작성\n#\n\n# system\n\n# \"너는 친절한 파이썬 강사이다.\"\n#\n\n# human\n\n# \"{question}\""
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "심화 1의 '어떤 스타일의 여행을 원하시나요?'는 어떤 역할의 메시지인가요?",
+          "o": [
+            "system",
+            "human",
+            "tool",
+            "ai"
+          ],
+          "a": 3,
+          "h": "심화 1은 'AI Message 포함' 문제로, 이전 대화 흐름을 프롬프트에 직접 적어 넣습니다. 사용자가 일본 여행 추천을 요청하자 상대가 여행 스타일을 되묻는 장면입니다. 사용자에게 되묻는 쪽은 모델이라는 점에서 역할을 정하세요.",
+          "w": "이 문장은 모델이 앞서 답한 것으로 넣는 ai 메시지입니다. 심화 1은 'AI Message 포함' 문제로, 이전 대화 흐름을 프롬프트에 직접 구성합니다.",
+          "an": "2일차 §문제) from_messages · 심화 문제 1",
+          "src": "# 심화 문제 1) (AI Message 포함)\n\n# ============================================================\n\n# TODO\n#\n\n# 아래 대화 흐름이 되도록 ChatPromptTemplate를 작성하시오.\n#\n\n# system :\n\n# \"너는 여행 전문가이다.\"\n#\n\n# human :\n\n# \"일본 여행 추천해줘.\"\n#\n\n# ai :\n\n# \"어떤 스타일의 여행을 원하시나요?\"\n#\n\n# human :\n\n# \"{style}\""
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "legacy 코드 <code>chat_prompt.format_prompt(재료='…').to_messages()</code>에서 <code>.to_messages()</code>가 하는 일은?",
+          "o": [
+            "응답을 문자열로 파싱",
+            "PromptValue를 메시지 리스트로 변환",
+            "모델 온도를 0으로 고정",
+            "템플릿 변수를 검증"
+          ],
+          "a": 1,
+          "h": "legacy 주석은 .format_prompt()가 템플릿에 변수 값을 채워 PromptValue 객체를 만들고, 이어지는 메서드가 그 객체를 HumanMessage·SystemMessage 등으로 바꾼다고 설명합니다. 결과는 chatgpt(...)에 바로 넣을 수 있는 형태입니다. 메서드 이름 'to_○○○'를 떠올리세요.",
+          "w": "주석대로 format_prompt()는 PromptValue 객체를 만들고, to_messages()는 이를 SystemMessage·HumanMessage 등의 리스트로 변환합니다. 문자열 파싱은 StrOutputParser의 일입니다.",
+          "an": "2일차 §ChatCPT와 프롬프트템플릿을 활용하여 대화하기 · legacy 주석",
+          "src": "# .format_prompt(): 템플릿에 변수 값을 채워 PromptValue 객체 생성\n\n# .to_messages(): PromptValue 객체를 메시지(HumanMessage, SystemMessage 등) 리스트로 변환\nanswer = chatgpt(chat_prompt.format_prompt(재료='양파, 계란, 사과, 빵').to_messages())"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "요리사 LCEL 리팩토링 빈칸에서 human 템플릿 변수가 <code>{ingredients}</code>일 때 <code>response = </code> 뒤에 알맞은 코드는?",
+          "o": [
+            "chain.invoke(ingredients_list)",
+            "chain.invoke({'ingredients': ingredients_list})",
+            "chain.invoke({'재료': ingredients_list})",
+            "chain(ingredients=ingredients_list)"
+          ],
+          "a": 1,
+          "h": "LCEL 체인은 <code>invoke()</code>에 템플릿 변수 이름을 키로 한 딕셔너리를 넘겨 실행합니다. 리팩토링한 human 템플릿의 변수는 {ingredients}이고, legacy 템플릿은 한글 변수 {재료}를 썼습니다. 체인을 함수처럼 직접 부르는 것은 legacy 호출 방식입니다.",
+          "w": "<code>chain.invoke({'ingredients': ingredients_list})</code>가 맞습니다. '재료'는 legacy 템플릿의 변수 이름이고, 체인을 함수처럼 직접 호출하는 것은 legacy 방식입니다.",
+          "an": "2일차 §ChatCPT와 프롬프트템플릿 · 최신 표준 LCEL 리팩토링",
+          "src": "# 3. 체인 구성 (LCEL)\nchain = chat_prompt | llm | StrOutputParser()\n\n# 4. 실행\ningredients_list = \"계란, 양파, 베이컨, 밥\"\nresponse = chain.invoke({\"ingredients\": ingredients_list})"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "요리사 legacy 예제는 응답의 일관성을 높이려고 temperature를 0으로 설정했다.",
+          "a": true,
+          "h": "legacy 요리사 코드는 <code>ChatOpenAI(temperature=0)</code>로 모델을 만들고, 옆 주석에 그 이유를 적었습니다. temperature가 낮을수록 같은 입력에 대해 비슷한 답이 나옵니다. LCEL 리팩토링 셀도 '온도 0으로 일관성 유지'라고 적습니다.",
+          "w": "맞습니다. 주석에 'temperature를 0으로 설정하여 응답의 일관성을 높임'이라고 적혀 있고, LCEL 리팩토링도 온도 0을 유지합니다.",
+          "an": "2일차 §ChatCPT와 프롬프트템플릿 · legacy 코드 주석",
+          "src": "# chatgpt 모델 로드\nfrom langchain_openai import ChatOpenAI\nchatgpt = ChatOpenAI(temperature=0) # temperature를 0으로 설정하여 응답의 일관성을 높임"
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "심화 2처럼 변수가 여러 개인 프롬프트는 invoke에 변수 하나만 넘겨도 나머지가 자동으로 채워진다.",
+          "a": false,
+          "h": "템플릿의 중괄호 변수는 모두 invoke 때 값을 받아야 프롬프트가 완성됩니다. 심화 2의 human 메시지에는 음식 종류, 예산, 사람 수 세 개의 변수가 있습니다. 하나만 넘기면 나머지 빈칸을 무엇으로 채울지 생각해 보세요.",
+          "w": "틀렸습니다. 템플릿에 있는 변수는 모두 값을 받아야 하므로 food, budget, people을 모두 invoke 딕셔너리에 넣어야 합니다.",
+          "an": "2일차 §문제) from_messages · 심화 문제 2",
+          "src": "# 심화 문제 2) (여러 변수)\n\n# ============================================================\n\n# TODO\n#\n\n# 아래 Prompt를 작성하시오.\n#\n\n# system :\n\n# \"너는 음식 추천 AI이다.\"\n#\n\n# human :\n#\n\n# 음식 종류 : {food}\n#\n\n# 예산 : {budget}\n#\n\n# 사람 수 : {people}"
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "실습 문제와 핵심 요구 사항을 연결하세요.",
+          "pairs": [
+            [
+              "기본 문제",
+              "system 강사 + human {question}"
+            ],
+            [
+              "심화 문제 1",
+              "ai 메시지를 포함한 여행 대화"
+            ],
+            [
+              "심화 문제 2",
+              "food·budget·people 여러 변수"
+            ],
+            [
+              "요리사 legacy 코드",
+              "format_prompt().to_messages()로 호출"
+            ]
+          ],
+          "h": "기본 문제는 system·human 두 역할을, 심화 1은 ai 메시지가 포함된 대화를, 심화 2는 여러 변수를 다룹니다. 요리사 legacy 코드는 체인 없이 format_prompt와 to_messages로 메시지를 만든 뒤 모델을 직접 호출합니다. 각 문제의 '새로 연습하는 점'으로 짝지으세요.",
+          "w": "기본 문제는 system·human 두 역할, 심화 1은 ai 메시지 포함, 심화 2는 변수 여러 개를 다룹니다. 요리사 legacy는 체인 없이 메시지를 만들어 모델을 직접 호출합니다.",
+          "an": "2일차 §문제) from_messages · ChatCPT와 프롬프트템플릿",
+          "src": "# 심화 문제 1) (AI Message 포함)\n\n# ============================================================\n\n# TODO\n#\n\n# 아래 대화 흐름이 되도록 ChatPromptTemplate를 작성하시오.\n#\n\n# system :\n\n# \"너는 여행 전문가이다.\"\n#\n\n# human :\n\n# \"일본 여행 추천해줘.\"\n#\n\n# ai :\n\n# \"어떤 스타일의 여행을 원하시나요?\"\n#\n\n# human :\n\n# \"{style}\"\n#\n\n# ============================================================\n```\n\n```python\n\n# 심화 문제 2) (여러 변수)\n\n# ============================================================\n\n# TODO\n#\n\n# 아래 Prompt를 작성하시오.\n#\n\n# system :\n\n# \"너는 음식 추천 AI이다.\"\n#\n\n# human :\n#\n\n# 음식 종류 : {food}\n#\n\n# 예산 : {budget}\n#\n\n# 사람 수 : {people}"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "심화 문제 1의 메시지를 대화 순서대로 나열하세요.",
+          "steps": [
+            "system: 너는 여행 전문가이다.",
+            "human: 일본 여행 추천해줘.",
+            "ai: 어떤 스타일의 여행을 원하시나요?",
+            "human: {style}"
+          ],
+          "h": "심화 1은 system으로 여행 전문가 역할을 정한 뒤, 사용자의 요청, 모델의 되물음, 사용자의 대답 순으로 대화를 구성합니다. 마지막 사용자 대답만 {style} 변수로 비워 둡니다. 대화가 자연스럽게 이어지는 순서를 떠올리세요.",
+          "w": "system으로 역할을 정한 뒤, 사용자 요청과 AI의 되물음을 미리 넣고, 마지막 사용자 답을 {style} 변수로 받습니다.",
+          "an": "2일차 §문제) from_messages · 심화 문제 1",
+          "src": "# 심화 문제 1) (AI Message 포함)\n\n# ============================================================\n\n# TODO\n#\n\n# 아래 대화 흐름이 되도록 ChatPromptTemplate를 작성하시오.\n#\n\n# system :\n\n# \"너는 여행 전문가이다.\"\n#\n\n# human :\n\n# \"일본 여행 추천해줘.\"\n#\n\n# ai :\n\n# \"어떤 스타일의 여행을 원하시나요?\"\n#\n\n# human :\n\n# \"{style}\""
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "심화 문제 2 프롬프트로 만든 체인을 invoke할 때 딕셔너리에 필요한 키를 모두 고르세요.",
+          "o": [
+            "food",
+            "budget",
+            "people",
+            "question",
+            "style"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "invoke 딕셔너리에는 그 프롬프트의 중괄호 변수 이름만 키로 넣습니다. 심화 2의 human 메시지는 음식 종류, 예산, 사람 수 세 줄로 되어 있습니다. 기본 문제와 심화 1의 변수는 이 프롬프트에 없습니다.",
+          "w": "심화 2의 human 메시지는 음식 종류 {food}, 예산 {budget}, 사람 수 {people}를 씁니다. question은 기본 문제, style은 심화 1의 변수입니다.",
+          "an": "2일차 §문제) from_messages · 심화 문제 2",
+          "src": "# 심화 문제 2) (여러 변수)\n\n# ============================================================\n\n# TODO\n#\n\n# 아래 Prompt를 작성하시오.\n#\n\n# system :\n\n# \"너는 음식 추천 AI이다.\"\n#\n\n# human :\n#\n\n# 음식 종류 : {food}\n#\n\n# 예산 : {budget}\n#\n\n# 사람 수 : {people}"
+        }
+      ]
+    }
+  ]
+}

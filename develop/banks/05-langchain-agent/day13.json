@@ -1,0 +1,1737 @@
+{
+  "id": "lc-d13",
+  "code": "LC13",
+  "title": "LangChain 13일차 · Whisper 음성 RAG · 회의록 멀티에이전트 · LangGraph",
+  "subtitle": "Whisper 음성 RAG · 회의록 멀티에이전트 · LangGraph 슈퍼바이저",
+  "course": "05 · LangChain · RAG · Agent",
+  "source": "05-langchain-agent/day13/13일차_Agent_음성을 텍스트로 변환하기_RAG+Whisper 모델+gradio_배포_new.ipynb",
+  "salt": "lc-d13",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "Voice RAG Agent 구조",
+      "ref": "13일차 Voice RAG Agent 셀",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Voice RAG Agent에서 음성 입력을 텍스트로 바꾸는 STT 역할을 맡는 모델은?",
+          "o": [
+            "Whisper",
+            "FAISS",
+            "ChatOpenAI",
+            "Gradio"
+          ],
+          "a": 0,
+          "h": "셀 맨 위 구조도는 'Audio → (STT 모델) → LCEL RAG Chain → FAISS Retriever → ChatOpenAI → Answer' 순서입니다. 음성을 글자로 바꾸는 모델은 OpenAI SDK 1.x의 오디오 API로 호출되는 STT Agent이며, 검색·생성·UI 담당과는 별개입니다.",
+          "w": "Whisper가 음성을 텍스트로 변환(STT)하고, 그 텍스트가 RAG 질문(Query)으로 쓰입니다. FAISS는 검색, ChatOpenAI는 답변 생성, Gradio는 UI입니다.",
+          "an": "13일차 · Voice RAG Agent(Whisper + FAISS + LCEL + Gradio) 셀 §2 OpenAI Client (Whisper STT)",
+          "src": "# [VOICE RAG AGENT - WHISPER + FAISS + LCEL + GRADIO]\n# =========================================================\n# 역할:\n# 1. 음성 입력을 텍스트로 변환 (Whisper STT)\n# 2. 변환된 텍스트를 RAG Query로 사용\n# 3. FAISS에서 관련 문서 검색\n# 4. LCEL 기반 Chain으로 답변 생성\n# 5. Gradio UI로 통합 제공"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "이 셀에서 질문과 관련된 문서를 벡터로 검색하는 데 쓰는 라이브러리는?",
+          "o": [
+            "Gradio",
+            "FAISS",
+            "Whisper",
+            "StrOutputParser"
+          ],
+          "a": 1,
+          "h": "'3. Embedding & Vector DB' 블록은 사용자 질문을 임베딩해 비슷한 문서를 찾는 Retriever Agent를 만듭니다. 이 라이브러리는 langchain_community.vectorstores에서 import하며, save_local·load_local로 인덱스를 파일로 저장하고 읽습니다.",
+          "w": "FAISS 벡터 DB에서 관련 문서를 검색해 RAG Context를 만듭니다. StrOutputParser는 출력 변환, Whisper는 STT 담당입니다.",
+          "an": "13일차 · Voice RAG Agent(Whisper + FAISS + LCEL + Gradio) 셀 §3 Embedding & Vector DB",
+          "src": "사용자의 질문에 답변하는 시스템을 구현하세요.\n\n요구사항)\n\n1. 음성 업로드\n- Whisper를 사용하여 텍스트 변환\n\n2. RAG 구축\n- Document\n- RecursiveCharacterTextSplitter\n- OpenAIEmbeddings\n- FAISS\n- Retriever\n\n3. LCEL Chain\n- ChatPromptTemplate\n- ChatOpenAI\n- StrOutputParser\n\n4. 질의응답\n- 사용자가 질문을 입력하면 Retriever가 관련 문서를 검색하여 답변해야 함\n\n5. 실행\n- demo.launch(share=True)\n\n```python\n# =========================================================\n# 1. 라이브러리 설치"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "새 Colab 세션처럼 <code>FAISS_INDEX_PATH</code>에 인덱스가 없을 때 이 코드는 어떻게 동작합니까?",
+          "o": [
+            "즉시 예외를 일으킨다",
+            "빈 인덱스를 load_local한다",
+            "Whisper로 문서를 만든다",
+            "테스트 문장으로 새로 만든다"
+          ],
+          "a": 3,
+          "h": "기존 로직은 인덱스 경로가 있으면 무조건 load_local로 읽었기 때문에 파일이 없으면 실행이 멈췄습니다. 실무 안정성 패치는 else 블록에 '인덱스 없을 경우 자동 생성(RAG bootstrap)'을 추가해, LangChain·FAISS·Whisper·RAG를 설명하는 테스트 문장 4개로 벡터 DB를 만들고 save_local로 저장합니다.",
+          "w": "인덱스가 없으면 테스트 문장 4개로 새 인덱스를 만들고 <code>save_local</code>로 저장합니다(RAG bootstrap). 기존 로직은 무조건 load_local이라 인덱스가 없으면 오류가 났습니다.",
+          "an": "13일차 · Voice RAG Agent(Whisper + FAISS + LCEL + Gradio) 셀 §3 실무 안정성 패치",
+          "src": "# 기존: 무조건 load_local\n # =========================\n vectorstore =\n\n\nelse:\n # =========================\n # [NEW LOGIC - 추가]\n # 인덱스 없을 경우 자동 생성 (RAG bootstrap)\n # =========================\n\n print(\"[INFO] FAISS index not found. Creating new index...\")\n\n # [TEST DATA] 실제 프로젝트에서는 문서로 교체 필요\n texts = [\n \"LangChain은 LLM 애플리케이션을 만드는 프레임워크이다.\",\n \"FAISS는 벡터 검색을 위한 라이브러리이다.\",\n \"Whisper는 음성을 텍스트로 변환한다.\","
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>format_docs(docs)</code> 함수의 역할로 알맞은 것은?",
+          "o": [
+            "문서를 벡터로 임베딩",
+            "질문을 영어로 번역",
+            "검색 문서를 한 문자열로 결합",
+            "FAISS 인덱스를 저장"
+          ],
+          "a": 2,
+          "h": "Retriever가 돌려주는 것은 Document 객체 목록이라 그대로는 프롬프트의 {context} 자리에 넣기 어렵습니다. 이 함수는 각 문서의 page_content만 뽑아 빈 줄(\\n\\n)로 이어 붙여 LLM 입력용 문자열 하나로 바꿉니다.",
+          "w": "검색된 문서들의 page_content를 빈 줄로 이어 LLM에 넣을 Context 문자열로 만듭니다. 임베딩이나 인덱스 저장은 다른 단계입니다.",
+          "an": "13일차 · Voice RAG Agent(Whisper + FAISS + LCEL + Gradio) 셀 Retriever Agent",
+          "src": "retriever =\n\n\ndef format_docs(docs):\n # 역할: 검색된 문서를 LLM 입력용 Context로 변환\n return \"\\n\\n\".join([d.page_content for d in docs])\n# =========================\n# 4. Prompt Template (RAG Instruction Layer)\n# =========================\n# 역할:\n# - LLM이 답변 생성 시 따라야 할 규칙 정의"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>rag_chain = ({'context': ..., 'question': ___} | prompt | llm | StrOutputParser())</code>에서 'question' 자리에 들어갈 것으로 알맞은 것은?",
+          "o": [
+            "StrOutputParser()",
+            "RunnablePassthrough()",
+            "format_docs",
+            "gr.Audio()"
+          ],
+          "a": 1,
+          "h": "체인 첫 단계 딕셔너리는 프롬프트의 {context}와 {question} 두 변수를 채웁니다. context는 retriever 결과를 문자열로 만든 값이고, question에는 사용자가 넣은 질문을 가공하지 않고 그대로 흘려보내는 Runnable이 들어가며, 이 클래스는 셀 상단에서 langchain_core.runnables로 import되어 있습니다.",
+          "w": "question에는 입력을 그대로 넘기는 <code>RunnablePassthrough()</code>가 들어가고, context에는 retriever와 format_docs를 연결합니다. StrOutputParser는 체인 마지막의 출력 변환기입니다.",
+          "an": "13일차 · Voice RAG Agent(Whisper + FAISS + LCEL + Gradio) 셀 §6 LCEL RAG CHAIN",
+          "src": "Retriever + Prompt + LLM 연결하는 핵심 Agent Pipeline\n\nrag_chain = (\n {\n \"context\":\n \"question\":\n }\n | prompt\n | llm\n | StrOutputParser()"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "이 셀의 RAG 프롬프트 규칙은 컨텍스트가 부족하면 일반 지식으로 보완할 수 있다고 허용한다.",
+          "h": "프롬프트는 '너는 RAG 기반 AI 어시스턴트이다'로 시작하고 규칙 4줄을 둡니다. 컨텍스트를 우선 사용하되, 부족할 때의 처리와 '과도한 추측은 금지'라는 제한, 그리고 자연스러운 답변 작성이 규칙에 포함됩니다.",
+          "w": "맞습니다. '컨텍스트를 우선 사용', '부족하면 일반 지식으로 보완 가능', 단 '과도한 추측은 금지'가 규칙입니다.",
+          "an": "13일차 · Voice RAG Agent(Whisper + FAISS + LCEL + Gradio) 셀 §4 Prompt Template",
+          "a": true,
+          "src": "# 4. Prompt Template (RAG Instruction Layer)\n# =========================\n# 역할:\n# - LLM이 답변 생성 시 따라야 할 규칙 정의\n\nprompt = ChatPromptTemplate.from_template(\"\"\"\n너는 RAG 기반 AI 어시스턴트이다.\n\n[컨텍스트]\n{context}\n\n[질문]\n{question}\n\n규칙:\n- 컨텍스트를 우선 사용\n- 컨텍스트가 부족하면 일반 지식으로 보완 가능\n- 단, 과도한 추측은 금지\n- 답변은 자연스럽게 작성"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "답변 생성 LLM은 다양한 답변을 위해 temperature=0.7로 설정되어 있다.",
+          "h": "'5. LLM (Answer Generator Agent)' 블록은 gpt-4o-mini 모델로 최종 답변을 만듭니다. temperature는 출력의 무작위성을 정하는 값으로, 0이면 같은 입력에 거의 같은 답을 내어 RAG 답변을 안정적으로 만듭니다.",
+          "w": "틀렸습니다. Answer Generator Agent는 gpt-4o-mini에 temperature=0으로 설정해 일관된 답을 냅니다.",
+          "an": "13일차 · Voice RAG Agent(Whisper + FAISS + LCEL + Gradio) 셀 §5 LLM (Answer Generator Agent)",
+          "a": false,
+          "src": "- 컨텍스트가 부족하면 일반 지식으로 보완 가능\n- 단, 과도한 추측은 금지\n- 답변은 자연스럽게 작성\n\"\"\")\n# =========================\n# 5. LLM (Answer Generator Agent)\n# =========================\n# 역할:\n# - 최종 답변 생성 Agent\n\nllm = ChatOpenAI(\n model=\"gpt-4o-mini\",\n temperature=0\n)\n# =========================\n# 6. LCEL RAG CHAIN (Core Pipeline)\n# =========================\n# 역할:\n# - Retriever + Prompt + LLM 연결하는 핵심 Agent Pipeline"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "Voice RAG Agent의 구성 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "Whisper",
+              "음성을 텍스트로 변환"
+            ],
+            [
+              "FAISS Retriever",
+              "질문 관련 문서 검색"
+            ],
+            [
+              "ChatPromptTemplate",
+              "답변 규칙과 컨텍스트 주입"
+            ],
+            [
+              "ChatOpenAI",
+              "최종 답변 생성"
+            ],
+            [
+              "Gradio",
+              "음성 입력과 결과 표시 UI"
+            ]
+          ],
+          "h": "셀 첫 주석은 역할을 1) 음성→텍스트, 2) 텍스트를 RAG Query로 사용, 3) FAISS 검색, 4) LCEL Chain 답변 생성, 5) Gradio UI 통합으로 나눕니다. 프롬프트 템플릿은 '답변 시 따라야 할 규칙'을 정의하는 RAG Instruction Layer, ChatOpenAI는 Answer Generator Agent로 소개됩니다.",
+          "w": "Whisper는 STT, FAISS Retriever는 문서 검색, ChatPromptTemplate은 답변 규칙과 컨텍스트 주입, ChatOpenAI는 답변 생성, Gradio는 사용자 인터페이스를 맡습니다.",
+          "an": "13일차 · Voice RAG Agent(Whisper + FAISS + LCEL + Gradio) 셀 역할 주석 1~5",
+          "src": "6. Retriever를 생성한 후\n7. LCEL 기반 RAG Chain을 구성하여\n\n사용자의 질문에 답변하는 시스템을 구현하세요.\n\n요구사항)\n\n1. 음성 업로드\n- Whisper를 사용하여 텍스트 변환\n\n2. RAG 구축\n- Document\n- RecursiveCharacterTextSplitter\n- OpenAIEmbeddings\n- FAISS\n- Retriever\n\n3. LCEL Chain\n- ChatPromptTemplate\n- ChatOpenAI\n- StrOutputParser\n\n4. 질의응답\n- 사용자가 질문을 입력하면 Retriever가 관련 문서를 검색하여 답변해야 함\n\n5. 실행"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "<code>voice_rag_pipeline(audio_path)</code>이 실행될 때의 처리 순서를 맞추세요.",
+          "steps": [
+            "Gradio에서 음성 파일 경로 수신",
+            "Whisper로 질문 텍스트 생성",
+            "Retriever가 관련 문서 검색",
+            "LLM이 컨텍스트 기반 답변 생성",
+            "질문과 답변을 Textbox에 출력"
+          ],
+          "h": "voice_rag_pipeline은 Orchestrator Agent로, Step 1 Whisper STT Agent 실행 → Step 2 LCEL RAG Chain 실행 → Step 3 Gradio Output 반환 순서입니다. RAG 체인 내부에서는 retriever 검색이 먼저 일어나고 그 결과로 LLM이 답하며, gr.Interface의 outputs는 'Whisper 변환 텍스트'와 'RAG 답변' 두 Textbox입니다.",
+          "w": "Gradio에서 받은 음성 경로를 Whisper로 질문 텍스트로 바꾸고, Retriever가 문서를 찾은 뒤 LLM이 답을 만들고, (질문, 답변)을 두 Textbox로 돌려줍니다.",
+          "an": "13일차 · Voice RAG Agent(Whisper + FAISS + LCEL + Gradio) 셀 §7 VOICE → RAG PIPELINE",
+          "src": "def voice_rag_pipeline(audio_path):\n # Step 1: Whisper STT Agent 실행\n question =\n\n # Step 2: LCEL RAG Chain 실행\n answer =\n\n # Step 3: Gradio Output 반환\n return question, answer"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 1,
+          "game": true,
+          "p": "Voice RAG Agent 셀에서 import하는 LangChain 구성 요소를 모두 고르세요.",
+          "o": [
+            "ChatPromptTemplate",
+            "RunnablePassthrough",
+            "StrOutputParser",
+            "RunnableParallel",
+            "EnsembleRetriever"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "'1. 라이브러리 임포트'는 최신 LangChain 0.3.x LCEL 기준으로 langchain_core에서 prompts, runnables, output_parsers 세 모듈을 하나씩 가져옵니다. 병렬 실행 Runnable이나 하이브리드 검색용 Retriever는 이 셀에 등장하지 않습니다.",
+          "w": "ChatPromptTemplate, RunnablePassthrough, StrOutputParser를 langchain_core에서 가져옵니다. RunnableParallel·EnsembleRetriever는 이 셀에서 쓰지 않습니다.",
+          "an": "13일차 · Voice RAG Agent(Whisper + FAISS + LCEL + Gradio) 셀 §1 라이브러리 임포트",
+          "src": "# 1. 라이브러리 임포트\n# =========================\n# [MODIFIED] 최신 LangChain 0.3.x LCEL 기준\nimport os\nimport gradio as gr\nfrom openai import OpenAI\nfrom google.colab import userdata\n\nfrom langchain_openai import ChatOpenAI, OpenAIEmbeddings\nfrom langchain_core.prompts import ChatPromptTemplate\nfrom langchain_core.runnables import RunnablePassthrough\nfrom langchain_core.output_parsers import StrOutputParser"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "Whisper 전사·번역·STT 보정",
+      "ref": "13일차 Whisper 전사/번역 · STT 후처리",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "음성을 같은 언어의 텍스트로 전사할 때 쓰는 OpenAI SDK 1.x 호출은?",
+          "o": [
+            "audio.translations.create",
+            "audio.transcriptions.create",
+            "chat.completions.create",
+            "embeddings.create"
+          ],
+          "a": 1,
+          "h": "OpenAI SDK 1.x에서 Whisper는 client.audio 아래 두 엔드포인트로 나뉩니다. 하나는 음성을 원래 언어 그대로 받아 적는 '전사(transcription)'이고, 다른 하나는 영어로 옮기는 '번역(translation)'이며 둘 다 model='whisper-1'과 file=f를 넘깁니다.",
+          "w": "<code>client.audio.transcriptions.create(model='whisper-1', file=f)</code>가 전사입니다. translations는 영어 번역, chat.completions는 GPT 호출, embeddings는 벡터 생성입니다.",
+          "an": "13일차 · Whisper 전사·번역 셀 · 음성 전사 함수",
+          "src": "response = client.audio.transcriptions.create(\n model=\"whisper-1\", # Whisper STT 모델\n file=f # 업로드된 음성 파일\n )\n\n return response.text # 변환된 텍스트 반환\n# =========================================================\n# 2. Whisper 번역 함수 (Speech Translation)\n# =========================================================\n# 역할:\n# - 음성을 영어 텍스트로 변환하는 Translation Agent"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>client.audio.translations.create</code>로 받은 결과 텍스트의 언어는?",
+          "o": [
+            "원래 음성의 언어",
+            "한국어",
+            "영어",
+            "사용자가 고른 언어"
+          ],
+          "a": 2,
+          "h": "translate_audio 함수 주석은 'Whisper 모델을 사용하여 음성을 ○○로 번역'이라고 적혀 있습니다. 이 API는 목표 언어를 고르는 인자가 없고 출력 언어가 하나로 고정되어 있어서, 뒤 셀에서는 그 결과를 다시 GPT로 한국어 요약하는 단계를 둡니다.",
+          "w": "Whisper 번역 API는 음성을 영어로 번역합니다. 그래서 요약 에이전트에서 영어 텍스트를 다시 한국어로 요약하는 단계를 둡니다.",
+          "an": "13일차 · Whisper 전사·번역 셀 · 음성 번역 함수",
+          "src": "response = client.audio.translations.create(\n model=\"whisper-1\", # Whisper translation 모델\n file=f # 음성 파일\n )\n\n return response.text # 영어 번역 결과 반환\n# =========================================================\n# 3. GPT 한국어 요약 함수\n# =========================================================\n# 역할:\n# - 영어 텍스트를 한국어로 요약하는 Summarization Agent"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "음성 파일을 <code>open(audio_path, 'rb')</code>로 여는 이유로 알맞은 것은?",
+          "o": [
+            "바이너리로 읽어 API에 전달",
+            "텍스트 인코딩 자동 변환",
+            "파일에 결과를 덮어쓰기",
+            "읽기 캐시를 만들기"
+          ],
+          "a": 0,
+          "h": "open의 모드 문자열에서 r은 읽기, b는 binary를 뜻합니다. mp3·wav 같은 음성 파일은 글자가 아닌 바이트 데이터이므로, 인코딩 변환 없이 파일 객체를 그대로 Whisper API의 file 인자에 넘기기 위해 이 모드를 씁니다.",
+          "w": "음성 파일은 텍스트가 아니므로 바이너리 읽기 모드('rb')로 열어 파일 객체를 Whisper API에 그대로 넘깁니다.",
+          "an": "13일차 · Whisper 전사·번역 셀 · '음성 파일을 바이너리 모드로 열기'",
+          "src": "# - 음성 → 텍스트 변환\n#\n# 입력:\n# - audio_file\n#\n# 출력:\n# - transcript\n#\n# 향후 확장:\n# - STT Correction Agent\n# - Domain Dictionary\n# - 발음 보정 Agent\n#\n\ndef stt_agent(audio_file):\n\n # 음성 파일을 바이너리 모드로 열기\n with open(audio_file, \"rb\") as f:\n\n # Whisper API 호출\n response = (\n\n # Whisper 모델 사용\n model=\"whisper-1\",\n\n # 업로드된 음성 파일 전달\n file=f"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "노트북이 정리한 STT 오류 원인에 <b>해당하지 않는</b> 것은?",
+          "o": [
+            "한국어 발음의 유사성",
+            "숫자·단어 혼동 편향",
+            "단일 문장의 문맥 부족",
+            "FAISS 인덱스 손상"
+          ],
+          "a": 3,
+          "h": "'STT 후처리 + 도메인 보정' 셀은 오류 원인을 세 가지로 정리합니다: 1) 한국어 숫자·단어 발음이 비슷한 음성 자체의 ambiguity, 2) 숫자 4와 단어 '사과'를 혼동하는 Whisper acoustic bias, 3) 단일 문장이라 의미 보정이 불가능한 context 부족입니다. 벡터 검색 쪽 문제는 이 목록과 관계가 없습니다.",
+          "w": "원인은 음성 자체 ambiguity(발음 유사), Whisper acoustic bias(숫자 4와 '사과' 혼동), context 부족(단일 문장) 세 가지입니다. FAISS 인덱스는 STT와 무관합니다.",
+          "an": "13일차 · STT 후처리 + 도메인 보정 · 오류 원인",
+          "src": "STT 후처리 + 도메인 보정\n\n```python\n\"\"\"\n오류 원인\n\n1) 음성 자체 ambiguity\n한국어 숫자/단어 발음 유사\n2) Whisper acoustic bias\n숫자(4) vs 단어(사과) 혼동\n3) context 부족\n단일 문장 STT는 의미 보정 불가"
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "<code>correct_transcription(text)</code>에서 GPT 보정 호출이 예외로 실패하면 무엇을 반환해야 합니까?",
+          "o": [
+            "빈 문자열",
+            "원본 text 그대로",
+            "traceback 문자열",
+            "None"
+          ],
+          "a": 1,
+          "h": "보정 함수는 GPT로 Whisper 결과의 오인식을 교정하는 Correction Layer이고, 보정은 '보조' 수단으로 소개됩니다. except 블록에는 '[FALLBACK] 실패 시 ○○ 반환' 주석이 있어, 보정이 실패해도 전사 결과가 사라지지 않도록 함수에 들어온 입력을 활용합니다.",
+          "w": "보정은 보조 단계이므로 실패하면 입력받은 원본 text를 그대로 돌려줍니다. 빈 값이나 None을 돌려주면 전사 결과 자체가 사라집니다.",
+          "an": "13일차 · STT 후처리 + 도메인 보정 · STT 보정 함수 [FALLBACK]",
+          "src": "# Rule-based hard correction(필수)과 LLM correction(보조), domain dictionary(확장)을\n# 이용한 해결을 해야 함\n# - 문맥 기반 자연어 보정 수행\n\ndef correct_transcription(text):\n\n try:\n # [MODIFIED] GPT 기반 correction 추가\n response =\n\n\n\n # [OUTPUT] correction 결과 반환\n return response.choices[0].message.content\n\n except Exception as e:\n\n # [FALLBACK] 실패 시 원본 반환"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "노트북은 STT 오류가 확률적 문제이므로 LLM 보정만으로 충분히 해결된다고 설명한다.",
+          "h": "보정 함수 주석은 STT 오류와 LLM의 성격을 '결정론적 문제'와 '확률 기반'으로 대비합니다. 그래서 해결책으로 Rule-based hard correction, LLM correction, domain dictionary 세 가지를 각각 필수·보조·확장으로 묶어 함께 써야 한다고 강조합니다.",
+          "w": "틀렸습니다. STT 오류는 결정론적 문제이고 LLM은 확률 기반이므로, Rule-based hard correction(필수) + LLM correction(보조) + domain dictionary(확장)를 함께 써야 한다고 설명합니다.",
+          "an": "13일차 · STT 후처리 + 도메인 보정 · STT 보정 함수 주석",
+          "a": false,
+          "src": "# STT 보정 함수 (LLM 기반 Correction Layer)\n# =========================================================\n# 역할:\n# - Whisper STT 결과의 오인식 문제를 LLM으로 교정\n# - 예: \"4과\" → \"사과\" 또는 반대의 경우\n# - 중요!!! 하지만, STT 오류는 결정론적문제인데 LLM은 확률기반 문제의 차이로\n# Rule-based hard correction(필수)과 LLM correction(보조), domain dictionary(확장)을\n# 이용한 해결을 해야 함"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "전사 함수는 예외가 나면 <code>traceback.format_exc()</code>로 만든 오류 내용을 문자열로 반환한다.",
+          "h": "transcribe_audio와 translate_audio는 try/except로 감싸져 있고, except 안에서 import traceback 후 '[TRANSCRIBE ERROR]'(번역은 '[TRANSLATE ERROR]') 머리말을 붙여 문자열을 반환합니다. 주석은 이를 '디버깅 목적'으로 traceback 전체를 돌려준다고 설명합니다.",
+          "w": "맞습니다. 디버깅을 위해 traceback 전체를 '[TRANSCRIBE ERROR]' 머리말과 함께 문자열로 돌려주므로 Gradio 출력창에서 바로 확인할 수 있습니다.",
+          "an": "13일차 · Whisper 전사·번역 셀 · except 블록",
+          "a": true,
+          "src": "# - 출력: 변환된 텍스트 또는 에러 메시지\n\ndef transcribe_audio(audio_path):\n\n try:\n # 음성 파일을 바이너리 모드로 열기\n\n\n # Whisper transcription API 호출\n\n\n # 변환 결과 반환\n return result.text\n\n except Exception as e:\n\n # 에러 발생 시 traceback 전체 반환 (디버깅 목적)\n import traceback\n return f\"[TRANSCRIBE ERROR]\\n{traceback.format_exc()}\"\n# =========================================================\n# 음성 번역 함수 (Speech Translation)"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "STT 오류 해결 전략과 노트북이 부여한 위상을 연결하세요.",
+          "pairs": [
+            [
+              "Rule-based hard correction",
+              "필수"
+            ],
+            [
+              "LLM correction",
+              "보조"
+            ],
+            [
+              "Domain dictionary",
+              "확장"
+            ]
+          ],
+          "h": "노트북은 STT 오류가 결정론적이므로 규칙으로 강제로 고치는 방식이 반드시 있어야 한다고 봅니다. 확률 기반인 LLM 교정은 그 위를 거드는 역할이고, 분야별 용어 사전은 범위를 넓히는 수단으로 소개됩니다.",
+          "w": "규칙 기반 강제 보정이 필수, LLM 보정은 보조, 도메인 사전은 확장 수단입니다. LLM은 확률 기반이라 단독으로는 결정론적 오류를 보장해 고치지 못합니다.",
+          "an": "13일차 · STT 후처리 + 도메인 보정 · STT 보정 함수 주석",
+          "src": "# 역할:\n# - Whisper STT 결과의 오인식 문제를 LLM으로 교정\n# - 예: \"4과\" → \"사과\" 또는 반대의 경우\n# - 중요!!! 하지만, STT 오류는 결정론적문제인데 LLM은 확률기반 문제의 차이로\n# Rule-based hard correction(필수)과 LLM correction(보조), domain dictionary(확장)을\n# 이용한 해결을 해야 함\n# - 문맥 기반 자연어 보정 수행"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "노트북이 제시한 STT 오류 해결 3단계 구조를 순서대로 맞추세요.",
+          "steps": [
+            "Whisper STT 원본 전사",
+            "Correction Layer 보정",
+            "Context-aware refinement"
+          ],
+          "h": "'3단계 구조로 해결' 주석은 STEP 1에서 raw transcription을 얻고, STEP 2 Correction Layer(LLM 또는 rule-based)가 핵심 보정을 하며, STEP 3에서 문장 의미 기반으로 다시 해석한다고 설명합니다. 원본이 있어야 보정할 수 있고, 보정된 문장이 있어야 의미를 재해석할 수 있습니다.",
+          "w": "STEP 1 Whisper STT(raw transcription) → STEP 2 Correction Layer(LLM 또는 rule-based) → STEP 3 Context-aware refinement(문장 의미 기반 재해석) 순서입니다.",
+          "an": "13일차 · STT 후처리 + 도메인 보정 · 3단계 구조로 해결",
+          "src": "오류 원인\n\n1) 음성 자체 ambiguity\n한국어 숫자/단어 발음 유사\n2) Whisper acoustic bias\n숫자(4) vs 단어(사과) 혼동\n3) context 부족\n단일 문장 STT는 의미 보정 불가\n\n3단계 구조로 해결\n\nSTEP 1: Whisper STT\nraw transcription\nSTEP 2: Correction Layer (핵심)\nLLM 또는 rule-based correction\nSTEP 3: Context-aware refinement\n문장 의미 기반 재해석\n\n\"\"\"\n\n\n\"\"\"\n\n사용자\n ├─ 전사 버튼"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "보정 레이어가 추가된 <code>transcribe_audio</code>의 동작으로 맞는 것을 모두 고르세요.",
+          "o": [
+            "Whisper 결과를 raw_text에 저장",
+            "raw_text를 보정 함수에 전달",
+            "보정된 텍스트를 반환",
+            "번역 함수도 보정을 거침",
+            "보정 실패 시 앱이 중단됨"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "[MODIFIED SECTION] 주석은 '기존: return raw_text / 변경: correction 함수 적용'이라고 적습니다. 즉 Whisper 결과를 raw_text로 받은 뒤 correct_transcription을 거친 corrected_text를 최종 반환하며, 번역기 Tool인 translate_audio는 이 보정 단계 없이 result.text를 바로 돌려줍니다. 보정 함수는 실패해도 원본을 돌려주는 fallback이 있습니다.",
+          "w": "Whisper 결과를 raw_text에 담고, correct_transcription에 넘겨 보정한 corrected_text를 반환합니다. 번역 함수에는 보정이 없고, 보정 실패 시에는 원본을 돌려주므로 중단되지 않습니다.",
+          "an": "13일차 · STT 후처리 + 도메인 보정 · 전사기 Tool [MODIFIED SECTION]",
+          "src": "# [FALLBACK] 실패 시 원본 반환\n\n\n return\n# =========================================================\n# 음성 전사 함수 (Speech to Text) : 전사기 Tool\n# =========================================================\n# 역할:\n# - Whisper 모델을 이용해 음성을 텍스트로 변환\n# - 이후 correction layer로 결과 보정\n\ndef transcribe_audio(audio_path):\n\n try:\n # 음성 파일 읽기\n with open(audio_path, 'rb') as f:\n\n # Whisper STT 실행\n result ="
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "전사·번역·요약 워크플로우",
+      "ref": "13일차 GPT 한글 요약 에이전트 · Speech Translation Agent",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>summarize_text_korean(english_text)</code>가 하는 일로 알맞은 것은?",
+          "o": [
+            "영어 텍스트를 한국어로 요약",
+            "한국어 음성을 영어로 번역",
+            "한국어 글을 영어로 요약",
+            "음성 파일을 전사"
+          ],
+          "a": 0,
+          "h": "이 Workflow Agent는 STT Agent → Translation Agent → Summary Agent 순서로 동작합니다. Whisper 번역 API가 만든 결과를 입력으로 받아, 프롬프트 '다음 영어 텍스트를 한국어로 간결하게 요약해라'로 GPT를 호출하는 Summarization Agent가 이 함수입니다.",
+          "w": "Whisper 번역으로 얻은 영어 텍스트를 GPT로 한국어 요약합니다. 음성 처리나 영어 번역은 앞 단계의 일입니다.",
+          "an": "13일차 · Whisper 전사 + 번역 + GPT 한글 요약 에이전트 §3 GPT 한국어 요약 함수",
+          "src": "model=\"whisper-1\", # Whisper translation 모델\n file=f # 음성 파일\n )\n\n return response.text # 영어 번역 결과 반환\n# =========================================================\n# 3. GPT 한국어 요약 함수\n# =========================================================\n# 역할:\n# - 영어 텍스트를 한국어로 요약하는 Summarization Agent\n\ndef summarize_text_korean(english_text):\n\n # GPT에게 전달할 프롬프트 구성\n prompt = f\"\"\"\n다음 영어 텍스트를 한국어로 간결하게 요약해라:"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Speech Translation Agent의 번역 언어 Dropdown 기본값(value)은?",
+          "o": [
+            "English",
+            "Japanese",
+            "Korean",
+            "Chinese"
+          ],
+          "a": 2,
+          "h": "Speech Translation Agent의 langs 목록은 Korean, Japanese, Chinese, English 네 개이고 gr.Dropdown(choices=langs, value=..., label='번역 언어 선택')으로 표시됩니다. value 인자는 앱이 처음 열렸을 때 선택되어 있는 값이며, 여기서는 langs 목록의 첫 항목과 같은 언어입니다.",
+          "w": "langs는 Korean·Japanese·Chinese·English이고 기본값은 'Korean'입니다.",
+          "an": "13일차 · Speech Translation Agent 셀 · Gradio UI",
+          "src": "## Speech Translation Agent\n\n Audio\n → STT\n → Translation\n → Summary\n \"\"\"\n )\n\n # 번역 언어 선택\n lang_dropdown = gr.Dropdown(\n\n choices=langs,\n\n value=\"Korean\",\n\n label=\"번역 언어 선택\""
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "이 셀의 <code>rag_agent</code>·<code>answer_agent</code> 함수는 현재 어떤 상태입니까?",
+          "o": [
+            "FAISS 검색을 실제 수행",
+            "고정 문자열만 반환",
+            "ChatOpenAI로 답변 생성",
+            "Reranker로 결과 정렬"
+          ],
+          "a": 1,
+          "h": "두 함수 주석에는 '현재: Placeholder', '향후: FAISS·LCEL·Retriever·Reranker' 또는 'ChatOpenAI·LCEL Chain·Citation'이 적혀 있습니다. 함수 본문은 '# 향후 구현 예정' 아래에 return 한 줄만 있어, 실제 검색이나 생성 없이 안내 문구를 돌려줍니다.",
+          "w": "두 함수는 '향후 구현 예정'인 자리표시자로 'RAG 연결 예정' 같은 고정 문자열만 반환합니다. FAISS·Reranker·Citation은 향후 계획에 적힌 항목입니다.",
+          "an": "13일차 · Speech Translation Agent 셀 · RAG Agent / Answer Agent",
+          "src": "# - FAISS\n# - LCEL\n# - Retriever\n# - Reranker\n#\n\ndef rag_agent(summary):\n\n # 향후 구현 예정\n return \"RAG 연결 예정\"\n# =========================================================\n# Answer Agent (향후 연결 예정)\n# =========================================================\n#\n# 역할:\n# - 최종 답변 생성\n#\n# 현재:\n# - Placeholder\n#\n# 향후:\n# - ChatOpenAI\n# - LCEL Chain\n# - Citation\n#\n\ndef answer_agent(rag_result):"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Speech Translation Agent의 <code>translation_agent</code>는 무엇으로 번역합니까?",
+          "o": [
+            "Whisper 번역 API",
+            "로컬 Whisper 모델",
+            "FAISS 검색",
+            "GPT 채팅 호출"
+          ],
+          "a": 3,
+          "h": "Whisper 번역 API는 영어로만 옮기므로 Dropdown에서 고른 일본어·중국어 등으로 번역할 수 없습니다. 그래서 translation_agent는 'Translate the following text into {target_language}.' 프롬프트를 만들어 텍스트 생성 모델에 맡기며, 이 프롬프트를 처리하는 호출이 response로 받아집니다.",
+          "w": "전사 결과와 목표 언어를 넣은 프롬프트로 GPT 채팅 호출을 해 번역합니다. Whisper 번역 API는 영어로만 번역하므로 언어 선택을 지원하지 못합니다.",
+          "an": "13일차 · Speech Translation Agent 셀 · Translation Agent",
+          "src": "# 역할:\n# - 전사 결과를 원하는 언어로 번역\n#\n# 입력:\n# - transcript\n# - target_language\n#\n# 출력:\n# - translated_text\n#\n# 향후 확장:\n# - Translation Memory\n# - 용어 사전\n# - 전문 번역 Agent\n#\n\ndef translation_agent(\n transcript,\n target_language\n):\n\n # GPT 번역 프롬프트 작성\n prompt = f\"\"\"\nTranslate the following text into {target_language}.\n\nText:\n{transcript}\n\"\"\"\n\n # GPT 호출\n response =\n\n\n\n # 응답 텍스트 추출"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>gr.Audio(sources=['upload','microphone'], type='filepath')</code>로 받은 값을 연결된 함수는 어떤 형태로 받습니까?",
+          "o": [
+            "numpy 배열",
+            "오디오 파일 경로 문자열",
+            "바이트 스트림",
+            "전사된 텍스트"
+          ],
+          "a": 1,
+          "h": "gr.Audio의 sources는 업로드와 마이크 녹음을 허용하고, type은 함수에 값을 넘기는 형식을 정합니다. 이 셀의 stt_agent는 받은 값을 open(audio_file, 'rb')로 열어 Whisper에 넘기므로, 디스크에 저장된 파일을 가리키는 값이어야 합니다.",
+          "w": "type='filepath'이면 업로드·녹음한 음성이 임시 파일로 저장되고 그 경로 문자열이 함수 인자로 전달됩니다. 그래서 함수 안에서 <code>open(audio_file, 'rb')</code>로 엽니다.",
+          "an": "13일차 · Speech Translation Agent 셀 · Gradio UI",
+          "src": "def stt_agent(audio_file):\n\n # 음성 파일을 바이너리 모드로 열기\n with open(audio_file, \"rb\") as f:"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Speech Translation Agent는 <code>demo.launch(share=True)</code>로 실행해 외부에서 접속할 수 있는 URL을 만든다.",
+          "h": "Speech Translation Agent 마지막 줄은 demo.launch(share=True)이며, 정답 셀 주석은 share=True가 '외부 접속 URL 생성'이라고 설명합니다. 실행 로그에는 공유 링크가 임시이며 최대 1주일 유지된다는 안내가 나옵니다.",
+          "w": "맞습니다. share=True는 외부 접속 URL을 만듭니다. 실행 로그에 따르면 이 공유 링크는 임시이며 최대 1주일 유지됩니다.",
+          "an": "13일차 · Speech Translation Agent 셀 · 실행",
+          "a": true,
+          "src": "# - 외부 접속 URL 생성\n#\n# =========================================================\n# 정답 작성 부분 (TODO 12)\n# Gradio 실행\n# =========================================================\n\ndemo.launch(share=True)\n```\n\n실습 문제 : AI 음성 기반 RAG QA 시스템\n\n문제 설명)\n\n- 아래의 미완성 코드를 참고하여 AI 음성 기반 RAG QA 시스템을 완성하세요.\n\n- 사용자가 음성 파일을 업로드하거나 직접 녹음하면,\n\n1. Whisper 모델을 사용하여 음성을 텍스트로 변환하고"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "로컬 Whisper 음성 번역기 설명에서 GPT 번역은 최신 SDK 1.x의 <code>client.chat.completions.create</code>로 호출한다.",
+          "h": "'음성 번역기' 구조 설명은 whisper.load_model('small') 로컬 모델로 전사하고, GPT 번역은 'OpenAI SDK 0.28 기준' 호출을 쓴다고 적습니다. 설치 셀도 openai==0.28.0을 지정하는데, SDK 0.28과 1.x는 채팅 호출 문법이 다릅니다.",
+          "w": "틀렸습니다. 그 설명은 OpenAI SDK 0.28 기준 <code>openai.ChatCompletion.create</code>를 씁니다. 이후 셀과 실습 정답은 SDK 1.x의 client.chat.completions.create로 바꿉니다.",
+          "an": "13일차 · '음성 번역기' 구조 · Whisper 모델로 구성",
+          "a": false,
+          "src": "“음성 번역기” 구조는 다음과 같습니다:\n\n - 음성 파일 업로드 (mp3, wav 등)\n\n - Whisper로 음성을 텍스트로 변환 (Speech-to-Text)\n\n - 변환된 텍스트를 GPT 번역기로 번역\n\n - 결과 출력\n\nWhisper 모델로 구성\n\nWhisper 음성 인식\n\nwhisper.load_model(\"small\")로 모델 로드\n\nmodel.transcribe(audio_file)로 음성 → 텍스트 변환\n\n로컬 모델 사용 → OpenAI API 호출 없이 Colab에서 안정적 처리\n\nGPT 번역\n\nOpenAI SDK 0.28 기준 openai.ChatCompletion.create 호출"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "Speech Translation Agent의 에이전트와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "STT Agent",
+              "음성을 텍스트로 전사"
+            ],
+            [
+              "Translation Agent",
+              "전사 결과를 선택 언어로 번역"
+            ],
+            [
+              "Summary Agent",
+              "번역 결과를 간결히 요약"
+            ],
+            [
+              "Orchestrator Agent",
+              "전체 실행 순서 제어"
+            ]
+          ],
+          "h": "각 함수 주석에는 역할·입력·출력이 적혀 있습니다: STT Agent는 audio_file → transcript, Translation Agent는 transcript와 target_language → translated_text, Summary Agent는 translated_text → summary입니다. agent_pipeline은 'Orchestrator Agent'로 전체 흐름을 STEP 1~3 순서대로 실행합니다.",
+          "w": "STT Agent는 Whisper로 전사, Translation Agent는 선택 언어로 번역, Summary Agent는 번역 결과 요약, Orchestrator Agent(agent_pipeline)는 실행 순서를 제어합니다.",
+          "an": "13일차 · Speech Translation Agent 셀 · 각 Agent 주석",
+          "src": "다음 영어 텍스트를 한국어로 간결하게 요약해라:\n\n{english_text}\n\"\"\"\n\n # GPT 호출 (Chat Completion API)\n response =\n\n\n\n return response.choices[0].message.content # 요약 결과 반환\n# =========================================================\n# 4. 전체 파이프라인 (Orchestrator Agent)\n# =========================================================\n# 역할:\n# - 전체 AI Agent 흐름 제어\n# - STT → Translation → Summary 순차 실행"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "Speech Translation Agent 셀의 '실행 흐름' 주석(향후 추가 포함)을 순서대로 맞추세요.",
+          "steps": [
+            "STT Agent",
+            "Translation Agent",
+            "Summary Agent",
+            "RAG Agent",
+            "Answer Agent"
+          ],
+          "h": "Speech Translation Agent 셀 맨 위 '실행 흐름' 주석은 Audio Input에서 시작해 세 에이전트를 거친 뒤 '(향후 추가)' 표시 아래 두 에이전트를 더 붙이고 UI Output으로 끝납니다. 현재 구현된 것은 음성→글자→다른 언어→요약이고, 그 뒤 검색 후 답변 생성이 계획되어 있습니다.",
+          "w": "STT → Translation → Summary가 현재 구현이고, 그 뒤에 RAG Agent → Answer Agent를 향후 연결할 계획입니다.",
+          "an": "13일차 · Speech Translation Agent 셀 · 실행 흐름 주석",
+          "src": "# Audio Input\n# ↓\n# STT Agent\n# ↓\n# Translation Agent\n# ↓\n# Summary Agent\n# ↓\n# (향후 추가)\n# RAG Agent\n# ↓\n# Answer Agent\n# ↓\n# UI Output"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "<code>agent_pipeline(audio_file, language)</code>를 버튼에 연결할 때 올바른 설정을 모두 고르세요.",
+          "o": [
+            "fn=agent_pipeline",
+            "inputs에 음성과 언어 2개",
+            "outputs에 Textbox 3개",
+            "inputs에 음성 하나만",
+            "outputs에 요약 하나만"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Gradio의 click 이벤트는 inputs 목록의 컴포넌트 값을 순서대로 함수 인자에 넣고, 함수가 돌려준 튜플을 outputs 목록 컴포넌트에 순서대로 채웁니다. agent_pipeline은 인자가 (audio_file, language) 두 개이고 반환값은 transcript, translated_text, summary 세 개입니다.",
+          "w": "fn=agent_pipeline, inputs=[audio_input, lang_dropdown], outputs=[STT·번역·요약 Textbox 3개]로 연결합니다. 인자가 2개이므로 입력 하나만 넘기면 안 되고, 반환값이 3개이므로 출력도 3개가 필요합니다.",
+          "an": "13일차 · Speech Translation Agent 셀 · run_btn.click",
+          "src": "summary_output = gr.Textbox(label=\"요약 결과\", lines=5)\n\n # 실행 버튼\n run_btn = gr.Button(\"실행\")\n\n # 버튼 클릭 이벤트 연결\n run_btn.click(\n fn=agent_pipeline, # 전체 파이프라인 실행\n inputs=audio_input, # 입력: 오디오\n outputs=[\n transcribed_output, # 출력 1: 전사\n translated_output, # 출력 2: 번역\n summary_output # 출력 3: 요약"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "실습: AI 음성 요약기",
+      "ref": "13일차 실습 문제 AI 음성 요약기 TODO 1~12",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "실습 TODO 2 'Whisper small 모델 로드'의 정답 코드는?",
+          "o": [
+            "whisper.load_model('small')",
+            "whisper.load('small')",
+            "OpenAI(model='small')",
+            "whisper.transcribe('small')"
+          ],
+          "a": 0,
+          "h": "정답 셀의 '4. Whisper 모델 로드' 주석은 선택 가능 모델로 tiny·base·small·medium·large를 나열합니다. 미완성 코드의 예시 주석은 'model = whisper.load_model(...)'이며, 문제에서 요구한 크기 이름을 문자열로 넘깁니다.",
+          "w": "<code>model = whisper.load_model('small')</code>입니다. 선택 가능 모델은 tiny·base·small·medium·large이며, 실행 로그상 small 모델 파일은 약 461M입니다.",
+          "an": "13일차 · 실습 문제 AI 음성 요약기 · 정답 TODO 2",
+          "src": "# 4. Whisper 모델 로드\n# =========================================================\n#\n# 역할\n# - 음성을 텍스트로 변환하는 STT 모델\n#\n# 선택 가능 모델\n# - tiny\n# - base\n# - small\n# - medium\n# - large\n#\n# =========================================================\n# 정답 작성 부분 (TODO 2)\n# Whisper 모델 로드\n# =========================================================\n\nmodel = whisper.load_model(\"small\")"
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "실습 TODO 1 '최신 OpenAI Client 생성'의 정답 코드는?",
+          "o": [
+            "openai.ChatCompletion()",
+            "whisper.Client()",
+            "OpenAI(api_key=키)",
+            "ChatOpenAI()"
+          ],
+          "a": 2,
+          "h": "요구사항 4는 '반드시 최신 SDK 방식'을 쓰라고 합니다. OpenAI SDK 1.x에서는 from openai import OpenAI로 클래스를 가져와 API 키를 넘겨 클라이언트 객체를 만들고, 이후 client.chat.completions처럼 그 객체의 메서드로 호출합니다.",
+          "w": "<code>client = OpenAI(api_key=OPENAI_API_KEY)</code>로 만듭니다. openai.ChatCompletion은 SDK 0.28 방식이고, ChatOpenAI는 LangChain 래퍼입니다.",
+          "an": "13일차 · 실습 문제 AI 음성 요약기 · 정답 TODO 1",
+          "src": "# - 이후 OpenAI client에서 자동 참조하도록 구성\n\nos.environ['OPENAI_API_KEY'] = userdata.get(\"OPENAI_API_KEY\")\n# =========================================================\n# OpenAI Client 초기화 (최신 SDK 방식)\n# =========================================================\n# 역할:\n# - Whisper API (transcription / translation) 호출을 위한 클라이언트 객체 생성\n# - OpenAI 최신 SDK 기준 (openai>=1.x)\n\napi_key = os.getenv(\"OPENAI_API_KEY\")"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "TODO 3에서 <code>result = model.transcribe(audio_file)</code> 다음, 인식 텍스트를 꺼내는 정답 코드는?",
+          "o": [
+            "result.text",
+            "result.choices[0]",
+            "result.content",
+            "result['text'].strip()"
+          ],
+          "a": 3,
+          "h": "Whisper API(client.audio.transcriptions.create)는 응답 객체를 돌려주어 점(.)으로 text 속성에 접근합니다. 반면 로컬 whisper 패키지의 model.transcribe는 파이썬 딕셔너리를 돌려주므로 대괄호로 'text' 키를 꺼내고, 정답 코드는 앞뒤 공백까지 제거합니다.",
+          "w": "로컬 모델은 딕셔너리를 돌려주므로 <code>result['text'].strip()</code>으로 꺼냅니다. <code>.text</code>는 Whisper API 응답 객체에서 쓰는 방식입니다.",
+          "an": "13일차 · 실습 문제 AI 음성 요약기 · 정답 TODO 3",
+          "src": "# 정답 작성 부분 (TODO 3)\n # Whisper 음성 인식\n # =================================================\n # Whisper 모델에 음성 파일 전달\n result = model.transcribe(audio_file)\n # 인식된 텍스트 추출\n recognized_text = result[\"text\"].strip()"
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "TODO 6 'GPT 응답 추출'에서 요약 문자열을 꺼내는 코드는?",
+          "o": [
+            "response.text",
+            "response.content",
+            "choices[0].message.content",
+            "response['summary']"
+          ],
+          "a": 2,
+          "h": "client.chat.completions.create의 응답은 후보 답변 목록 choices를 가지고, 각 후보 안의 message 객체에 실제 문장이 들어 있습니다. 노트북의 다른 GPT 호출 셀들도 첫 번째 후보의 message에서 본문을 꺼내는 같은 패턴을 씁니다.",
+          "w": "<code>response.choices[0].message.content.strip()</code>이 정답입니다. response.text는 Whisper 응답, response.content는 LangChain 메시지 객체의 속성입니다.",
+          "an": "13일차 · 실습 문제 AI 음성 요약기 · 정답 TODO 6",
+          "src": "response = client.chat.completions.create(\n model=\"gpt-4o-mini\",\n messages=[\n {\n \"role\": \"system\",\n \"content\": \"당신은 유능한 문서 요약 전문가입니다.\"\n },\n {\n \"role\": \"user\",\n \"content\": prompt\n }\n ]\n )\n # =================================================\n # 정답 작성 부분 (TODO 6)\n # GPT 응답 추출\n # =================================================\n summary = response.choices[0].message.content.strip()"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "실습 요구사항 4 '반드시 최신 SDK 방식'에 맞는 GPT 호출 형태는?",
+          "o": [
+            "openai.ChatCompletion.create",
+            "client.chat.completions.create",
+            "llm.invoke",
+            "model.transcribe"
+          ],
+          "a": 1,
+          "h": "요구사항 4는 '사용해야 하는 형태'를 괄호 속에 client로 시작하는 호출로 직접 적어 두었습니다. openai.ChatCompletion.create는 SDK 0.28 시절 방식이고, LangChain 래퍼 호출이나 Whisper 전사 메서드는 GPT 요약 호출 형태가 아닙니다.",
+          "w": "요구사항은 <code>client.chat.completions.create(...)</code>를 쓰라고 명시합니다. openai.ChatCompletion.create는 SDK 0.28 방식, model.transcribe는 Whisper 전사입니다.",
+          "an": "13일차 · 실습 문제 AI 음성 요약기 · 정답 요구사항 4 · TODO 5",
+          "src": "- 기능 요구사항\n 1. Whisper 음성 인식 : 음성 파일을 입력받아 텍스트로 변환(Audio -> Whisper -> Text)\n\n 2. GPT 요약 : 변환된 텍스트를 GPT로 요약(Text -> GPT\n -> Summary)\n\n 3. Gradio UI : 구현해야 할 컴포넌트\n - Audio 입력\n - 원문 출력 Textbox\n - 요약 출력 Textbox\n - 실행 Button\n 4. OpenAI SDK : 반드시 최신 SDK 방식을 사용\n - 사용해야 하는 형태 (client.chat.completions.create(...) )"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "TODO 8의 원문 출력 Textbox는 <code>interactive=False</code>로 만들어 사용자가 고치지 못하는 출력용으로 쓴다.",
+          "h": "정답 TODO 8·9는 원문과 요약 Textbox를 label, lines=5와 함께 만듭니다. interactive 인자는 사용자가 그 칸을 직접 편집할 수 있는지를 정하며, 결과만 보여 주는 출력 칸은 편집을 막아 둡니다.",
+          "w": "맞습니다. 원문·요약 Textbox 모두 lines=5, interactive=False로 만들어 결과 표시 전용으로 씁니다.",
+          "an": "13일차 · 실습 문제 AI 음성 요약기 · 정답 TODO 8·9",
+          "a": true,
+          "src": "# 정답 작성 부분 (TODO 8)\n # 원문 출력 Textbox 생성\n # =====================================================\n recognized_text = gr.Textbox(\n label=\"인식된 원문 텍스트\",\n lines=5,\n interactive=False\n )\n # =====================================================\n # 정답 작성 부분 (TODO 9)\n # 요약 출력 Textbox 생성\n # =====================================================\n summary_text = gr.Textbox(\n label=\"요약 결과\","
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "실행 로그의 'FP16 is not supported on CPU; using FP32 instead' 경고는 음성 인식이 실패했다는 뜻이다.",
+          "h": "실습 정답 실행 출력에는 whisper/transcribe.py에서 나온 UserWarning이 찍혀 있습니다. 문장을 읽어 보면 CPU에서 지원되지 않는 반정밀도 대신 다른 정밀도를 '대신 사용한다(instead)'는 내용이며, 오류(Error)가 아닌 경고(Warning)입니다.",
+          "w": "틀렸습니다. CPU에서는 FP16을 지원하지 않아 FP32로 대신 실행한다는 경고일 뿐이며 전사는 계속 진행됩니다.",
+          "an": "13일차 · 실습 문제 AI 음성 요약기 · 정답 실행 출력",
+          "a": false,
+          "src": "whisper.load_model(\"small\")로 모델 로드\n\nmodel.transcribe(audio_file)로 음성 → 텍스트 변환\n\n로컬 모델 사용 → OpenAI API 호출 없이 Colab에서 안정적 처리"
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "음성 요약기 실습의 TODO 번호와 정답 코드를 연결하세요.",
+          "pairs": [
+            [
+              "TODO 7",
+              "gr.Audio(sources=[...], type='filepath')"
+            ],
+            [
+              "TODO 10",
+              "gr.Button('음성 인식 + 요약 실행')"
+            ],
+            [
+              "TODO 11",
+              "run_btn.click(fn=speech_to_summary, ...)"
+            ],
+            [
+              "TODO 12",
+              "demo.launch(share=True)"
+            ]
+          ],
+          "h": "UI 부분 TODO는 7 Audio 입력 컴포넌트, 8·9 원문·요약 Textbox, 10 실행 버튼, 11 버튼 이벤트 연결, 12 Gradio 실행입니다. 요구사항 5는 실행이 demo.launch(share=True)를 만족해야 한다고 적습니다.",
+          "w": "TODO 7은 Audio 입력, TODO 10은 실행 버튼, TODO 11은 click 이벤트 연결, TODO 12는 share=True로 실행입니다.",
+          "an": "13일차 · 실습 문제 AI 음성 요약기 · 정답 TODO 7·10·11·12",
+          "src": "# ====== 6. Gradio UI ======\n\nwith gr.Blocks() as demo:\n\n gr.Markdown(\n \"## AI 음성 요약기\"\n )\n\n # TODO 7\n # Audio 입력 컴포넌트 생성\n\n audio_input =\n\n\n # TODO 8\n # 원문 출력 Textbox 생성\n\n recognized_text =\n\n # TODO 9\n # 요약 결과 출력 Textbox 생성\n\n summary_text =\n\n # TODO 10\n # 실행 버튼 생성\n\n run_btn =\n\n\n # TODO 11\n # 버튼 이벤트 연결\n# ====== 7. 실행 ======\n# TODO 12\n# Gradio 실행\n\n\n\n```\n\n정답"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "정답 코드 <code>speech_to_summary(audio_file)</code>의 처리 순서를 맞추세요.",
+          "steps": [
+            "audio_file이 None인지 검사",
+            "model.transcribe로 음성 인식",
+            "요약 프롬프트 작성",
+            "client.chat.completions.create 호출",
+            "(원문, 요약) 튜플 반환"
+          ],
+          "h": "정답 함수는 먼저 입력 검증(파일이 없으면 '음성 파일을 업로드하세요.' 반환)을 하고, STEP 1 Whisper STT, STEP 2 GPT 요약 순으로 진행합니다. STEP 2 안에서는 TODO 4 프롬프트 작성 → TODO 5 GPT 호출 → TODO 6 응답 추출 순서이며, 마지막에 두 값을 묶어 반환합니다.",
+          "w": "파일이 없으면 안내 문구를 돌려주고, 있으면 Whisper로 인식한 뒤 요약 프롬프트를 만들어 GPT를 호출하고, (원문, 요약)을 반환합니다.",
+          "an": "13일차 · 실습 문제 AI 음성 요약기 · 정답 §5 음성 인식 + 요약 함수",
+          "src": "# GPT 요약 프롬프트 작성\n # =================================================\n prompt = f\"\"\"\n다음 내용을 핵심만 간결하게 요약하세요.\n내용:\n{recognized_text}\n요약:\n\"\"\"\n # =================================================\n # 정답 작성 부분 (TODO 5)\n # GPT 호출\n # =================================================\n response = client.chat.completions.create(\n model=\"gpt-4o-mini\","
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "정답 코드의 예외·입력 처리로 맞는 것을 모두 고르세요.",
+          "o": [
+            "키 없으면 ValueError",
+            "파일 없으면 업로드 안내",
+            "Whisper 실패 시 오류 문구 반환",
+            "GPT 실패 시 원문은 유지",
+            "오류 나면 앱을 즉시 종료"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "정답 코드에는 API 키 검증(if not OPENAI_API_KEY → raise), 파일 None 검사, Whisper용 try/except, GPT용 try/except가 따로 있습니다. Whisper 실패 시 (f'Whisper 오류: {e}', '')를, GPT 실패 시 (recognized_text, f'요약 오류: {e}')를 반환해 화면에 오류를 보여 줄 뿐 프로그램을 끝내지는 않습니다.",
+          "w": "API 키가 없으면 ValueError, 파일이 없으면 업로드 안내, Whisper 실패 시 (오류 메시지, ''), GPT 실패 시 (원문, 요약 오류)를 반환합니다. 앱을 종료하는 처리는 없습니다.",
+          "an": "13일차 · 실습 문제 AI 음성 요약기 · 정답 §3·§5",
+          "src": "# - Colab Secret에서 API KEY 로드\n# - OpenAI Client 생성\n#\n# Colab Secret 값을 환경변수로 등록\nos.environ[\"OPENAI_API_KEY\"] = userdata.get(\n \"OPENAI_API_KEY\"\n)\n# 환경변수에서 API KEY 읽기\napi_key = os.getenv(\n \"OPENAI_API_KEY\"\n)\n# API KEY 존재 여부 검증\nif not api_key:\n\n # API KEY 없으면 즉시 오류 발생\n raise ValueError(\n \"OPENAI_API_KEY가 설정되지 않았습니다.\""
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "실습: 음성 기반 RAG QA",
+      "ref": "13일차 실습 문제 AI 음성 기반 RAG QA TODO 1~12",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "TODO 1 'Document 생성'에서 전사 텍스트를 LangChain 문서 목록으로 만드는 코드는?",
+          "o": [
+            "TextLoader(recognized_text)",
+            "Document.load(text)",
+            "[Document(page_content=text)]",
+            "FAISS(recognized_text)"
+          ],
+          "a": 2,
+          "h": "TODO 1은 Whisper가 만든 recognized_text를 LangChain이 다루는 문서 형식으로 감싸는 단계입니다. 셀 상단에서 langchain_core.documents의 문서 클래스를 import했으며, 이 클래스는 본문을 page_content에 담고 Splitter는 이런 객체들의 리스트를 받습니다.",
+          "w": "<code>docs = [Document(page_content=recognized_text)]</code>처럼 Document 객체에 전사 텍스트를 담습니다. TextLoader는 파일을 읽는 로더이고, FAISS는 벡터 DB입니다.",
+          "an": "13일차 · 실습 문제 AI 음성 기반 RAG QA 시스템 TODO 1",
+          "src": "def build_rag(audio_file):\n\n result = model.transcribe(\n audio_file\n )\n\n recognized_text = result[\n \"text\"\n ]\n\n # TODO 1\n # Document 생성"
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "이 실습 요구사항이 지정한 Text Splitter는?",
+          "o": [
+            "RecursiveCharacterTextSplitter",
+            "CharacterTextSplitter",
+            "StrOutputParser",
+            "PyPDFLoader"
+          ],
+          "a": 0,
+          "h": "요구사항 '2. RAG 구축'은 Document, (Text Splitter), OpenAIEmbeddings, FAISS, Retriever 순으로 구성 요소를 나열합니다. import 줄 'from langchain_text_splitters import ...'에서 쓰는 클래스는 구분자를 바꿔 가며 재귀적으로 나누는 분할기입니다.",
+          "w": "요구사항은 RecursiveCharacterTextSplitter를 지정하고 <code>langchain_text_splitters</code>에서 import합니다.",
+          "an": "13일차 · 실습 문제 AI 음성 기반 RAG QA 시스템 요구사항 2",
+          "src": "3. Text Splitter로 문서를 분할하고\n4. OpenAI Embedding을 생성하고\n5. FAISS Vector DB를 생성하고\n6. Retriever를 생성한 후\n7. LCEL 기반 RAG Chain을 구성하여\n\n사용자의 질문에 답변하는 시스템을 구현하세요.\n\n요구사항)\n\n1. 음성 업로드\n- Whisper를 사용하여 텍스트 변환\n\n2. RAG 구축\n- Document\n- RecursiveCharacterTextSplitter\n- OpenAIEmbeddings"
+        },
+        {
+          "id": "t5-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "TODO 5 'FAISS 생성'에 알맞은 코드는?",
+          "o": [
+            "FAISS.load_local(split_docs)",
+            "faiss.IndexFlatL2(split_docs)",
+            "FAISS.as_retriever(emb)",
+            "FAISS.from_documents(...)"
+          ],
+          "a": 3,
+          "h": "LangChain의 FAISS 래퍼는 Document 리스트와 임베딩 모델을 받아 한 번에 벡터 DB를 만드는 클래스 메서드를 제공합니다. load_local은 이미 저장된 인덱스를 읽을 때 쓰고, faiss.IndexFlatL2는 회의록 Agent처럼 LangChain 없이 numpy 벡터를 직접 넣을 때 쓰는 방식입니다.",
+          "w": "<code>FAISS.from_documents(split_docs, embeddings)</code>로 분할 문서를 임베딩해 벡터 DB를 만듭니다. load_local은 저장된 인덱스를 읽을 때, IndexFlatL2는 faiss 원본 라이브러리 방식입니다.",
+          "an": "13일차 · 실습 문제 AI 음성 기반 RAG QA 시스템 TODO 5",
+          "src": "# Document 생성\n\n docs =\n\n # TODO 2\n # Text Splitter 생성\n\n splitter =\n\n # TODO 3\n # 문서 분할\n\n split_docs =\n\n # TODO 4\n # Embedding 생성\n\n embeddings =\n\n # TODO 5\n # FAISS 생성\n\n vectorstore =\n\n # TODO 6\n # Retriever 생성\n\n retriever =\n\n return recognized_text, retriever"
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "TODO 7 '관련 문서 검색'에서 사용자의 질문으로 문서를 찾는 코드는?",
+          "o": [
+            "vectorstore.save_local(q)",
+            "retriever.invoke(question)",
+            "llm.invoke(question)",
+            "parser.invoke(question)"
+          ],
+          "a": 1,
+          "h": "TODO 7 아래 코드는 context_docs의 각 doc.page_content를 줄바꿈으로 이어 context를 만듭니다. 따라서 context_docs는 문서 리스트여야 하고, LCEL에서 retriever도 Runnable이므로 사용자 질문을 넣어 실행 메서드를 부르면 관련 청크 목록을 돌려줍니다.",
+          "w": "<code>context_docs = retriever.invoke(question)</code>으로 질문과 관련된 청크를 받습니다. llm.invoke는 답변 생성, parser는 출력 변환입니다.",
+          "an": "13일차 · 실습 문제 AI 음성 기반 RAG QA 시스템 TODO 7",
+          "src": "def ask_question(audio_file, question):\n\n recognized_text, retriever = build_rag(\n audio_file\n )\n\n # TODO 7\n # 관련 문서 검색\n\n context_docs =\n\n context = \"\\n\".join(\n [\n doc.page_content\n for doc in context_docs\n ]\n )\n\n # TODO 8\n # Prompt 생성\n\n prompt =\n\n # TODO 9\n # LLM 생성\n\n llm =\n\n # TODO 10\n # Output Parser 생성\n\n parser =\n\n # TODO 11\n # LCEL Chain 생성\n\n chain =\n\n # TODO 12\n # invoke 실행"
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "TODO 11 'LCEL Chain 생성'의 연결 순서로 알맞은 것은?",
+          "o": [
+            "parser | llm | prompt",
+            "llm | prompt | parser",
+            "prompt | llm | parser",
+            "prompt | parser | llm"
+          ],
+          "a": 2,
+          "h": "LCEL은 '|' 연산자로 왼쪽 출력이 오른쪽 입력이 되도록 잇습니다. 프롬프트 템플릿이 변수를 채워 메시지를 만들고, 채팅 모델이 응답 메시지를 만들며, 출력 파서가 그 메시지를 문자열로 바꾸는 순서여야 데이터 형식이 맞습니다.",
+          "w": "<code>chain = prompt | llm | parser</code>입니다. 파서는 LLM 출력 뒤에 와야 하고, 프롬프트는 맨 앞에서 입력을 메시지로 바꿉니다.",
+          "an": "13일차 · 실습 문제 AI 음성 기반 RAG QA 시스템 TODO 11",
+          "src": "prompt =\n\n # TODO 9\n # LLM 생성\n\n llm =\n\n # TODO 10\n # Output Parser 생성\n\n parser =\n\n # TODO 11\n # LCEL Chain 생성"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "이 실습 코드의 <code>ask_question</code>은 질문할 때마다 <code>build_rag</code>를 호출해 전사와 벡터 DB 생성을 다시 수행한다.",
+          "h": "ask_question(audio_file, question)의 첫 줄은 'recognized_text, retriever = build_rag(audio_file)'입니다. build_rag 안에는 model.transcribe, Document 생성, 분할, 임베딩, FAISS 생성, Retriever 생성이 모두 들어 있습니다.",
+          "w": "맞습니다. ask_question이 매번 build_rag(audio_file)를 불러 전사·분할·임베딩·FAISS 생성을 반복합니다. 그래서 질문마다 시간이 걸립니다.",
+          "an": "13일차 · 실습 문제 AI 음성 기반 RAG QA 시스템 §6 RAG QA 함수",
+          "a": true,
+          "src": "def ask_question(audio_file, question):\n\n recognized_text, retriever = build_rag(\n audio_file\n )\n\n # TODO 7\n # 관련 문서 검색"
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "이 실습은 Whisper API(<code>whisper-1</code>)를 호출해 음성을 전사한다.",
+          "h": "이 실습의 '4. Whisper 모델' 셀은 whisper.load_model('small')을 호출하고, build_rag는 model.transcribe(audio_file) 결과에서 result['text']를 꺼냅니다. 설치 셀에도 openai-whisper 패키지와 ffmpeg가 들어 있어 로컬에서 모델을 돌립니다.",
+          "w": "틀렸습니다. <code>whisper.load_model('small')</code>로 로컬 모델을 올리고 <code>model.transcribe(audio_file)</code>로 전사합니다.",
+          "an": "13일차 · 실습 문제 AI 음성 기반 RAG QA 시스템 §4 Whisper 모델",
+          "a": false,
+          "src": "def build_rag(audio_file):\n\n result = model.transcribe("
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "음성 RAG QA의 구성 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "Document",
+              "전사 텍스트를 담는 문서 객체"
+            ],
+            [
+              "RecursiveCharacterTextSplitter",
+              "문서를 청크로 분할"
+            ],
+            [
+              "OpenAIEmbeddings",
+              "텍스트를 벡터로 변환"
+            ],
+            [
+              "FAISS",
+              "벡터 저장과 유사도 검색"
+            ],
+            [
+              "StrOutputParser",
+              "LLM 응답을 문자열로 변환"
+            ]
+          ],
+          "h": "RAG 구축은 텍스트를 문서 객체로 담고 → 작은 청크로 나누고 → 숫자 벡터로 바꾸고 → 벡터 DB에 저장·검색하는 순서입니다. LCEL 체인 끝의 출력 파서는 모델 응답 메시지를 사람이 읽는 문자열로 바꿉니다.",
+          "w": "Document는 전사 텍스트를 담고, Splitter는 청크로 나누고, OpenAIEmbeddings는 벡터로 바꾸고, FAISS는 저장·검색하고, StrOutputParser는 LLM 응답을 문자열로 바꿉니다.",
+          "an": "13일차 · 실습 문제 AI 음성 기반 RAG QA 시스템 요구사항 2·3",
+          "src": "2. LangChain Document 객체를 생성하고\n3. Text Splitter로 문서를 분할하고\n4. OpenAI Embedding을 생성하고\n5. FAISS Vector DB를 생성하고\n6. Retriever를 생성한 후\n7. LCEL 기반 RAG Chain을 구성하여\n\n사용자의 질문에 답변하는 시스템을 구현하세요.\n\n요구사항)\n\n1. 음성 업로드\n- Whisper를 사용하여 텍스트 변환\n\n2. RAG 구축\n- Document\n- RecursiveCharacterTextSplitter\n- OpenAIEmbeddings\n- FAISS\n- Retriever\n\n3. LCEL Chain\n- ChatPromptTemplate\n- ChatOpenAI\n- StrOutputParser\n\n4. 질의응답"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "<code>build_rag(audio_file)</code> 안의 처리 순서를 맞추세요.",
+          "steps": [
+            "Whisper로 음성을 텍스트로 변환",
+            "Document 객체 생성",
+            "Text Splitter로 분할",
+            "임베딩과 FAISS 벡터 DB 생성",
+            "Retriever 생성"
+          ],
+          "h": "문제 설명은 1) Whisper 텍스트 변환, 2) Document 생성, 3) Text Splitter 분할, 4) OpenAI Embedding 생성, 5) FAISS 생성, 6) Retriever 생성, 7) LCEL RAG Chain 구성 순서를 제시합니다. build_rag 함수의 TODO 1~6도 이 번호를 그대로 따릅니다.",
+          "w": "Whisper 전사 → Document 생성 → Text Splitter 분할 → Embedding·FAISS 생성 → Retriever 생성 순서이며, 함수는 (원문, retriever)를 돌려줍니다.",
+          "an": "13일차 · 실습 문제 AI 음성 기반 RAG QA 시스템 문제 설명 1~6",
+          "src": "문제 설명)\n\n- 아래의 미완성 코드를 참고하여 AI 음성 기반 RAG QA 시스템을 완성하세요.\n\n- 사용자가 음성 파일을 업로드하거나 직접 녹음하면,\n\n1. Whisper 모델을 사용하여 음성을 텍스트로 변환하고\n2. LangChain Document 객체를 생성하고\n3. Text Splitter로 문서를 분할하고\n4. OpenAI Embedding을 생성하고\n5. FAISS Vector DB를 생성하고\n6. Retriever를 생성한 후\n7. LCEL 기반 RAG Chain을 구성하여"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "TODO 8~12(Prompt·LLM·Parser·Chain·invoke) 빈칸에 쓰일 코드로 알맞은 것을 모두 고르세요.",
+          "o": [
+            "ChatPromptTemplate.from_template",
+            "ChatOpenAI(...)",
+            "StrOutputParser()",
+            "chain.invoke({...})",
+            "faiss.IndexFlatL2(...)"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "요구사항 '3. LCEL Chain'은 ChatPromptTemplate, ChatOpenAI, StrOutputParser 세 가지를 쓰라고 하고, TODO 12는 완성한 체인을 실행하는 단계입니다. 이 실습은 LangChain의 FAISS 래퍼를 쓰므로 faiss 원본 라이브러리의 인덱스 클래스를 직접 만들 필요가 없습니다.",
+          "w": "Prompt는 ChatPromptTemplate, LLM은 ChatOpenAI, Parser는 StrOutputParser이고, 마지막에 chain.invoke로 실행합니다. faiss.IndexFlatL2는 이 실습에서 쓰지 않습니다.",
+          "an": "13일차 · 실습 문제 AI 음성 기반 RAG QA 시스템 TODO 8~12 · 요구사항 3",
+          "src": "# Prompt 생성\n\n prompt =\n\n # TODO 9\n # LLM 생성\n\n llm =\n\n # TODO 10\n # Output Parser 생성\n\n parser =\n\n # TODO 11\n # LCEL Chain 생성\n\n chain =\n\n # TODO 12\n # invoke 실행\n\n answer ="
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "회의록 분석 Agent",
+      "ref": "13일차 AI 회의록 분석 Agent · 번역언어 선택",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "회의록 분석 Agent의 <code>get_embeddings</code>가 쓰는 임베딩 모델 이름은?",
+          "o": [
+            "whisper-1",
+            "text-embedding-3-small",
+            "gpt-4o-mini",
+            "ko-sbert-nli"
+          ],
+          "a": 1,
+          "h": "get_embeddings 함수 정의의 기본 인자와 client.embeddings.create 호출에 OpenAI 임베딩 모델 이름이 들어 있습니다. whisper-1은 음성 전사, gpt-4o-mini는 회의 분석·번역에 쓰는 모델이라 임베딩과 역할이 다릅니다.",
+          "w": "<code>client.embeddings.create(model='text-embedding-3-small', input=t)</code>로 벡터를 만듭니다. whisper-1은 STT, gpt-4o-mini는 분석용 채팅 모델입니다.",
+          "an": "13일차 · AI 회의록 분석 Agent (Whisper + RAG + GPT) §4 Embedding 생성 함수",
+          "src": "\"Action Item은 담당자와 기한이 반드시 포함되어야 한다.\",\n \"리스크는 일정, 비용, 기술적 문제로 분류한다.\",\n \"회의 내용은 실행 가능 중심으로 정리한다.\"\n]\n# =========================\n# 4. Embedding 생성 함수\n# =========================\n# 역할:\n# - 텍스트 → 벡터 변환\n# - RAG 검색을 위한 임베딩 생성\n\ndef get_embeddings(texts, model=\"text-embedding-3-small\"):\n vectors =\n\n for text in texts:\n # OpenAI Embedding 호출"
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>faiss.IndexFlatL2</code> 인덱스가 유사 문서를 찾는 기준은?",
+          "o": [
+            "코사인 유사도",
+            "BM25 점수",
+            "MMR 다양성",
+            "L2 거리"
+          ],
+          "a": 3,
+          "h": "주석은 이 인덱스를 'L2 distance index'라고 설명합니다. L2는 두 벡터 좌표 차이의 제곱합에 루트를 씌운 거리로, 값이 작을수록 가까운(비슷한) 문서입니다.",
+          "w": "IndexFlatL2는 L2(유클리드) 거리 기반 인덱스로, 거리가 가까운 벡터를 찾습니다. BM25·MMR은 다른 날 배운 검색 방식입니다.",
+          "an": "13일차 · AI 회의록 분석 Agent (Whisper + RAG + GPT) §5 FAISS Index 구축",
+          "src": "# - 유사도 검색 엔진 구성\n\nemb_matrix = get_embeddings(reference_docs) # 문서 embedding 생성\n\nindex = faiss.IndexFlatL2(emb_matrix.shape[1]) # L2 거리 기반 index 생성"
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "임베딩 결과를 <code>np.array(..., dtype=np.float32)</code>로 바꾸는 이유는?",
+          "o": [
+            "FAISS 입력 형식에 맞추려고",
+            "JSON으로 저장하려고",
+            "GPT에 다시 넣으려고",
+            "정수 인덱스로 쓰려고"
+          ],
+          "a": 0,
+          "h": "주석은 변환을 'numpy float32 변환 (FAISS 호환)', 결과 합치기를 '2D 행렬로 변환 (FAISS 입력 형태)'이라고 설명합니다. faiss 인덱스는 32비트 실수 행렬을 add·search 입력으로 받기 때문에 형식을 맞춰 줍니다.",
+          "w": "FAISS가 float32 벡터를 입력으로 받으므로 변환한 뒤 <code>np.vstack</code>으로 2D 행렬을 만들어 인덱스에 넣습니다.",
+          "an": "13일차 · AI 회의록 분석 Agent (Whisper + RAG + GPT) §4 · '(FAISS 호환)' 주석",
+          "src": "\"회의 내용은 실행 가능 중심으로 정리한다.\"\n]\n# =========================\n# 4. Embedding 생성 함수\n# =========================\n# 역할:\n# - 텍스트 → 벡터 변환\n# - RAG 검색을 위한 임베딩 생성\n\ndef get_embeddings(texts, model=\"text-embedding-3-small\"):\n vectors =\n\n for text in texts:\n # OpenAI Embedding 호출\n\n\n\n # numpy float32 변환 (FAISS 호환)\n\n\n\n # 2D 행렬로 변환 (FAISS 입력 형태)\n return np.vstack(vectors)"
+        },
+        {
+          "id": "t6-04",
+          "ty": "num",
+          "lv": 2,
+          "game": false,
+          "p": "<code>_, idx = index.search(query_embedding, 2)</code>로 검색하면 회의 규칙 문서를 몇 개 돌려받습니까?",
+          "a": 2,
+          "unit": "개",
+          "h": "계산식: 반환 문서 수 = index.search(쿼리 벡터, k)의 k. index.search의 두 번째 인자는 가장 가까운 벡터를 몇 개 찾을지 정하는 top-k이고, 함수는 idx[0]에 담긴 번호마다 reference_docs 문장을 하나씩 꺼내 줄바꿈으로 잇습니다.",
+          "w": "두 번째 인자가 top-k이므로 가장 가까운 규칙 문서 2개의 번호를 받고, 이를 줄바꿈으로 이어 context로 씁니다.",
+          "an": "13일차 · 번역언어 선택 포함 (AI Meeting Analysis Agent) §5 RAG Retrieval 함수",
+          "src": "# - 입력 문장과 유사한 규칙 문서 검색\n# - Agent context 제공\n\ndef retrieve_context(query):\n\n if query is None or str(query).strip() == \"\":\n return \"EMPTY_QUERY\"\n\n query_embedding = get_embeddings([query]) # query embedding 생성\n\n _, idx = index.search(query_embedding, 2) # top-k 검색\n\n return \"\\n\".join([reference_docs[i] for i in idx[0]])"
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "출력 언어로 'Korean'을 고르면 <code>translate_text(analysis, language)</code>는 어떻게 동작합니까?",
+          "o": [
+            "영어로 번역해 반환",
+            "GPT로 한국어 재작성",
+            "분석 결과를 그대로 반환",
+            "TRANSLATION_ERROR 반환"
+          ],
+          "a": 2,
+          "h": "Translation Layer 주석은 '분석 결과를 선택 언어로 번역, 구조 유지'라고 설명합니다. 함수 첫 줄의 if language == 'Korean' 분기는 Meeting Analysis Agent가 이미 한국어로 결과를 쓴다는 점을 이용해, 불필요한 GPT 호출을 하지 않습니다.",
+          "w": "분석 결과가 이미 한국어이므로 GPT를 부르지 않고 text를 그대로 반환합니다. 다른 언어일 때만 번역을 호출합니다.",
+          "an": "13일차 · 번역언어 선택 포함 (AI Meeting Analysis Agent) §8 Translation Layer",
+          "src": "# 8. Translation Layer\n# ============================================================\n# 역할:\n# - 분석 결과를 선택 언어로 번역\n# - 구조 유지한 상태로 변환\n\ndef translate_text(text, language):\n\n if language == \"Korean\":"
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "AI 회의록 분석 Agent는 LangChain 없이 OpenAI SDK 1.x와 faiss·numpy를 직접 써서 RAG를 구성한다.",
+          "h": "셀 위 설명은 이 Agent를 'Whisper + RAG + GPT 번역기'라고 부르며 기반 라이브러리를 괄호로 밝힙니다. 코드도 import faiss, numpy, OpenAI만 쓰고, 임베딩·검색·GPT 호출을 모두 SDK 함수와 faiss 인덱스로 직접 처리합니다.",
+          "w": "맞습니다. LangChain 래퍼 대신 client.embeddings로 벡터를 만들고 faiss.IndexFlatL2에 직접 넣어 검색합니다.",
+          "an": "13일차 · AI 회의록 분석 Agent (Whisper + RAG + GPT) 설명",
+          "a": true,
+          "src": "share=True\n)\n```\n\nAI 회의록 분석 Agent (Whisper + RAG + GPT)\n\n- Whisper + RAG + GPT 번역기 (LangChain 없음, OpenAI SDK 1.x 기반)\n\n 1. Whisper → 음성 인식\n\n 2. Embedding + FAISS → 문서 검색 (용어집, 가이드 등)\n\n 3. GPT → RAG 기반 번역\n\n 4. Gradio → 인터페이스\n\n```python\n\"\"\"\n\n1. Whisper STT\n ↓\n2. GPT 번역\n ↓\n3. RAG 번역기 ← 현재 코드"
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Meeting Analysis Agent는 다양한 분석을 위해 temperature=0.9로 GPT를 호출한다.",
+          "h": "temperature는 출력의 무작위성을 정하며, 낮을수록 같은 입력에 일관된 답을 냅니다. 회의 분석은 '반드시 아래 규칙을 따른다'는 시스템 프롬프트를 지키는 것이 중요해 낮은 값을 쓰고, 번역 단계는 이보다도 더 낮은 0.0을 씁니다.",
+          "w": "틀렸습니다. temperature=0.2로 낮게 두어 규칙을 따르는 안정적인 분석을 만듭니다. 번역 단계는 0.0을 씁니다.",
+          "an": "13일차 · AI 회의록 분석 Agent (Whisper + RAG + GPT) §8 Meeting Analysis Agent",
+          "a": false,
+          "src": "당신은 회의 분석 AI Agent이다.\n\n아래 규칙을 반드시 따른다:\n{context}\n\n출력 구조:\n- 회의 요약\n- 결정사항\n- Action Items\n- 리스크\n\"\"\"\n\n try:\n res = client.chat.completions.create(\n model=\"gpt-4o-mini\",\n messages=[\n {\"role\": \"system\", \"content\": system_prompt},\n {\"role\": \"user\", \"content\": transcript}\n ],\n temperature=0.2"
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "회의 분석 출력 항목과 지식베이스(reference_docs) 규칙을 연결하세요.",
+          "pairs": [
+            [
+              "회의 요약",
+              "핵심 논점 중심으로 작성"
+            ],
+            [
+              "결정사항",
+              "'결정됨' 형태로 명확히 기록"
+            ],
+            [
+              "Action Item",
+              "담당자와 기한 포함"
+            ],
+            [
+              "리스크",
+              "일정·비용·기술 문제로 분류"
+            ]
+          ],
+          "h": "reference_docs 지식베이스는 회의 분석 규칙 문장들입니다: 요약은 핵심 논점 중심, 결정사항은 명확한 완료형 표현으로 기록, Action Item은 사람과 날짜를 포함, 리스크는 세 가지 범주로 분류합니다. 이 규칙이 RAG 검색 결과로 시스템 프롬프트의 [회의 분석 규칙]에 들어갑니다.",
+          "w": "요약은 핵심 논점 중심, 결정사항은 '결정됨' 형태로 명확히, Action Item은 담당자와 기한 포함, 리스크는 일정·비용·기술 문제로 분류합니다.",
+          "an": "13일차 · AI 회의록 분석 Agent (Whisper + RAG + GPT) §3 RAG Knowledge Base",
+          "src": "# 3. RAG Knowledge Base (회의 분석 규칙)\n# =========================\n# 역할:\n# - 회의 분석 기준을 제공하는 \"지식베이스\"\n# - FAISS 검색 대상 데이터\n\nreference_docs = [\n \"회의 요약은 핵심 논점 중심으로 작성한다.\",\n \"결정사항은 반드시 '결정됨' 형태로 명확히 기록한다.\",\n \"Action Item은 담당자와 기한이 반드시 포함되어야 한다.\",\n \"리스크는 일정, 비용, 기술적 문제로 분류한다.\","
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "번역 언어 선택이 포함된 <code>pipeline(audio_file, language)</code>의 실행 순서를 맞추세요.",
+          "steps": [
+            "speech_to_text로 음성 전사",
+            "retrieve_context로 규칙 검색",
+            "meeting_analysis_agent 분석",
+            "translate_text로 언어 변환"
+          ],
+          "h": "Pipeline Orchestrator 주석은 '전체 AI 시스템 흐름 제어 - STT → RAG → Agent → Translation 순서 실행'이라고 적습니다. 전사문이 있어야 규칙을 검색할 수 있고, 규칙과 전사문이 있어야 분석하며, 분석 결과가 있어야 번역할 수 있습니다.",
+          "w": "음성 전사 → RAG 규칙 검색 → 회의 분석 Agent → 번역 레이어 순서이며, 마지막에 실행 시간을 출력하고 결과 5개를 반환합니다.",
+          "an": "13일차 · 번역언어 선택 포함 (AI Meeting Analysis Agent) §9 Pipeline Orchestrator",
+          "src": "# 역할:\n# - 전체 AI 시스템 흐름 제어\n# - STT → RAG → Agent → Translation 순서 실행\n\ndef pipeline(audio_file, language):\n\n try:\n start = time.time()\n\n # 1. Speech to Text\n transcript = speech_to_text(audio_file)\n\n # 2. RAG Context Retrieval\n context = retrieve_context(transcript)\n\n # 3. Meeting Analysis Agent 실행\n analysis = meeting_analysis_agent(transcript, context)"
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "안정화된 <code>get_embeddings</code>의 방어 로직으로 맞는 것을 모두 고르세요.",
+          "o": [
+            "빈 입력은 건너뜀",
+            "실패하면 로그 후 계속",
+            "벡터가 없으면 ValueError",
+            "실패 시 0 벡터로 채움",
+            "입력을 영어로 번역"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "번역언어 선택 버전의 get_embeddings는 for 문 안에서 None·빈 문자열이면 continue, 임베딩 호출이 except로 빠지면 '[Embedding Error]' 로그를 찍고 continue합니다. 루프가 끝난 뒤 vectors 길이가 0이면 'Embedding 생성 실패' 예외를 냅니다.",
+          "w": "빈 입력은 건너뛰고, 임베딩 호출이 실패하면 traceback을 출력한 뒤 계속하며, 벡터가 하나도 없으면 ValueError('Embedding 생성 실패')를 냅니다. 0 벡터로 채우거나 번역하는 처리는 없습니다.",
+          "an": "13일차 · 번역언어 선택 포함 (AI Meeting Analysis Agent) §3 Embedding 함수",
+          "src": "# OpenAI embedding 호출\n res = client.embeddings.create(\n model=\"text-embedding-3-small\",\n input=t\n )\n\n # vector 변환\n vec = np.array(res.data[0].embedding, dtype=np.float32)\n vectors.append(vec)\n\n except Exception as e:\n # embedding 실패 시 로그 출력\n print(\"[Embedding Error]\", traceback.format_exc())\n continue\n\n # 벡터가 하나도 없으면 예외\n if len(vectors) == 0:\n raise ValueError(\"Embedding 생성 실패\")"
+        }
+      ]
+    },
+    {
+      "id": "t7",
+      "title": "회의 멀티에이전트 설계",
+      "ref": "13일차 멀티에이전트 아키텍처 · Stable Multi-Agent",
+      "qs": [
+        {
+          "id": "t7-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "멀티에이전트 설계 표에서 번역된 텍스트를 음성으로 만드는 에이전트는?",
+          "o": [
+            "WhisperAgent",
+            "TranslatorAgent",
+            "TTSAgent",
+            "CoordinatorAgent"
+          ],
+          "a": 2,
+          "h": "'멀티에이전트 아키텍처 설계' 표는 네 에이전트를 둡니다: 음성→텍스트(Whisper API), 텍스트→대상 언어(GPT), 번역된 텍스트→음성(음성 합성 API), 전체 조율입니다. 음성 합성은 영어로 Text-To-Speech라고 합니다.",
+          "w": "TTSAgent가 번역된 텍스트로 음성을 생성합니다. WhisperAgent는 음성→텍스트, TranslatorAgent는 번역, CoordinatorAgent는 전체 조율입니다.",
+          "an": "13일차 · 멀티에이전트 아키텍처 설계 · 에이전트 구성 표",
+          "src": "멀티에이전트 아키텍처 설계\n- 목표: 각 단계를 독립된 역할(에이전트)로 분리하여 더 유연하고 유지보수하기 쉬운 구조로 만들기\n- 에이전트 구성\n- 에이전트 이름 역할\n 1. WhisperAgent 음성 파일 → 텍스트로 변환 (Whisper API 사용)\n 2. TranslatorAgent 텍스트 → 대상 언어로 번역 (GPT 사용)\n 3. TTSAgent 번역된 텍스트 → 음성 생성 (TTS API 사용)\n 4. CoordinatorAgent 전체 파이프라인 조율, 사용자 입력 처리"
+        },
+        {
+          "id": "t7-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "설계 표에서 전체 파이프라인을 조율하고 사용자 입력을 처리하는 에이전트는?",
+          "o": [
+            "TTSAgent",
+            "WhisperAgent",
+            "TranslatorAgent",
+            "CoordinatorAgent"
+          ],
+          "a": 3,
+          "h": "설계 목표는 '각 단계를 독립된 역할(에이전트)로 분리하여 유연하고 유지보수하기 쉬운 구조'입니다. 표의 네 번째 에이전트는 다른 세 에이전트를 순서대로 부르며 사용자 입력을 처리하는 조율 담당입니다.",
+          "w": "CoordinatorAgent가 파이프라인 조율과 사용자 입력 처리를 맡습니다. 각 단계를 독립 역할로 나눠 유연하고 유지보수하기 쉽게 만드는 것이 목표입니다.",
+          "an": "13일차 · 멀티에이전트 아키텍처 설계 · 에이전트 구성 표",
+          "src": "멀티에이전트 아키텍처 설계\n- 목표: 각 단계를 독립된 역할(에이전트)로 분리하여 더 유연하고 유지보수하기 쉬운 구조로 만들기\n- 에이전트 구성\n- 에이전트 이름 역할\n 1. WhisperAgent 음성 파일 → 텍스트로 변환 (Whisper API 사용)\n 2. TranslatorAgent 텍스트 → 대상 언어로 번역 (GPT 사용)\n 3. TTSAgent 번역된 텍스트 → 음성 생성 (TTS API 사용)\n 4. CoordinatorAgent 전체 파이프라인 조율, 사용자 입력 처리"
+        },
+        {
+          "id": "t7-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "Stable Multi-Agent Meeting System의 <code>call_agent(role, transcript, context)</code> 함수의 역할은?",
+          "o": [
+            "네 에이전트 공통 LLM 엔진",
+            "FAISS 인덱스 생성",
+            "Whisper 음성 전사",
+            "최종 보고서 번역"
+          ],
+          "a": 0,
+          "h": "call_agent 주석은 '각 Agent(Summary / Action / Risk / Decision)의 공통 엔진'이며 'RAG context + transcript 기반 분석'을 한다고 적습니다. summary_agent(t, c) 같은 래퍼 함수는 role 문자열만 바꿔 이 함수를 호출합니다.",
+          "w": "네 에이전트(Summary·Action·Risk·Decision)가 공유하는 공통 LLM 호출 엔진으로, role만 바꿔 RAG context와 transcript를 분석합니다.",
+          "an": "13일차 · Stable Multi-Agent Meeting System §4 MULTI-AGENT LAYER",
+          "src": "# 역할:\n# - 각 Agent(Summary / Action / Risk / Decision)의 공통 엔진\n# - RAG context + transcript 기반 분석\n# ------------------------------------------------------------\ndef call_agent(role, transcript, context):\n\n prompt = f\"\"\"\nYou are a professional enterprise AI system, acting as a {role}."
+        },
+        {
+          "id": "t7-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "개선 포인트에서 'agent 4개가 병렬이 아니라 순차 호출'될 때 생기는 문제로 지적한 것은?",
+          "o": [
+            "정확도 상승",
+            "지연 시간(latency) 증가",
+            "토큰 사용 감소",
+            "번역 단계 생략"
+          ],
+          "a": 1,
+          "h": "완성형 파이프라인 구조도는 Multi-Agent를 '4개 병렬'로 그렸지만, 개선 포인트 2번은 실제로는 순차 호출이라고 지적합니다. 네 번의 GPT 호출을 하나가 끝나야 다음을 시작하면, 응답을 받기까지 걸리는 시간이 합산됩니다.",
+          "w": "순차 호출이라 지연 시간(latency)이 늘어난다고 지적합니다. 다이어그램은 '4개 병렬'로 그렸지만 코드는 하나씩 호출합니다.",
+          "an": "13일차 · 완성형 AI 파이프라인 구조도 · 개선 포인트",
+          "src": "# 개선 포인트:\n# 1. RAG context가 길어질 경우 prompt overflow 가능\n# 2. agent 4개 병렬이 아니라 순차 호출 (latency 증가)\n# 3. translate가 chunk-safe이지만 긴 report에서는 token limit 가능\n\n\"\"\"\n```\n\n```python\n# ============================================================\n# Stable Multi-Agent Meeting System (FIXED TRANSLATION ARCH)\n# - multi-agent 유지\n# - translation 안정화 (chunk-safe)\n# - merge 충돌 제거 구조"
+        },
+        {
+          "id": "t7-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "모든 에이전트가 한국어로 보고서를 쓰는 구조에서 사용자가 'Japanese'를 고르면 <code>merged_translated</code>에는 무엇이 담깁니까?",
+          "o": [
+            "한국어 원본 보고서",
+            "섹션별 일본어 번역 병합본",
+            "영어로 번역한 보고서",
+            "음성 전사 원문"
+          ],
+          "a": 1,
+          "h": "구조도는 'Korean Structured Output (강제)' 다음에 'Translation Layer (조건부 실행)'를 둡니다. STEP 4에서 summary·action·risk·decision을 각각 translate(text, lang)에 넣고, STEP 6에서 그 번역 결과를 'MEETING REPORT ({lang.upper()})' 형식으로 합칩니다.",
+          "w": "네 섹션을 각각 일본어로 번역한 뒤 'MEETING REPORT (JAPANESE)' 형식으로 병합합니다. 한국어 원본은 merged_raw에 따로 남습니다.",
+          "an": "13일차 · Stable Multi-Agent Meeting System §6 PIPELINE ORCHESTRATOR",
+          "src": "\"\"\"완성된 4가지 한국어 결과물들을 통합 조율 및 타겟 언어로 변환하는 노드\"\"\"\n lang = state[\"lang\"]\n # 1. 섹션별 안전 번역 후처리 수행\n s_t =\n a_t =\n r_t =\n d_t =\n# 2. 로우 리포트와 최종 번역 리포트 바인딩 조립\n merged_raw = f\"MEETING REPORT (RAW)\\n\\n[SUMMARY]\\n{state['summary']}\\n\\n[DECISIONS]\\n{state['decision']}\\n\\n[ACTION ITEMS]\\n{state['action']}\\n\\n[RISKS]\\n{state['risk']}\""
+        },
+        {
+          "id": "t7-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "개선 포인트는 RAG context가 길어지면 prompt overflow가 생길 수 있다고 지적한다.",
+          "h": "완성형 파이프라인 구조도 끝의 '# 개선 포인트'는 세 가지를 적습니다. 첫째는 RAG context 길이와 프롬프트 한계, 둘째는 호출 방식과 latency, 셋째는 긴 report 번역과 token limit에 관한 것입니다.",
+          "w": "맞습니다. 1) context가 길면 prompt overflow, 2) 순차 호출로 latency 증가, 3) 긴 보고서 번역 시 token limit 가능이 세 가지 개선 포인트입니다.",
+          "an": "13일차 · 완성형 AI 파이프라인 구조도 · 개선 포인트",
+          "a": true,
+          "src": "# 개선 포인트:\n# 1. RAG context가 길어질 경우 prompt overflow 가능\n# 2. agent 4개 병렬이 아니라 순차 호출 (latency 증가)\n# 3. translate가 chunk-safe이지만 긴 report에서는 token limit 가능\n\n\"\"\"\n```\n\n```python\n# ============================================================\n# Stable Multi-Agent Meeting System (FIXED TRANSLATION ARCH)\n# - multi-agent 유지\n# - translation 안정화 (chunk-safe)\n# - merge 충돌 제거 구조\n# - 한국어 선택 시 영문 출력 버그 완전 수정 버전"
+        },
+        {
+          "id": "t7-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Stable Multi-Agent 코드는 4개 에이전트를 실제로 병렬 실행해 시간을 줄인다.",
+          "h": "pipeline 함수의 STEP 3은 summary = summary_agent(...), action = action_agent(...)처럼 네 줄로 차례차례 결과를 받습니다. 개선 포인트 2번도 이 부분을 'agent 4개 병렬이 아니라 순차 호출'이라고 짚습니다.",
+          "w": "틀렸습니다. 구조도에는 '4개 병렬'로 그렸지만 코드는 summary·action·risk·decision을 차례로 호출하는 순차 실행입니다.",
+          "an": "13일차 · Stable Multi-Agent Meeting System · 개선 포인트 2",
+          "a": false,
+          "src": "Multi-Agent (4개 병렬)\n ├─ Summary Agent\n ├─ Action Agent\n ├─ Risk Agent\n └─ Decision Agent\n ↓\nKorean Structured Output (강제)\n ↓\nTranslation Layer (조건부 실행)\n ↓\nMerged Report (RAW / TRANSLATED)\n ↓\nGradio UI\n# 개선 포인트:\n# 1. RAG context가 길어질 경우 prompt overflow 가능\n# 2. agent 4개 병렬이 아니라 순차 호출 (latency 증가)\n# 3. translate가 chunk-safe이지만 긴 report에서는 token limit 가능"
+        },
+        {
+          "id": "t7-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "Stable Multi-Agent Meeting System의 출력 Textbox와 담기는 값을 연결하세요.",
+          "pairs": [
+            [
+              "out1",
+              "음성 인식 결과"
+            ],
+            [
+              "out2",
+              "RAG 컨텍스트"
+            ],
+            [
+              "out7",
+              "원본 보고서(merged_raw)"
+            ],
+            [
+              "out8",
+              "번역 보고서(merged_translated)"
+            ],
+            [
+              "out9",
+              "에러 로그"
+            ]
+          ],
+          "h": "pipeline은 transcript, context, 네 에이전트 결과, merged_raw, merged_translated, 그리고 오류 문자열(성공 시 빈 문자열)을 순서대로 반환합니다. Gradio outputs는 out1~out9이며 label이 '음성 인식 결과', 'RAG 컨텍스트', '원본 보고서', '번역 보고서', '에러 로그' 등으로 붙어 있습니다.",
+          "w": "out1은 음성 인식 결과, out2는 RAG 컨텍스트, out7은 한국어 원본 보고서(merged_raw), out8은 번역 보고서(merged_translated), out9는 traceback 에러 로그입니다.",
+          "an": "13일차 · Stable Multi-Agent Meeting System §7 GRADIO UI",
+          "src": "out1 = gr.Textbox(label=\"음성 인식 결과\")\n out2 = gr.Textbox(label=\"RAG 컨텍스트\")\n out3 = gr.Textbox(label=\"요약\")\n out4 = gr.Textbox(label=\"액션 아이템\")\n out5 = gr.Textbox(label=\"리스크\")\n out6 = gr.Textbox(label=\"결정사항\")\n out7 = gr.Textbox(label=\"원본 보고서 (RAW)\")\n out8 = gr.Textbox(label=\"번역 보고서\") # 최종 수정 대상이 노출될 다국어 번역 전용 박스\n out9 = gr.Textbox(label=\"에러 로그\")\n\n\n btn = gr.Button(\"실행\")\n\n btn.click(\n fn=pipeline,"
+        },
+        {
+          "id": "t7-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "<code>merged_raw</code> 보고서의 섹션 순서를 맞추세요.",
+          "steps": [
+            "[SUMMARY]",
+            "[DECISIONS]",
+            "[ACTION ITEMS]",
+            "[RISKS]"
+          ],
+          "h": "STEP 5 Merge raw report의 f-string은 'MEETING REPORT (RAW)' 제목 아래 대괄호 섹션 네 개를 둡니다. 요약이 가장 먼저 오고, 그 다음은 회의에서 정해진 사항이며, 실행 과제와 위험 요소가 뒤를 잇습니다.",
+          "w": "MEETING REPORT (RAW) 아래 [SUMMARY] → [DECISIONS] → [ACTION ITEMS] → [RISKS] 순서로 병합합니다. 번역 보고서도 같은 순서입니다.",
+          "an": "13일차 · Stable Multi-Agent Meeting System STEP 5 Merge raw report",
+          "src": "# 1. 섹션별 안전 번역 후처리 수행\n s_t =\n a_t =\n r_t =\n d_t =\n# 2. 로우 리포트와 최종 번역 리포트 바인딩 조립\n merged_raw = f\"MEETING REPORT (RAW)\\n\\n[SUMMARY]\\n{state['summary']}\\n\\n[DECISIONS]\\n{state['decision']}\\n\\n[ACTION ITEMS]\\n{state['action']}\\n\\n[RISKS]\\n{state['risk']}\""
+        },
+        {
+          "id": "t7-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "완성형 파이프라인의 '개선 포인트'로 노트북이 적은 것을 모두 고르세요.",
+          "o": [
+            "긴 context의 prompt overflow",
+            "순차 호출로 latency 증가",
+            "긴 보고서 번역 token limit",
+            "Whisper 한국어 미지원",
+            "FAISS는 GPU 필수"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "개선 포인트 세 가지는 RAG context가 길어질 때의 프롬프트 문제, 에이전트 4개를 하나씩 부르는 호출 방식의 지연 문제, chunk-safe 번역이라도 긴 보고서에서 생길 수 있는 토큰 한계 문제입니다. Whisper의 언어 지원이나 FAISS 하드웨어 요구는 노트북에 언급되지 않습니다.",
+          "w": "prompt overflow, 순차 호출로 인한 latency, 긴 보고서 번역의 token limit 세 가지입니다. Whisper 한국어 미지원이나 FAISS GPU 필수는 노트북에 없는 내용입니다.",
+          "an": "13일차 · 완성형 AI 파이프라인 구조도 · 개선 포인트",
+          "src": "# 개선 포인트:\n# 1. RAG context가 길어질 경우 prompt overflow 가능\n# 2. agent 4개 병렬이 아니라 순차 호출 (latency 증가)\n# 3. translate가 chunk-safe이지만 긴 report에서는 token limit 가능\n\n\"\"\"\n```\n\n```python\n# ============================================================\n# Stable Multi-Agent Meeting System (FIXED TRANSLATION ARCH)\n# - multi-agent 유지\n# - translation 안정화 (chunk-safe)\n# - merge 충돌 제거 구조\n# - 한국어 선택 시 영문 출력 버그 완전 수정 버전"
+        }
+      ]
+    },
+    {
+      "id": "t8",
+      "title": "LangGraph 선형 워크플로우",
+      "ref": "13일차 LangGraph 상태 머신형 워크플로우",
+      "qs": [
+        {
+          "id": "t8-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "LangGraph에서 모든 노드가 공유하는 상태(MeetingState)의 구조를 정의할 때 쓰는 것은?",
+          "o": [
+            "Document",
+            "TypedDict",
+            "PromptTemplate",
+            "ChatOpenAI"
+          ],
+          "a": 1,
+          "h": "LangGraph의 StateGraph는 상태 스키마 클래스를 받아 그래프를 만듭니다. 이 셀은 typing 모듈에서 가져온 '키와 값 타입을 지정하는 딕셔너리 타입'을 상속해 audio_path, lang, transcript 등 14개 필드를 정의합니다.",
+          "w": "<code>class MeetingState(TypedDict)</code>로 키와 타입을 정의합니다. 모든 에이전트 노드가 이 '상태 가방'을 공유하고 갱신합니다.",
+          "an": "13일차 · LangGraph 기반 상태 머신형 AI 워크플로우 (선형적 에이전트 구조) §4 LANGGRAPH STATE DEFINITION",
+          "src": "# 4. LANGGRAPH STATE DEFINITION (전역 공유 상태 정의)\n# ============================================================\nclass MeetingState(TypedDict):\n \"\"\"모든 에이전트 노드가 공동으로 공유하고 업데이트할 상태 가방\"\"\""
+        },
+        {
+          "id": "t8-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "워크플로우의 첫 시작 노드를 지정하는 메서드는?",
+          "o": [
+            "set_entry_point",
+            "add_node",
+            "compile",
+            "invoke"
+          ],
+          "a": 0,
+          "h": "§7 그래프 결합 부분 주석은 이 메서드를 '워크플로우의 첫 시작점 노드 지정'이라고 설명합니다. 14일차 메일 에이전트에서는 같은 일을 add_edge(START, ...)로도 하지만, 13일차 회의 시스템은 시작점 지정 전용 메서드를 씁니다.",
+          "w": "<code>workflow.set_entry_point(...)</code>로 시작 노드를 지정합니다. add_node는 노드 등록, compile은 실행 가능한 그래프 생성입니다.",
+          "an": "13일차 · LangGraph 기반 상태 머신형 AI 워크플로우 (선형적 에이전트 구조) §7 LANGGRAPH COMPILATION",
+          "src": "workflow.set_entry_point( ) # 워크플로우의 첫 시작점 노드 지정\n# 지식 기반이 수립된 후 4대 에이전트로 제어권 배분 (순차 분업 연결)\nworkflow.add_edge( )\nworkflow.add_edge( )\nworkflow.add_edge( )\nworkflow.add_edge( )\n# 모든 분석 독립 노드를 거친 후 마지막 번역/통합 레이어로 병합\nworkflow.add_edge( )\nworkflow.add_edge( , END) # 가동 프로세스 종료 명시\n# 실행 가능한 그래프 바이너리로 완전 컴파일\nmeeting_graph = workflow.compile()"
+        },
+        {
+          "id": "t8-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>rag_retrieval_node(state)</code>가 반환하는 값의 형태로 알맞은 것은?",
+          "o": [
+            "전체 State의 새 복사본",
+            "답변 문자열 하나",
+            "바꿀 키만 담은 딕셔너리",
+            "반환값 없음(None)"
+          ],
+          "a": 2,
+          "h": "LangGraph 노드 함수는 state를 인자로 받고, 바뀐 값만 키-값으로 돌려주면 그래프가 공유 State에 합쳐 줍니다. rag_retrieval_node의 return 줄 주석은 '업데이트할 상태 딕셔너리 리턴'이며 transcript와 context 두 키를 담습니다.",
+          "w": "노드는 바꿀 키만 담은 딕셔너리(<code>{'transcript': ..., 'context': ...}</code>)를 반환하고, LangGraph가 이를 State에 반영합니다.",
+          "an": "13일차 · LangGraph 기반 상태 머신형 AI 워크플로우 (선형적 에이전트 구조) §6 LANGGRAPH NODES",
+          "src": "# 6. LANGGRAPH NODES (그래프 노드 함수 설계)\n# ============================================================\ndef rag_retrieval_node(state: MeetingState):\n \"\"\"STT 원문을 바탕으로 RAG Context를 확보하는 가이드 검색 노드\"\"\"\n transcript =\n context =\n return {\"transcript\": transcript, \"context\": context} # 업데이트할 상태 딕셔너리 리턴"
+        },
+        {
+          "id": "t8-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>call_agent_llm</code> 프롬프트의 [Strict Instruction]이 강제하는 것은?",
+          "o": [
+            "영어로만 작성",
+            "JSON으로만 출력",
+            "요약은 세 줄 이내",
+            "모든 내용을 한국어로 작성"
+          ],
+          "a": 3,
+          "h": "call_agent_llm은 role을 바꿔 가며 모든 분석 에이전트가 공유하는 LLM 호출기로, 독스트링은 '공통 페르소나 주입을 통해 ○○○ 결과물을 고정 생산'한다고 설명합니다. 분석은 한 언어로 먼저 하고, 다국어 변환은 마지막 번역 노드가 따로 맡습니다.",
+          "w": "보고서 전체를 한국어로 쓰도록 강제합니다. 한국어로 먼저 분석한 뒤 번역 노드가 다국어로 바꾸는 구조라서입니다.",
+          "an": "13일차 · LangGraph 기반 상태 머신형 AI 워크플로우 (선형적 에이전트 구조) §5 CORE LLM BASE CALL",
+          "src": "[Strict Instruction]\n- Provide a highly professional, structured output.\n- You MUST write the entire report content in Korean (모든 내용을 반드시 한국어로 작성하세요)."
+        },
+        {
+          "id": "t8-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "선형 구조에서 네 번째 분석 에이전트(결정사항) 노드 다음에 연결되는 노드는?",
+          "o": [
+            "RAG 검색 노드",
+            "번역·병합 노드",
+            "요약 에이전트 노드",
+            "슈퍼바이저 노드"
+          ],
+          "a": 1,
+          "h": "선형 구조 주석은 '지식 기반이 수립된 후 4대 에이전트로 제어권 배분 (순차 분업 연결)'으로 add_edge 4개를 두고, '모든 분석 독립 노드를 거친 후 마지막 번역/통합 레이어로 병합'으로 add_edge 1개를 더 둡니다. 마지막 남은 add_edge(..., END)는 번역·병합 노드에서 끝납니다.",
+          "w": "RAG 검색 → 요약 → 실행 항목 → 리스크 → 결정사항이 순차로 이어지고, 그 다음 번역·병합 노드를 거쳐 END로 끝납니다.",
+          "an": "13일차 · LangGraph 기반 상태 머신형 AI 워크플로우 (선형적 에이전트 구조) §7 에지 배치",
+          "src": "# 지식 기반이 수립된 후 4대 에이전트로 제어권 배분 (순차 분업 연결)\nworkflow.add_edge( )\nworkflow.add_edge( )\nworkflow.add_edge( )\nworkflow.add_edge( )\n# 모든 분석 독립 노드를 거친 후 마지막 번역/통합 레이어로 병합\nworkflow.add_edge( )\nworkflow.add_edge( , END) # 가동 프로세스 종료 명시\n# 실행 가능한 그래프 바이너리로 완전 컴파일"
+        },
+        {
+          "id": "t8-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "MeetingState의 summary·action·risk·decision 필드에는 영어 분석 결과가 저장된다.",
+          "h": "MeetingState 필드 주석은 summary·action·risk·decision을 각 에이전트 결과물이라고 하면서 괄호로 언어를 밝혀 둡니다. 번역된 결과는 이름 끝에 _t가 붙은 별도 필드(summary_t 등)에 저장되고, merged_raw는 '병합된 ○○○ 원문 리포트'입니다.",
+          "w": "틀렸습니다. 네 필드는 한국어 결과를 담고, 번역 결과는 summary_t·action_t 같은 _t 필드에 따로 담습니다.",
+          "an": "13일차 · LangGraph 기반 상태 머신형 AI 워크플로우 (선형적 에이전트 구조) §4 MeetingState",
+          "a": false,
+          "src": "class MeetingState(TypedDict):\n audio_path: str # 입력받은 오디오 파일 경로\n lang: str # 사용자가 최종 선택한 타겟 언어\n transcript: str # STT 결과물 원문 텍스트\n context: str # RAG를 통해 확보한 기업 가이드 문맥\n summary: str # 요약 에이전트 결과 (한국어)\n action: str # 실행 항목 에이전트 결과 (한국어)\n risk: str # 리스크 에이전트 결과 (한국어)\n decision: str # 결정사항 에이전트 결과 (한국어)\n next_step: str # 슈퍼바이저가 지시한 다음 행선지 (라우팅 플래그)\n summary_t: str # 번역된 요약 리포트"
+        },
+        {
+          "id": "t8-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": false,
+          "p": "그래프 구조도는 <code>meeting_graph.get_graph().draw_mermaid_png()</code>로 만들며, 실패하면 grandalf 같은 패키지 설치가 필요할 수 있다.",
+          "h": "시각화 셀은 IPython.display의 Image·display를 import하고, 컴파일된 그래프 객체에서 그래프를 꺼내 Mermaid 형식 PNG로 그려 결과창에 렌더링합니다. except 블록은 정상 출력을 위해 추가 패키지 설치가 필요할 수 있다고 안내합니다.",
+          "w": "맞습니다. 컴파일된 그래프에서 Mermaid 형식 PNG를 만들어 <code>display(Image(graph_png))</code>로 보여 주며, 오류 시 grandalf 또는 mermaid-cli 설치를 안내합니다.",
+          "an": "13일차 · LangGraph 워크플로우 시각화 레이어",
+          "a": true,
+          "src": "from IPython.display import Image, display\ntry:\n # 컴파일된 meeting_graph 객체로부터 Mermaid 형식의 PNG 이미지를 생성합니다.\n graph_png =\n print(\"제니가 추천하는 LangGraph 멀티 에이전트 아키텍처 구조도입니다:\")\n # Colab 결과창에 이미지를 즉시 렌더링하여 보여줍니다.\nexcept Exception as e:\n print(\"그래프 시각화 중 오류가 발생했습니다.\")\n print(\"정상 출력을 위해 pygraphviz 또는 관련 패키지 설치가 필요할 수 있습니다.\")"
+        },
+        {
+          "id": "t8-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "LangGraph API와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "StateGraph(MeetingState)",
+              "상태 기반 그래프 빌더 생성"
+            ],
+            [
+              "add_node",
+              "이름과 노드 함수 등록"
+            ],
+            [
+              "add_edge",
+              "노드 사이 흐름선 연결"
+            ],
+            [
+              "END",
+              "워크플로우 종료 지점"
+            ],
+            [
+              "compile()",
+              "실행 가능한 그래프로 변환"
+            ]
+          ],
+          "h": "그래프 조립 순서는 상태 스키마로 빌더를 만들고 → 이름과 함수로 노드를 등록하고 → 노드 사이에 흐름선을 긋고 → 종료 지점을 연결한 뒤 → 실행 가능한 객체로 만드는 것입니다. 마지막 결과물 meeting_graph는 invoke로 실행할 수 있습니다.",
+          "w": "StateGraph는 상태 기반 그래프 빌더, add_node는 노드 등록, add_edge는 흐름선 연결, END는 종료 지점, compile은 실행 가능한 그래프 생성입니다.",
+          "an": "13일차 · LangGraph 기반 상태 머신형 AI 워크플로우 (선형적 에이전트 구조) §7 LANGGRAPH COMPILATION",
+          "src": "# 에지(흐름선) 배치 관계 정의\nworkflow.set_entry_point( ) # 워크플로우의 첫 시작점 노드 지정\n# 지식 기반이 수립된 후 4대 에이전트로 제어권 배분 (순차 분업 연결)\nworkflow.add_edge( )\nworkflow.add_edge( )\nworkflow.add_edge( )\nworkflow.add_edge( )\n# 모든 분석 독립 노드를 거친 후 마지막 번역/통합 레이어로 병합\nworkflow.add_edge( )\nworkflow.add_edge( , END) # 가동 프로세스 종료 명시\n# 실행 가능한 그래프 바이너리로 완전 컴파일\nmeeting_graph = workflow.compile()"
+        },
+        {
+          "id": "t8-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "선형 LangGraph 회의 분석 시스템의 실행 흐름을 맞추세요.",
+          "steps": [
+            "시작 노드로 RAG 검색 노드 지정",
+            "STT와 RAG로 transcript·context 갱신",
+            "4개 분석 에이전트가 순서대로 기록",
+            "번역·병합 노드가 보고서 조립",
+            "END로 종료"
+          ],
+          "h": "선형 구조 다이어그램은 Audio → STT → RAG → 4 Agent Nodes(개념상 병렬이지만 순차 엣지) → Translation Node → Merge Report → Gradio 출력입니다. pipeline은 초기 상태 딕셔너리를 meeting_graph.invoke에 넣어 마지막 노드까지 실행한 final_state를 받습니다.",
+          "w": "set_entry_point로 지정한 RAG 노드가 transcript·context를 채우고, 네 분석 에이전트가 차례로 결과를 기록한 뒤, 번역·병합 노드가 보고서를 만들고 END로 끝납니다.",
+          "an": "13일차 · LangGraph 기반 상태 머신형 AI 워크플로우 (선형적 에이전트 구조) 구조도 · §7",
+          "src": "# 에지(흐름선) 배치 관계 정의\nworkflow.set_entry_point( ) # 워크플로우의 첫 시작점 노드 지정\n# 지식 기반이 수립된 후 4대 에이전트로 제어권 배분 (순차 분업 연결)\nworkflow.add_edge( )\nworkflow.add_edge( )\nworkflow.add_edge( )\nworkflow.add_edge( )\n# 모든 분석 독립 노드를 거친 후 마지막 번역/통합 레이어로 병합\nworkflow.add_edge( )\nworkflow.add_edge( , END) # 가동 프로세스 종료 명시\n# 실행 가능한 그래프 바이너리로 완전 컴파일\nmeeting_graph = workflow.compile()"
+        },
+        {
+          "id": "t8-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "선형 구조 <code>rag_retrieval_node</code>의 빈칸(transcript, context)에 들어갈 코드를 모두 고르세요.",
+          "o": [
+            "stt(state['audio_path'])",
+            "retrieve_context(transcript)",
+            "state['summary']",
+            "translate_core(text, lang)",
+            "index.add(transcript)"
+          ],
+          "a": [
+            0,
+            1
+          ],
+          "h": "이 노드는 독스트링대로 'STT 원문을 바탕으로 RAG Context를 확보'합니다. 먼저 State의 오디오 경로로 음성 전사 함수를 호출하고, 그 전사문을 FAISS 검색 함수에 넣어 규칙 문맥을 얻습니다. 슈퍼바이저 버전의 같은 이름 노드에 완성 코드가 있습니다.",
+          "w": "<code>transcript = stt(state['audio_path'])</code>, <code>context = retrieve_context(transcript)</code>입니다. 요약 값이나 번역 함수는 이 노드가 쓰지 않습니다.",
+          "an": "13일차 · LangGraph 기반 상태 머신형 AI 워크플로우 (선형적 에이전트 구조) §6 · 13일차 · 슈퍼바이저 에이전트를 포함한 Hub-and-Spoke 아키텍처 기본 인프라 노드",
+          "src": "\"\"\"조건부 에지: 슈퍼바이저가 결정한 방향으로 그래프 길을 분기시킴\"\"\"\n next_step =\n if\n return \"translation_step\" # 최종 목적지인 번역/병합 레이어로 보냄\n return next_step # 각 에이전트 노드명에 맞춰 라우팅\n# 기본 인프라 단계 노드들\ndef rag_retrieval_node(state: MeetingState):\n transcript = stt(state[\"audio_path\"])\n context = retrieve_context(transcript)"
+        }
+      ]
+    },
+    {
+      "id": "t9",
+      "title": "슈퍼바이저 Hub-and-Spoke",
+      "ref": "13일차 슈퍼바이저 에이전트 아키텍처",
+      "qs": [
+        {
+          "id": "t9-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "슈퍼바이저 노드가 State에 기록하는 라우팅 플래그 키는?",
+          "o": [
+            "next_step",
+            "context",
+            "merged_raw",
+            "lang"
+          ],
+          "a": 0,
+          "h": "슈퍼바이저 버전 MeetingState에는 선형 버전에 없던 필드가 하나 추가되며, 주석은 '슈퍼바이저가 지시한 다음 행선지 (라우팅 플래그)'입니다. supervisor_node는 GPT가 돌려준 JSON에서 같은 이름의 키를 꺼내 State에 넣습니다.",
+          "w": "<code>next_step</code>에 다음 행선지를 적습니다. context·merged_raw·lang은 선형 구조에도 있던 필드입니다.",
+          "an": "13일차 · 슈퍼바이저 에이전트를 포함한 Hub-and-Spoke 아키텍처 §4 MeetingState",
+          "src": "Respond ONLY with a JSON object containing the key 'next_step'.\nExample 1: {{\"next_step\": \"summary_step\"}}\nExample 2: {{\"next_step\": \"FINISH\"}}\n\"\"\"\n res =\n result_json =\n return {\"next_step\": result_json[\"next_step\"]} # 상태에 다음 타겟 주입"
+        },
+        {
+          "id": "t9-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "모든 전문가 에이전트가 완료되었을 때 슈퍼바이저가 출력하는 값은?",
+          "o": [
+            "summary_step",
+            "END",
+            "FINISH",
+            "DONE"
+          ],
+          "a": 2,
+          "h": "supervisor_node 프롬프트는 네 에이전트의 완료 여부(YES/NO)를 보여 주고 [Available Next Steps]에 각 단계와 종료 신호를 나열합니다. 모든 에이전트가 'YES'일 때 쓰는 종료 신호는 대문자 한 단어이며, LangGraph 상수 END와는 다른 문자열입니다.",
+          "w": "모두 YES면 'FINISH'를 출력합니다. 그러면 라우터가 번역 단계로 보냅니다.",
+          "an": "13일차 · 슈퍼바이저 에이전트를 포함한 Hub-and-Spoke 아키텍처 · supervisor_node 프롬프트",
+          "src": "- 'decision_step': Needs to run if Decision Agent is 'NO'\n- 'FINISH': If ALL agents are 'YES'\nRespond ONLY with a JSON object containing the key 'next_step'.\nExample 1: {{\"next_step\": \"summary_step\"}}\nExample 2: {{\"next_step\": \"FINISH\"}}"
+        },
+        {
+          "id": "t9-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>supervisor_router</code>는 next_step이 'FINISH'일 때 어디로 보냅니까?",
+          "o": [
+            "END",
+            "translation_step",
+            "supervisor_step",
+            "retrieval_step"
+          ],
+          "a": 1,
+          "h": "supervisor_router는 조건부 에지 함수로, 슈퍼바이저가 State에 적은 next_step을 읽습니다. 종료 신호를 받으면 주석 '최종 목적지인 번역/병합 레이어로 보냄'에 해당하는 노드 이름을 반환하고, 그 외에는 next_step 값을 그대로 반환해 해당 에이전트 노드로 보냅니다.",
+          "w": "FINISH이면 'translation_step'을 반환해 번역·병합 노드로 보내고, 그 외에는 next_step 값(에이전트 노드 이름)을 그대로 반환합니다.",
+          "an": "13일차 · 슈퍼바이저 에이전트를 포함한 Hub-and-Spoke 아키텍처 · supervisor_router",
+          "src": "Example 2: {{\"next_step\": \"FINISH\"}}\n\"\"\"\n res =\n result_json =\n return {\"next_step\": result_json[\"next_step\"]} # 상태에 다음 타겟 주입\ndef supervisor_router(state: MeetingState):\n \"\"\"조건부 에지: 슈퍼바이저가 결정한 방향으로 그래프 길을 분기시킴\"\"\"\n next_step =\n if\n return \"translation_step\" # 최종 목적지인 번역/병합 레이어로 보냄\n return next_step # 각 에이전트 노드명에 맞춰 라우팅"
+        },
+        {
+          "id": "t9-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Hub-and-Spoke 구조에서 하위 에이전트 노드는 작업이 끝나면 어디로 갑니까?",
+          "o": [
+            "translation_step",
+            "END",
+            "retrieval_step",
+            "supervisor_step"
+          ],
+          "a": 3,
+          "h": "Hub-and-Spoke는 중앙 허브 하나가 바큇살처럼 여러 에이전트를 지휘하는 구조입니다. 주석 '하위 에이전트들은 작업이 끝나면 무조건 관제탑으로 복귀함' 아래 add_edge 네 줄의 두 번째 인자가 모두 같은 노드 이름입니다.",
+          "w": "summary·action·risk·decision 노드는 모두 <code>add_edge(..., 'supervisor_step')</code>으로 슈퍼바이저에게 돌아가 재평가를 받습니다.",
+          "an": "13일차 · 슈퍼바이저 에이전트를 포함한 Hub-and-Spoke 아키텍처 §7 에지 배치",
+          "src": "# 에지 배치 관계 정의 (Supervisor Hub 구조)\nworkflow.set_entry_point(\"retrieval_step\")\nworkflow.add_edge( ) # RAG 끝나면 무조건 지휘관에게\n# 하위 에이전트들은 작업이 끝나면 무조건 관제탑(supervisor_step)으로 복귀함\nworkflow.add_edge( , \"supervisor_step\")\nworkflow.add_edge( , \"supervisor_step\")\nworkflow.add_edge( , \"supervisor_step\")\nworkflow.add_edge( , \"supervisor_step\")\n# 지휘관 노드에서 상태에 따라 동적으로 분기 경로를 지정 (Conditional Edge 핵심)"
+        },
+        {
+          "id": "t9-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "완료 상태가 Summary YES, Action YES, Risk YES, Decision NO라면 프롬프트 규칙상 슈퍼바이저의 next_step은?",
+          "o": [
+            "FINISH",
+            "summary_step",
+            "decision_step",
+            "risk_step"
+          ],
+          "a": 2,
+          "h": "프롬프트의 [Available Next Steps]는 각 단계를 'Needs to run if ○○ Agent is NO'로 정의하고, 종료 신호는 'If ALL agents are YES'일 때만 냅니다. 상태 목록에서 아직 NO인 에이전트를 찾아 그에 대응하는 단계 이름을 고르세요.",
+          "w": "Decision Agent만 NO이므로 'decision_step'입니다. 모두 YES가 되어야 FINISH를 출력합니다.",
+          "an": "13일차 · 슈퍼바이저 에이전트를 포함한 Hub-and-Spoke 아키텍처 · supervisor_node 프롬프트",
+          "src": "[Available Next Steps]\n- 'summary_step': Needs to run if Summary Agent is 'NO'\n- 'action_step': Needs to run if Action Item Agent is 'NO'\n- 'risk_step': Needs to run if Risk Agent is 'NO'\n- 'decision_step': Needs to run if Decision Agent is 'NO'\n- 'FINISH': If ALL agents are 'YES'\nRespond ONLY with a JSON object containing the key 'next_step'."
+        },
+        {
+          "id": "t9-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "슈퍼바이저 프롬프트는 next_step 키를 가진 JSON 객체로만 응답하라고 지시하며, 코드는 이를 json 모듈로 파싱한다.",
+          "h": "프롬프트 끝은 'Respond ONLY with a JSON object containing the key ...'와 두 가지 예시로 끝납니다. 셀 import 목록에는 '슈퍼바이저의 구조화된 라우팅 결과 파싱용' 주석이 달린 표준 모듈이 추가되어 있습니다.",
+          "w": "맞습니다. 예시 {'next_step': 'summary_step'}처럼 JSON으로 받게 하고, json 모듈로 파싱해 next_step을 State에 넣습니다.",
+          "an": "13일차 · 슈퍼바이저 에이전트를 포함한 Hub-and-Spoke 아키텍처 · supervisor_node",
+          "a": true,
+          "src": "Respond ONLY with a JSON object containing the key 'next_step'.\nExample 1: {{\"next_step\": \"summary_step\"}}\nExample 2: {{\"next_step\": \"FINISH\"}}\n\"\"\"\n res =\n result_json =\n return {\"next_step\": result_json[\"next_step\"]} # 상태에 다음 타겟 주입"
+        },
+        {
+          "id": "t9-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "슈퍼바이저 구조에서 RAG 검색 노드 다음에는 요약 에이전트가 고정으로 연결된다.",
+          "h": "슈퍼바이저 버전의 에지 정의는 set_entry_point('retrieval_step') 뒤 'RAG 끝나면 무조건 지휘관에게'라는 add_edge 한 줄로 시작합니다. 어떤 분석 에이전트가 먼저 일할지는 고정 에지가 아니라 지휘관의 판단과 add_conditional_edges로 정해집니다.",
+          "w": "틀렸습니다. retrieval_step은 무조건 supervisor_step으로 연결되고, 어떤 에이전트를 먼저 실행할지는 슈퍼바이저가 조건부 에지로 정합니다.",
+          "an": "13일차 · 슈퍼바이저 에이전트를 포함한 Hub-and-Spoke 아키텍처 §7 에지 배치",
+          "a": false,
+          "src": "# 에지 배치 관계 정의 (Supervisor Hub 구조)\nworkflow.set_entry_point(\"retrieval_step\")\nworkflow.add_edge( ) # RAG 끝나면 무조건 지휘관에게\n# 하위 에이전트들은 작업이 끝나면 무조건 관제탑(supervisor_step)으로 복귀함\nworkflow.add_edge( , \"supervisor_step\")\nworkflow.add_edge( , \"supervisor_step\")\nworkflow.add_edge( , \"supervisor_step\")\nworkflow.add_edge( , \"supervisor_step\")\n# 지휘관 노드에서 상태에 따라 동적으로 분기 경로를 지정 (Conditional Edge 핵심)"
+        },
+        {
+          "id": "t9-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "슈퍼바이저 그래프의 노드 이름과 등록된 함수를 연결하세요.",
+          "pairs": [
+            [
+              "retrieval_step",
+              "rag_retrieval_node"
+            ],
+            [
+              "supervisor_step",
+              "supervisor_node"
+            ],
+            [
+              "summary_step",
+              "summary_agent_node"
+            ],
+            [
+              "translation_step",
+              "translation_and_merge_node"
+            ]
+          ],
+          "h": "§7 노드 등록 부분은 add_node('이름', 함수) 꼴로 일곱 개 노드를 등록합니다. 노드 이름은 '역할_step', 함수 이름은 rag_retrieval_node·supervisor_node·summary_agent_node·translation_and_merge_node처럼 '역할_node' 꼴이라 앞부분 역할어로 짝을 찾을 수 있습니다.",
+          "w": "retrieval_step은 rag_retrieval_node, supervisor_step은 supervisor_node, summary_step은 summary_agent_node, translation_step은 translation_and_merge_node입니다.",
+          "an": "13일차 · 슈퍼바이저 에이전트를 포함한 Hub-and-Spoke 아키텍처 §7 노드 등록",
+          "src": "workflow.add_node(\"retrieval_step\", rag_retrieval_node)\nworkflow.add_node(\"supervisor_step\", supervisor_node) # 슈퍼바이저 노드 등록\nworkflow.add_node(\"summary_step\", summary_agent_node)\nworkflow.add_node(\"action_step\", action_agent_node)\nworkflow.add_node(\"risk_step\", risk_agent_node)\nworkflow.add_node(\"decision_step\", decision_agent_node)\nworkflow.add_node(\"translation_step\", translation_and_merge_node)"
+        },
+        {
+          "id": "t9-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "슈퍼바이저 기반 그래프가 한 번 실행되는 흐름을 맞추세요.",
+          "steps": [
+            "retrieval_step에서 STT와 RAG 수행",
+            "supervisor_step이 완료 상태 확인",
+            "지시된 에이전트 실행 후 복귀",
+            "모두 YES면 FINISH 출력",
+            "translation_step 후 END"
+          ],
+          "h": "구조도는 STT → RAG Retrieval → Supervisor Node(next_step 결정) → 네 에이전트 중 하나 → Supervisor Node(재평가) → 모든 작업 완료 여부 판단 → FINISH 또는 다음 Agent 선택 → Translation Layer → Final Report Merge 순서입니다. 에이전트 실행과 재평가는 모든 작업이 끝날 때까지 반복됩니다.",
+          "w": "retrieval_step에서 STT·RAG를 하고, 슈퍼바이저가 완료 상태를 보고 다음 에이전트를 지시하며, 에이전트는 실행 후 복귀합니다. 모두 끝나면 FINISH로 translation_step을 거쳐 END로 갑니다.",
+          "an": "13일차 · 슈퍼바이저 에이전트를 포함한 Hub-and-Spoke 아키텍처 구조도",
+          "src": "슈퍼바이저 에이전트 구조\n [Gradio Audio Input]\n ↓\n STT (Whisper)\n ↓\n RAG Retrieval (FAISS)\n ↓\n ┌─────────────────────┐\n │ Supervisor Node │\n │ (next_step 결정 AI) │\n └─────────┬───────────┘\n │\n ┌──────── ─┼───────────┐\n ↓ ↓ ↓ ↓\n Summary Action Risk Decision\n Agent Agent Agent Agent\n ↓ ↓ ↓ ↓\n └──────────┼──────────┘\n ↓\n Supervisor Node (재평가)\n ↓\n (모든 작업 완료 여부 판단)\n ↓\n FINISH or 다음 Agent 선택\n ↓\n Translation Layer"
+        },
+        {
+          "id": "t9-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "<code>add_conditional_edges('supervisor_step', supervisor_router, {...})</code>의 매핑 딕셔너리에 필요한 키를 모두 고르세요.",
+          "o": [
+            "summary_step",
+            "action_step",
+            "risk_step",
+            "translation_step",
+            "retrieval_step"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "add_conditional_edges의 세 번째 인자는 '라우터가 반환한 문자열 → 이동할 노드' 매핑입니다. supervisor_router는 종료 신호일 때 번역·병합 노드 이름을, 아니면 슈퍼바이저 프롬프트의 [Available Next Steps]에 있는 단계 이름을 반환하므로, 반환될 수 있는 모든 값이 키로 있어야 합니다. 시작 노드는 슈퍼바이저 뒤로 다시 갈 일이 없습니다.",
+          "w": "라우터는 summary_step·action_step·risk_step·decision_step 또는 translation_step을 반환하므로 이 키들이 필요합니다. retrieval_step은 시작 노드라 라우팅 대상이 아닙니다.",
+          "an": "13일차 · 슈퍼바이저 에이전트를 포함한 Hub-and-Spoke 아키텍처 §7 Conditional Edge",
+          "src": "workflow.add_conditional_edges(\n \"supervisor_step\",\n supervisor_router,\n {\n\n\n }\n)\nworkflow.add_edge(\"translation_step\", END)\n# 실행 가능한 지능형 그래프 바이너리로 완전 컴파일\nmeeting_graph = workflow.compile()"
+        }
+      ]
+    }
+  ]
+}

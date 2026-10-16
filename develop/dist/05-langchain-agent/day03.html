@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>LangChain 3일차 · Few-shot 프롬프트·예제 선택기·LangGraph · 문제은행</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* Quiz Bank 디자인 토큰 v2
+   타이포 기준: AI_Voice day07 워크시트 (본문 15px / 행간 1.55, 요소 13~14px)
+   다크 팔레트: day07 워크시트(#0b1220 남색 + 앰버·틸 포인트) / 라이트: 같은 구조의 중립 팔레트
+   build.py가 이 파일을 엔진 <style> 맨 앞에 그대로 넣는다. */
+:root{
+  /* 타이포 */
+  --font:"Pretendard Variable","Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"JetBrains Mono","D2Coding",Consolas,"SF Mono",monospace;
+  --fs-base:15px;--lh:1.55;
+  --fs-h1:24px;--fs-h2:17px;--fs-q:15px;--fs-opt:14px;--fs-btn:13px;--fs-btn-pri:14px;
+  --fs-sm:13px;--fs-xs:12px;--fs-2xs:11px;--fs-ox:22px;
+  /* 형태 */
+  --r-sm:6px;--r:8px;--r-md:10px;--r-lg:12px;--maxw:880px;
+
+  /* 라이트 */
+  --bg:#F5F6F8;--panel:#FFFFFF;--raised:#FFFFFF;--field:#FFFFFF;
+  --ink:#141A26;--muted:#5A6375;--faint:#8A93A4;--line:#E2E6EC;--line-2:#CDD3DC;--soft:#F0F2F5;
+  --title:#141A26;--link:#0E8C80;--accent:#B7791F;
+  --ok:#15803D;--bad:#D23B32;--combo:#7C3AED;--gold:#B7891F;
+  --btn-bg:#FFFFFF;--btn-line:#D5DAE2;--pri-bg:#141A26;--pri-line:#141A26;--pri-ink:#FFFFFF;
+  --ty-mc:#0E8C80;--ty-multi:#7C3AED;--ty-ox:#64748B;--ty-match:#C2417A;--ty-order:#B7791F;--ty-num:#2563EB;
+  --timer-hi:#16A34A;--timer-mid:#D97706;--timer-lo:#DC2626;
+  --lv1:#16A34A;--lv2:#EAB308;--lv3:#DC2626;  /* 난이도 1·2·3 */
+  --shadow:0 1px 2px rgb(16 24 40 / .04);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0B1220;--panel:#111A2E;--raised:#0E1628;--field:#0A0F1C;
+  --ink:#DBE4F0;--muted:#8A9BB8;--faint:#5E6F8E;--line:#1F2B45;--line-2:#2A3A5C;--soft:#16203A;
+  --title:#F5B942;--link:#2DD4BF;--accent:#F5B942;
+  --ok:#4ADE80;--bad:#F87171;--combo:#C084FC;--gold:#F5B942;
+  --btn-bg:#172239;--btn-line:#2A3A5C;--pri-bg:#123D33;--pri-line:#2DD4BF;--pri-ink:#2DD4BF;
+  --ty-mc:#2DD4BF;--ty-multi:#C084FC;--ty-ox:#8A9BB8;--ty-match:#F472B6;--ty-order:#F5B942;--ty-num:#60A5FA;
+  --timer-hi:#4ADE80;--timer-mid:#F5B942;--timer-lo:#F87171;
+  --lv1:#4ADE80;--lv2:#FACC15;--lv3:#F87171;
+  --shadow:none;
+  color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0B1220;--panel:#111A2E;--raised:#0E1628;--field:#0A0F1C;
+  --ink:#DBE4F0;--muted:#8A9BB8;--faint:#5E6F8E;--line:#1F2B45;--line-2:#2A3A5C;--soft:#16203A;
+  --title:#F5B942;--link:#2DD4BF;--accent:#F5B942;
+  --ok:#4ADE80;--bad:#F87171;--combo:#C084FC;--gold:#F5B942;
+  --btn-bg:#172239;--btn-line:#2A3A5C;--pri-bg:#123D33;--pri-line:#2DD4BF;--pri-ink:#2DD4BF;
+  --ty-mc:#2DD4BF;--ty-multi:#C084FC;--ty-ox:#8A9BB8;--ty-match:#F472B6;--ty-order:#F5B942;--ty-num:#60A5FA;
+  --timer-hi:#4ADE80;--timer-mid:#F5B942;--timer-lo:#F87171;
+  --lv1:#4ADE80;--lv2:#FACC15;--lv3:#F87171;
+  --shadow:none;
+  color-scheme:dark;}
+@media (max-width:560px){:root{--fs-base:14.5px;--fs-h1:20px;--fs-h2:16px;--fs-q:14.5px;--fs-ox:20px}}
+
+/* ── 기본 ───────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:110px;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:var(--fs-base);line-height:var(--lh);
+  -webkit-font-smoothing:antialiased;letter-spacing:-.003em;padding-bottom:env(safe-area-inset-bottom,0px)}
+a{color:inherit}
+b,strong{font-weight:650}
+code{font-family:var(--mono);font-size:.88em;color:var(--link);background:var(--soft);padding:1px 5px;border-radius:4px}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px 56px}
+.muted{color:var(--muted)}
+/* 상단 바 */
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;height:calc(52px + env(safe-area-inset-top,0px));margin:0 -20px 22px;padding:env(safe-area-inset-top,0px) 20px 0;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.brand{font-size:var(--fs-xs);color:var(--muted);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;letter-spacing:.01em}
+.brand b{color:var(--ink);font-weight:600}
+.iconbtn{font:inherit;font-size:14px;border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);width:32px;height:32px;border-radius:var(--r);cursor:pointer;flex:0 0 auto;display:grid;place-items:center}
+.iconbtn:hover{border-color:var(--muted)}
+/* 제목 */
+h1{font-size:var(--fs-h1);line-height:1.3;margin:0 0 6px;letter-spacing:-.02em;font-weight:700;color:var(--title)}
+h2{font-size:var(--fs-h2);line-height:1.4;margin:0;font-weight:650;letter-spacing:-.01em}
+.ph{font-size:14px;color:var(--muted);font-weight:600;margin:0 0 10px;letter-spacing:0}
+.sh{font-size:var(--fs-sm);color:var(--muted);font-weight:600;margin:16px 0 6px}
+.sub{color:var(--muted);margin:0 0 4px}
+.meta{font-size:var(--fs-xs);color:var(--faint);margin:0 0 18px;font-family:var(--mono);letter-spacing:-.01em}
+.crumbs{display:flex;gap:8px;align-items:center;margin-bottom:12px;font-size:var(--fs-sm);color:var(--faint)}
+.crumbs a{text-decoration:none;color:var(--muted)}
+.crumbs a:hover{color:var(--ink)}
+.part{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--link);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:1px 7px;white-space:nowrap;max-width:100%;font-weight:500;letter-spacing:0}
+.tabhead .part,.ngroup .part{white-space:normal;overflow-wrap:anywhere}  /* 긴 자료 위치(예: voice-ai 교시 라벨)는 줄바꿈 */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.center{text-align:center}
+.note-sm{font-size:var(--fs-sm);color:var(--muted)}
+.lbl{display:block;font-size:var(--fs-xs);color:var(--muted);margin-bottom:2px}
+/* 버튼 */
+.btn{font:inherit;font-size:var(--fs-btn);display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);
+  padding:7px 12px;border-radius:var(--r);cursor:pointer;text-decoration:none;min-height:34px;line-height:1.3;white-space:nowrap;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--pri-bg);color:var(--pri-ink);border-color:var(--pri-line);font-weight:650;font-size:var(--fs-btn-pri);padding:8px 18px}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.locked{opacity:.5}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,var(--btn-line))}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn .cnt{font-family:var(--mono);font-size:var(--fs-2xs);background:var(--bad);color:#fff;border-radius:99px;padding:0 6px;min-width:18px;line-height:16px;text-align:center}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0}
+button:focus-visible,a:focus-visible,input:focus-visible,.opt:focus-within{outline:2px solid var(--link);outline-offset:2px}
+/* 입력 */
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;max-width:300px}
+.field label{font-size:var(--fs-xs);color:var(--muted)}
+.field input{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--field);color:var(--ink)}
+.field input::placeholder{color:var(--faint)}
+/* 진행 바 */
+.bar{flex:1;height:4px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bar>div{height:100%;width:0;background:var(--link);transition:width .25s}
+.progress{position:sticky;top:calc(52px + env(safe-area-inset-top,0px));z-index:5;background:var(--bg);padding:8px 0;margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.progress span,.homeprog span{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.homeprog{display:flex;align-items:center;gap:12px;margin:2px 0 16px}
+/* 홈 탭 카드 */
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:6px}
+.tcard{display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;text-decoration:none;color:var(--ink);transition:border-color .15s;box-shadow:var(--shadow)}
+.tcard:hover{border-color:var(--line-2)}
+.tcard .tn{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint)}
+.tcard .tt{font-weight:600;font-size:14px;line-height:1.45}
+.tcard .ts{margin-top:auto;padding-top:8px;font-size:var(--fs-xs);color:var(--faint);display:flex;justify-content:space-between;align-items:center;font-family:var(--mono)}
+.tcard.done .ts b{color:var(--ok);font-weight:600}
+.tcard.perfect{border-color:color-mix(in srgb,var(--gold) 55%,var(--line))}
+.lockmsg{font-size:var(--fs-xs);color:var(--faint);margin:-6px 0 16px}
+/* 탭 바 */
+/* 학습 탭 선택: 웹(≥1024) 자유 배치 · 태블릿(560~1023) 3개 · 모바일(<560) 2개 */
+.tabbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+@media (max-width:1023px){.tabbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tabchip{min-width:0;display:flex;align-items:center;gap:6px;font-size:var(--fs-btn);padding:6px 10px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);text-decoration:none;color:var(--ink);line-height:1.35;word-break:keep-all}
+.tabchip .tl{min-width:0}
+.tabchip .qc{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--muted);white-space:nowrap;margin-left:auto}
+.tabchip[aria-selected="true"] .qc{color:var(--link)}
+.tabchip .sc{white-space:nowrap}
+.btn .qc{font-family:var(--mono);font-weight:500;opacity:.85}
+.tabchip b{font-family:var(--mono);font-weight:600;color:var(--faint)}
+.tabchip:hover{border-color:var(--muted)}
+.tabchip[aria-selected="true"]{border-color:var(--link);color:var(--link);background:color-mix(in srgb,var(--link) 9%,var(--btn-bg))}
+.tabchip[aria-selected="true"] b{color:var(--link)}
+.tabchip .sc{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--ok)}
+.tabchip.sum{border-color:color-mix(in srgb,var(--gold) 60%,var(--btn-line));color:var(--gold)}
+.tabhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 2px}
+.tabhead h2{color:var(--title)}
+/* 문항 카드 */
+.q{background:var(--raised);border:1px solid var(--line);border-left:3px solid var(--tc);border-radius:var(--r-md);padding:12px 14px;margin:0 0 10px;box-shadow:var(--shadow)}
+.q.correct{border-color:color-mix(in srgb,var(--ok) 45%,var(--line));border-left-color:var(--ok)}
+.q.wrong{border-color:color-mix(in srgb,var(--bad) 45%,var(--line));border-left-color:var(--bad)}
+.qhead{display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap}
+.qn{font-family:var(--mono);font-size:var(--fs-xs);color:var(--faint);font-weight:500}
+.tbadge{font-size:var(--fs-2xs);font-weight:600;padding:0 7px;line-height:18px;border-radius:var(--r-sm);color:var(--tc);border:1px solid color-mix(in srgb,var(--tc) 45%,transparent);background:color-mix(in srgb,var(--tc) 8%,transparent);white-space:nowrap}
+/* 난이도: 점 1 녹색 · 점 2 노랑 · 점 3 빨강 (쉬움 ●○○ / 보통 ●●○ / 어려움 ●●●) + 글자 */
+.lv{display:inline-flex;align-items:center;gap:4px;line-height:1}
+.lv .dots{font-size:9px;letter-spacing:1px}
+.lv i{font-style:normal}
+.lv .d1{color:var(--lv1)} .lv .d2{color:var(--lv2)} .lv .d3{color:var(--lv3)} .lv .off{color:var(--line-2)}
+.lv em{font-style:normal;font-size:var(--fs-2xs);font-weight:600}
+.lv1 em{color:var(--lv1)} .lv2 em{color:color-mix(in srgb,var(--lv2) 80%,var(--ink))} .lv3 em{color:var(--lv3)}
+.verdict{margin-left:auto;font-weight:650;font-size:var(--fs-xs)}
+.correct .verdict{color:var(--ok)} .wrong .verdict{color:var(--bad)}
+.qsrc{margin-left:auto;font-size:var(--fs-2xs);color:var(--faint)}
+.qt{font-size:var(--fs-q);font-weight:500;margin:4px 0 8px}
+.guide{font-size:var(--fs-xs);color:var(--faint);margin:-4px 0 8px}
+.opts{display:grid;gap:6px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r);cursor:pointer;background:var(--panel);font-size:var(--fs-opt);transition:border-color .12s,background .12s}
+.opt:hover{border-color:var(--line-2)}
+.opt input{margin:4px 0 0;accent-color:var(--link);flex:0 0 auto;width:14px;height:14px}
+.opt:has(input:checked){border-color:var(--link);background:color-mix(in srgb,var(--link) 7%,var(--panel))}
+.opt.ans{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--panel))}
+.opt.miss{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 9%,var(--panel))}
+.ox{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:360px}
+.ox button{font:inherit;font-size:var(--fs-ox);font-weight:700;padding:8px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);cursor:pointer;line-height:1.3}
+.ox button:hover{border-color:var(--muted)}
+.ox button[aria-pressed="true"]{border-color:var(--link);color:var(--link);background:color-mix(in srgb,var(--link) 10%,var(--btn-bg))}
+.ox button.ans{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,var(--btn-bg));color:var(--ok)}
+.ox button.miss{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--btn-bg));color:var(--bad)}
+/* 짝 맞추기 */
+.match{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 14px}
+.mcol{display:flex;flex-direction:column;gap:6px}
+.mitem{font:inherit;font-size:var(--fs-opt);text-align:left;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--ink);padding:7px 10px;cursor:pointer;min-height:38px;display:flex;align-items:center;gap:8px;line-height:1.45}
+.mitem:hover{border-color:var(--line-2)}
+.mitem .tag{flex:0 0 auto;width:20px;height:20px;border-radius:var(--r-sm);border:1px dashed var(--line-2);display:grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);font-weight:600}
+.mitem.linked{border-color:color-mix(in srgb,var(--pc) 70%,var(--line))}
+.mitem.linked .tag{border:0;background:var(--pc);color:var(--bg)}
+.mitem.sel{border-color:var(--link);box-shadow:0 0 0 3px color-mix(in srgb,var(--link) 18%,transparent)}
+.mitem.okm{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--panel))}
+.mitem.nom{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--panel))}
+.mleft .mitem{font-weight:600}
+/* 순서 */
+.olist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.oitem{font:inherit;font-size:var(--fs-opt);text-align:left;width:100%;display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--ink);cursor:pointer;transition:border-color .12s,background .12s}
+.oitem:hover{border-color:var(--line-2)}
+.oitem .num{width:22px;height:22px;border-radius:50%;border:1px dashed var(--line-2);display:grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);font-weight:600;color:var(--muted);flex:0 0 auto}
+.oitem.on{border-color:var(--link);background:color-mix(in srgb,var(--link) 7%,var(--panel))}
+.oitem.on .num{border:0;background:var(--link);color:var(--bg)}
+.oitem .txt{flex:1;line-height:1.45}
+.oitem .ofix{flex:0 0 auto;font-size:var(--fs-2xs);color:var(--ok);font-weight:600}
+.oitem.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--panel))}
+.oitem.ok .num{background:var(--ok)}
+.oitem.no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--panel))}
+.oitem.no.on .num{background:var(--bad)}
+.numrow{display:flex;align-items:center;gap:8px;font-size:var(--fs-opt)}
+.numrow input{font-family:var(--mono);font-size:14px;width:120px;padding:6px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--field);color:var(--ink);text-align:right}
+.numrow input.ans{border-color:var(--ok)} .numrow input.miss{border-color:var(--bad)}
+.locked .mitem,.locked .ox button,.locked .opt{pointer-events:none}
+.locked .oitem{pointer-events:none}
+.opt .onum{flex:0 0 auto;min-width:18px;height:18px;padding:0 4px;border-radius:var(--r-sm);border:1px solid var(--line-2);display:inline-grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);color:var(--muted);margin-top:1px}
+.opt:has(input:checked) .onum{border-color:var(--link);color:var(--link)}
+.opt.ans .onum{border-color:var(--ok);color:var(--ok)} .opt.miss .onum{border-color:var(--bad);color:var(--bad)}
+/* 힌트 토글 (빨간색 = Hint) */
+.hintwrap{margin:-2px 0 8px}
+.hintbtn{font:inherit;font-size:var(--fs-xs);font-weight:650;display:inline-flex;align-items:center;gap:4px;color:var(--bad);background:color-mix(in srgb,var(--bad) 7%,transparent);border:1px solid color-mix(in srgb,var(--bad) 40%,transparent);border-radius:var(--r-sm);padding:2px 9px;cursor:pointer;line-height:1.5}
+.hintbtn:hover{background:color-mix(in srgb,var(--bad) 13%,transparent)}
+.hintbtn .caret{font-size:.85em}
+.srcwrap{margin-top:8px}
+.srcbtn{font:inherit;font-size:var(--fs-xs);font-weight:600;display:inline-flex;align-items:center;gap:4px;color:var(--link);background:transparent;border:1px solid var(--line-2);border-radius:var(--r-sm);padding:1px 8px;cursor:pointer;line-height:1.5}
+.srcbtn:hover{border-color:var(--link)}
+.src{margin:6px 0 0;padding:6px 10px;border-left:3px solid var(--link);background:var(--soft);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:var(--fs-xs);color:var(--muted)}
+.src p{margin:0;white-space:pre-wrap;word-break:break-word}
+.src cite{display:block;margin-top:4px;font-style:normal;font-size:var(--fs-2xs);color:var(--faint)}
+.hint{margin-top:6px;padding:6px 10px;border-left:3px solid var(--bad);background:color-mix(in srgb,var(--bad) 6%,transparent);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:var(--fs-sm);color:var(--ink)}
+/* 해설 */
+.exp{margin-top:10px;padding:2px 0 2px 10px;border-left:3px solid var(--line-2);font-size:var(--fs-sm);color:var(--muted)}
+.correct .exp{border-left-color:color-mix(in srgb,var(--ok) 55%,var(--line))}
+.wrong .exp{border-left-color:color-mix(in srgb,var(--bad) 55%,var(--line))}
+.exp p{margin:0 0 3px}
+.exp b{color:var(--ink);font-weight:650;margin-right:4px}
+.an{font-family:var(--mono);color:var(--link);font-size:var(--fs-xs);margin:4px 0 0}
+.mine{color:var(--bad)}
+.onlywrong .q.correct{display:none}
+.warn{color:var(--bad);font-size:var(--fs-sm);min-height:1.3em;margin:4px 0 0}
+/* 결과 */
+.score{font-family:var(--mono);font-size:32px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--title);letter-spacing:-.02em}
+.score small{font-family:var(--font);font-size:14px;color:var(--muted);font-weight:400;letter-spacing:0}
+.score.xl{font-size:44px}
+.msg{margin:6px 0 10px;color:var(--muted);font-size:var(--fs-sm)}
+.bd{display:grid;gap:7px;margin:6px 0}
+.bd div{display:grid;grid-template-columns:minmax(90px,190px) 1fr 44px;gap:10px;align-items:center;font-size:var(--fs-sm)}
+.bd .b{height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bd .b i{display:block;height:100%;background:var(--tc,var(--link));border-radius:99px}
+.bd span:last-child{text-align:right;font-family:var(--mono);font-size:var(--fs-xs);color:var(--muted)}
+.rcode{font-family:var(--mono);font-size:16px;font-weight:600;letter-spacing:.06em;color:var(--accent);background:var(--soft);padding:2px 8px;border-radius:var(--r-sm)}
+/* 오답노트 · 해설지 */
+.ngroup{margin:18px 0 8px;font-size:14px;font-weight:650;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ngroup .ref{font-family:var(--mono);font-size:var(--fs-2xs);font-weight:400;color:var(--faint)}
+.note{background:var(--raised);border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:var(--r-md);padding:12px 14px;margin-bottom:10px}
+.note.solved{border-left-color:var(--ok)}
+.note .qt{margin:0 0 8px}
+.note dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0;font-size:var(--fs-sm)}
+.note dt{color:var(--faint)}
+.note dd{margin:0}
+.note .foot{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font-size:var(--fs-xs);color:var(--faint);font-family:var(--mono)}
+.note .foot span:first-child{color:var(--link)}
+details.more{margin-top:14px;font-size:var(--fs-sm)}
+details.more summary{cursor:pointer;color:var(--muted);padding:4px 0}
+.keyitem{padding:10px 0;border-bottom:1px solid var(--line)}
+.keyitem .kq{font-weight:500;font-size:14px}
+.keyitem .ka{margin:4px 0 2px;color:var(--ok);font-weight:600;font-size:var(--fs-sm)}
+.keyitem .kw{font-size:var(--fs-sm);color:var(--muted);margin:0}
+.keylock{padding:12px;border:1px dashed var(--line-2);border-radius:var(--r-md);color:var(--faint);text-align:center;margin:8px 0;font-size:var(--fs-sm)}
+.printhead{display:none}
+/* 게임 */
+.game{max-width:620px;margin:0 auto}
+.gpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.gcard{display:flex;flex-direction:column;gap:4px;min-height:120px;padding:14px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--panel);color:var(--ink);text-decoration:none;transition:border-color .15s,background .15s}
+a.gcard:hover{border-color:var(--link);background:color-mix(in srgb,var(--link) 6%,var(--panel))}
+.gcard .gn{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint);letter-spacing:.05em}
+.gcard b{font-size:15px}
+.gcard .gd{font-size:var(--fs-xs);color:var(--muted);line-height:1.5}
+.gcard.soon{border-style:dashed;opacity:.6;cursor:not-allowed}
+@media (max-width:560px){.gpick{gap:6px}.gcard{min-height:84px;padding:10px 8px;align-items:center;text-align:center;justify-content:center}.gcard b{font-size:13px;word-break:keep-all}.gcard .gd{display:none}}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 14px}
+.chip{font:inherit;font-size:var(--fs-btn);padding:6px 12px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);cursor:pointer;min-height:32px}
+.chip:hover{border-color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--link);color:var(--link);background:color-mix(in srgb,var(--link) 9%,var(--btn-bg));font-weight:600}
+.chip:disabled{opacity:.4;cursor:not-allowed}
+.rules{font-size:var(--fs-xs);color:var(--muted);border-left:3px solid var(--line-2);padding:2px 0 2px 10px;margin:4px 0 16px}
+.rules p{margin:0 0 2px}
+.play{display:flex;flex-direction:column;min-height:calc(100dvh - 130px)}
+.hud{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:var(--fs-sm);color:var(--muted);margin-bottom:8px}
+.hud .pts{font-size:18px;font-weight:600;color:var(--title)}
+.combo{font-family:var(--font);font-size:var(--fs-xs);padding:2px 9px;border-radius:var(--r-sm);border:1px solid var(--line-2);color:var(--muted)}
+.combo.hot{border-color:var(--combo);color:var(--combo);background:color-mix(in srgb,var(--combo) 12%,transparent)}
+.timer{height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
+.timer>div{height:100%;width:100%;background:var(--timer-hi);border-radius:99px}
+.timer.mid>div{background:var(--timer-mid)}
+.timer.lo>div{background:var(--timer-lo)}
+.timer.out{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.tleft{font-family:var(--mono);font-size:var(--fs-xs);color:var(--faint);text-align:right;font-variant-numeric:tabular-nums;margin:4px 0 12px;min-height:1.2em}
+.gtype{font-size:var(--fs-2xs);color:var(--faint);margin-bottom:4px;letter-spacing:.02em}
+.gq{font-size:18px;font-weight:600;line-height:1.5;margin:0 0 16px;letter-spacing:-.01em}
+.gbottom{margin-top:4px}
+.gopts{display:grid;gap:8px}
+.gopt{font:inherit;font-size:var(--fs-opt);text-align:left;display:flex;gap:12px;align-items:center;padding:10px 14px;min-height:46px;border:1px solid var(--btn-line);border-radius:var(--r-md);background:var(--panel);color:var(--ink);cursor:pointer;transition:background .12s,border-color .12s;line-height:1.45}
+.gopt:hover{border-color:var(--muted)}
+.gopt kbd{flex:0 0 auto;width:22px;height:22px;border-radius:var(--r-sm);border:1px solid var(--line-2);display:grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint)}
+.gopt[aria-pressed="true"]{border-color:var(--link);background:color-mix(in srgb,var(--link) 9%,var(--panel))}
+.gopt.ans{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--panel))}
+.gopt.miss{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--panel))}
+.gox{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gox .gopt{justify-content:center;font-size:28px;font-weight:700;min-height:76px}
+.gfloat{text-align:center;font-weight:650;font-size:16px;min-height:1.6em;margin-top:10px;font-family:var(--mono)}
+.gfloat.ok{color:var(--ok)} .gfloat.no{color:var(--bad)}
+.gfloat.pop{animation:pop .45s ease-out}
+@keyframes pop{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+.gsub{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px}
+.board{width:100%;border-collapse:collapse;font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
+.board th,.board td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.board th{font-size:var(--fs-xs);color:var(--faint);font-weight:500}
+.board .r{text-align:right;font-family:var(--mono)}
+.board tr.me td{background:color-mix(in srgb,var(--combo) 12%,transparent);font-weight:600}
+.bignum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 2px}
+.bignum div{border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;text-align:left}
+.bignum b{display:block;font-family:var(--mono);font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+.bignum span{font-size:var(--fs-2xs);color:var(--faint)}
+/* 토스트 */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(16px);background:var(--panel);color:var(--ink);border:1px solid var(--line-2);
+  padding:8px 14px;border-radius:var(--r);font-size:var(--fs-sm);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:calc(100% - 32px);box-shadow:0 6px 24px rgb(0 0 0 / .18)}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+/* 문제풀이 페이지(학습·오답 재도전): 탭 제목(h2)을 뺀 모든 글자 10px — 사용자 지정 */
+/* 문제풀이·오답노트·해설지 공통: 제목(h1·h2·탭 묶음 제목)을 뺀 글자 10px, 문제 11px, 자간 +0.03em, 행간 1.7 */
+.sheet,.sheet :where(*:not(h1,h2,.ngroup,.ngroup *)){font-size:10px!important;letter-spacing:.03em!important}  /* :where = 명시도 0 → 아래 11px 규칙이 이김 */
+.sheet :is(.qt,.opt,.exp,.exp p,.guide,.mitem,.oitem .txt,.hint,.warn,.msg,.sub,.note dt,.note dd,.note .foot,.kq,.ka,.kw,.keylock){line-height:1.7!important}
+.sheet :is(.qt,.kq),.sheet :is(.qt,.kq) *{font-size:11px!important}  /* 문제 문장만 11px */
+/* 한글이 섞인 숫자 요소는 mono 대신 본문 글꼴 + 고정폭 숫자 (mono 한글 자간이 벌어짐) */
+.meta,.tcard .tn,.tcard .ts,.progress span,.homeprog span,.note .foot,.an,.hud,.tleft,.gfloat,.bignum b{font-family:var(--font);font-variant-numeric:tabular-nums;letter-spacing:0}
+/* ── 반응형 ─────────────────────────────────────── */
+@media (max-width:560px){
+  .wrap{padding:0 16px 48px}
+  .topbar{margin:0 -16px 18px;padding-left:16px;padding-right:16px}
+  /* 홈 탭 카드: 모바일에서도 한 줄 3개 (사용자 지정) */
+  .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .tcard{padding:8px 9px;gap:2px}
+  .tcard .tn{font-size:10px}
+  .tcard .tt{font-size:12px;line-height:1.35;word-break:keep-all}
+  .tcard .ts{flex-direction:column;align-items:flex-start;gap:0;padding-top:6px;font-size:10px}
+  .tabbar{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  .tabchip{padding:6px 8px;gap:4px}
+  .q{padding:12px}
+  .match{grid-template-columns:1fr}
+  .mright{margin-top:6px;padding-top:8px;border-top:1px dashed var(--line-2)}
+  .btn,.chip{min-height:40px}
+  .actions .btn{flex:1 1 calc(50% - 8px)}
+  .actions .btn.primary{flex-basis:100%}
+  .ox{max-width:none}
+  .ox button{min-height:48px}
+  .oitem{min-height:40px}
+  .bd div{grid-template-columns:96px 1fr 40px}
+  .bignum{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .field{max-width:none}
+  /* 게임: 보기를 엄지 영역(화면 아래)으로 */
+  .play .gtop{position:sticky;top:calc(52px + env(safe-area-inset-top,0px));background:var(--bg);padding:6px 0 0;z-index:4}
+  .play .gbottom{margin-top:auto;padding-top:12px}
+  .gq{font-size:17px}
+  .gopt{min-height:50px}
+  .board th:nth-child(6),.board td:nth-child(6){display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{
+  :root{--bg:#fff;--panel:#fff;--raised:#fff;--ink:#000;--muted:#333;--faint:#555;--line:#bbb;--line-2:#999;--soft:#f1f1f1;--title:#000;--link:#055}
+  body{background:#fff;color:#000;font-size:12.5px}
+  .noprint,.topbar,.actions,.tabbar,.progress,.toast{display:none!important}
+  .printhead{display:block;margin-bottom:12px;font-size:12px}
+  .q,.note,.keyitem{break-inside:avoid;box-shadow:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar noprint">
+    <a class="brand" href="../index.html" title="전체 문제은행 목록">디지털노마드연구소 · <b>문제은행</b></a>
+    <button class="iconbtn" id="themeBtn" type="button" aria-label="라이트/다크 전환">🌓</button>
+  </header>
+  <main id="app"></main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="sr" id="live" aria-live="polite"></div>
+<script>
+(()=>{
+'use strict';
+const BANK={"id":"lc-d03","code":"LC3","title":"LangChain 3일차 · Few-shot 프롬프트·예제 선택기·LangGraph","subtitle":"FewShotPromptTemplate · SemanticSimilarityExampleSelector · FewShotChatMessagePromptTemplate","course":"05 · LangChain · RAG · Agent","source":"05-langchain-agent/day03/3일차_LangChain_Few-shot 프롬프트_new_배포.ipynb","salt":"lc-d03","version":1,"updated":"2026-10-16","tabs":[{"id":"t1","title":"프롬프트 템플릿 심화 · Few-shot 개념","ref":"3일차 심화 문제 3·4 · Few-shot Prompt","qs":[{"id":"t1-01","ty":"mc","lv":1,"game":true,"p":"심화 문제 3에서 '## 개요 … ## 참고사항' 형식을 항상 따르게 하는 지시는 어느 역할 메시지에 둡니까?","o":["system","human","ai","example"],"a":0,"h":"<code>ChatPromptTemplate.from_messages()<\/code>는 (역할, 내용) 튜플로 메시지를 나눕니다. 모든 답변에 늘 적용할 형식·규칙·페르소나는 모델의 행동 방식을 정하는 역할 메시지에 두고, 사용자가 매번 바꾸는 내용은 사용자 역할 메시지에 둡니다.","w":"답변 형식처럼 모든 응답에 적용할 규칙은 system 메시지에 둡니다. human 메시지에는 사용자가 매번 바꾸는 <code>{topic}<\/code>이 들어갑니다.","an":"3일차 · 문제) ChatPromptTemplate.from_messages() 심화 문제 3) Markdown 출력","src":"# system\n#\n# \"항상 아래 형식으로 답변한다.\n#\n# ## 개요\n#\n# ## 핵심 내용\n#\n# ## 예제\n#\n# ## 참고사항\""},{"id":"t1-02","ty":"mc","lv":1,"game":true,"p":"심화 문제 3(Markdown 출력)의 human 메시지에 들어가는 템플릿 변수는?","o":["{text}","{topic}","{language}","{input}"],"a":1,"h":"심화 문제 3은 '항상 개요·핵심 내용·예제·참고사항 형식으로 답변한다'는 지시 아래, 사용자가 다룰 주제 하나만 바꿔 넣는 구조입니다. 원문·번역 언어 두 변수를 쓰는 심화 문제 4와 구분하세요.","w":"심화 문제 3의 human 메시지는 <code>{topic}<\/code> 하나입니다. <code>{text}<\/code>·<code>{language}<\/code>는 심화 문제 4 번역기의 변수입니다.","an":"3일차 · 문제) ChatPromptTemplate.from_messages() 심화 문제 3)","src":"# 심화 문제 3) (Markdown 출력)\n# ============================================================\n# TODO\n#\n# system\n#\n# \"항상 아래 형식으로 답변한다.\n#\n# ## 개요\n#\n# ## 핵심 내용\n#\n# ## 예제\n#\n# ## 참고사항\"\n#\n# human\n#\n# \"{topic}\""},{"id":"t1-03","ty":"mc","lv":2,"game":true,"p":"심화 문제 4(번역기) 템플릿이 받는 입력 변수 조합은?","o":["topic, text","input, output","text, language","question, answer"],"a":2,"h":"번역기의 human 메시지는 '원문 :' 줄 아래에 번역할 문장 변수를, '번역 언어 :' 줄 아래에 목표 언어 변수를 둡니다. 두 줄 제목을 영어 단어로 옮겨 보면 변수 이름이 떠오릅니다.","w":"human 메시지는 '원문 : {text}'와 '번역 언어 : {language}'로 구성됩니다. input·output이나 question·answer는 Few-shot 예제 딕셔너리의 키입니다.","an":"3일차 · 문제) ChatPromptTemplate.from_messages() 심화 문제 4) 번역기","src":"# 심화 문제 4) (번역기)\n# ============================================================\n# TODO\n#\n# ChatPromptTemplate를 작성하시오.\n#\n# system\n# \"너는 전문 번역가이다.\"\n#\n# human\n#\n# 원문 :\n# {text}\n#\n# 번역 언어 :\n# {language}"},{"id":"t1-04","ty":"mc","lv":1,"game":true,"p":"자료가 정의한 Few-shot Prompt로 알맞은 것은?","o":["예시 없이 질문만 던지는 기법","모델을 추가로 재학습하는 기법","답변을 JSON으로 강제하는 기법","몇 가지 예시로 작업을 유도하는 기법"],"a":3,"h":"자료는 Few-shot을 프롬프트 안에 '본보기'를 몇 개 넣어 모델이 특정 작업을 하도록 이끄는 기법으로 설명하고, 특정 도메인·형식의 질문에서 성능을 높인다고 합니다. 모델 자체를 다시 학습시키는 것과는 다릅니다.","w":"Few-shot Prompt는 언어 모델에 몇 가지 예시를 제공해 특정 작업을 수행하도록 유도하는 기법입니다. 예시 없이 묻는 방식은 Zero-shot이고, 모델 재학습과는 다릅니다.","an":"3일차 · Few-shot Prompt","src":"Few-shot Prompt\n - 언어 모델에 몇가지 예시를 제공하여 특정 작업을 수행하도록 유도하는 기법"},{"id":"t1-05","ty":"mc","lv":2,"game":true,"p":"자료가 말하는 Few-shot을 Zero-shot보다 선호하는 이유는?","o":["API 호출 비용이 없어진다","추론 일관성과 응답 품질이 오른다","모델 파라미터 수가 늘어난다","응답 속도가 두 배 빨라진다"],"a":1,"h":"자료는 '이 질문에 답해줘'(Zero-shot)보다 '이런 식으로 답해줘'라고 본보기를 함께 주는 쪽이 모델의 답변을 더 일정하고 좋게 만든다고 설명합니다. 비용·속도·모델 크기에 관한 언급은 없습니다.","w":"예시를 주면 모델의 추론 일관성과 응답 품질이 크게 높아진다고 설명합니다. 비용·속도·모델 크기와는 관계가 없습니다.","an":"3일차 · Few-shot Prompt 1. 왜 Few-shot Prompting을 사용하는가?","src":"단순히 \"이 질문에 답해줘\"라고 하는 것(Zero-shot)보다, \"이런 식으로 답해줘\"라고 예시를 주는 것이 모델의 추론 일관성과 응답 품질을 비약적으로 높여줍니다."},{"id":"t1-06","ty":"ox","lv":1,"game":true,"p":"Zero-shot은 '이런 식으로 답해줘'라며 예시를 함께 주는 방식이다.","a":false,"h":"자료는 예시 없이 '이 질문에 답해줘'라고만 묻는 방식과, '이런 식으로 답해줘'라며 예시를 함께 주는 방식을 구분합니다. 'Zero'는 함께 주는 예시의 개수를 뜻합니다.","w":"틀렸습니다. Zero-shot은 '이 질문에 답해줘'처럼 예시 없이 묻는 방식이고, 예시를 함께 주는 방식이 Few-shot입니다.","an":"3일차 · Few-shot Prompt 1.","src":"단순히 \"이 질문에 답해줘\"라고 하는 것(Zero-shot)보다, \"이런 식으로 답해줘\"라고 예시를 주는 것이 모델의 추론 일관성과 응답 품질을 비약적으로 높여줍니다."},{"id":"t1-07","ty":"ox","lv":2,"game":true,"p":"삼행시 실습에서 Few-shot 없이 같은 요청을 하자, 예시 형식 밖의 인사말·되묻는 문장이 답변에 붙었다.","a":true,"h":"Few-shot을 쓴 출력은 예시와 같은 '글자 : 문장' 세 줄만 나왔습니다. 'few-shot 템플릿을 사용 X' 셀 출력은 첫 줄과 마지막 줄에 형식 밖 문장이 있는지 비교해 보세요.","w":"맞습니다. 예시 없이 요청하면 '물론이죠! … 어떻게 생각하시나요?'처럼 형식 밖 문장이 붙었고, Few-shot을 쓰면 예시와 같은 '글자 : 문장' 형식만 출력되었습니다.","an":"3일차 · Few-shot Prompt few-shot 템플릿 사용 X 셀 출력","src":"단순히 \"이 질문에 답해줘\"라고 하는 것(Zero-shot)보다, \"이런 식으로 답해줘\"라고 예시를 주는 것이 모델의 추론 일관성과 응답 품질을 비약적으로 높여줍니다."},{"id":"t1-08","ty":"match","lv":2,"game":false,"p":"요소와 그 내용을 연결하세요.","pairs":[["심화 문제 3 system","정해진 Markdown 소제목 형식으로 답변"],["심화 문제 4 system","너는 전문 번역가이다"],["Zero-shot","예시 없이 질문만 전달"],["Few-shot","몇 가지 예시로 답변 형식을 유도"]],"h":"심화 문제 3의 system은 '항상 아래 형식으로 답변한다'와 소제목 목록이고, 심화 문제 4의 system은 번역 전문가라는 역할 한 줄입니다. Zero-shot과 Few-shot은 프롬프트에 예시가 있느냐 없느냐로 나뉩니다.","w":"심화 문제 3은 답변 형식을, 심화 문제 4는 번역가 역할을 system 메시지로 정합니다. Zero-shot과 Few-shot은 예시 유무로 구분합니다.","an":"3일차 · 문제) ChatPromptTemplate.from_messages() · 3일차 · Few-shot Prompt","src":"# ChatPromptTemplate를 작성하시오.\n#\n# system\n# \"너는 전문 번역가이다.\""},{"id":"t1-09","ty":"order","lv":3,"game":false,"p":"심화 문제 4 번역기를 <code>ChatPromptTemplate.from_messages()<\/code>로 만들어 실행하는 순서를 맞추세요.","steps":["system·human 메시지 튜플 목록 작성","from_messages()로 프롬프트 생성","prompt | llm | parser 체인 연결","invoke()에 text·language 값 전달"],"h":"프롬프트는 (역할, 내용) 튜플 목록이 있어야 <code>from_messages()<\/code>로 만들 수 있습니다. LCEL에서는 프롬프트 뒤에 모델·파서를 <code>|<\/code>로 잇고, 템플릿 변수 값은 실행 단계에서 딕셔너리로 넘깁니다.","w":"역할별 메시지 튜플을 먼저 쓰고 from_messages()로 템플릿을 만든 뒤, LCEL로 모델·파서와 연결하고 마지막에 두 변수 값을 넣어 실행합니다.","an":"3일차 · 문제) ChatPromptTemplate.from_messages() 심화 문제 4)","src":"# 심화 문제 4) (번역기)\n# ============================================================\n# TODO\n#\n# ChatPromptTemplate를 작성하시오.\n#\n# system\n# \"너는 전문 번역가이다.\"\n#\n# human\n#\n# 원문 :\n# {text}\n#\n# 번역 언어 :\n# {language}"},{"id":"t1-10","ty":"multi","lv":3,"game":false,"p":"심화 문제 3·4를 <code>ChatPromptTemplate.from_messages()<\/code>로 작성할 때 옳은 설명을 모두 고르세요.","o":["역할을 system·human 튜플로 나눈다","{topic}은 invoke 때 값이 채워진다","번역기는 {text}·{language}를 쓴다","system 메시지에는 지시를 못 넣는다","변수는 템플릿당 하나만 허용된다"],"a":[0,1,2],"h":"<code>from_messages()<\/code>는 역할별 메시지를 튜플로 받고, 중괄호 변수는 실행할 때 넘긴 값으로 채워집니다. 번역기 템플릿의 변수가 몇 개였는지, 답변 형식 지시를 어느 메시지에 두었는지 떠올리세요.","w":"from_messages()는 (역할, 내용) 튜플로 메시지를 나누고, 중괄호 변수는 invoke 때 채워집니다. 번역기처럼 변수를 여러 개 쓸 수 있고, 답변 형식 같은 지시는 system 메시지에 넣습니다.","an":"3일차 · 문제) ChatPromptTemplate.from_messages()","src":"문제) ChatPromptTemplate.from_messages()를 다루는 문제입니다. 아래의 조건에 맞는 내용을 작성하세요.\n```python\n# 심화 문제 3) (Markdown 출력)\n# ============================================================\n# TODO\n#\n# system\n#\n# \"항상 아래 형식으로 답변한다.\n#\n# ## 개요\n#\n# ## 핵심 내용\n#\n# ## 예제\n#\n# ## 참고사항\"\n#\n# human\n#\n# \"{topic}\""}]},{"id":"t2","title":"FewShotPromptTemplate","ref":"3일차 Few-shot Prompt · Few-shot 예제 포맷터 사용","qs":[{"id":"t2-01","ty":"mc","lv":1,"game":true,"p":"최신 LangChain에서 <code>FewShotPromptTemplate<\/code>을 가져오는 모듈은?","o":["langchain.prompts","langchain_openai","langchain_core.prompts","langchain_chroma"],"a":2,"h":"코드 주석은 예전 경로 대신 최신 핵심 패키지에서 프롬프트 클래스를 가져오도록 '수정된 부분'을 표시합니다. 최신 LangChain은 프롬프트·출력 파서 같은 기본 구성 요소를 core 패키지에 모아 두고, 모델은 별도 OpenAI 연동 패키지에서 가져옵니다.","w":"주석대로 <code>langchain.prompts<\/code> 대신 <code>langchain_core.prompts<\/code>에서 가져옵니다. langchain_openai는 모델, langchain_chroma는 벡터 저장소 패키지입니다.","an":"3일차 · Few-shot Prompt 2. 최신 LangChain 방식의 구현","src":"# 수정된 부분: langchain.prompts 대신 langchain_core.prompts 사용\nfrom langchain_core.prompts import FewShotPromptTemplate, PromptTemplate"},{"id":"t2-02","ty":"mc","lv":1,"game":true,"p":"예시 하나하나를 어떤 모양으로 출력할지 정하는 구성 요소는?","o":["example_prompt","prefix","suffix","examples"],"a":0,"h":"FewShotPromptTemplate은 예시 데이터 목록과, 그 예시 하나를 어떤 문자열 모양으로 찍을지 정하는 템플릿을 따로 받습니다. 주석 '개별 예시를 포맷팅할 템플릿 정의'에 해당하는 인자를 찾으세요.","w":"example_prompt가 예시 한 개의 형식(예: '질문 : … 답변 : …')을 정합니다. examples는 예시 데이터 목록, prefix·suffix는 예시 앞뒤에 붙는 문장입니다.","an":"3일차 · Few-shot Prompt 2. 개별 예시를 포맷팅할 템플릿 정의","src":"# 2. 개별 예시를 포맷팅할 템플릿 정의\nexam_prompt ="},{"id":"t2-03","ty":"mc","lv":2,"game":true,"p":"삼행시 실습의 완성된 프롬프트 맨 앞 '당신은 재치 있는 삼행시 전문가입니다…' 문장은 어디서 온 것입니까?","o":["suffix","example_prompt","input_variables","prefix"],"a":3,"h":"FewShotPromptTemplate은 '앞부분 지시 → 예시들 → 새 입력 자리' 순서로 프롬프트를 만듭니다. 주석은 이 인자를 추가해 '모델의 페르소나를 명확히 했다'고 설명하며, 완성된 프롬프트에서 예시보다 먼저 나옵니다.","w":"prefix는 예시들 앞에 붙는 지시·페르소나 문장입니다. suffix는 예시 뒤에서 새 입력을 받는 부분입니다.","an":"3일차 · Few-shot Prompt 3. FewShotPromptTemplate 구성 · 완성된 프롬프트 출력","src":"# 3. FewShotPromptTemplate 구성\n# prefix를 추가하여 모델의 페르소나를 명확히 했습니다."},{"id":"t2-04","ty":"mc","lv":3,"game":false,"p":"<code>PromptTemplate.from_template('질문 : {question}\\n답변 : {answer}\\n')<\/code>를 example_prompt로 쓸 때 examples 딕셔너리에 꼭 있어야 할 키는?","o":["input, output","question, answer","query, result","human, ai"],"a":1,"h":"example_prompt의 중괄호 변수는 각 예제 딕셔너리에서 같은 이름의 키 값으로 채워집니다. 템플릿 문자열 '질문 : {…} / 답변 : {…}' 안의 두 이름을 그대로 읽어 보세요.","w":"example_prompt의 변수 {question}·{answer}가 각 예제 딕셔너리의 키에서 채워집니다. input·output은 FewShotChatMessagePromptTemplate 예제에서 쓴 키입니다.","an":"3일차 · Few-shot 예제 포맷터 사용 3. 개별 예제 포맷터","src":"# 3. 개별 예제 포맷터 (질문과 답변의 형태 정의)\nexample_prompt = PromptTemplate.from_template('질문 : {question}\\n답변 : {answer}\\n')"},{"id":"t2-05","ty":"mc","lv":1,"game":true,"p":"레거시 <code>chatgpt([...])<\/code> 직접 호출 대신 쓰라고 안내한 메서드는?","o":[".run()",".predict()",".invoke()",".call()"],"a":2,"h":"노트북은 모델 객체를 함수처럼 직접 부르던 레거시 방식을 최신 Runnable 실행 메서드로 바꾸라고 안내합니다. 이 메서드는 LCEL 체인을 실행할 때도 똑같이 쓰이며, 결과 AIMessage에서 <code>.content<\/code>로 텍스트를 꺼냅니다.","w":"코드 주석은 <code>chatgpt([...])<\/code> 대신 <code>chatgpt.invoke([...])<\/code>를 쓰라고 안내합니다. 결과는 AIMessage이므로 <code>answer.content<\/code>로 텍스트를 꺼냅니다.","an":"3일차 · Few-shot Prompt HumanMessage 호출 셀","src":"# 2. invoke를 사용하여 모델 호출\n# chatgpt([...]) 대신 chatgpt.invoke([...])를 사용하세요."},{"id":"t2-06","ty":"ox","lv":1,"game":true,"p":"<code>prompt.format(input=input_word)<\/code>를 실행하면 모델이 호출되어 삼행시 답변이 만들어진다.","a":false,"h":"<code>format()<\/code>은 prefix·예시·suffix에 값을 채워 프롬프트 문자열을 만드는 단계입니다. 노트북은 '--- 완성된 프롬프트 ---'와 '--- 모델의 답변 ---'을 따로 출력하며, 답변은 체인을 실행해야 얻습니다.","w":"틀렸습니다. format()은 예시와 입력을 채운 프롬프트 문자열만 만듭니다. 모델의 답변은 chain.invoke() 결과로 따로 출력됩니다.","an":"3일차 · Few-shot Prompt 5. 실행","src":"print(\"--- 완성된 프롬프트 ---\")\nprint(prompt.format(input=input_word))\nprint(\"\\n--- 모델의 답변 ---\")\nprint(result)"},{"id":"t2-07","ty":"ox","lv":2,"game":true,"p":"Few-shot 프롬프트는 마지막을 'Answer :'처럼 빈 답변 자리로 끝내 모델이 그 뒤를 이어 쓰게 한다.","a":true,"h":"완성된 프롬프트 출력은 예시 두 개 뒤에 새 질문 줄과 'Answer :' 줄로 끝납니다. 모델은 프롬프트 다음에 올 내용을 생성하므로, 비어 있는 자리가 무엇을 유도하는지 생각해 보세요.","w":"맞습니다. suffix가 새 질문과 비어 있는 'Answer :'를 붙이므로, 모델은 앞의 예시와 같은 형식으로 답을 채웁니다.","an":"3일차 · Few-shot Prompt 완성된 프롬프트 출력","src":"print(\"--- 완성된 프롬프트 ---\")\nprint(prompt.format(input=input_word))"},{"id":"t2-08","ty":"match","lv":2,"game":false,"p":"FewShotPromptTemplate 구성 요소와 역할을 연결하세요.","pairs":[["examples","질문·답변 예시 딕셔너리 목록"],["example_prompt","예시 하나의 출력 형식"],["prefix","예시 앞에 붙는 지시·페르소나"],["suffix","새 입력을 넣는 마지막 부분"]],"h":"완성된 프롬프트는 맨 앞 지시·페르소나 문장, 형식에 맞춰 찍힌 예시들, 마지막 새 입력 자리 순서로 이루어집니다. 예시 '데이터'와 예시 '형식'을 정하는 인자가 서로 다르다는 점에 주의하세요.","w":"prefix → (examples를 example_prompt로 찍은 예시들) → suffix 순서로 프롬프트가 완성됩니다.","an":"3일차 · Few-shot Prompt · 3일차 · Few-shot 예제 포맷터 사용","src":"# 1. 예시 데이터 정의\nexamples =\n```\n```python\n# 2. 개별 예시를 포맷팅할 템플릿 정의\nexam_prompt =\n```\n```python\n# 3. FewShotPromptTemplate 구성\n# prefix를 추가하여 모델의 페르소나를 명확히 했습니다."},{"id":"t2-09","ty":"order","lv":2,"game":false,"p":"'Few-shot 예제 포맷터 사용' 셀의 진행 순서를 맞추세요.","steps":["예제 세트(examples) 생성","개별 예제 포맷터 정의","FewShotPromptTemplate 생성","prompt | llm | parser 체인 구성","invoke()로 새 질문 실행"],"h":"템플릿은 재료(예제 데이터와 예제 형식)가 먼저 있어야 만들 수 있고, 체인은 완성된 프롬프트를 모델·파서와 잇는 단계입니다. 셀 주석은 모델 설정을 1번에, 실행을 마지막 번호에 둡니다.","w":"예제 데이터를 만들고, 예제 포맷터로 형식을 정한 뒤 FewShotPromptTemplate을 만듭니다. 그다음 LCEL 체인을 구성하고 새 질문으로 실행합니다.","an":"3일차 · Few-shot 예제 포맷터 사용","src":"# 4. FewShotPromptTemplate 생성\n# -> Few-Shot 프롬프트 템플릿 생성 후 새로운 질문에 대해 프롬프트 생성\nprompt =\n# 5. LCEL 체인 구성 (Prompt -> LLM -> Parser)\nchain =\n# 6. 실행\nuser_query = '화성의 표면이 붉은 이유는 뭘까?'\nresponse =\nprint(f\"질문: {user_query}\")\nprint(f\"답변: {response}\")"},{"id":"t2-10","ty":"multi","lv":3,"game":true,"p":"과학 Q&A Few-shot 실습에 대한 옳은 설명을 모두 고르세요.","o":["예제는 질문·답변 쌍 6개다","모델은 gpt-4o-mini를 쓴다","temperature를 0.7로 둔다","예제 형식은 영어 라벨을 쓴다","체인에 출력 파서가 없다"],"a":[0,1,2],"h":"이 셀은 <code>ChatOpenAI(model='gpt-4o-mini', temperature=0.7)<\/code>로 모델을 만들고 대기·광합성·피타고라스·자전 주기·DNA·원주율 예제를 정의합니다. 예제 포맷터의 라벨이 한글인지 영어인지, 체인 끝에 무엇이 붙는지 확인하세요.","w":"예제는 대기·광합성·피타고라스 등 6개이고, 모델은 gpt-4o-mini, temperature=0.7입니다. 이 셀의 예제 라벨은 '질문 :/답변 :'이며 체인은 StrOutputParser로 끝납니다.","an":"3일차 · Few-shot 예제 포맷터 사용 1~5","src":"# 1. 모델 설정\nllm = ChatOpenAI(model=\"gpt-4o-mini\", temperature=0.7)"}]},{"id":"t3","title":"예제 선택기 · Chroma","ref":"3일차 예제 선택기 사용 · 성능 향상 방법 · 최신 권장 코드","qs":[{"id":"t3-01","ty":"mc","lv":1,"game":false,"p":"질문과 의미가 가장 가까운 예제를 골라 주는 클래스는?","o":["FewShotPromptTemplate","SemanticSimilarityExampleSelector","FewShotChatMessagePromptTemplate","ChatPromptTemplate"],"a":1,"h":"주석은 이 클래스가 '의미적 유사성을 기반으로 가장 관련성이 높은 예제를 선택'한다고 설명합니다. 프롬프트를 만드는 템플릿 클래스가 아니라 예제를 '고르는' 역할의 클래스를 찾으세요.","w":"SemanticSimilarityExampleSelector는 의미적 유사성을 기준으로 가장 관련성이 높은 예제를 선택합니다. 나머지는 프롬프트 템플릿 클래스입니다.","an":"3일차 · 예제 선택기 사용","src":"# 예제 선택기 사용\n# -> 의미적 유사성을 기반으로 가장 관련성이 높은 예제를 선택\n# -> SemanticSimilarityExampleSelector"},{"id":"t3-02","ty":"mc","lv":1,"game":true,"p":"예제 선택기가 고를 예제 개수를 정하는 값은?","o":["temperature","max_tokens","prefix","k"],"a":3,"h":"주석은 예제 선택기를 만들 때 '이 값을 조정하여 예제 개수 설정 가능'이라고 적습니다. 모델의 다양성·길이를 정하는 파라미터와 혼동하지 말고, 검색에서 '상위 몇 개'를 뜻하는 한 글자 인자를 떠올리세요.","w":"k 값을 조정해 선택할 예제 개수를 정합니다. temperature·max_tokens는 모델 파라미터, prefix는 프롬프트 앞부분입니다.","an":"3일차 · 예제 선택기 사용 3. 예제 선택기 생성","src":"# 3. 예제 선택기 생성 (k값을 조정하여 예제 개수 설정 가능)"},{"id":"t3-03","ty":"mc","lv":2,"game":true,"p":"예제 선택기를 쓸 때 FewShotPromptTemplate에 examples 대신 넘기는 인자는?","o":["example_selector","example_prompt","input_variables","suffix"],"a":0,"h":"고정 예제 방식은 예제 목록 자체를 템플릿에 넘기지만, 동적 방식은 질문마다 예제를 골라 주는 객체를 넘깁니다. 주석 '4. FewShotPromptTemplate에 직접 selector 전달'을 떠올리세요.","w":"예제를 고정 목록으로 넘기지 않고 example_selector를 넘기면 질문마다 유사한 예제가 골라집니다. example_prompt는 그대로 예제 형식을 정합니다.","an":"3일차 · 예제 선택기 사용 4. FewShotPromptTemplate에 직접 selector 전달","src":"# 4. FewShotPromptTemplate에 직접 selector 전달"},{"id":"t3-04","ty":"mc","lv":2,"game":true,"p":"의미 유사도를 계산하려고 예제와 질문을 벡터로 바꾸는 구성 요소는?","o":["ChatOpenAI","StrOutputParser","OpenAIEmbeddings","PromptTemplate"],"a":2,"h":"의미 유사도는 텍스트를 숫자 벡터로 바꾼 뒤 벡터끼리 가까운 정도를 비교해 계산합니다. 최신 권장 코드의 '2. 임베딩 모델 및 벡터 저장소 생성' 단계에서 벡터 변환을 맡는 OpenAI 클래스를 찾으세요.","w":"OpenAIEmbeddings가 텍스트를 임베딩 벡터로 바꾸고, Chroma가 그 벡터를 저장합니다. ChatOpenAI는 답변 생성 모델입니다.","an":"3일차 · 최신 권장 코드 (LCEL + ChatPromptTemplate 통합) 2. 임베딩 모델 및 벡터 저장소 생성","src":"# 2. 임베딩 모델 및 벡터 저장소 생성\nembeddings =\nvectorstore ="},{"id":"t3-05","ty":"mc","lv":1,"game":true,"p":"Chroma 설치 때 버전 충돌을 피하려고 1.24.0으로 다시 설치한 패키지 묶음은?","o":["langchain-core","opentelemetry","faiss-cpu","tiktoken"],"a":1,"h":"주석은 ChromaDB가 내부적으로 쓰는 패키지의 버전 충돌 때문에 api·sdk·exporter-otlp-proto-grpc 세 개를 제거하고 같은 버전으로 재설치한다고 설명합니다. 세 패키지 이름은 공통 접두어를 가집니다.","w":"ChromaDB가 내부적으로 쓰는 opentelemetry-api·sdk·exporter 버전 충돌 때문에 제거 후 1.24.0으로 재설치했습니다.","an":"3일차 · 예제 선택기 사용 opentelemetry 재설치 셀","src":"# 현재 설치된 충돌 패키지들을 제거하고 호환 버전으로 재설치\n!pip uninstall -y opentelemetry-api opentelemetry-sdk opentelemetry-exporter-otlp-proto-grpc\n!pip install --upgrade \"opentelemetry-api==1.24.0\" \"opentelemetry-sdk==1.24.0\" \"opentelemetry-exporter-otlp-proto-grpc==1.24.0\""},{"id":"t3-06","ty":"ox","lv":1,"game":true,"p":"고정 예제 방식은 질문이 바뀌어도 프롬프트에 같은 예제 목록이 들어간다.","a":true,"h":"자료는 Few-shot 성능 향상 방법을 고정 예제와 동적 예제로 나눕니다. 고정 예제 셀은 examples 목록을 템플릿에 직접 넣고, 동적 예제는 선택기가 질문과 비슷한 예제를 매번 새로 고릅니다.","w":"맞습니다. 고정 예제는 examples 목록을 그대로 넣고, 동적 예제는 예제 선택기가 질문에 맞춰 예제를 고릅니다.","an":"3일차 · Few-Shot 학습의 모델 성능을 향상시키는 방법 (고정 예제 사용)","src":"Few-Shot 학습의 모델 성능을 향상시키는 방법\n - 고정예제 사용\n - 동적예제 사용"},{"id":"t3-07","ty":"ox","lv":2,"game":true,"p":"SemanticSimilarityExampleSelector는 예제 목록에서 무작위로 k개를 뽑는다.","a":false,"h":"Semantic Similarity는 '의미적 유사성'이라는 뜻이며, 선택기는 임베딩 벡터로 질문과 예제가 얼마나 가까운지 계산합니다. k는 몇 개를 고를지만 정할 뿐입니다.","w":"틀렸습니다. 무작위가 아니라 질문과 의미적으로 가장 유사한 예제 k개를 임베딩 유사도로 고릅니다.","an":"3일차 · 예제 선택기 사용","src":"# -> 의미적 유사성을 기반으로 가장 관련성이 높은 예제를 선택\n# -> SemanticSimilarityExampleSelector"},{"id":"t3-08","ty":"match","lv":2,"game":false,"p":"최신 권장 코드의 구성 요소와 역할을 연결하세요.","pairs":[["OpenAIEmbeddings","텍스트를 임베딩 벡터로 변환"],["Chroma","예제 벡터를 담는 벡터 저장소"],["SemanticSimilarityExampleSelector","질문과 유사한 예제 선택"],["FewShotChatMessagePromptTemplate","선택된 예제를 메시지로 삽입"]],"h":"임베딩 모델은 텍스트를 벡터로 바꾸고, 벡터 저장소는 그 벡터를 보관합니다. 선택기는 저장소에서 질문과 가까운 예제를 고르고, Chat용 Few-shot 템플릿은 고른 예제를 human·ai 메시지로 넣습니다.","w":"임베딩 모델이 벡터를 만들고 Chroma에 저장하면, 선택기가 유사 예제를 고르고 Few-shot 메시지 템플릿이 그 예제를 프롬프트에 넣습니다.","an":"3일차 · 최신 권장 코드 (LCEL + ChatPromptTemplate 통합)","src":"from langchain_chroma import Chroma\nfrom langchain_openai import OpenAIEmbeddings, ChatOpenAI\nfrom langchain_core.prompts import (\n ChatPromptTemplate,\n FewShotChatMessagePromptTemplate\n)\nfrom langchain_core.example_selectors import SemanticSimilarityExampleSelector"},{"id":"t3-09","ty":"order","lv":3,"game":false,"p":"'최신 권장 코드'의 작성 순서를 맞추세요.","steps":["예제 데이터 정의","임베딩 모델·벡터 저장소 생성","from_vectorstore로 예제 선택기 생성","Few-shot 메시지 템플릿 구성","최종 챗 프롬프트·체인 구성 후 실행"],"h":"선택기는 <code>from_vectorstore<\/code>로 만들므로 벡터 저장소가 먼저 있어야 하고, 벡터 저장소는 예제 데이터와 임베딩 모델이 있어야 만들 수 있습니다. Few-shot 메시지 템플릿은 선택기를 받아 만들고, 최종 프롬프트가 그 템플릿을 포함합니다.","w":"예제를 정의하고 벡터 저장소를 만든 뒤 from_vectorstore 방식으로 선택기를 만듭니다. 선택기를 Few-shot 메시지 템플릿에 넣고 최종 프롬프트·체인을 구성합니다.","an":"3일차 · 최신 권장 코드 (LCEL + ChatPromptTemplate 통합) 1~7","src":"# 2. 임베딩 모델 및 벡터 저장소 생성\nembeddings =\nvectorstore =\n# 3. 최신 방식의 예제 선택기 생성 (from_vectorstore 사용)\nexample_selector =\n# 4. Few-Shot 메시지 템플릿\nfew_shot_prompt =\n# 5. 최종 챗 프롬프트"},{"id":"t3-10","ty":"multi","lv":3,"game":false,"p":"예제 선택기 실습에 대한 옳은 설명을 모두 고르세요.","o":["Chroma는 langchain_chroma에서 가져온다","선택기는 example_selectors 모듈에 있다","k 값으로 예제 개수를 조정한다","선택기를 쓰면 임베딩이 필요 없다","선택된 예제는 항상 전체 목록이다"],"a":[0,1,2],"h":"임포트 셀은 Chroma를 Chroma 전용 연동 패키지에서, 선택기를 core 패키지의 예제 선택기 모듈에서 가져옵니다. 선택기는 임베딩으로 유사도를 계산해 정해진 개수만큼만 예제를 고릅니다.","w":"Chroma는 <code>langchain_chroma<\/code>, 선택기는 <code>langchain_core.example_selectors<\/code>에서 가져오고 k로 개수를 정합니다. 유사도 계산에는 임베딩이 필요하고, 전체가 아니라 k개만 고릅니다.","an":"3일차 · 예제 선택기 사용 임포트 · 3.","src":"from langchain_chroma import Chroma\nfrom langchain_core.example_selectors import SemanticSimilarityExampleSelector"}]},{"id":"t4","title":"Chat Few-shot · LangGraph · 실습","ref":"3일차 고정 예제 사용 · 특징(LangGraph) · 문제) Few-shot prompting","qs":[{"id":"t4-01","ty":"mc","lv":1,"game":false,"p":"예시를 human·ai 메시지 쌍으로 넣는 Few-shot 템플릿 클래스는?","o":["FewShotPromptTemplate","PromptTemplate","FewShotChatMessagePromptTemplate","SemanticSimilarityExampleSelector"],"a":2,"h":"고정 예제 셀은 예제 템플릿을 'Chat 모델에 맞춰 메시지 형태로' 정의한다고 주석을 답니다. 문자열을 이어 붙이는 Few-shot 템플릿과 달리, 예시를 대화 메시지 쌍으로 넣는 클래스는 이름에 그 형태가 드러납니다.","w":"FewShotChatMessagePromptTemplate은 Chat 모델에 맞춰 예시를 메시지 형태로 넣습니다. FewShotPromptTemplate은 문자열 형태로 예시를 이어 붙입니다.","an":"3일차 · Few-Shot 학습의 모델 성능을 향상시키는 방법 (고정 예제 사용) 3. Few-shot 프롬프트 템플릿","src":"# 고정 예제 사용\nfrom langchain_openai import ChatOpenAI\nfrom langchain_core.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate"},{"id":"t4-02","ty":"mc","lv":2,"game":false,"p":"<code>example_prompt = ChatPromptTemplate.from_messages([('human', '{input}'), ('ai', '{output}')])<\/code>에서 ('ai', '{output}')의 역할은?","o":["예시의 모범 답변을 AI 메시지로 넣는다","사용자의 새 질문을 받는다","시스템 페르소나를 정한다","출력을 문자열로 바꾼다"],"a":0,"h":"example_prompt는 예제 딕셔너리 하나를 human·ai 메시지 두 개로 바꿉니다. 예제의 두 키 가운데 어느 쪽이 사용자 발화이고 어느 쪽이 그에 대한 응답인지 생각해 보세요.","w":"예시 딕셔너리의 output 값이 AI 메시지로 들어가 '이렇게 답한다'는 본보기가 됩니다. 새 질문은 최종 프롬프트의 human 메시지가 받습니다.","an":"3일차 · Few-Shot 학습의 모델 성능을 향상시키는 방법 (고정 예제 사용) 2. 예제 템플릿","src":"# 2. 예제 템플릿: Chat 모델에 맞춰 메시지 형태로 정의"},{"id":"t4-03","ty":"mc","lv":2,"game":true,"p":"최종 프롬프트 <code>ChatPromptTemplate.from_messages([...])<\/code> 안의 메시지 순서로 알맞은 것은?","o":["human → system → few-shot","few-shot → human → system","system → human → few-shot","system → few-shot → human"],"a":3,"h":"최종 프롬프트는 먼저 모델의 역할을 정하고, 이어서 본보기 대화를 보여 준 뒤, 마지막에 실제로 답할 사용자 질문을 둡니다. 실습 문제의 TODO 1도 이 세 요소의 조합을 요구합니다.","w":"system 지시를 먼저 두고 few-shot 예시 메시지를 넣은 뒤, 마지막에 사용자의 실제 질문(human)을 둡니다. 실습 문제의 TODO도 'system + fewshot + human'입니다.","an":"3일차 · Few-Shot 학습의 모델 성능을 향상시키는 방법 (고정 예제 사용) 4. 최종 프롬프트 조합 · 3일차 · 문제) Few-shot prompting (LCEL 최신 방식 기준)","src":"# - system + few-shot + human 구조 구성\nexample_prompt = ChatPromptTemplate.from_messages([\n # TODO: input/output 구조 정의\n])\nfewshot_prompt = FewShotChatMessagePromptTemplate(\n # TODO: examples + example_prompt 연결\n)\nfinal_prompt = ChatPromptTemplate.from_messages([\n # TODO:\n # system + fewshot + human\n])"},{"id":"t4-04","ty":"mc","lv":3,"game":false,"p":"문장 교정기 실습을 <code>chain.invoke({'text': 'i goes to school yesterday'})<\/code>로 실행하려면 final_prompt의 human 메시지 변수는?","o":["{input}","{text}","{output}","{question}"],"a":1,"h":"invoke에 넘긴 딕셔너리의 키 이름이 프롬프트 템플릿 변수 이름과 같아야 값이 채워집니다. input·output은 예제 딕셔너리의 키라서 example_prompt 안에서만 쓰입니다.","w":"invoke 딕셔너리의 키가 'text'이므로 human 메시지 변수도 {text}여야 합니다. {input}·{output}은 예시 딕셔너리 키라서 example_prompt에서 씁니다.","an":"3일차 · 문제) Few-shot prompting (LCEL 최신 방식 기준) TODO 3","src":"# TODO 3:\n# print(chain.invoke({\"text\": \"i goes to school yesterday\"}))\n# print(chain.invoke({\"text\": \"she dont like apples\"}))"},{"id":"t4-05","ty":"mc","lv":1,"game":true,"p":"LangGraph 예제에서 StateGraph를 실행 가능한 앱으로 만드는 메서드는?","o":["graph.invoke()","graph.stream()","graph.compile()","graph.format()"],"a":2,"h":"LangGraph는 StateGraph에 노드·엣지를 등록한 뒤, 이를 빌드해 실행 가능한 앱 객체를 얻습니다. 노트북은 '실행 가능한 그래프 빌드' 단계에서 app을 만든 다음 <code>app.stream(inputs)<\/code>로 실행합니다.","w":"<code>app = graph.compile()<\/code>로 그래프를 빌드한 뒤 <code>app.stream(inputs)<\/code>로 실행합니다. stream은 컴파일된 앱에서 호출합니다.","an":"3일차 · 특징 (LangGraph + 예제 선택기) 실행 가능한 그래프 빌드","src":"# ===== 실행 가능한 그래프 빌드 =====\napp ="},{"id":"t4-06","ty":"ox","lv":1,"game":true,"p":"LangGraph 예제는 state['messages']에 대화 기록을 모두 유지해 멀티턴 대화를 지원한다.","a":true,"h":"'특징' 목록은 LangGraph + ChatOpenAI로 ChatGPT 스타일 대화를 만들고, 상태의 messages에 대화 기록을 둔다고 설명합니다. add_messages는 새 메시지를 기존 목록에 덧붙이는 방식으로 상태를 갱신합니다.","w":"맞습니다. 상태의 messages에 모든 대화 기록을 유지하므로 ChatGPT처럼 여러 차례 이어지는 대화가 가능합니다.","an":"3일차 · 특징 (LangGraph + 예제 선택기)","src":"- 멀티턴 대화 지원 → state[\"messages\"]에 모든 대화 기록 유지"},{"id":"t4-07","ty":"ox","lv":2,"game":true,"p":"문장 교정기 실습의 모델은 다양한 표현을 위해 temperature=1.0으로 설정되어 있다.","a":false,"h":"temperature는 낮을수록 예측 가능하고 일관된 출력을, 높을수록 다양한 출력을 만듭니다. 실습 코드 맨 위 ChatOpenAI 생성 줄에서 모델 이름과 값을 확인하세요.","w":"틀렸습니다. 실습 코드는 <code>ChatOpenAI(model='gpt-4o', temperature=0.2)<\/code>로 낮은 temperature를 씁니다.","an":"3일차 · 문제) Few-shot prompting (LCEL 최신 방식 기준)","src":"# 목표: example 기반 reasoning + LCEL 구조 이해\n# ============================================================\nfrom langchain_openai import ChatOpenAI\nfrom langchain_core.prompts import ChatPromptTemplate, FewShotChatMessagePromptTemplate\nfrom langchain_core.output_parsers import StrOutputParser\nmodel = ChatOpenAI(model=\"gpt-4o\", temperature=0.2)"},{"id":"t4-08","ty":"match","lv":1,"game":false,"p":"LangGraph 예제의 import 요소와 역할을 연결하세요.","pairs":[["TypedDict","상태(State) 구조 정의"],["add_messages","메시지를 상태 목록에 누적"],["StateGraph","상태 기반 그래프 생성"],["START","그래프의 시작 지점"]],"h":"LangGraph는 상태 구조를 타입이 정해진 사전으로 정의하고, messages 필드에 붙인 함수로 새 메시지를 누적합니다. 상태 기반 그래프 클래스로 그래프를 만들고, 특수 노드로 시작·끝을 잇습니다.","w":"State는 TypedDict로 정의하고 messages에 add_messages를 붙여 대화를 누적합니다. StateGraph(State)로 그래프를 만들고 START·END로 시작·끝을 잇습니다.","an":"3일차 · 특징 (LangGraph + 예제 선택기) 임포트 · 상태 정의","src":"from typing import TypedDict, Annotated, List\nfrom langchain_openai import ChatOpenAI\nfrom langgraph.graph import StateGraph, START, END\nfrom langgraph.graph.message import add_messages"},{"id":"t4-09","ty":"order","lv":2,"game":false,"p":"assistant_node 안의 처리 순서를 맞추세요.","steps":["마지막 사용자 메시지 가져오기","유사 예제 선택","선택된 예제 출력(디버깅용)","LLM 호출","응답을 messages로 반환"],"h":"노드는 상태의 메시지 목록에서 가장 최근 사용자 발화를 꺼내 그 내용으로 선택기를 호출합니다. 출력에서 '=== 선택된 유사 예제 ===' 블록이 'Assistant:' 답변보다 먼저 찍히고, 노드는 마지막에 상태 형태로 응답을 돌려줍니다.","w":"마지막 메시지로 유사 예제를 고르고, 디버깅용으로 출력한 뒤 LLM을 호출해 응답을 상태에 돌려줍니다. 출력에서 '=== 선택된 유사 예제 ===' 뒤에 답변이 이어집니다.","an":"3일차 · 특징 (LangGraph + 예제 선택기) 대화 처리 노드 정의","src":"def assistant_node(state: State):\n # 마지막 사용자 메시지 가져오기\n # 유사 예제 선택\n # 유사 예제 출력 (디버깅용)\n # LLM 호출"},{"id":"t4-10","ty":"multi","lv":3,"game":false,"p":"문장 교정기 FEW-SHOT LCEL MASTER EXERCISE의 요구 사항으로 옳은 것을 모두 고르세요.","o":["examples를 input·output 쌍으로 작성","system + fewshot + human 구조","prompt | model | parser 체인","FewShotPromptTemplate의 suffix 사용","예제 선택기 사용 필수"],"a":[0,1,2],"h":"TODO 0은 문장 교정기용 예시 데이터, TODO 1은 예시 형식과 최종 프롬프트 구성, TODO 2는 LCEL 체인 구조를 요구합니다. 문자열형 Few-shot 템플릿이나 예제 선택기는 이 실습 코드의 임포트에 없습니다.","w":"TODO 0은 input·output 예시, TODO 1은 system + few-shot + human 구성, TODO 2는 prompt | model | parser 구조를 요구합니다. suffix나 예제 선택기는 요구하지 않습니다.","an":"3일차 · 문제) Few-shot prompting (LCEL 최신 방식 기준) TODO 0~2","src":"# - example format 정의\n# - system + few-shot + human 구조 구성\nexample_prompt = ChatPromptTemplate.from_messages([\n # TODO: input/output 구조 정의\n])\nfewshot_prompt = FewShotChatMessagePromptTemplate(\n # TODO: examples + example_prompt 연결\n)\nfinal_prompt = ChatPromptTemplate.from_messages([\n # TODO:\n # system + fewshot + human\n])"}]}]};
+const app=document.getElementById('app');
+if(!BANK){app.innerHTML='<p>문제은행 데이터가 없습니다. <code>python develop/build.py</code>로 빌드한 파일을 여세요.</p>';return;}
+
+/* ── 상수 · 인덱스 ─────────────────────── */
+const TYPES={mc:['객관식','--ty-mc'],multi:['복수 선택','--ty-multi'],ox:['O / X','--ty-ox'],match:['짝 맞추기','--ty-match'],order:['순서 맞추기','--ty-order'],num:['계산','--ty-num']};
+const GUIDE={mc:'알맞은 답을 하나 고르세요.',multi:'알맞은 것을 모두 고르세요.',ox:'맞으면 O, 틀리면 X를 고르세요.',
+  match:'왼쪽 항목을 누른 뒤 짝이 되는 오른쪽 항목을 누르세요. 연결된 항목을 다시 누르면 풀립니다.',
+  order:'첫 번째부터 순서대로 클릭하세요. 번호가 붙은 항목을 다시 누르면 그 번호부터 뒤 번호가 지워집니다.',num:'숫자만 입력하세요.'};
+/* 게임 모드 목록 — 새 게임은 여기에 항목을 추가한다 (설정·출제 유형·규칙 문구를 모드별로) */
+const GAME_MODES={
+  timeattack:{title:'⚡ 타임어택',desc:'제한시간 안에 풀수록 점수가 커집니다. 시간이 다 되면 오답!',
+    types:['mc','ox','multi'],times:[5,7,10,15],defaultTime:10},
+};
+// 게임 선택 화면의 버튼 3칸: 모드 id 또는 null(준비 중). 새 게임을 만들면 null 자리에 id를 넣는다.
+const GAME_SLOTS=['timeattack',null,null];
+const PAL=['--ty-mc','--ty-order','--ty-match','--ty-num','--ty-multi'];
+const LETTER='ABCDEFGH';
+const TABS=BANK.tabs, QMAP={}, QTAB={};
+TABS.forEach((t,ti)=>{t.idx=ti;t.qs.forEach(q=>{QMAP[q.id]=q;QTAB[q.id]=t;});});
+const ALLQ=TABS.flatMap(t=>t.qs);
+const RM=matchMedia('(prefers-reduced-motion: reduce)');
+
+/* ── 저장소 (실패해도 동작) ─────────────── */
+const KEY='qb:'+BANK.id+':v1';
+const blank=()=>({name:'',tabs:{},wrong:{},board:[],drafts:{}});  // drafts: 채점 전 탭별 풀던 답
+let S=blank();
+try{const raw=localStorage.getItem(KEY);if(raw)S=Object.assign(blank(),JSON.parse(raw));}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+const gameUnlocked=()=>Object.keys(S.tabs).length>0;
+const allGraded=()=>TABS.every(t=>S.tabs[t.id]);
+
+/* 순위 저장소 — 공유 순위로 바꿀 때 이 객체만 교체 */
+// 순위는 같은 조건(게임 모드 + 풀이 시간)끼리만 비교한다. key = 'timeattack:10'
+const boardKey=r=>`${r.mode||'timeattack'}:${r.time||'-'}`;
+const Leaderboard={
+  load(key){return S.board.filter(r=>boardKey(r)===key).sort((a,b)=>b.score-a.score||b.rate-a.rate||a.at-b.at);},
+  add(rec){S.board.push(rec);
+    const list=this.load(boardKey(rec)), rank=list.findIndex(r=>r.id===rec.id)+1;
+    // 조건별 상위 50개만 보관
+    const keep=new Set(Object.values(S.board.reduce((m,r)=>{(m[boardKey(r)]=m[boardKey(r)]||[]).push(r);return m;},{}))
+      .flatMap(l=>l.sort((a,b)=>b.score-a.score||b.rate-a.rate||a.at-b.at).slice(0,50)).map(r=>r.id));
+    S.board=S.board.filter(r=>keep.has(r.id));save();return rank;}
+};
+
+/* ── 유틸 ──────────────────────────────── */
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const strip=s=>String(s??'').replace(/<[^>]+>/g,'');
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
+const range=n=>[...Array(n).keys()];
+const derange=n=>{if(n<2)return range(n);let s;do{s=shuffle(range(n));}while(s.every((v,i)=>v===i));return s;};
+const sortN=a=>a.slice().sort((x,y)=>x-y);
+const today=()=>new Date().toLocaleDateString('ko-KR');
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+function hash(s){let h=5381;for(const c of s)h=((h<<5)+h+c.codePointAt(0))>>>0;return h.toString(36).toUpperCase().padStart(6,'0').slice(-6);}
+function letter(p){return p>=90?'A':p>=80?'B':p>=70?'C':p>=60?'D':'F';}
+let toastT;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200);}
+function say(msg){const l=document.getElementById('live');l.textContent='';setTimeout(()=>l.textContent=msg,30);}
+async function copy(text){
+  try{await navigator.clipboard.writeText(text);toast('📋 클립보드에 복사했습니다');return;}catch(e){}
+  const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0;top:0';document.body.appendChild(ta);ta.select();
+  let ok=false;try{ok=document.execCommand('copy');}catch(e){}ta.remove();
+  toast(ok?'📋 클립보드에 복사했습니다':'복사하지 못했습니다. 인쇄 기능을 이용하세요.');
+}
+
+/* ── 채점 · 답 표시 ───────────────────── */
+function isCorrect(q,a){
+  if(a==null)return false;
+  switch(q.ty){
+    case 'mc':case 'ox':return a===q.a;
+    case 'multi':{if(!Array.isArray(a)||a.length!==q.a.length)return false;const x=sortN(a),y=sortN(q.a);return x.every((v,i)=>v===y[i]);}
+    case 'match':return q.pairs.every((_,i)=>a[i]===i);
+    case 'order':return a.length===q.steps.length&&a.every((v,i)=>v===i);
+    case 'num':return String(a).trim()!==''&&Math.abs(Number(a)-q.a)<=(q.tol??1e-6);
+  }
+  return false;
+}
+function correctText(q){
+  switch(q.ty){
+    case 'mc':return q.o[q.a];
+    case 'multi':return q.a.map(i=>q.o[i]).join(', ');
+    case 'ox':return q.a?'O':'X';
+    case 'match':return q.pairs.map(p=>p[0]+' → '+p[1]).join(' / ');
+    case 'order':return q.steps.join(' → ');
+    case 'num':return q.a+(q.unit||'');
+  }
+}
+function answerText(q,a){
+  if(a==null)return '(미응답)';
+  switch(q.ty){
+    case 'mc':return q.o[a]??'(미응답)';
+    case 'multi':return a.length?sortN(a).map(i=>q.o[i]).join(', '):'(미응답)';
+    case 'ox':return a?'O':'X';
+    case 'match':return q.pairs.map((p,i)=>p[0]+' → '+(a[i]!=null?q.pairs[a[i]][1]:'?')).join(' / ');
+    case 'order':return a.map(i=>q.steps[i]).join(' → ');
+    case 'num':return a+(q.unit||'');
+  }
+}
+
+/* ── 오답노트 ──────────────────────────── */
+function addWrong(id,ans){const w=S.wrong[id]||{n:0};w.n++;w.last=ans;w.at=Date.now();w.solved=false;S.wrong[id]=w;}
+function markSolved(id){if(S.wrong[id]&&!S.wrong[id].solved){S.wrong[id].solved=true;S.wrong[id].at=Date.now();}}
+const wrongList=solved=>Object.keys(S.wrong).filter(id=>QMAP[id]&&!!S.wrong[id].solved===solved)
+  .sort((a,b)=>QTAB[a].idx-QTAB[b].idx||ALLQ.indexOf(QMAP[a])-ALLQ.indexOf(QMAP[b]));
+
+/* ── 문항 풀이 상태(학습·재도전 공용) ───── */
+let cur=null;  // {mode,list,ans,touched,msel,shuf,graded,armed,tab}
+function newSheet(mode,list,tab){
+  const c={mode,list,tab,ans:{},touched:new Set(),msel:{},shuf:{},hints:new Set(),srcs:new Set(),graded:false,armed:false,onlyWrong:false};
+  list.forEach(q=>{
+    if(q.ty==='match')c.shuf[q.id]=derange(q.pairs.length);
+    if(q.ty==='order')c.shuf[q.id]=derange(q.steps.length);  // 화면 배치(고정). 답 = 클릭한 순서의 단계 인덱스 배열
+  });
+  return c;
+}
+const answered=q=>isAnswered(q,cur.ans[q.id]);
+function isAnswered(q,a){
+  switch(q.ty){
+    case 'mc':return Number.isInteger(a);
+    case 'ox':return typeof a==='boolean';
+    case 'multi':return Array.isArray(a)&&a.length>0;
+    case 'match':return !!a&&Object.keys(a).length===q.pairs.length;
+    case 'order':return Array.isArray(a)&&a.length===q.steps.length;
+    case 'num':return a!=null&&String(a).trim()!==''&&!isNaN(Number(a));
+  }
+}
+const finalAns=q=>answered(q)?cur.ans[q.id]:null;
+
+function cardHTML(q,n){
+  const [label,color]=TYPES[q.ty];
+  const g=cur.graded, a=cur.ans[q.id], fa=finalAns(q), ok=g&&isCorrect(q,fa);
+  const lock=g?' disabled':'';
+  let body='';
+  if(q.ty==='mc'||q.ty==='multi'){
+    const multi=q.ty==='multi', mine=multi?(a||[]):[a];
+    body='<div class="opts">'+q.o.map((o,i)=>{
+      const right=multi?q.a.includes(i):q.a===i, picked=mine.includes(i);
+      const cls=g?(right?' ans':picked?' miss':''):'';
+      return `<label class="opt${cls}"><span class="onum">${i+1}</span><input type="${multi?'checkbox':'radio'}" name="r-${q.id}" data-act="${multi?'tick':'pick'}" data-q="${q.id}" data-i="${i}"${picked?' checked':''}${lock}><span>${esc(o)}</span></label>`;
+    }).join('')+'</div>';
+  }else if(q.ty==='ox'){
+    body='<div class="ox">'+[true,false].map(v=>{
+      const cls=g?(q.a===v?' ans':a===v?' miss':''):'';
+      return `<button type="button" class="${cls.trim()}" data-act="ox" data-q="${q.id}" data-v="${v?1:0}" data-fk="${q.id}-ox${v?1:0}" aria-pressed="${a===v}" aria-label="${v?'맞다 O':'틀리다 X'}"${lock}>${v?'O':'X'}</button>`;
+    }).join('')+'</div>';
+  }else if(q.ty==='match'){
+    const m=a||{}, sel=cur.msel[q.id], linkedBy={};
+    Object.entries(m).forEach(([l,r])=>linkedBy[r]=+l);
+    const left=q.pairs.map((p,i)=>{
+      const linked=m[i]!=null, cls=(linked?' linked':'')+(sel===i?' sel':'')+(g?(m[i]===i?' okm':' nom'):'');
+      return `<button type="button" class="mitem${cls}" style="--pc:var(${PAL[i%PAL.length]})" data-act="ml" data-q="${q.id}" data-i="${i}" data-fk="${q.id}-l${i}"${lock}><span class="tag">${LETTER[i]}</span>${esc(p[0])}</button>`;
+    }).join('');
+    const right=cur.shuf[q.id].map(j=>{
+      const by=linkedBy[j], linked=by!=null, cls=(linked?' linked':'')+(g&&linked?(by===j?' okm':' nom'):'');
+      return `<button type="button" class="mitem${cls}" style="--pc:var(${linked?PAL[by%PAL.length]:'--line'})" data-act="mr" data-q="${q.id}" data-j="${j}" data-fk="${q.id}-r${j}"${lock}><span class="tag">${linked?LETTER[by]:''}</span>${esc(q.pairs[j][1])}</button>`;
+    }).join('');
+    body=`<div class="match"><div class="mcol mleft">${left}</div><div class="mcol mright">${right}</div></div>`;
+  }else if(q.ty==='order'){
+    const seq=a||[], full=seq.length===q.steps.length;
+    body='<div class="olist">'+(cur.shuf[q.id]||range(q.steps.length)).map(si=>{
+      const pos=seq.indexOf(si), on=pos>=0;
+      const cls=(on?' on':'')+(g?(pos===si?' ok':' no'):'');
+      const fix=g&&pos!==si?`<span class="ofix">정답 ${si+1}</span>`:'';
+      return `<button type="button" class="oitem${cls}" data-act="ord" data-q="${q.id}" data-s="${si}" data-fk="${q.id}-o${si}" aria-pressed="${on}"${lock}>`+
+        `<span class="num">${on?pos+1:''}</span><span class="txt">${esc(q.steps[si])}</span>${fix}</button>`;
+    }).join('')+'</div>'+(g&&!full?'<p class="guide">(순서를 끝까지 매기지 않아 미응답 처리)</p>':'');
+  }else if(q.ty==='num'){
+    const cls=g?(ok?'ans':'miss'):'';
+    body=`<div class="numrow"><input class="${cls}" type="text" inputmode="decimal" data-act="num" data-q="${q.id}" value="${esc(a??'')}" aria-label="숫자 답"${lock}><span>${esc(q.unit||'')}</span></div>`;
+  }
+  const numAns=q.ty==='mc'?`${q.a+1}번 · `:q.ty==='multi'?q.a.map(i=>i+1).join('·')+'번 · ':'';
+  const exp=g?`<div class="exp"><p><b>정답</b> ${numAns}${esc(correctText(q))}</p>${ok?'':`<p class="mine">내 답: ${esc(answerText(q,fa))}</p>`}<p>${q.w}</p><p class="an">📖 자료 위치: ${esc(q.an)}</p></div>`:'';
+  const src=cur.mode==='retry'?`<span class="qsrc">${QTAB[q.id].idx+1}. ${esc(QTAB[q.id].title)}</span>`:'';
+  return `<article class="q${g?(ok?' correct':' wrong')+' locked':''}" id="card-${q.id}" data-n="${n}" style="--tc:var(${color})">`+
+    `<div class="qhead"><span class="qn">Q${n}</span><span class="tbadge">${label}</span>${lvHTML(q.lv)}${src}${g?`<span class="verdict">${ok?'✓ 정답':'✗ 오답'}</span>`:''}</div>`+
+    `<div class="qt">${q.p}</div>${hintHTML(q)}${g?'':`<p class="guide">${GUIDE[q.ty]}</p>`}${body}${exp}</article>`;
+}
+const LV_NAME=['쉬움','보통','어려움'];
+function lvHTML(lv){
+  lv=lv||1;
+  const dots=[1,2,3].map(k=>k<=lv?`<i class="d${k}">●</i>`:'<i class="off">○</i>').join('');
+  return `<span class="lv lv${lv}" title="난이도 ${LV_NAME[lv-1]}"><span class="dots" aria-hidden="true">${dots}</span><em>${LV_NAME[lv-1]}</em></span>`;
+}
+// 자료 발췌: 이스케이프 후 마크다운 기호만 가볍게 서식으로 (**굵게**, `코드`, 머리 #)
+const srcText=t=>esc(t).replace(/^#{1,6}\s*/gm,'').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`([^`\n]+)`/g,'<code>$1</code>');
+function hintHTML(q){
+  if(!q.h)return '';
+  const open=cur.hints.has(q.id), label=q.ty==='num'?'Hint · 계산식':'Hint';
+  // 2단계: ① 자세한 힌트(h) ② 자료 보기 — 자료 원문 발췌(src) + 위치(an)
+  const sopen=cur.srcs.has(q.id);
+  const src=q.src?`<div class="srcwrap"><button type="button" class="srcbtn" data-act="src" data-q="${q.id}" data-fk="${q.id}-src" aria-expanded="${sopen}" aria-controls="src-${q.id}">`+
+    `<span class="caret" aria-hidden="true">${sopen?'▾':'▸'}</span>📖 자료 보기</button>`+
+    (sopen?`<blockquote class="src" id="src-${q.id}"><p>${srcText(q.src)}</p>${q.an?`<cite>${esc(q.an)}</cite>`:''}</blockquote>`:'')+`</div>`:'';
+  return `<div class="hintwrap"><button type="button" class="hintbtn" data-act="hint" data-q="${q.id}" data-fk="${q.id}-hint" aria-expanded="${open}" aria-controls="hint-${q.id}">`+
+    `<span class="caret" aria-hidden="true">${open?'▾':'▸'}</span>${label}</button>`+
+    (open?`<div class="hint" id="hint-${q.id}">${q.h}${src}</div>`:'')+`</div>`;
+}
+function refreshCard(q){
+  const el=document.getElementById('card-'+q.id);if(!el)return;
+  const fk=document.activeElement&&document.activeElement.dataset?document.activeElement.dataset.fk:null;
+  el.outerHTML=cardHTML(q,el.dataset.n);
+  if(fk){const f=app.querySelector(`[data-fk="${fk}"]`);if(f&&!f.disabled)f.focus();}
+  updateProgress();
+}
+const pad2=n=>String(n).padStart(2,'0');
+const fmtCnt=(n,t)=>`(${pad2(n)}/${pad2(t)})`;
+// 탭별 푼 문항 수: 지금 보는 탭 → 화면 상태, 그 외 → 풀던 답(drafts) → 채점 기록
+function tabAnswered(t){
+  const src=cur&&cur.mode==='study'&&cur.tab===t?cur.ans:(S.drafts[t.id]||(S.tabs[t.id]&&S.tabs[t.id].answers)||{});
+  return t.qs.filter(q=>isAnswered(q,src[q.id])).length;
+}
+function updateProgress(){
+  const p=document.getElementById('pbar');if(!p||!cur)return;
+  const n=cur.list.filter(answered).length, cnt=fmtCnt(n,cur.list.length);
+  p.style.width=pct(n,cur.list.length)+'%';
+  document.getElementById('ptxt').textContent=`${n} / ${cur.list.length} 응답`;
+  const g=document.getElementById('gradeCnt');if(g)g.textContent=cnt;
+  if(cur.mode==='study'){
+    const c=document.getElementById('qc-'+cur.tab.id);if(c)c.textContent=cnt;
+    if(!cur.graded){  // 풀던 답 저장 → 탭을 옮겨도 유지
+      if(n||Object.keys(cur.ans).some(k=>{const v=cur.ans[k];return Array.isArray(v)?v.length:v&&typeof v==='object'?Object.keys(v).length:v!=null&&v!=='';}))
+        S.drafts[cur.tab.id]=JSON.parse(JSON.stringify(cur.ans));
+      else delete S.drafts[cur.tab.id];
+      save();
+    }
+  }
+}
+
+/* 학습 화면 상호작용 */
+function onSheetClick(el){
+  const q=QMAP[el.dataset.q];if(!q)return;
+  if(el.dataset.act==='hint'){cur.hints.has(q.id)?cur.hints.delete(q.id):cur.hints.add(q.id);refreshCard(q);return;}  // 채점 후에도 열고 닫기 가능
+  if(el.dataset.act==='src'){cur.srcs.has(q.id)?cur.srcs.delete(q.id):cur.srcs.add(q.id);refreshCard(q);return;}  // 채점 후에도 열고 닫기 가능
+  if(cur.graded)return;
+  const act=el.dataset.act;
+  if(act==='ox'){cur.ans[q.id]=el.dataset.v==='1';}
+  else if(act==='ml'){
+    const i=+el.dataset.i, m=cur.ans[q.id]||(cur.ans[q.id]={});
+    if(m[i]!=null){delete m[i];cur.msel[q.id]=null;}
+    else cur.msel[q.id]=cur.msel[q.id]===i?null:i;
+  }else if(act==='mr'){
+    const j=+el.dataset.j, m=cur.ans[q.id]||(cur.ans[q.id]={}), sel=cur.msel[q.id];
+    const by=Object.keys(m).find(l=>m[l]===j);
+    if(by!=null)delete m[by];
+    if(sel!=null){m[sel]=j;cur.msel[q.id]=null;}
+  }else if(act==='ord'){
+    const si=+el.dataset.s, seq=cur.ans[q.id]||(cur.ans[q.id]=[]), pos=seq.indexOf(si);
+    if(pos>=0)seq.length=pos;  // 1번을 누르면 전부 리셋, 2번을 누르면 1번은 남고 2번부터 삭제
+    else seq.push(si);
+  }else return;
+  cur.armed=false;
+  refreshCard(q);
+}
+function onSheetChange(el){
+  const q=QMAP[el.dataset.q];if(!q||cur.graded)return;
+  if(el.dataset.act==='pick')cur.ans[q.id]=+el.dataset.i;
+  else if(el.dataset.act==='tick'){
+    cur.ans[q.id]=[...app.querySelectorAll(`input[data-act="tick"][data-q="${q.id}"]:checked`)].map(x=>+x.dataset.i);
+  }
+  cur.armed=false;updateProgress();
+}
+function onSheetInput(el){
+  if(el.dataset.act==='num'&&!cur.graded){cur.ans[el.dataset.q]=el.value;cur.armed=false;updateProgress();}
+}
+
+/* ── 화면: 홈 ──────────────────────────── */
+function viewHome(){
+  const done=TABS.filter(t=>S.tabs[t.id]).length, open=wrongList(false).length, unlocked=gameUnlocked();
+  const firstTodo=(TABS.find(t=>!S.tabs[t.id])||TABS[0]).id;
+  app.innerHTML=`
+  <nav class="crumbs"><a href="../index.html#05">← 과정 목록</a></nav>
+  <h1>${esc(BANK.title)}</h1>
+  ${BANK.subtitle?`<p class="sub">${esc(BANK.subtitle)}</p>`:''}
+  <p class="meta">${ALLQ.length}문항 · ${TABS.length}탭 · 출처 ${esc(BANK.course||BANK.source)}${BANK.updated?' · '+esc(BANK.updated):''}</p>
+  <div class="field"><label for="nm">이름 (결과 코드·순위에 사용)</label><input id="nm" data-act="name" autocomplete="nickname" maxlength="20" value="${esc(S.name)}" placeholder="이름 또는 닉네임"></div>
+  <div class="homeprog"><div class="bar"><div style="width:${pct(done,TABS.length)}%"></div></div><span>${done} / ${TABS.length} 탭 채점 완료</span></div>
+  <div class="grid">${TABS.map((t,i)=>{const r=S.tabs[t.id];
+    return `<a class="tcard${r?' done':''}${r&&r.score===r.total?' perfect':''}" href="#study/${t.id}">
+      <span class="tn">탭 ${i+1} · ${esc(t.ref||'')}</span><span class="tt">${esc(t.title)}</span>
+      <span class="ts">${t.qs.length}문항 ${r?`<b>✓ ${r.score}/${r.total}${r.score===r.total?' ⭐':''}</b>`:'<span>미응시</span>'}</span></a>`;}).join('')}
+  </div>
+  <div class="actions">
+    <a class="btn primary" href="#study/${firstTodo}">📘 학습 시작</a>
+    <a class="btn${unlocked?'':' locked'}" href="#game">⚡ 게임 모드${unlocked?'':' 🔒'}</a>
+    <a class="btn" href="#notes">📒 오답노트${open?` <span class="cnt">${open}</span>`:''}</a>
+    <a class="btn${unlocked?'':' locked'}" href="#key">📄 해설지${unlocked?'':' 🔒'}</a>
+    ${allGraded()?'<a class="btn" href="#summary">★ 종합 결과</a>':''}
+  </div>
+  ${unlocked?'':'<p class="lockmsg">🔒 게임 모드와 해설지는 탭 하나를 채점하면 열립니다.</p>'}
+  <details class="more noprint"><summary>기록 관리</summary>
+    <p class="note-sm">진행 기록·오답노트·순위는 이 브라우저에만 저장됩니다. 다른 기기와 공유되지 않습니다.</p>
+    <button class="btn danger" type="button" data-act="reset">이 문제은행 기록 모두 지우기</button>
+  </details>`;
+}
+
+/* ── 화면: 학습 ────────────────────────── */
+function viewStudy(tid,fresh){
+  const tab=TABS.find(t=>t.id===tid)||TABS[0];
+  cur=newSheet('study',tab.qs,tab);
+  const rec=S.tabs[tab.id], draft=S.drafts[tab.id];
+  if(fresh){delete S.drafts[tab.id];save();}
+  else if(draft){Object.assign(cur.ans,JSON.parse(JSON.stringify(draft)));}  // 풀던 중이면 이어서
+  else if(rec&&rec.answers){
+    Object.assign(cur.ans,JSON.parse(JSON.stringify(rec.answers)));
+    (rec.touched||[]).forEach(id=>cur.touched.add(id));
+    cur.graded=true;
+  }
+  renderSheet();
+}
+function renderSheet(){
+  const study=cur.mode==='study', tab=cur.tab;
+  const tabbar=study?`<nav class="tabbar noprint" role="tablist" aria-label="탭">${TABS.map((t,i)=>{const r=S.tabs[t.id];
+      return `<a class="tabchip" role="tab" href="#study/${t.id}" aria-selected="${t===tab}"><b>${i+1}</b><span class="tl">${esc(t.title)}</span><span class="qc" id="qc-${t.id}">${fmtCnt(tabAnswered(t),t.qs.length)}</span>${r?`<span class="sc" title="채점 점수">✓${r.score}</span>`:''}</a>`;}).join('')}
+      ${allGraded()?'<a class="tabchip sum" href="#summary">★ 종합</a>':''}</nav>`:'';
+  const head=study?`<div class="tabhead"><h2>${tab.idx+1}. ${esc(tab.title)}</h2>${tab.ref?`<span class="part">${esc(tab.ref)}</span>`:''}</div>`
+                  :`<div class="tabhead"><h2>🔁 오답 다시 풀기</h2><span class="part">${cur.list.length}문항</span></div>`;
+  const next=study?(tab.idx+1<TABS.length?`<a class="btn" href="#study/${TABS[tab.idx+1].id}">다음 탭 →</a>`:(allGraded()?'<a class="btn" href="#summary">★ 종합 결과</a>':'')):'<a class="btn" href="#notes">오답노트로</a>';
+  app.innerHTML=`<div class="sheet">
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>${study?'학습 모드':'오답노트'}</span></nav>
+  ${tabbar}${head}
+  <div class="progress"><div class="bar"><div id="pbar"></div></div><span id="ptxt"></span></div>
+  <div id="sheetResult">${cur.graded?sheetResultHTML():''}</div>
+  <div id="cards" class="${cur.onlyWrong?'onlywrong':''}">${cur.list.map((q,i)=>cardHTML(q,i+1)).join('')}</div>
+  <p class="warn" id="warn" role="status"></p>
+  <div class="actions">
+    ${cur.graded?'':`<button class="btn primary" type="button" data-act="grade">${study?'이 탭 채점하기':'채점하기'} <span class="qc" id="gradeCnt"></span></button>`}
+    ${cur.graded?`<button class="btn" type="button" data-act="onlywrong">${cur.onlyWrong?'전체 보기':'오답만 보기'}</button>`:''}
+    ${study?'<button class="btn" type="button" data-act="retab">다시 풀기</button>':''}
+    ${next}
+  </div></div>`;
+  const on=app.querySelector('.tabchip[aria-selected="true"]');
+  if(on)on.parentElement.scrollLeft=on.offsetLeft-on.parentElement.offsetLeft-16;
+  updateProgress();
+}
+function sheetResultHTML(){
+  const n=cur.list.length, score=cur.list.filter(q=>isCorrect(q,finalAns(q))).length, p=pct(score,n);
+  const msg=p===100?'만점입니다! 🎉':p>=80?'잘했어요. 틀린 문항의 해설과 자료 위치를 확인하세요.':p>=60?'절반 이상 이해했어요. 오답노트로 다시 풀어 보세요.':'자료를 한 번 더 읽고 다시 풀어 보세요.';
+  return `<div class="panel"><div class="score">${score}<small> / ${n} · ${p}%</small></div><p class="msg">${msg}</p>
+    ${cur.mode==='study'&&gameUnlocked()?'<a class="btn" href="#game">⚡ 게임 모드 도전</a>':''}</div>`;
+}
+function gradeSheet(){
+  const miss=cur.list.map((q,i)=>answered(q)?0:i+1).filter(Boolean);
+  if(miss.length&&!cur.armed){
+    cur.armed=true;
+    document.getElementById('warn').textContent=`미응답 ${miss.length}문항 (Q${miss.join(', Q')}). 한 번 더 누르면 미응답은 오답으로 채점합니다.`;
+    return;
+  }
+  const firstUnlock=!gameUnlocked();
+  cur.graded=true;
+  const snap={};let score=0;
+  cur.list.forEach(q=>{
+    const a=finalAns(q);
+    if(a!=null)snap[q.id]=a;
+    if(isCorrect(q,a)){score++;markSolved(q.id);}
+    else addWrong(q.id,answerText(q,a));
+  });
+  if(cur.mode==='study'){
+    S.tabs[cur.tab.id]={score,total:cur.list.length,answers:snap,touched:[...cur.touched],at:Date.now()};
+    delete S.drafts[cur.tab.id];
+  }
+  save();
+  renderSheet();
+  window.scrollTo({top:0,behavior:RM.matches?'auto':'smooth'});
+  say(`채점 결과 ${score}점, ${cur.list.length}문항 중`);
+  if(cur.mode==='study'&&firstUnlock)setTimeout(()=>toast('⚡ 게임 모드와 해설지가 열렸습니다!'),300);
+  else if(cur.mode==='study'&&allGraded())setTimeout(()=>toast('★ 모든 탭 완료! 종합 결과를 확인하세요.'),300);
+}
+
+/* ── 화면: 종합 결과 ───────────────────── */
+function summaryStats(){
+  let score=0,total=0;const byType={},byTab=[];
+  TABS.forEach(t=>{const r=S.tabs[t.id];if(!r)return;let s=0;
+    t.qs.forEach(q=>{const ok=isCorrect(q,r.answers?r.answers[q.id]:null);if(ok)s++;
+      const b=byType[q.ty]||(byType[q.ty]=[0,0]);b[1]++;if(ok)b[0]++;});
+    byTab.push([t,s,t.qs.length]);score+=s;total+=t.qs.length;});
+  return {score,total,byType,byTab};
+}
+function resultCode(score,total){return `${BANK.code||'QB'}-${letter(pct(score,total))}-${hash([S.name.trim(),score,total,BANK.salt].join('|'))}`;}
+function viewSummary(){
+  if(!allGraded()){location.hash='#home';return;}
+  const st=summaryStats(), p=pct(st.score,st.total), code=resultCode(st.score,st.total);
+  app.innerHTML=`
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>종합 결과</span></nav>
+  <div class="printhead">${esc(BANK.title)} · ${esc(S.name||'이름 없음')} · ${today()}</div>
+  <div class="panel">
+    <h2 class="ph">★ 종합 결과</h2>
+    <div class="score">${st.score}<small> / ${st.total} · ${p}%</small></div>
+    <p class="msg">${esc(S.name||'이름 없음')} · 결과 코드 <span class="rcode">${code}</span></p>
+    <h3 class="sh">탭별</h3>
+    <div class="bd">${st.byTab.map(([t,s,n])=>`<div><span>${t.idx+1}. ${esc(t.title)}</span><span class="b"><i style="width:${pct(s,n)}%"></i></span><span>${s}/${n}</span></div>`).join('')}</div>
+    <h3 class="sh">유형별</h3>
+    <div class="bd">${Object.entries(st.byType).map(([ty,[s,n]])=>`<div style="--tc:var(${TYPES[ty][1]})"><span>${TYPES[ty][0]}</span><span class="b"><i style="width:${pct(s,n)}%"></i></span><span>${s}/${n}</span></div>`).join('')}</div>
+  </div>
+  <div class="actions">
+    <button class="btn primary" type="button" data-act="copyreport">📋 결과 리포트 복사</button>
+    <a class="btn" href="#notes">📒 오답노트</a>
+    <a class="btn" href="#game">⚡ 게임 모드</a>
+    <button class="btn" type="button" data-act="print">🖨 인쇄</button>
+  </div>`;
+}
+function reportMD(){
+  const st=summaryStats();
+  let md=`# ${BANK.title} 결과\n\n- 이름: ${S.name||'-'}\n- 날짜: ${today()}\n- 점수: ${st.score}/${st.total} (${pct(st.score,st.total)}%)\n- 결과 코드: ${resultCode(st.score,st.total)}\n\n| 탭 | 점수 |\n|---|---|\n`;
+  st.byTab.forEach(([t,s,n])=>md+=`| ${t.idx+1}. ${t.title} | ${s}/${n} |\n`);
+  md+='\n'+notesMD(true);
+  return md;
+}
+
+/* ── 화면: 오답노트 ────────────────────── */
+function noteHTML(id){
+  const q=QMAP[id], w=S.wrong[id];
+  return `<div class="note${w.solved?' solved':''}"><div class="qt">${q.p}</div><dl>
+    <dt>내 답</dt><dd>${esc(w.last||'-')}</dd><dt>정답</dt><dd><b>${esc(correctText(q))}</b></dd><dt>해설</dt><dd>${q.w}</dd></dl>
+    <div class="foot"><span>📖 ${esc(q.an)}</span><span>${w.solved?'✓ 극복':'틀린 횟수 '+w.n}</span></div></div>`;
+}
+function groupByTab(ids){
+  const out=[];let last=null;
+  ids.forEach(id=>{const t=QTAB[id];if(t!==last){out.push(`<h3 class="ngroup"><span class="part">탭 ${t.idx+1}</span>${esc(t.title)}</h3>`);last=t;}out.push(noteHTML(id));});
+  return out.join('');
+}
+function viewNotes(){
+  const open=wrongList(false), solved=wrongList(true);
+  app.classList.add('sheet');
+  app.innerHTML=`
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>오답노트</span></nav>
+  <div class="printhead">${esc(BANK.title)} 오답노트 · ${esc(S.name||'')} · ${today()}</div>
+  <h1>📒 오답노트</h1>
+  <p class="sub">남은 오답 ${open.length} · 극복 ${solved.length}. 학습 모드와 게임 모드에서 틀린 문항이 모입니다.</p>
+  <div class="actions">
+    <a class="btn primary${open.length?'':' locked'}" href="#retry"${open.length?'':' aria-disabled="true"'}>🔁 오답만 다시 풀기</a>
+    <button class="btn" type="button" data-act="copynotes"${open.length+solved.length?'':' disabled'}>📋 마크다운 복사</button>
+    <button class="btn" type="button" data-act="print">🖨 인쇄</button>
+  </div>
+  ${open.length?groupByTab(open):'<div class="keylock">남은 오답이 없습니다. 👏</div>'}
+  ${solved.length?`<details class="more"><summary>✓ 극복한 문항 ${solved.length}개</summary>${groupByTab(solved)}
+    <button class="btn danger noprint" type="button" data-act="clearsolved">극복한 항목 비우기</button></details>`:''}`;
+}
+function notesMD(onlyOpen){
+  const ids=onlyOpen?wrongList(false):wrongList(false).concat(wrongList(true));
+  let md=`## 오답노트 (${ids.length}문항)\n`;let last=null;
+  ids.forEach(id=>{const q=QMAP[id],w=S.wrong[id],t=QTAB[id];
+    if(t!==last){md+=`\n### 탭 ${t.idx+1}. ${t.title}\n`;last=t;}
+    md+=`\n- **Q. ${strip(q.p)}**${w.solved?' ✓극복':''}\n  - 내 답: ${w.last||'-'}\n  - 정답: ${correctText(q)}\n  - 해설: ${strip(q.w)}\n  - 자료 위치: ${q.an} · 틀린 횟수 ${w.n}\n`;});
+  return md;
+}
+function viewRetry(){
+  const ids=wrongList(false);
+  if(!ids.length){location.hash='#notes';return;}
+  cur=newSheet('retry',ids.map(id=>QMAP[id]),null);
+  renderSheet();
+}
+
+/* ── 화면: 해설지 ──────────────────────── */
+function viewKey(){
+  if(!gameUnlocked()){
+    app.innerHTML=`<nav class="crumbs"><a href="#home">← 홈</a></nav><h1>📄 해설지 🔒</h1><div class="keylock">탭 하나를 채점하면 그 탭의 해설지가 열립니다.<br><br><a class="btn primary" href="#study/${TABS[0].id}">학습 시작</a></div>`;return;
+  }
+  app.classList.add('sheet');
+  app.innerHTML=`
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>해설지</span></nav>
+  <div class="printhead">${esc(BANK.title)} 해설지 · ${esc(S.name||'')} · ${today()}</div>
+  <h1>📄 해설지</h1>
+  <p class="sub">채점한 탭의 정답과 해설입니다. 아직 풀지 않은 탭은 채점 후 공개됩니다.</p>
+  <div class="actions"><button class="btn primary" type="button" data-act="print">🖨 인쇄 / PDF 저장</button></div>
+  ${TABS.map(t=>`<h3 class="ngroup"><span class="part">탭 ${t.idx+1}</span>${esc(t.title)}${t.ref?` <span class="ref">${esc(t.ref)}</span>`:''}</h3>`+
+    (S.tabs[t.id]?t.qs.map((q,i)=>`<div class="keyitem"><div class="kq">${i+1}. ${q.p} <span class="part">${TYPES[q.ty][0]}</span></div>
+      <p class="ka">정답: ${esc(correctText(q))}</p><p class="kw">${q.w}</p><span class="an">📖 ${esc(q.an)}</span></div>`).join('')
+      :`<div class="keylock">🔒 채점 후 공개 · <a href="#study/${t.id}">이 탭 풀기</a></div>`)).join('')}`;
+}
+
+/* ── 화면: 게임 ────────────────────────── */
+let G=null;
+const gameSetup={mode:'timeattack',count:10,scope:'all',time:GAME_MODES.timeattack.defaultTime};
+function gamePool(scope){
+  const M=GAME_MODES[gameSetup.mode];
+  const base=ALLQ.filter(q=>q.game&&M.types.includes(q.ty));
+  if(scope==='played')return shuffle(base.filter(q=>S.tabs[QTAB[q.id].id]));
+  if(scope==='wrong'){const w=new Set(wrongList(false));return shuffle(base.filter(q=>w.has(q.id))).concat(shuffle(base.filter(q=>!w.has(q.id))));}
+  return shuffle(base);
+}
+function viewGamePick(){
+  stopGame();
+  if(!gameUnlocked())return viewGameSetup();
+  app.innerHTML=`
+  <nav class="crumbs"><a href="#home">← 홈</a><span>/</span><span>게임 모드</span></nav>
+  <div class="game">
+    <h1>🎮 게임 모드</h1>
+    <p class="sub">플레이할 게임을 고르세요.</p>
+    <div class="gpick">${GAME_SLOTS.map((id,i)=>{const m=id&&GAME_MODES[id];
+      return m?`<a class="gcard" href="#game/${id}"><span class="gn">GAME ${i+1}</span><b>${m.title}</b><span class="gd">${m.desc}</span></a>`
+              :`<div class="gcard soon" aria-disabled="true"><span class="gn">GAME ${i+1}</span><b>🔒 준비 중</b><span class="gd">새 게임이 추가될 자리입니다.</span></div>`;}).join('')}
+    </div>
+  </div>`;
+}
+function viewGameSetup(modeId){
+  stopGame();
+  if(modeId&&GAME_MODES[modeId])gameSetup.mode=modeId;
+  if(!gameUnlocked()){
+    app.innerHTML=`<nav class="crumbs"><a href="#home">← 홈</a></nav><div class="game"><h1>⚡ 게임 모드 🔒</h1>
+      <div class="keylock">학습 모드에서 <b>탭 하나</b>를 먼저 채점하면 열립니다.<br><br><a class="btn primary" href="#study/${TABS[0].id}">학습 시작</a></div></div>`;return;
+  }
+  const poolN=gamePool(gameSetup.scope).length;
+  const counts=[10,20,30].filter(n=>n<poolN).concat([poolN]);
+  if(!counts.includes(gameSetup.count))gameSetup.count=counts.includes(10)?10:counts[0];
+  const M=GAME_MODES[gameSetup.mode];
+  if(!M.times.includes(gameSetup.time))gameSetup.time=M.defaultTime;
+  const chip=(grp,v,label,dis)=>`<button type="button" class="chip" data-act="gset" data-g="${grp}" data-v="${v}" aria-pressed="${gameSetup[grp]==v}"${dis?' disabled':''}>${label}</button>`;
+  app.innerHTML=`
+  <nav class="crumbs"><a href="#home">← 홈</a><span>/</span><a href="#game">게임 모드</a><span>/</span><span>${M.title.replace(/^\S+\s/,'')}</span></nav>
+  <div class="game">
+    <h1>${M.title}</h1>
+    <p class="sub">${M.desc}</p>
+    <div class="panel">
+      ${Object.keys(GAME_MODES).length>1?`<span class="lbl">게임 종류</span>
+      <div class="chips">${Object.entries(GAME_MODES).map(([id,m])=>chip('mode',id,m.title)).join('')}</div>`:''}
+      <span class="lbl">풀이 시간 (문항당)</span>
+      <div class="chips">${M.times.map(t=>chip('time',t,t+'초')).join('')}</div>
+      <span class="lbl">문항 수</span>
+      <div class="chips">${counts.map(n=>chip('count',n,n===poolN&&!([10,20,30].includes(n))?`전체 ${n}`:String(n))).join('')}</div>
+      <span class="lbl">출제 범위</span>
+      <div class="chips">${chip('scope','all','전체 탭')}${chip('scope','played','풀어본 탭만')}${chip('scope','wrong','오답 우선',!wrongList(false).length)}</div>
+      <div class="field"><label for="gnm">닉네임</label><input id="gnm" data-act="name" maxlength="20" value="${esc(S.name)}" placeholder="순위표에 표시"></div>
+      <div class="rules"><p>⏱ 모든 문항 ${gameSetup.time}초 · 순위는 같은 풀이 시간끼리 비교</p><p>🎯 정답 100점 + 남은 1초당 10점 · 🔥 3연속 ×1.2, 5연속 ×1.5</p><p>⌨ 숫자 1~5로 선택, O/X 키, 복수 선택은 Enter로 제출</p></div>
+      <button class="btn primary block" type="button" data-act="gstart">시작하기</button>
+    </div>
+  </div>`;
+}
+function startGame(){
+  const pool=gamePool(gameSetup.scope).slice(0,gameSetup.count);
+  if(!pool.length){toast('출제할 문항이 없습니다.');return;}
+  G={qs:pool,i:0,score:0,combo:0,maxCombo:0,results:[],locked:false,mode:gameSetup.mode,time:gameSetup.time};
+  renderGameQ();
+}
+function renderGameQ(){
+  const q=G.qs[G.i];
+  G.locked=false;G.elapsed=0;G.last=performance.now();G.limit=G.time*1000;G.warned=false;G.pick=[];
+  G.view=q.ty==='ox'?[true,false]:shuffle(range(q.o.length));
+  const opts=q.ty==='ox'
+    ?`<div class="gox">${G.view.map((v,k)=>`<button type="button" class="gopt" data-act="gans" data-k="${k}" aria-label="${v?'O 맞다':'X 틀리다'}">${v?'O':'X'}</button>`).join('')}</div>`
+    :`<div class="gopts">${G.view.map((oi,k)=>`<button type="button" class="gopt" data-act="gans" data-k="${k}"${q.ty==='multi'?' aria-pressed="false"':''}><kbd>${k+1}</kbd><span>${esc(q.o[oi])}</span></button>`).join('')}</div>`;
+  app.innerHTML=`
+  <div class="game play">
+    <div class="gtop"><div class="hud"><span>${G.i+1} / ${G.qs.length}</span><span class="combo${G.combo>=3?' hot':''}">🔥 콤보 ${G.combo}</span><span class="pts">${G.score.toLocaleString()}점</span></div>
+    <div class="timer" id="timer"><div id="tbar"></div></div><div class="tleft" id="tleft"></div></div>
+    <div class="gtype">${TYPES[q.ty][0]}${q.ty==='multi'?' · 모두 고른 뒤 제출':''}</div>
+    <div class="gq">${q.p}</div>
+    <div class="gbottom">${opts}
+    <div class="gfloat" id="gfloat" aria-live="polite"></div>
+    <div class="gsub"><button class="btn" type="button" data-act="gquit">그만하기</button>
+      ${q.ty==='multi'?'<button class="btn primary" type="button" data-act="gsubmit">제출 (Enter)</button>':''}</div></div>
+  </div>`;
+  G.raf=requestAnimationFrame(tick);
+}
+function tick(now){
+  if(!G||G.locked)return;
+  G.elapsed+=now-G.last;G.last=now;
+  const rem=Math.max(0,G.limit-G.elapsed), ratio=rem/G.limit;
+  const shown=RM.matches?Math.ceil(rem/1000)*1000/G.limit:ratio;
+  const bar=document.getElementById('tbar'), tm=document.getElementById('timer');
+  if(bar){bar.style.width=(Math.min(1,shown)*100)+'%';tm.className='timer'+(ratio<.25?' lo':ratio<.5?' mid':'');
+    document.getElementById('tleft').textContent=(rem/1000).toFixed(1)+'초';}
+  if(!G.warned&&rem<=5000){G.warned=true;say('5초 남았습니다');}
+  if(rem<=0){judge(null,true);return;}
+  G.raf=requestAnimationFrame(tick);
+}
+function judge(ans,timeout){
+  if(!G||G.locked)return;
+  G.locked=true;cancelAnimationFrame(G.raf);
+  const q=G.qs[G.i], used=Math.min(G.elapsed,G.limit), ok=!timeout&&isCorrect(q,ans);
+  let gain=0;
+  if(ok){G.combo++;G.maxCombo=Math.max(G.maxCombo,G.combo);
+    const mult=G.combo>=5?1.5:G.combo>=3?1.2:1;
+    gain=Math.round((100+Math.floor((G.limit-used)/100))*mult);G.score+=gain;}
+  else G.combo=0;
+  G.results.push({id:q.id,ok,ans,timeout,ms:used,gain});
+  // 판정 표시
+  app.querySelectorAll('[data-act="gans"]').forEach(b=>{
+    const k=+b.dataset.k, v=G.view[k];
+    const right=q.ty==='ox'?q.a===v:q.ty==='mc'?q.a===v:q.a.includes(v);
+    const picked=q.ty==='ox'||q.ty==='mc'?ans===v:(ans||[]).includes(v);
+    if(right)b.classList.add('ans');else if(picked)b.classList.add('miss');
+    b.disabled=true;
+  });
+  const f=document.getElementById('gfloat');
+  f.className='gfloat pop '+(ok?'ok':'no');
+  f.textContent=ok?`+${gain}${G.combo>=3?` 🔥×${G.combo>=5?'1.5':'1.2'}`:''}`:timeout?'⏰ 시간 초과':'✗ 오답';
+  if(timeout){const tm=document.getElementById('timer');tm&&tm.classList.add('out');}
+  const sb=app.querySelector('[data-act="gsubmit"]');if(sb)sb.disabled=true;
+  app.querySelector('.pts').textContent=G.score.toLocaleString()+'점';
+  const c=app.querySelector('.combo');c.textContent='🔥 콤보 '+G.combo;c.classList.toggle('hot',G.combo>=3);
+  G.next=setTimeout(()=>{if(!G)return;G.i++;G.i<G.qs.length?renderGameQ():finishGame();},ok?900:1400);
+}
+function gameAnswer(k){
+  if(!G||G.locked)return;
+  const q=G.qs[G.i];if(k<0||k>=G.view.length)return;
+  if(q.ty==='multi'){
+    const v=G.view[k], i=G.pick.indexOf(v);
+    i<0?G.pick.push(v):G.pick.splice(i,1);
+    const b=app.querySelector(`[data-act="gans"][data-k="${k}"]`);b&&b.setAttribute('aria-pressed',i<0);
+  }else judge(G.view[k],false);
+}
+function gameSubmit(){if(G&&!G.locked&&G.qs[G.i].ty==='multi')judge(G.pick.slice(),false);}
+function stopGame(){if(G){cancelAnimationFrame(G.raf);clearTimeout(G.next);G=null;}}
+function finishGame(){
+  const R=G.results, correct=R.filter(r=>r.ok).length, M=GAME_MODES[G.mode];
+  R.forEach(r=>{const q=QMAP[r.id];if(r.ok)markSolved(r.id);else addWrong(r.id,r.timeout?'(시간 초과)':answerText(q,r.ans));});
+  const rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:(S.name||'').trim()||'익명',score:G.score,
+    correct,total:R.length,rate:pct(correct,R.length),avg:Math.round(R.reduce((s,r)=>s+r.ms,0)/R.length/100)/10,combo:G.maxCombo,mode:G.mode,time:G.time,at:Date.now()};
+  const rank=Leaderboard.add(rec);
+  save();
+  const board=Leaderboard.load(boardKey(rec)), top=board.slice(0,10), mine=board.find(r=>r.id===rec.id);
+  const medal=i=>i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1;
+  const row=(r,i)=>`<tr class="${r.id===rec.id?'me':''}"><td>${medal(i)}</td><td>${esc(r.name)}</td><td class="r">${r.score.toLocaleString()}</td><td class="r">${r.rate}%</td><td class="r">${r.correct}/${r.total}</td><td class="r">${new Date(r.at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})}</td></tr>`;
+  const wrong=R.filter(r=>!r.ok);
+  G=null;
+  app.innerHTML=`
+  <div class="game">
+    <div class="panel center">
+      <p class="note-sm" style="margin:0">최종 점수</p>
+      <div class="score xl">${rec.score.toLocaleString()}</div>
+      <p class="msg">${M.title} · ${rec.time}초 — ${rank===1?'🏆 이 조건 최고 기록!':`이 조건 순위 ${rank}위`}</p>
+      <div class="bignum"><div><b>${correct}/${rec.total}</b><span>정답</span></div><div><b>${rec.rate}%</b><span>정답률</span></div><div><b>${rec.avg}초</b><span>평균 응답</span></div><div><b>${rec.combo}</b><span>최고 콤보</span></div></div>
+    </div>
+    <div class="panel"><h2 class="ph">🏆 순위 · ${M.title.replace(/^\S+\s/,'')} ${rec.time}초 · 이 브라우저 기록</h2>
+      <table class="board"><thead><tr><th>#</th><th>이름</th><th class="r">점수</th><th class="r">정답률</th><th class="r">정답</th><th class="r">날짜</th></tr></thead>
+      <tbody>${top.map(row).join('')}${rank>10&&mine?row(mine,rank-1):''}</tbody></table></div>
+    ${wrong.length?`<details class="more panel"><summary>틀린 문항 ${wrong.length}개 · 해설 보기 (오답노트에 저장됨)</summary>
+      ${wrong.map(r=>{const q=QMAP[r.id];return `<div class="keyitem"><div class="kq">${q.p}</div><p class="mine" style="margin:4px 0">내 답: ${esc(r.timeout?'(시간 초과)':answerText(q,r.ans))}</p><p class="ka">정답: ${esc(correctText(q))}</p><p class="kw">${q.w}</p><span class="an">📖 ${esc(q.an)}</span></div>`;}).join('')}</details>`:''}
+    <div class="actions"><button class="btn primary" type="button" data-act="gagain">↻ 다시 하기</button><a class="btn" href="#notes">📒 오답노트</a><a class="btn" href="#home">홈</a></div>
+  </div>`;
+}
+
+/* ── 라우터 · 이벤트 ───────────────────── */
+function route(){
+  stopGame();cur=null;app.classList.remove('sheet');
+  const [v,arg]=(location.hash.slice(1)||'home').split('/');
+  ({study:()=>viewStudy(arg),notes:viewNotes,retry:viewRetry,key:viewKey,game:()=>arg?viewGameSetup(arg):viewGamePick(),summary:viewSummary}[v]||viewHome)();
+  window.scrollTo(0,0);
+}
+let resetArmed=false;
+app.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el||el.disabled)return;
+  const act=el.dataset.act;
+  if(cur&&['ox','ml','mr','ord','hint','src'].includes(act))return onSheetClick(el);
+  switch(act){
+    case 'grade':gradeSheet();break;
+    case 'retab':viewStudy(cur.tab.id,true);window.scrollTo(0,0);break;  // 이전 점수는 다시 채점할 때까지 유지
+    case 'onlywrong':cur.onlyWrong=!cur.onlyWrong;document.getElementById('cards').classList.toggle('onlywrong',cur.onlyWrong);el.textContent=cur.onlyWrong?'전체 보기':'오답만 보기';break;
+    case 'copyreport':copy(reportMD());break;
+    case 'copynotes':copy(`# ${BANK.title}\n\n- 이름: ${S.name||'-'} · ${today()}\n\n`+notesMD(false));break;
+    case 'clearsolved':wrongList(true).forEach(id=>delete S.wrong[id]);save();viewNotes();break;
+    case 'print':window.print();break;
+    case 'reset':
+      if(!resetArmed){resetArmed=true;el.textContent='정말 지울까요? 한 번 더 누르세요';setTimeout(()=>{resetArmed=false;if(el.isConnected)el.textContent='이 문제은행 기록 모두 지우기';},4000);break;}
+      resetArmed=false;const nm=S.name;S=blank();S.name=nm;save();toast('기록을 지웠습니다');viewHome();break;
+    case 'gset':gameSetup[el.dataset.g]=['count','time'].includes(el.dataset.g)?+el.dataset.v:el.dataset.v;viewGameSetup();break;
+    case 'gstart':startGame();break;
+    case 'gans':gameAnswer(+el.dataset.k);break;
+    case 'gsubmit':gameSubmit();break;
+    case 'gquit':stopGame();viewGameSetup(gameSetup.mode);break;
+    case 'gagain':startGame();break;
+  }
+});
+app.addEventListener('change',e=>{const el=e.target;if(cur&&el.dataset&&(el.dataset.act==='pick'||el.dataset.act==='tick'))onSheetChange(el);});
+app.addEventListener('input',e=>{
+  const el=e.target;if(!el.dataset)return;
+  if(el.dataset.act==='name'){S.name=el.value;save();}
+  else if(cur)onSheetInput(el);
+});
+document.addEventListener('keydown',e=>{
+  if(!G||G.locked||e.altKey||e.ctrlKey||e.metaKey)return;
+  if(e.target.matches&&e.target.matches('input,textarea'))return;
+  const q=G.qs[G.i], k=e.key.toLowerCase();
+  if(q.ty==='ox'){if(k==='o'||k==='1'){e.preventDefault();gameAnswer(0);}else if(k==='x'||k==='2'){e.preventDefault();gameAnswer(1);}return;}
+  if(/^[1-9]$/.test(k)){e.preventDefault();gameAnswer(+k-1);}
+  else if(k==='enter'&&q.ty==='multi'){e.preventDefault();gameSubmit();}
+});
+document.addEventListener('visibilitychange',()=>{if(G&&!document.hidden)G.last=performance.now();});
+// 탭 바 좌우 화살표
+app.addEventListener('keydown',e=>{
+  const t=e.target.closest&&e.target.closest('.tabchip');if(!t||(e.key!=='ArrowRight'&&e.key!=='ArrowLeft'))return;
+  const n=e.key==='ArrowRight'?t.nextElementSibling:t.previousElementSibling;if(n){e.preventDefault();n.focus();}
+});
+/* 테마 */
+let theme=null;try{theme=localStorage.getItem('qb:theme');}catch(e){}
+const applyTheme=()=>{if(theme)document.documentElement.dataset.theme=theme;else delete document.documentElement.dataset.theme;};
+applyTheme();
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const dark=theme?theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  theme=dark?'light':'dark';try{localStorage.setItem('qb:theme',theme);}catch(e){}applyTheme();
+});
+document.title=BANK.title+' · 문제은행';
+window.addEventListener('hashchange',route);
+route();
+})();
+</script>
+</body>
+</html>

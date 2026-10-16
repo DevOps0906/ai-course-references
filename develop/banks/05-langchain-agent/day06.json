@@ -1,0 +1,1153 @@
+{
+  "id": "lc-d06",
+  "code": "LC6",
+  "title": "LangChain 6일차 · 문서 로더 (PDF·Word·CSV 로더·텍스트 추출·문서 분석기)",
+  "subtitle": "Document Loader · CSVLoader·Document 결합 · 확장자별 로더 자동 선택",
+  "course": "05 · LangChain · RAG · Agent",
+  "source": "05-langchain-agent/day06/6일차_LCEL_LangChain_Document_Loaders_new_배포완성.ipynb + 6일차_LCEL_LangChain_Document_Loaders_new_배포.ipynb",
+  "salt": "lc-d06",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "문서 로더 · Document 객체",
+      "ref": "6일차 문서 로더 · URL Document Loader",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "문서 로더가 만든 Document 객체에서 본문 텍스트가 들어 있는 속성은?",
+          "o": [
+            "metadata",
+            "page_content",
+            "source",
+            "text_frame"
+          ],
+          "a": 1,
+          "h": "자료는 문서가 Document 객체로 로드되며 '내용'과 '메타데이터'를 서로 다른 속성에 담는다고 설명합니다. 예제들은 본문 일부를 보려고 <code>data[0].____[:500]</code>처럼 이 속성을 잘라 출력합니다.",
+          "w": "page_content에는 내용이, metadata에는 파일 경로·페이지 같은 부가 정보가 들어갑니다. source는 metadata 안의 키이고, text_frame은 python-pptx 도형의 속성입니다.",
+          "an": "6일차 문서 로더",
+          "src": "- Document 객체로 로드되고, page_content에는 내용이 들어가고, metadata에는 메타데이터를 포함한다"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "langchain-community 패키지를 따로 설치하는 이유로 자료가 든 것은?",
+          "o": [
+            "OpenAI 모델을 호출하기 위해",
+            "PDF를 이미지로 바꾸기 위해",
+            "커뮤니티 지원 로더를 쓰기 위해",
+            "Google Drive를 마운트하려고"
+          ],
+          "a": 2,
+          "h": "설치 셀 주석은 이 패키지가 'WebBaseLoader와 같은 ○○○○ 지원 로더' 사용에 필요하다고 적었습니다. 실제로 예제의 로더들은 모두 <code>langchain_community.document_loaders</code>에서 임포트합니다.",
+          "w": "langchain-community는 WebBaseLoader 같은 커뮤니티 지원 로더를 제공합니다. PDF 이미지 변환은 pdf2image, Drive 마운트는 google.colab의 기능입니다.",
+          "an": "6일차 문서 로더 · 패키지 설치",
+          "src": "# langchain-community 패키지 설치\n# WebBaseLoader와 같은 커뮤니티 지원 로더 사용을 위해 필요\n!pip install -q langchain-community"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "문서 로더의 <code>load()</code>가 돌려주는 결과의 형태는?",
+          "o": [
+            "Document 객체 리스트",
+            "하나로 합친 문자열",
+            "파일 경로 딕셔너리",
+            "generator 객체"
+          ],
+          "a": 0,
+          "h": "자료의 기능 설명은 load()가 '문서를 로드하여 반환하며 반환된 결과는 List[] 형태'라고 적었습니다. 그래서 예제는 결과에 인덱스 <code>[0]</code>을 붙여 첫 요소를 꺼냅니다.",
+          "w": "load()는 Document 객체의 리스트를 반환합니다. generator 방식은 lazy_load()이고, 문자열로 합치는 일은 join으로 따로 해야 합니다.",
+          "an": "6일차 문서 로더 · 기능 1. load()",
+          "src": "1. load()\n - 문서를 로드하여 반환한다\n - 반환된 결과는 List[] 형태이다"
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "웹에 기록된 글을 텍스트로 가져오는 로더로 예제에서 사용한 것은?",
+          "o": [
+            "PyPDFLoader",
+            "Docx2txtLoader",
+            "CSVLoader",
+            "WebBaseLoader"
+          ],
+          "a": 3,
+          "h": "URL Document Loader 절은 웹에 기록된 글도 텍스트 형식으로 가져온다고 설명하고 두 로더를 소개합니다. 예제는 그중 하나에 기사 주소를 넣어 인스턴스를 만들고 load()를 호출했습니다.",
+          "w": "WebBaseLoader는 웹 페이지 텍스트를 Document 리스트로 로드합니다. 나머지는 각각 PDF·Word·CSV 파일용 로더입니다.",
+          "an": "6일차 URL Document Loader",
+          "src": "URL Document Loader\n - 웹에 기록된 글도 텍스트 형식으로 가져온다\n - WebBaseLoader와 UnstructureURLLoader"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "URL 로더 예제의 <code>print(data[0].page_content[:500])</code>는 무엇을 출력하나요?",
+          "o": [
+            "500번째 Document 전체",
+            "첫 Document 본문 앞 500자",
+            "메타데이터 앞 500자",
+            "문서 500개의 본문"
+          ],
+          "a": 1,
+          "h": "<code>data</code>는 load()가 돌려준 리스트이고 <code>[0]</code>은 그 첫 요소입니다. 문자열 뒤의 <code>[:500]</code>은 슬라이싱으로, 주석은 '스크롤 방지'를 위해 일부만 출력한다고 설명합니다.",
+          "w": "첫 Document의 page_content 문자열에서 앞 500자만 잘라 출력합니다. 500번째 요소라면 <code>data[499]</code>처럼 써야 합니다.",
+          "an": "6일차 URL Document Loader · 예제 코드",
+          "src": "# 로드된 데이터의 첫 번째 요소(Document)의 페이지 콘텐츠 출력\nprint(data[0].page_content[:500]) # 500자만 출력하여 스크롤 방지"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": false,
+          "p": "자료는 LangChain 문서 로더로 txt뿐 아니라 pdf, word, ppt, xlsx, csv, hwp 같은 형식의 문서도 LLM에 활용할 수 있다고 설명한다.",
+          "a": true,
+          "h": "문서 로더 소개는 다양한 형식의 데이터 파일로부터 문서를 로드할 수 있다고 시작합니다. 이어서 텍스트 형식만이 아니라 '거의 모든 형식'의 문서를 기반으로 LLM을 구동할 수 있다고 예시 형식을 나열합니다.",
+          "w": "맞습니다. 자료는 pdf·word·ppt·xlsx·csv·hwp 등 거의 모든 형식을 예로 듭니다.",
+          "an": "6일차 문서 로더",
+          "src": "- txt 형식의 문서 뿐만아니라 pdf, word, ppt, xlsx,csv, hwp등 거의 문든 형식으 문서를 기반으로 LLM을 구동할 수 있다"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>load_and_split()</code>은 splitter 없이 문서를 통째로 하나의 문자열로 반환한다.",
+          "a": false,
+          "h": "기능 2의 설명은 이 메서드가 splitter를 사용해 문서를 분할하고 반환하며, 반환 결과는 List[]라고 적었습니다. PDF 예제에서도 결과의 길이를 len()으로 셀 수 있었습니다.",
+          "w": "틀렸습니다. load_and_split()은 splitter로 문서를 나눈 뒤 리스트로 돌려줍니다. PDF 예제에서는 18개의 Document가 나왔습니다.",
+          "an": "6일차 문서 로더 · 기능 2. load_and_split()",
+          "src": "2. load_and_split()\n - splitter를 사용하여 문서를 분할하고 반환한다\n - 반환된 결과는 List[]"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "문서 로더의 메서드와 설명을 연결하세요.",
+          "pairs": [
+            [
+              "load()",
+              "문서를 로드해 리스트로 반환"
+            ],
+            [
+              "load_and_split()",
+              "splitter로 분할해 리스트로 반환"
+            ],
+            [
+              "lazy_load()",
+              "generator 방식으로 로드"
+            ],
+            [
+              "aload()",
+              "비동기(Async) 방식으로 로드"
+            ]
+          ],
+          "h": "자료의 '기능' 목록은 네 메서드를 차례로 설명합니다. 이름의 앞머리를 보면 실마리가 있는데, lazy는 '필요할 때 하나씩', a는 Async(비동기), split은 '분할'을 뜻합니다.",
+          "w": "load()는 기본 로드, load_and_split()은 분할 후 반환, lazy_load()는 generator, aload()는 비동기 로드입니다.",
+          "an": "6일차 문서 로더 · 기능 1~4",
+          "src": "- 기능\n 1. load()\n - 문서를 로드하여 반환한다\n - 반환된 결과는 List[] 형태이다\n 2. load_and_split()\n - splitter를 사용하여 문서를 분할하고 반환한다\n - 반환된 결과는 List[]\n 3. lazy_load()\n - generator 방식으로 문서를 로드한다\n 4. aload()\n - 비동기식(Async)방식의 문서로"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "WebBaseLoader 예제의 실행 순서대로 나열하세요.",
+          "steps": [
+            "WebBaseLoader 임포트",
+            "URL을 넣어 로더 인스턴스 생성",
+            "loader.load()로 Document 리스트 받기",
+            "첫 Document의 page_content 출력"
+          ],
+          "h": "예제 주석은 '인스턴스 생성 및 웹 페이지 URL 지정' → '웹 페이지 로딩(Document 객체의 리스트 반환)' → '첫 번째 요소의 페이지 콘텐츠 출력' 순서로 적혀 있습니다. 클래스를 쓰려면 그보다 먼저 임포트가 필요합니다.",
+          "w": "임포트 → 인스턴스 생성 → load() → 출력 순서입니다. 로드하기 전에는 출력할 Document가 없습니다.",
+          "an": "6일차 URL Document Loader · 예제 주석",
+          "src": "from langchain_community.document_loaders import WebBaseLoader\n# WebBaseLoader 인스턴스 생성 및 웹 페이지 URL 지정\nloader = WebBaseLoader('https://n.news.naver.com/mnews/article/001/0015576911')\n# 웹 페이지 로딩 (Document 객체의 리스트 반환)\ndata =\n# 로드된 데이터의 첫 번째 요소(Document)의 페이지 콘텐츠 출력\nprint(data[0].page_content[:500]) # 500자만 출력하여 스크롤 방지"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "문서 로더 패키지 설치 셀의 주석 기준으로 PDF 처리와 관련된 패키지를 모두 고르세요.",
+          "o": [
+            "pypdf",
+            "pdf2image",
+            "pdfminer",
+            "docx2txt",
+            "unstructured"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "설치 셀 주석은 패키지마다 역할을 한 줄씩 적었습니다. PDF 파일 로딩, PDF 페이지를 이미지로 변환, PDF 텍스트 추출 및 분석이 각각 다른 패키지이고, DOCX 텍스트 추출과 '다양한 파일 형식 지원'은 PDF 전용이 아닙니다.",
+          "w": "pypdf는 PDF 로딩, pdf2image는 페이지 이미지 변환, pdfminer는 텍스트 추출·분석을 맡습니다. docx2txt는 DOCX용, unstructured는 다양한 형식 지원용입니다.",
+          "an": "6일차 문서 로더 · 패키지 설치 주석",
+          "src": "# 문서 로더 사용을 위한 패키지 설치\n# pypdf: PDF 파일 로딩\n# unstructured: 다양한 파일 형식 로딩 지원\n# pdf2image: PDF 페이지를 이미지로 변환\n# docx2txt: DOCX 파일 텍스트 추출\n# pdfminer: PDF 파일 텍스트 추출 및 분석\n!pip install -q langchain pypdf unstructured pdf2image docx2txt pdfminer"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "PDF · Word 로더",
+      "ref": "6일차 PDF Document Loader · Word Document Loader",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "PDF 파일을 로드할 때 예제에서 사용한 LangChain 로더는?",
+          "o": [
+            "Docx2txtLoader",
+            "PyPDFLoader",
+            "CSVLoader",
+            "WebBaseLoader"
+          ],
+          "a": 1,
+          "h": "PDF Document Loader 절은 PDF 파일의 텍스트를 로드하고 페이지별로 분할하는 로더를 씁니다. 이 로더 이름은 파이썬(Py)과 파일 형식 이름을 합친 형태입니다.",
+          "w": "PyPDFLoader가 PDF용입니다. Docx2txtLoader는 Word, CSVLoader는 CSV, WebBaseLoader는 웹 페이지용입니다.",
+          "an": "6일차 PDF Document Loader",
+          "src": "# PDF Document Loader (PyPDFLoader) 사용 예제\n# PDF 파일의 텍스트 콘텐츠를 로드하고 페이지별로 분할\nfrom langchain_community.document_loaders import PyPDFLoader"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Word(docx) 문서를 로드할 때 예제에서 사용한 로더는?",
+          "o": [
+            "PyPDFLoader",
+            "CSVLoader",
+            "TextLoader",
+            "Docx2txtLoader"
+          ],
+          "a": 3,
+          "h": "Word Document Loader 예제는 DOCX 파일 텍스트 추출용 패키지 이름을 그대로 딴 로더를 씁니다. 설치 셀에서 'DOCX 파일 텍스트 추출'용으로 설치한 패키지 이름을 떠올려 보세요.",
+          "w": "Docx2txtLoader가 DOCX용입니다. TextLoader는 TXT 파일용으로 Universal 분석기 문제에서 나옵니다.",
+          "an": "6일차 Word Document Loader",
+          "src": "# 경로 수정: langchain.document_loaders -> langchain_community.document_loaders\nfrom langchain_community.document_loaders import Docx2txtLoader\n# Docx2txtLoader 인스턴스 생성\nfile_path = '/content/drive/MyDrive/AI_멀티_MultiAgent/Multi_Agent_2607/Agent_2607/Agent_data/해커톤.docx'\nloader = Docx2txtLoader(file_path)"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "PyPDFLoader 예제에서 첫 페이지 Document의 metadata에 들어 있는 <code>'page'</code> 값은?",
+          "o": [
+            "0",
+            "1",
+            "18",
+            "-1"
+          ],
+          "a": 0,
+          "h": "예제 출력의 첫 페이지 메타데이터에는 page, page_label, total_pages가 함께 나옵니다. 사람이 보는 표시인 page_label은 '1'이었고, page는 파이썬 인덱스처럼 세는 번호입니다.",
+          "w": "page는 0부터 세므로 첫 페이지는 0입니다. 사람이 보는 번호는 page_label '1', 전체 수는 total_pages 18입니다.",
+          "an": "6일차 PDF Document Loader · 실행 결과",
+          "src": "pages = loader.load_and_split()\n# 로드된 데이터 정보 확인\nprint(f\"총 {len(pages)}개의 페이지로 분할되었습니다.\")\nprint(f\"첫 번째 페이지 메타데이터: {pages[0].metadata}\")"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Docx2txtLoader로 읽은 Word 문서의 <code>data[0].metadata</code>에 들어 있던 키는?",
+          "o": [
+            "page와 total_pages",
+            "producer와 creator",
+            "source(파일 경로)",
+            "row(행 번호)"
+          ],
+          "a": 2,
+          "h": "PDF 메타데이터에는 생성 프로그램·페이지 정보가 많았고, CSV에는 행 번호가 붙었습니다. Word 예제의 metadata 출력은 이보다 훨씬 짧아서 원본 파일 경로를 나타내는 키 하나만 보였습니다.",
+          "w": "Word 예제의 metadata는 파일 경로를 담은 source 하나뿐이었습니다. page·producer는 PDF, row는 CSV 로더의 메타데이터입니다.",
+          "an": "6일차 Word Document Loader · data[0].metadata 출력",
+          "src": "# 로드된 Word 문서의 첫 번째 요소(Document)의 메타데이터 출력\ndata[0].metadata"
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "Word 예제의 <code>print(f'본문 길이: {len(data[0].page_content)}자')</code>가 출력한 4312는 무엇을 센 값인가요?",
+          "o": [
+            "문서의 페이지 수",
+            "문서의 단락 수",
+            "파일 크기(바이트)",
+            "본문 글자 수"
+          ],
+          "a": 3,
+          "h": "<code>len()</code>을 문자열에 쓰면 그 문자열의 길이를 셉니다. 여기서 len 안에 들어간 것은 Document 리스트가 아니라 첫 Document의 page_content, 즉 본문 텍스트입니다.",
+          "w": "page_content 문자열의 len()은 글자 수입니다. 페이지·단락 수나 파일 크기를 세려면 다른 값을 봐야 합니다.",
+          "an": "6일차 Word Document Loader · 예제 코드",
+          "src": "# 로드된 데이터 정보 출력\nprint(f\"문서가 성공적으로 로드되었습니다.\")\nprint(f\"본문 길이: {len(data[0].page_content)}자\")"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "PyPDFLoader의 <code>load_and_split()</code>은 PDF를 페이지별로 나눈 Document 리스트를 돌려준다.",
+          "a": true,
+          "h": "PDF 예제 주석은 이 메서드로 PDF 파일을 로드하고 페이지별로 분할한다고 설명합니다. 실행 결과 '총 18개의 페이지로 분할되었습니다'가 출력되었습니다.",
+          "w": "맞습니다. 예제 PDF는 18개의 Document로 나뉘었고 각각 page 메타데이터를 가집니다.",
+          "an": "6일차 PDF Document Loader · 예제 주석",
+          "src": "# load_and_split() 메소드를 사용하여 PDF 파일을 로드하고 페이지별로 분할 (Document 객체의 리스트 반환)\npages = loader.load_and_split()"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "예제의 Word 문서를 Docx2txtLoader로 읽으면 페이지마다 Document가 하나씩 생긴다.",
+          "a": false,
+          "h": "Word 예제 출력에서 data 리스트에는 Document가 몇 개 들어 있었는지, 그리고 data[0] 하나에 본문이 얼마나 담겼는지 떠올려 보세요. metadata에도 페이지 번호 키가 없었습니다.",
+          "w": "틀렸습니다. 예제 Word 문서는 Document 하나로 로드되어 data[0].page_content에 본문 4312자가 모두 들어 있었습니다.",
+          "an": "6일차 Word Document Loader · data 출력",
+          "src": "# DOCX 파일 로딩\ndata = loader.load()\n# 로드된 데이터 정보 출력\nprint(f\"문서가 성공적으로 로드되었습니다.\")\nprint(f\"본문 길이: {len(data[0].page_content)}자\")\nprint(f\"본문 일부: {data[0].page_content[:500]}\")"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "PyPDFLoader가 붙인 metadata 키와 의미를 연결하세요.",
+          "pairs": [
+            [
+              "page",
+              "0부터 세는 페이지 번호"
+            ],
+            [
+              "page_label",
+              "사람이 보는 페이지 표시('1')"
+            ],
+            [
+              "total_pages",
+              "전체 페이지 수"
+            ],
+            [
+              "source",
+              "원본 파일 경로"
+            ]
+          ],
+          "h": "예제 출력의 첫 페이지 메타데이터에는 page 0, page_label '1', total_pages 18, 그리고 Drive 안 파일 위치가 함께 나옵니다. 숫자 0과 문자 '1'이 같은 페이지를 다르게 표현한다는 점에 주목하세요.",
+          "w": "page는 0 기반 번호, page_label은 표시용 번호, total_pages는 전체 페이지 수, source는 파일 경로입니다.",
+          "an": "6일차 PDF Document Loader · 메타데이터 출력",
+          "src": "# 로드된 데이터 정보 확인\nprint(f\"총 {len(pages)}개의 페이지로 분할되었습니다.\")\nprint(f\"첫 번째 페이지 메타데이터: {pages[0].metadata}\")"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "PDF 로더 예제의 실행 순서대로 나열하세요.",
+          "steps": [
+            "PyPDFLoader 임포트",
+            "file_path로 로더 생성",
+            "load_and_split()으로 로드·분할",
+            "페이지 수와 metadata 확인"
+          ],
+          "h": "예제 주석은 '로더 생성' → 'load_and_split()으로 로드하고 페이지별로 분할' → '로드된 데이터 정보 확인' 순서입니다. 로더 클래스는 쓰기 전에 임포트해야 합니다.",
+          "w": "임포트 → 로더 생성 → 로드·분할 → 결과 확인 순서입니다. pages가 만들어져야 len(pages)와 metadata를 볼 수 있습니다.",
+          "an": "6일차 PDF Document Loader · 예제 주석",
+          "src": "# PDF 파일의 텍스트 콘텐츠를 로드하고 페이지별로 분할\nfrom langchain_community.document_loaders import PyPDFLoader\n# 로더 생성\nfile_path = '/content/drive/MyDrive/AI_ChatBot/LLM_원본/자료/[이슈리포트 2022-2호] 혁신성장 정책금융 동향.pdf'\nloader =\n# load_and_split() 메소드를 사용하여 PDF 파일을 로드하고 페이지별로 분할 (Document 객체의 리스트 반환)\npages =\n# 로드된 데이터 정보 확인\nprint(f\"총 {len(pages)}개의 페이지로 분할되었습니다.\")\nprint(f\"첫 번째 페이지 메타데이터: {pages[0].metadata}\")"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "Word 예제에서 본문 텍스트를 화면에서 확인하는 코드를 모두 고르세요.",
+          "o": [
+            "print(data[0].page_content)",
+            "data[0].page_content",
+            "data[0].metadata",
+            "len(data)",
+            "data[0].page_content[:500]"
+          ],
+          "a": [
+            0,
+            1,
+            4
+          ],
+          "h": "Word 예제는 본문을 전체 출력, 셀 마지막 줄에 그대로 두기, 앞 500자만 출력하는 세 방식으로 확인했습니다. metadata는 파일 경로를, len(data)는 Document 개수를 보여 줄 뿐입니다.",
+          "w": "본문은 page_content 속성에 있으므로 print·셀 표시·슬라이싱 모두 본문을 보여 줍니다. metadata와 len(data)는 본문이 아닙니다.",
+          "an": "6일차 Word Document Loader · 확인 셀",
+          "src": "# 로드된 Word 문서의 첫 번째 요소(Document)의 텍스트 콘텐츠 출력\ndata[0].page_content\n```\n```python\n# 로드된 Word 문서의 첫 번째 요소(Document)의 텍스트 콘텐츠 출력\nprint(data[0].page_content)"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "CSVLoader · 문서 결합 질의",
+      "ref": "6일차 CSV Document Loader · 데이터 질의 체인",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "CSV 파일을 로드할 때 예제에서 사용한 로더는?",
+          "o": [
+            "CSVLoader",
+            "PyPDFLoader",
+            "TextLoader",
+            "Docx2txtLoader"
+          ],
+          "a": 0,
+          "h": "CSV Document Loader 예제는 <code>langchain_community.document_loaders.csv_loader</code>에서 로더를 임포트합니다. 로더 이름은 파일 형식 약어에 Loader를 붙인 형태입니다.",
+          "w": "CSVLoader가 CSV용입니다. TextLoader는 TXT, Docx2txtLoader는 Word, PyPDFLoader는 PDF용입니다.",
+          "an": "6일차 CSV Document Loader",
+          "src": "# CSV Document Loader (CSVLoader) 사용 예제\n# CSV 파일의 데이터를 로드 (각 행이 Document 객체로 변환)\n# 경로 수정: langchain.document_loaders.csv_loader -> langchain_community.document_loaders\nfrom langchain_community.document_loaders.csv_loader import CSVLoader"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "CSVLoader는 CSV 파일을 어떤 단위로 Document 객체로 만드나요?",
+          "o": [
+            "파일 전체를 하나로",
+            "각 행을 하나씩",
+            "각 열을 하나씩",
+            "각 셀을 하나씩"
+          ],
+          "a": 1,
+          "h": "예제 주석은 'CSV 파일의 데이터를 로드 (각 ○이 Document 객체로 변환)'이라고 설명합니다. 출력된 metadata에도 몇 번째 줄인지 나타내는 row 번호가 붙어 있었습니다.",
+          "w": "CSVLoader는 행마다 Document 하나를 만들고 metadata에 row를 붙입니다. 그래서 행들을 합치려면 join이 따로 필요합니다.",
+          "an": "6일차 CSV Document Loader · 예제 주석",
+          "src": "# CSV Document Loader (CSVLoader) 사용 예제\n# CSV 파일의 데이터를 로드 (각 행이 Document 객체로 변환)"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "호텔 데이터 질의 체인의 PromptTemplate <code>input_variables</code>는?",
+          "o": [
+            "question · format_instructions",
+            "text · query",
+            "content · query",
+            "data · question"
+          ],
+          "a": 2,
+          "h": "질의 프롬프트는 '다음 데이터를 참고하여 질문에 답변하세요'라는 문장 아래 데이터 자리와 질문 자리를 하나씩 둡니다. invoke에서도 <code>full_doc.page_content</code>와 질문 문자열을 이 두 키로 넘겼습니다.",
+          "w": "템플릿 변수는 데이터를 받는 content와 질문을 받는 query입니다. text는 자동 판별기 문제의 변수입니다.",
+          "an": "6일차 CSV Document Loader · 질의 체인",
+          "src": "# 2. 프롬프트 정의 (데이터를 입력받아 답변하도록 설계)\nprompt = PromptTemplate(\n template = \"\"\"\n 다음 데이터를 참고하여 질문에 답변하세요.\n 데이터:\n {content}\n 질문 :\n {query}\n 답변은 표(table) 형식으로 정리해서 보여 주세요.\n \"\"\",\n input_variables= [\"content\", \"query\"]"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "fieldnames를 직접 지정해 CSV를 읽었더니 첫 Document가 'Country: Country, City: City…'처럼 나왔습니다. 그 이유는?",
+          "o": [
+            "구분자를 잘못 지정해서",
+            "인용부호가 빠져서",
+            "모델이 요약해서",
+            "헤더 행도 데이터로 읽혀서"
+          ],
+          "a": 3,
+          "h": "csv_args의 fieldnames로 열 이름을 직접 주면 로더는 파일의 첫 줄을 이름 행으로 쓰지 않고 다른 행과 똑같이 취급합니다. 그래서 완성본은 출력 반복을 <code>data[1:6]</code>로 바꿔 첫 요소를 건너뜁니다.",
+          "w": "원본 파일의 헤더 행이 데이터 행처럼 Document로 읽혀 열 이름이 값 자리에 나왔습니다. 구분자·인용부호 문제라면 값이 쪼개지거나 섞여 나옵니다.",
+          "an": "6일차 CSV Document Loader · 출력 결과 · data[1:6]",
+          "src": "'fieldnames':['Country', 'City', 'hotel', 'mountain', 'beach', 'plain'] # 필드 이름 지정\n })\n# CSV 파일 로딩 (각 행이 Document 객체로 변환되어 리스트 반환)\ndata = loader.load()"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>full_txt = '\\n'.join(doc.page_content for doc in data)</code>의 결과는?",
+          "o": [
+            "Document 객체 리스트",
+            "행 본문을 줄바꿈으로 이은 문자열",
+            "첫 행의 본문 문자열",
+            "메타데이터 딕셔너리"
+          ],
+          "a": 1,
+          "h": "<code>str.join()</code>은 여러 문자열을 앞의 구분 문자로 이어 하나의 문자열을 만듭니다. 여기서는 각 행 Document의 page_content만 꺼내 줄바꿈 문자로 연결합니다.",
+          "w": "모든 행의 본문을 줄바꿈으로 이은 하나의 문자열이 됩니다. 이 문자열로 <code>Document(page_content=full_txt, ...)</code>를 다시 만들어 질의에 씁니다.",
+          "an": "6일차 CSV Document Loader · Document 결합",
+          "src": "# 모든 Document 객체의 page_content를 추출하여 개행 문자로 연결\nfull_txt = \"\\n\".join(doc.page_content for doc in data)"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "CSVLoader가 만든 Document의 metadata에는 source(파일 경로)와 row(행 번호)가 들어 있다.",
+          "a": true,
+          "h": "CSV 예제의 <code>data[:6]</code> 출력에서 각 Document의 metadata를 보면 파일 경로와 함께 0, 1, 2…로 늘어나는 번호가 붙어 있습니다.",
+          "w": "맞습니다. 행 단위로 Document를 만들기 때문에 몇 번째 행인지가 row로 기록됩니다.",
+          "an": "6일차 CSV Document Loader · data[:6] 출력",
+          "src": "# CSV 파일 로딩 (각 행이 Document 객체로 변환되어 리스트 반환)\ndata = loader.load()\n```\n```python\n# 로드된 CSV 데이터의 처음 6개 행(Document 객체 리스트) 출력\ndata[:6]"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "질의 체인 <code>chain = prompt | llm</code>의 결과는 문자열이므로 <code>response.content</code> 없이 그대로 출력하면 답만 보인다.",
+          "a": false,
+          "h": "이 체인에는 출력 파서가 없어서 ChatOpenAI가 돌려준 응답 메시지 객체가 그대로 결과가 됩니다. 예제는 결과를 출력할 때 객체의 특정 속성을 꺼내 print 했습니다.",
+          "w": "틀렸습니다. 파서 없는 <code>prompt | llm</code> 체인은 메시지 객체를 돌려주므로 예제는 <code>print(response.content)</code>로 답 텍스트만 출력했습니다.",
+          "an": "6일차 CSV Document Loader · 질의 체인 5. 결과 출력",
+          "src": "# 3. 실행 파이프라인 (Chain)\nchain = prompt | llm\n# 4. 질문 던지기\nquery = \"산(mountain)이 포함된 지형을 가진 도시의 호텔들을 찾아줘.\"\nresponse =\n# 5. 결과 출력\nprint(response.content)"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "CSVLoader의 csv_args 키와 설정 내용을 연결하세요.",
+          "pairs": [
+            [
+              "delimiter",
+              "구분자 설정"
+            ],
+            [
+              "quotechar",
+              "인용부호 설정"
+            ],
+            [
+              "fieldnames",
+              "필드(열) 이름 지정"
+            ]
+          ],
+          "h": "완성본 예제의 csv_args는 세 키에 주석을 달아 두었습니다. 하나는 값 사이를 나누는 문자 <code>','</code>, 하나는 값을 감싸는 문자 <code>'\"'</code>, 하나는 Country·City·hotel 같은 이름 목록을 받습니다.",
+          "w": "delimiter는 구분자, quotechar는 인용부호, fieldnames는 열 이름 목록을 정합니다.",
+          "an": "6일차 CSV Document Loader · csv_args 주석",
+          "src": "# csv_args를 사용하여 CSV 파일 파싱 설정 (구분자, 인용부호, 필드 이름 지정)\nloader = CSVLoader(file_path='/content/drive/MyDrive/AI_멀티_MultiAgent/Multi_Agent_2607/Agent_2607/Agent_data/최종 필터링 데이터 (호텔, 지형) - 시트3.csv',\n csv_args= {\n 'delimiter' : ',', # 구분자 설정\n 'quotechar' : '\"', # 인용부호 설정\n 'fieldnames':['Country', 'City', 'hotel', 'mountain', 'beach', 'plain'] # 필드 이름 지정"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "CSV 데이터를 LLM에 질의하는 흐름을 순서대로 나열하세요.",
+          "steps": [
+            "CSVLoader로 행 단위 로드",
+            "page_content를 줄바꿈으로 결합",
+            "결합 문자열로 Document 생성",
+            "prompt | llm 체인에 content·query로 invoke",
+            "response.content 출력"
+          ],
+          "h": "CSVLoader는 행마다 Document를 만들기 때문에, 질의 전에 이를 하나의 텍스트로 합친 뒤 <code>metadata={'source': 'full_csv'}</code>를 단 Document로 다시 만듭니다. 그 본문을 데이터 자리에 넣어 체인을 실행하고 결과의 텍스트를 출력합니다.",
+          "w": "행 로드 → 결합 → Document 생성 → 체인 실행 → 결과 출력 순서입니다. 결합 전에는 체인에 넣을 하나의 데이터 텍스트가 없습니다.",
+          "an": "6일차 CSV Document Loader · 결합 · 질의 체인",
+          "src": "full_txt = \"\\n\".join(doc.page_content for doc in data)\n# 이제 정상적으로 객체 생성이 가능합니다\nfull_doc = Document(page_content=full_txt, metadata = {\"source\" : \"full_csv\"})"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "pandas로 CSV를 읽어 Document를 만든 방식에 대한 설명으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "iterrows()로 행마다 Document를 만든다",
+            "metadata의 source는 'csv_row'다",
+            "CSVLoader를 반드시 함께 써야 한다",
+            "docs를 줄바꿈으로 합쳐 체인에 넘긴다",
+            "각 행이 PDF 페이지로 바뀐다"
+          ],
+          "a": [
+            0,
+            1,
+            3
+          ],
+          "h": "이 방식은 <code>pd.read_csv(..., header=1)</code>로 표를 읽고, 반복문 안에서 열 값을 f-string으로 이어 Document를 직접 만듭니다. 이후 셀에서는 그 docs의 본문을 하나로 합쳐 같은 질의 체인에 content로 넘겼습니다.",
+          "w": "pandas 방식은 행마다 'Country:…, City:…' 문자열과 source 'csv_row' 메타데이터로 Document를 만들고, 합친 텍스트로 질의합니다. CSVLoader 없이 동작하며 PDF와는 관계가 없습니다.",
+          "an": "6일차 CSV Document Loader · pandas 방식",
+          "src": "docs = []\nfor _, row in df.iterrows():\n content = f\"Country:{row['Country']}, City: {row['City']}, hotel : {row['hotel']},\n mountain : {row['mountain']}, beach : {row['beach']}, plain : {row['plain']} \"\n docs.append(Document(page_content=content, metadata={'source':'csv_row'}))"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "LangChain 외 텍스트 추출",
+      "ref": "6일차 LangChain 외 방식으로 텍스트 추출하기",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "PyMuPDF 라이브러리를 코드에서 임포트할 때 쓰는 이름은?",
+          "o": [
+            "fitz",
+            "pptx",
+            "docx",
+            "olefile"
+          ],
+          "a": 0,
+          "h": "예제 주석은 '○○○는 PyMuPDF의 별칭'이라고 설명하며, 이 이름으로 <code>.open(pdf_path)</code>를 호출해 PDF를 엽니다. pptx·docx는 각각 python-pptx·python-docx의 임포트 이름입니다.",
+          "w": "PyMuPDF는 <code>import fitz</code>로 씁니다. olefile은 HWP 처리용 라이브러리입니다.",
+          "an": "6일차 LangChain 외 방식으로 텍스트 추출하기 · PyMuPDF",
+          "src": "import fitz # PyMuPDF 라이브러리 임포트 (fitz는 PyMuPDF의 별칭)"
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "PyMuPDF 함수에서 페이지 하나의 텍스트를 꺼내 <code>text</code>에 더하는 메서드는?",
+          "o": [
+            "load_page",
+            "get_text",
+            "page_content",
+            "extract"
+          ],
+          "a": 1,
+          "h": "함수는 페이지 번호로 반복하며 먼저 <code>document.load_page(page_num)</code>로 페이지 객체를 얻습니다. 그다음 그 페이지 객체에서 '텍스트를 가져오는' 이름의 메서드를 호출해 결과를 누적합니다.",
+          "w": "<code>page.get_text()</code>가 페이지 텍스트를 돌려줍니다. load_page는 페이지 객체를 가져올 뿐이고, page_content는 LangChain Document의 속성입니다.",
+          "an": "6일차 LangChain 외 방식으로 텍스트 추출하기 · extract_text_from_pdf",
+          "src": "# PDF의 각 페이지를 반복 처리\n for page_num in range(len(document)):\n page = document.load_page(page_num)\n text += page.get_text()"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "HWP 정제 코드 <code>re.sub(r'[^\\x20-\\x7E\\uAC00-\\uD7AF\\n\\r]', '', text)</code>가 남기는 문자는?",
+          "o": [
+            "영문 대문자만",
+            "숫자와 기호만",
+            "출력 가능 ASCII·한글·개행",
+            "한자와 일본어 문자"
+          ],
+          "a": 2,
+          "h": "대괄호 안의 <code>^</code>는 '이 범위가 아닌 문자'를 뜻하므로, 나열된 범위 밖의 문자를 빈 문자열로 지웁니다. 주석은 \\x20-\\x7E를 ASCII 출력 가능 문자, AC00-D7AF를 한글 범위로 설명하고 개행·캐리지 리턴도 함께 둡니다.",
+          "w": "나열된 범위만 남기고 나머지 제어 문자 등을 지우므로 출력 가능 ASCII, 한글, 개행이 남습니다. 한자·일본어는 이 범위에 없어 지워집니다.",
+          "an": "6일차 LangChain 외 방식으로 텍스트 추출하기 · HWP 정제",
+          "src": "# 추출된 텍스트에서 ASCII 및 한글(AC00-D7AF)이 아닌 문자 제거하여 정제\n # 제어 문자 및 기타 불필요한 문자 제거\n cleaned_text = re.sub(r'[^\\x20-\\x7E\\uAC00-\\uD7AF\\n\\r]', '', text) # ASCII 출력 가능 문자, 한글, 개행, 캐리지 리턴만 남김"
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "openpyxl 함수의 <code>sheet.iter_rows(values_only=True)</code>에서 <code>values_only=True</code>의 의미는?",
+          "o": [
+            "첫 행만 가져온다",
+            "셀 서식까지 가져온다",
+            "빈 셀은 건너뛴다",
+            "셀 값만 가져온다"
+          ],
+          "a": 3,
+          "h": "예제 주석은 이 옵션 옆에 '셀○만 가져옴'이라고 적었습니다. 함수는 각 행의 셀을 <code>str(cell)</code>로 바꿔 쉼표로 이어 붙이므로, 셀 객체가 아닌 실제 값이 필요합니다.",
+          "w": "values_only=True는 셀 객체 대신 셀 값만 돌려줍니다. 그래서 바로 문자열로 바꿔 이어 붙일 수 있습니다.",
+          "an": "6일차 LangChain 외 방식으로 텍스트 추출하기 · extract_text_from_xlsx",
+          "src": "# 시트의 각 행을 반복 처리\n for row in sheet.iter_rows(values_only=True): # 셀값만 가져옴"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "python-pptx 함수에서 도형 안에 텍스트가 있는지 확인하는 조건 <code>if shape.____:</code>의 빈칸은?",
+          "o": [
+            "text_frame",
+            "has_text_frame",
+            "paragraphs",
+            "get_text"
+          ],
+          "a": 1,
+          "h": "주석은 '도형 안에 텍스트 프레임이 있는지 확인'한 뒤, 있으면 그 프레임의 단락을 반복한다고 설명합니다. 확인용 속성은 '가지고 있는가'를 묻는 참/거짓 값이라 이름이 has로 시작합니다.",
+          "w": "<code>shape.has_text_frame</code>으로 확인한 뒤 <code>shape.text_frame.paragraphs</code>를 돕니다. text_frame은 확인 뒤에 쓰는 객체, get_text는 PyMuPDF 메서드입니다.",
+          "an": "6일차 LangChain 외 방식으로 텍스트 추출하기 · extract_text_from_pptx",
+          "src": "# 도형안에 텍스트 프레임이 있는지 확인\n if shape.has_text_frame:"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "자료는 PyMuPDF(fitz)로 텍스트를 추출하는 방식이 PyPDFLoader보다 빠르고 정확해 실무에서 많이 쓴다고 설명한다.",
+          "a": true,
+          "h": "LangChain 외 방식 절의 첫 코드 주석은 PyMuPDF 방식과 PyPDFLoader를 비교하며 속도와 정확도 면의 장점을 말합니다.",
+          "w": "맞습니다. 주석은 PyMuPDF 방식이 PyPDFLoader보다 훨씬 빠르고 정확해 실무에서 아주 많이 사용된다고 설명합니다.",
+          "an": "6일차 LangChain 외 방식으로 텍스트 추출하기 · PyMuPDF 주석",
+          "src": "# PyMuPDF(fitz)를 활용한 텍스트 추출 방식은 PyPDFLoader보다\n# 훨씬 빠르고 정확하다는 장점이 있어 실무에서 아주 많이 사용"
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "python-docx 추출 함수는 문서의 각 슬라이드(slide)를 반복하며 텍스트를 모은다.",
+          "a": false,
+          "h": "python-docx 함수는 <code>Document(docx_path)</code>로 문서를 연 뒤 문서의 단락 목록을 반복하며 각 텍스트와 개행 문자를 더합니다. 슬라이드와 도형을 반복하는 것은 다른 형식의 추출 함수입니다.",
+          "w": "틀렸습니다. python-docx 함수는 <code>document.paragraphs</code>를 반복합니다. slide와 shape를 반복하는 것은 python-pptx 함수입니다.",
+          "an": "6일차 LangChain 외 방식으로 텍스트 추출하기 · extract_text_from_docx",
+          "src": "def extract_text_from_docx(docx_path):\n # Document 객체 생성 (DOCX 파일 로드)\n document =\n # 추출된 텍스트를 저장할 변수 초기화\n text = ''\n # 문서의 각 단락을 반복 처리\n for para in document.paragraphs:\n text += para.text + '\\n' # 각 단락의 텍스트와 개행 문자를 추가\n return text"
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "파일 형식과 자료에서 텍스트 추출에 쓴 라이브러리를 연결하세요.",
+          "pairs": [
+            [
+              "PDF",
+              "PyMuPDF(fitz)"
+            ],
+            [
+              "PPTX",
+              "python-pptx"
+            ],
+            [
+              "DOCX",
+              "python-docx"
+            ],
+            [
+              "XLSX",
+              "openpyxl"
+            ],
+            [
+              "HWP",
+              "olefile"
+            ]
+          ],
+          "h": "대부분 라이브러리 이름에 파일 형식이 드러나 있습니다. 엑셀용은 'py'와 'xl'이 들어간 이름이고, HWP는 OLE 구조 파일을 다루는 라이브러리를 씁니다.",
+          "w": "PDF는 PyMuPDF, PPTX는 python-pptx, DOCX는 python-docx, XLSX는 openpyxl, HWP는 olefile로 처리했습니다.",
+          "an": "6일차 LangChain 외 방식으로 텍스트 추출하기",
+          "src": "# python-pptx 라이브러리 설치 (PPTX 텍스트 추출을 위해 사용)\n!pip install -q python-pptx"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "PyMuPDF 텍스트 추출 함수의 동작을 순서대로 나열하세요.",
+          "steps": [
+            "fitz.open()으로 PDF 열기",
+            "빈 문자열 text 준비",
+            "페이지 번호를 돌며 load_page()",
+            "get_text() 결과를 text에 누적",
+            "완성된 text 반환"
+          ],
+          "h": "함수 주석은 'PDF 파일 열기' → '추출된 텍스트를 저장할 변수 초기화' → 'PDF의 각 페이지를 반복 처리' 순서입니다. 반복 안에서 페이지를 먼저 가져와야 그 페이지의 텍스트를 꺼낼 수 있습니다.",
+          "w": "열기 → 변수 초기화 → 페이지 로드 → 텍스트 누적 → 반환 순서입니다. 반환은 반복이 모두 끝난 뒤에 합니다.",
+          "an": "6일차 LangChain 외 방식으로 텍스트 추출하기 · extract_text_from_pdf",
+          "src": "def extract_text_from_pdf(pdf_path):\n # PDF 파일 열기\n document =\n # 추출된 텍스트를 저장할 변수 초기화\n text = ''\n # PDF의 각 페이지를 반복 처리\n for page_num in range(len(document)):\n page =\n text +=\n return text"
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "HWP 추출 함수 <code>get_hwp_text</code>에 대한 설명으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "olefile.OleFileIO로 파일을 연다",
+            "BodyText 섹션 번호를 정렬해 읽는다",
+            "레코드 타입 67을 텍스트로 처리한다",
+            "텍스트는 utf-8로 디코딩한다",
+            "압축 여부와 상관없이 항상 압축을 푼다"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "함수는 OLE 구조로 파일을 열고 FileHeader의 비트로 압축 여부를 판단한 뒤, 압축된 경우에만 zlib으로 풉니다. 섹션은 번호를 정렬해 차례로 읽고, 텍스트 관련 레코드 데이터는 utf-16으로 디코딩합니다.",
+          "w": "OleFileIO로 열기, 섹션 번호 정렬, 레코드 타입 67 처리는 코드와 일치합니다. 디코딩은 utf-16이고, 압축 해제는 is_compressed일 때만 합니다.",
+          "an": "6일차 LangChain 외 방식으로 텍스트 추출하기 · get_hwp_text",
+          "src": "# 레코드 타입이 텍스트 관련(67)인 경우 처리 (HWP 문서 형식에 따라 다를 수 있음)\n if rec_type in [67]:\n # 레코드 데이터를 읽을 만큼의 바이트가 남아있는지 확인\n if i + 4 + rec_len > size:\n break\n # 레코드 데이터 추출\n rec_data = unpacked_data[i + 4 : i + 4 + rec_len]\n try:\n # utf-16으로 디코딩하여 섹션 텍스트에 추가\n section_text += rec_data.decode('utf-16')"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "실습 · 문서 자동 판별기",
+      "ref": "6일차 문제) PDF + Word + CSV 자동 판별기 · Multi Document Analyzer",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "자동 판별기 TODO 2에서 파일 확장자를 추출할 때 힌트로 제시된 함수는?",
+          "o": [
+            "os.path.splitext()",
+            "os.remove()",
+            "files.upload()",
+            "list(uploaded.keys())"
+          ],
+          "a": 0,
+          "h": "이 함수는 파일 경로를 '확장자 앞 부분'과 '확장자'로 나눈 튜플을 돌려주며, 완성 코드는 그중 두 번째 요소 <code>[1]</code>을 씁니다. 이름은 split과 ext(extension)를 합친 형태입니다.",
+          "w": "<code>os.path.splitext(file_path)[1]</code>로 확장자를 얻습니다. os.remove()는 파일 삭제, files.upload()는 업로드 함수입니다.",
+          "an": "6일차 문제) PDF + Word + CSV 자동 판별기 · TODO 2",
+          "src": "# 파일의 확장자를 추출하세요.\n#\n# Hint)\n# os.path.splitext()\n#\n# ============================================================\nextension = os.path.splitext(file_path)[1].lower()"
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "<code>os.path.splitext('report.PDF')[1].lower()</code>의 결과는?",
+          "o": [
+            "'report'",
+            "'PDF'",
+            "'.pdf'",
+            "'pdf'"
+          ],
+          "a": 2,
+          "h": "splitext는 경로를 (앞부분, 확장자) 튜플로 나누며, 확장자 쪽에는 점(.)이 붙은 채로 들어갑니다. 이어서 <code>.lower()</code>가 대문자를 소문자로 바꾸기 때문에, 완성 코드는 <code>'.pdf'</code> 같은 소문자 문자열과 비교합니다.",
+          "w": "[1]은 점이 포함된 확장자 '.PDF'이고 lower()로 '.pdf'가 됩니다. 그래서 대문자 확장자 파일도 같은 분기로 처리됩니다.",
+          "an": "6일차 문제) PDF + Word + CSV 자동 판별기 · TODO 2 · TODO 3",
+          "src": "extension = os.path.splitext(file_path)[1].lower()\n# ============================================================\n# TODO 3\n#\n# 확장자에 따라 적절한 Loader를 생성하세요.\n#\n# pdf -> PyPDFLoader\n# docx -> Docx2txtLoader\n# csv -> CSVLoader\n#\n# 지원하지 않는 파일은 오류를 발생시키세요.\n#\n# ============================================================\nif extension == \".pdf\":"
+        },
+        {
+          "id": "t5-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "단일 파일 자동 판별기에서 pdf·docx·csv가 아닌 확장자를 만나면 완성 코드는 어떻게 처리하나요?",
+          "o": [
+            "건너뛰고 다음 파일로 간다",
+            "ValueError 예외를 발생시킨다",
+            "TextLoader로 대신 읽는다",
+            "빈 문자열을 요약한다"
+          ],
+          "a": 1,
+          "h": "TODO 3은 '지원하지 않는 파일은 오류를 발생시키세요'라고 요구합니다. 단일 파일만 다루므로 다음 파일이 없고, 완성 코드의 else 분기는 지원하지 않는 형식이라는 메시지를 담은 예외를 일으킵니다.",
+          "w": "<code>raise ValueError(f'지원하지 않는 파일 형식({extension})')</code>로 멈춥니다. 건너뛰기(continue)는 여러 파일을 다루는 Multi Document Analyzer의 처리입니다.",
+          "an": "6일차 문제) PDF + Word + CSV 자동 판별기 · TODO 3",
+          "src": "# 지원하지 않는 파일은 오류를 발생시키세요.\n#\n# ============================================================\nif extension == \".pdf\":\n loader = PyPDFLoader(file_path)\nelif extension == \".docx\":\n loader = Docx2txtLoader(file_path)\nelif extension == \".csv\":\n loader = CSVLoader(file_path)\nelse:\n raise ValueError(f\"지원하지 않는 파일 형식({extension})\")"
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Multi Document Analyzer에서 파일마다 읽은 Document들을 하나의 리스트에 모을 때 쓴 메서드는?",
+          "o": [
+            "append",
+            "join",
+            "split",
+            "extend"
+          ],
+          "a": 3,
+          "h": "TODO 5 힌트는 <code>loader.load()</code>와 함께 리스트 메서드 하나를 제시합니다. load()는 이미 Document 리스트를 돌려주므로, 리스트 안에 리스트를 넣지 않고 요소들을 이어 붙이는 메서드가 필요합니다.",
+          "w": "<code>documents.extend(loader.load())</code>로 요소를 펼쳐 넣습니다. append를 쓰면 리스트가 통째로 한 요소로 들어가고, join은 문자열을 합칠 때 씁니다.",
+          "an": "6일차 문제) Multi Document Analyzer · TODO 5",
+          "src": "# 문서를 읽어 documents 리스트에 저장하세요.\n#\n# Hint)\n#\n# loader.load()\n# documents.extend(...)\n#\n# ============================================================\n documents.extend(loader.load())"
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>files.upload()</code>가 돌려준 딕셔너리에서 파일 이름 목록을 만드는 코드는?",
+          "o": [
+            "uploaded.items()",
+            "list(uploaded.values())",
+            "list(uploaded.keys())",
+            "uploaded.upload()"
+          ],
+          "a": 2,
+          "h": "TODO 1 설명은 업로드한 파일이 Dictionary 형태로 반환되며 '파일 이름만 추출하여 리스트로 저장한다'고 적었습니다. 이 딕셔너리에서 파일 이름은 키 쪽에, 파일 내용은 값 쪽에 들어 있습니다.",
+          "w": "파일 이름은 딕셔너리의 키이므로 <code>list(uploaded.keys())</code>로 리스트를 만듭니다. values()는 파일 내용입니다.",
+          "an": "6일차 문제) Multi Document Analyzer · TODO 1",
+          "src": "# 업로드한 파일은 Dictionary 형태로 반환되며,\n# 파일 이름만 추출하여 리스트로 저장한다.\n#\n# ============================================================\nfrom google.colab import files\nuploaded = files.upload()\nfiles_path = list(uploaded.keys())"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "자동 판별기의 LCEL 체인은 <code>prompt | llm</code>으로 구성하고 요약은 <code>result.content</code>로 출력한다.",
+          "a": true,
+          "h": "TODO 8은 체인을 'Prompt ↓ ChatOpenAI' 두 단계로 그려 두었고, 이 체인에는 출력 파서가 없습니다. 파서가 없으면 결과는 모델의 응답 메시지 객체입니다.",
+          "w": "맞습니다. 파서 없이 모델 응답 객체를 받으므로 <code>print(result.content)</code>로 요약 텍스트를 출력합니다.",
+          "an": "6일차 문제) PDF + Word + CSV 자동 판별기 · TODO 8 · TODO 10",
+          "src": "chain = prompt | llm\n# ============================================================\n# TODO 9\n#\n# invoke()를 이용하여 문서를 요약하세요.\n#\n# ============================================================\nresult = chain.invoke({\"text\" : text})"
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Multi Document Analyzer는 지원하지 않는 파일을 만나면 예외를 발생시켜 전체 실행을 멈춘다.",
+          "a": false,
+          "h": "Multi Document Analyzer의 TODO 4는 지원하지 않는 파일을 어떻게 하라고 했는지 떠올려 보세요. 여러 파일을 반복문으로 처리하므로 한 파일 때문에 나머지 분석을 멈출 필요가 없습니다.",
+          "w": "틀렸습니다. 완성 코드는 '지원하지 않는 파일입니다'를 출력하고 <code>continue</code>로 다음 파일로 넘어갑니다. 예외로 멈추는 것은 단일 파일 판별기입니다.",
+          "an": "6일차 문제) Multi Document Analyzer · TODO 4",
+          "src": "# 지원하지 않는 파일은 건너뛰세요.\n#\n# ============================================================\n if extension == \".pdf\":\n loader = PyPDFLoader(file_path)\n elif extension == \".docx\":\n loader = Docx2txtLoader(file_path)\n elif extension == \".csv\":\n loader = CSVLoader(file_path)\n else :\n print(f\"{file_path} : 지원하지 않는 파일입니다.\")\n continue"
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "확장자와 자동 판별기에서 선택하는 Document Loader를 연결하세요.",
+          "pairs": [
+            [
+              ".pdf",
+              "PyPDFLoader"
+            ],
+            [
+              ".docx",
+              "Docx2txtLoader"
+            ],
+            [
+              ".csv",
+              "CSVLoader"
+            ]
+          ],
+          "h": "TODO 3은 확장자별로 쓸 로더를 화살표로 정리해 두었습니다. 각 로더 이름에는 처리하는 파일 형식이나 그 형식용 패키지 이름이 들어 있습니다.",
+          "w": "PDF는 PyPDFLoader, Word는 Docx2txtLoader, CSV는 CSVLoader를 선택합니다.",
+          "an": "6일차 문제) PDF + Word + CSV 자동 판별기 · TODO 3",
+          "src": "# 확장자에 따라 적절한 Loader를 생성하세요.\n#\n# pdf -> PyPDFLoader\n# docx -> Docx2txtLoader\n# csv -> CSVLoader"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "PDF + Word + CSV 자동 판별기의 처리 순서대로 나열하세요.",
+          "steps": [
+            "확장자 추출",
+            "확장자에 맞는 로더 생성",
+            "loader.load()로 문서 읽기",
+            "page_content를 하나의 문자열로 결합",
+            "prompt | llm 체인으로 요약"
+          ],
+          "h": "요구사항 1~7은 '확장자 확인 → 로더 생성 → 문서 읽기 → 프롬프트·모델·체인 → 요약 출력' 흐름이고, 완성 코드는 읽은 뒤 TODO 5에서 본문을 하나로 합칩니다. 로더를 고르려면 확장자를, 요약하려면 합친 텍스트가 먼저 있어야 합니다.",
+          "w": "확장자 → 로더 → 읽기 → 결합 → 체인 요약 순서입니다. 체인은 <code>{'text': text}</code>를 받으므로 결합이 먼저입니다.",
+          "an": "6일차 문제) PDF + Word + CSV 자동 판별기 · TODO 2~9",
+          "src": "if extension == \".pdf\":\n loader = PyPDFLoader(file_path)\nelif extension == \".docx\":\n loader = Docx2txtLoader(file_path)\nelif extension == \".csv\":\n loader = CSVLoader(file_path)\nelse:\n raise ValueError(f\"지원하지 않는 파일 형식({extension})\")"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "Multi Document Analyzer에 student.csv를 올렸을 때 일어나는 일을 모두 고르세요.",
+          "o": [
+            "CSVLoader가 선택된다",
+            "행마다 Document가 생겨 documents에 추가된다",
+            "모든 page_content가 하나의 text로 결합된다",
+            "PyPDFLoader로 읽힌다",
+            "지원하지 않는 파일로 건너뛴다"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "반복문은 파일마다 확장자를 소문자로 뽑아 분기하고, 맞는 로더의 load() 결과를 documents에 이어 붙입니다. CSV 로더는 행 단위로 Document를 만들고, 반복이 끝나면 모든 본문을 join으로 합칩니다.",
+          "w": "'.csv' 분기로 CSVLoader가 선택되고 행별 Document가 documents에 추가된 뒤 text로 결합됩니다. CSV는 지원 형식이라 건너뛰지 않습니다.",
+          "an": "6일차 문제) Multi Document Analyzer · TODO 3~6",
+          "src": "elif extension == \".csv\":\n loader = CSVLoader(file_path)\n else :\n print(f\"{file_path} : 지원하지 않는 파일입니다.\")\n continue\n# ============================================================\n# TODO 5\n#\n# 문서를 읽어 documents 리스트에 저장하세요.\n#\n# Hint)\n#\n# loader.load()\n# documents.extend(...)\n#\n# ============================================================\n documents.extend(loader.load())"
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "실습 · Universal 문서 분석기",
+      "ref": "6일차 문제) Universal AI Document Analyzer (JSON 출력)",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "Universal 분석기 TODO 5에서 TXT 파일에 선택하는 로더는?",
+          "o": [
+            "CSVLoader",
+            "TextLoader",
+            "Docx2txtLoader",
+            "UnstructuredMarkdownLoader"
+          ],
+          "a": 1,
+          "h": "TODO 5는 PDF·DOCX·CSV에 더해 TXT와 MD용 로더를 추가합니다. TXT는 일반 텍스트(Text) 파일이라 형식 이름이 그대로 로더 이름이 되고, MD는 Unstructured 계열 로더를 씁니다.",
+          "w": "TXT는 TextLoader, MD는 UnstructuredMarkdownLoader입니다. CSVLoader와 Docx2txtLoader는 각각 CSV·Word용입니다.",
+          "an": "6일차 문제) Universal AI Document Analyzer (JSON 출력) · TODO 5",
+          "src": "# 파일 형식에 따라 적절한 Document Loader를 선택하세요.\n#\n# PDF -> PyPDFLoader\n# DOCX -> Docx2txtLoader\n# CSV -> CSVLoader\n# TXT -> TextLoader\n# MD -> UnstructuredMarkdownLoader"
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "Universal 분석기 TODO 5에서 MD(마크다운) 파일에 선택하는 로더는?",
+          "o": [
+            "TextLoader",
+            "PyPDFLoader",
+            "UnstructuredMarkdownLoader",
+            "CSVLoader"
+          ],
+          "a": 2,
+          "h": "Universal 분석기는 import 목록에 Unstructured로 시작하는 로더를 여러 개 불러옵니다. 그중 TODO 5에서 MD에 배정된 것은 이름 끝에 Markdown이 붙은 로더입니다.",
+          "w": "MD는 UnstructuredMarkdownLoader로 읽습니다. TextLoader는 TXT용입니다.",
+          "an": "6일차 문제) Universal AI Document Analyzer (JSON 출력) · TODO 5",
+          "src": "# 파일 형식에 따라 적절한 Document Loader를 선택하세요.\n#\n# PDF -> PyPDFLoader\n# DOCX -> Docx2txtLoader\n# CSV -> CSVLoader\n# TXT -> TextLoader\n# MD -> UnstructuredMarkdownLoader"
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "Universal 분석기가 결과를 Python Dictionary로 받기 위해 체인 끝에 두는 구성 요소는?",
+          "o": [
+            "PromptTemplate",
+            "TextLoader",
+            "CommaSeparatedListOutputParser",
+            "JsonOutputParser"
+          ],
+          "a": 3,
+          "h": "문제는 결과를 'Python Dictionary 형태로 출력'하라고 하고, TODO 13의 체인 그림은 Prompt ↓ ChatOpenAI 아래 단계 하나를 더 둡니다. 5일차에 배운 파서 중 dict를 만드는 쪽을 떠올리세요.",
+          "w": "JsonOutputParser가 JSON 응답을 dict로 바꿉니다. 쉼표 리스트 파서는 리스트를 만들고, PromptTemplate과 로더는 체인 끝 단계가 아닙니다.",
+          "an": "6일차 문제) Universal AI Document Analyzer (JSON 출력) · TODO 10 · TODO 13",
+          "src": "# 을 생성하고 JsonOutputParser를 이용하여\n# Python Dictionary 형태로 출력하세요."
+        },
+        {
+          "id": "t6-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "출력 예시에서 <code>documents</code> 리스트의 각 항목이 갖는 필드는?",
+          "o": [
+            "filename · summary",
+            "name · score",
+            "day · plan",
+            "category · priority"
+          ],
+          "a": 0,
+          "h": "TODO 9의 구조도는 documents 아래에 두 가지 하위 항목을 가지로 그려 두었습니다. 출력 예시에서도 각 항목에 company.pdf 같은 파일 이름과 '...' 요약이 들어 있습니다.",
+          "w": "documents 항목은 filename과 summary를 가집니다. name·score는 이력서 평가, day·plan은 여행 일정 실습의 필드입니다.",
+          "an": "6일차 문제) Universal AI Document Analyzer (JSON 출력) · TODO 9 · 출력 예시",
+          "src": "# \"documents\":[\n# {\n# \"filename\":\"company.pdf\",\n# \"summary\":\"...\""
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "TODO 7처럼 로드한 Document에서 원본 파일명(경로)을 확인하려면 어디를 보아야 하나요?",
+          "o": [
+            "doc.page_content[:10]",
+            "doc.metadata['row']",
+            "doc.metadata['source']",
+            "doc['filename']"
+          ],
+          "a": 2,
+          "h": "TODO 7 힌트는 <code>document.metadata</code>를 보라고 합니다. 이 날 PDF·Word·CSV 로더 출력의 metadata에는 공통으로 원본 파일 경로를 담은 키가 하나 들어 있었습니다.",
+          "w": "로더는 metadata의 source 키에 파일 경로를 넣습니다. row는 CSV 행 번호이고, Document는 딕셔너리처럼 ['filename']으로 접근하지 않습니다.",
+          "an": "6일차 문제) Universal AI Document Analyzer (JSON 출력) · TODO 7",
+          "src": "# metadata에서 파일명을 확인하세요.\n#\n# Hint)\n# document.metadata"
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Universal 분석기의 LCEL 체인은 Prompt → ChatOpenAI → JsonOutputParser 순서로 연결한다.",
+          "a": true,
+          "h": "TODO 13은 LCEL Chain을 위에서 아래로 세 단계로 그려 두었습니다. 프롬프트로 질문을 만들고, 모델이 답하고, 마지막 단계가 그 답을 구조화된 자료형으로 바꿉니다.",
+          "w": "맞습니다. 5일차의 <code>prompt | model | parser</code> 패턴을 문서 분석에 그대로 적용한 체인입니다.",
+          "an": "6일차 문제) Universal AI Document Analyzer (JSON 출력) · TODO 13",
+          "src": "# LCEL Chain을 작성하세요.\n#\n# Prompt\n# ↓\n# ChatOpenAI\n# ↓\n# JsonOutputParser"
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Universal 분석기의 프롬프트는 JSON 결과와 함께 설명 문장도 자유롭게 출력하도록 요구한다.",
+          "a": false,
+          "h": "TODO 11의 프롬프트 요구사항은 문서별 요약, 공통 핵심 키워드, 전체 요약, 추천 액션에 이어 출력 형식에 관한 제약 하나를 덧붙입니다. JSON 파서는 응답 전체를 JSON으로 해석해야 한다는 점도 생각해 보세요.",
+          "w": "틀렸습니다. 요구사항은 '반드시 JSON만 출력'입니다. 설명 문장이 섞이면 JsonOutputParser가 응답을 dict로 바꾸기 어렵습니다.",
+          "an": "6일차 문제) Universal AI Document Analyzer (JSON 출력) · TODO 11",
+          "src": "# - 문서별 요약\n# - 공통 핵심 키워드\n# - 전체 요약\n# - 추천 액션\n# - 반드시 JSON만 출력"
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "Universal 분석기 출력 JSON의 필드와 내용을 연결하세요.",
+          "pairs": [
+            [
+              "documents",
+              "문서별 파일명과 요약"
+            ],
+            [
+              "keywords",
+              "공통 핵심 키워드 목록"
+            ],
+            [
+              "overall_summary",
+              "전체 문서 요약"
+            ],
+            [
+              "recommendation",
+              "추천 액션"
+            ]
+          ],
+          "h": "문제는 AI가 ① 문서별 요약 ② 공통 핵심 키워드 ③ 전체 문서 요약 ④ 추천 액션을 생성한다고 정리합니다. 출력 예시의 영어 필드 이름이 이 네 항목에 하나씩 대응합니다.",
+          "w": "documents는 문서별 요약, keywords는 공통 키워드, overall_summary는 전체 요약, recommendation은 추천 액션입니다.",
+          "an": "6일차 문제) Universal AI Document Analyzer (JSON 출력) · 문제 · 출력 예시",
+          "src": "# ① 문서별 요약\n# ② 공통 핵심 키워드\n# ③ 전체 문서 요약\n# ④ 추천 액션"
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "Universal 분석기의 TODO 흐름을 순서대로 나열하세요.",
+          "steps": [
+            "파일 업로드 후 목록 저장",
+            "확장자별 로더로 문서 읽기",
+            "page_content를 하나의 문자열로 결합",
+            "Pydantic 모델과 JsonOutputParser 생성",
+            "체인 invoke 후 JSON 결과 출력"
+          ],
+          "h": "요구사항 1~15는 업로드·목록 저장(1~2) → 확장자 확인·로더 선택·읽기(3~6) → 파일명 확인·본문 결합(7~8) → 모델·파서·프롬프트·LLM(9~12) → 체인·실행·출력(13~15) 순서입니다.",
+          "w": "업로드 → 로드 → 결합 → 스키마·파서 → 실행·출력 순서입니다. 파서의 형식 지침이 프롬프트에 들어가므로 파서는 체인 실행 전에 준비되어야 합니다.",
+          "an": "6일차 문제) Universal AI Document Analyzer (JSON 출력) · 요구사항 1~15",
+          "src": "# 2. 업로드한 파일 목록을 저장하세요.\n# 3. Document를 저장할 리스트를 생성하세요.\n# 4. 파일 확장자를 확인하세요.\n# 5. Document Loader를 자동 선택하세요.\n# 6. 모든 문서를 읽으세요.\n# 7. metadata에서 파일명을 확인하세요.\n# 8. page_content를 하나의 문자열로 결합하세요.\n# 9. Pydantic 모델을 작성하세요.\n# 10. JsonOutputParser를 생성하세요.\n# 11. PromptTemplate을 작성하세요.\n# 12. ChatOpenAI 객체를 생성하세요.\n# 13. LCEL Chain을 작성하세요.\n# 14. invoke()를 실행하세요."
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "Universal 분석기 TODO 5 기준으로 업로드했을 때 로더가 선택되어 읽히는 파일을 모두 고르세요.",
+          "o": [
+            "manual.txt",
+            "README.md",
+            "sales.csv",
+            "movie.hwp",
+            "photo.png"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "TODO 5는 PDF, DOCX, CSV, TXT, MD 다섯 형식에 로더를 배정하고 '지원하지 않는 파일은 건너뛰세요'라고 합니다. HWP는 이 날 olefile로 직접 추출했을 뿐 이 분석기의 로더 목록에는 없습니다.",
+          "w": "txt·md·csv는 각각 TextLoader·UnstructuredMarkdownLoader·CSVLoader로 읽힙니다. hwp와 png는 TODO 5 목록에 없어 건너뜁니다.",
+          "an": "6일차 문제) Universal AI Document Analyzer (JSON 출력) · TODO 5",
+          "src": "# 파일 형식에 따라 적절한 Document Loader를 선택하세요.\n#\n# PDF -> PyPDFLoader\n# DOCX -> Docx2txtLoader\n# CSV -> CSVLoader\n# TXT -> TextLoader\n# MD -> UnstructuredMarkdownLoader\n#\n# 지원하지 않는 파일은 건너뛰세요."
+        }
+      ]
+    }
+  ]
+}

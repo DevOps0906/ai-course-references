@@ -1,0 +1,1705 @@
+{
+  "id": "go-d3",
+  "code": "GO3",
+  "title": "Go 언어 3일차 · 동시성 (고루틴·채널·sync 패키지)",
+  "subtitle": "고루틴·스케줄러 · 채널·select · sync·Producer-Consumer",
+  "course": "10 · Go 언어 프로그래밍",
+  "source": "10-go_programming-main/Go언어프로그래밍_3일차.md + 솔루션 + day3/",
+  "salt": "go-d3",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "Go 런타임 스케줄러",
+      "ref": "3일차 1교시 §1.1–1.6 · day3/thread.c",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "'한 명의 요리사가 여러 요리를 번갈아 만든다'는 비유에 해당하는 개념은?",
+          "o": [
+            "병렬성(Parallelism)",
+            "동시성(Concurrency)",
+            "선점형 스케줄링",
+            "work stealing"
+          ],
+          "a": 1,
+          "h": "교안 §1.2 표는 동시성을 여러 작업을 '다루는' 능력, 병렬성을 여러 작업을 '동시에 실행'하는 것으로 구분합니다. 단일 코어에서도 가능한 쪽은 한 사람이 여러 일을 번갈아 처리하는 모습에, 멀티 코어가 필요한 쪽은 여러 사람이 동시에 일하는 모습에 비유됩니다.",
+          "w": "동시성은 여러 작업을 '다루는' 능력으로 단일 코어에서도 가능합니다. 병렬성은 여러 요리사가 동시에 요리하듯 멀티 코어에서 여러 작업을 동시에 '실행'하는 것입니다.",
+          "an": "Go언어프로그래밍_3일차.md 1교시 §1.2 동시성 vs 병렬성",
+          "src": "| | 동시성 (Concurrency) | 병렬성 (Parallelism) |\n|---|---|---|\n| 의미 | 여러 작업을 **다루는** 능력 | 여러 작업을 **동시에 실행** |\n| 필요 조건 | 단일 코어에서도 가능 | 멀티 코어 필요 |\n| 비유 | 한 명의 요리사가 여러 요리를 번갈아 만듦 | 여러 명의 요리사가 동시에 요리 |"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "고루틴의 초기 스택 크기는 얼마입니까?",
+          "o": [
+            "2MB",
+            "8KB",
+            "2KB",
+            "1GB"
+          ],
+          "a": 2,
+          "h": "교안의 비교 표는 Linux pthread의 기본 스택을 2MB로 두고, 고루틴의 초기 스택은 그보다 1000배 작다고 설명합니다. 2MB를 1000으로 나눈 크기에서 시작해 필요에 따라 8KB, 32KB로 자랍니다.",
+          "w": "고루틴은 2KB 스택으로 시작합니다. 2MB는 Linux pthread의 기본 스택이고, 1GB는 64비트에서 고루틴 스택이 자랄 수 있는 최대치입니다.",
+          "an": "Go언어프로그래밍_3일차.md 1교시 §1.3 비교 표",
+          "src": "## 2.2 스택 관리 — Go의 마법\n\nC pthread는 스레드 생성 시 **고정 크기 스택**(보통 2~8MB)을 미리 할당합니다. 재귀가 너무 깊으면 stack overflow로 죽습니다.\n\nGo 고루틴은 **동적으로 자라고 줄어드는 스택**을 사용합니다.\n\n```\n초기: ┌────┐\n │ 2KB│ ← 시작 크기\n └────┘\n\n자람: ┌────────┐\n │ 8KB │ ← 자동으로 확장\n └────────┘\n\n더 자람:┌────────────────┐\n │ 32KB │\n └────────────────┘\n\n최대: 1GB(64-bit) 까지 가능\n```"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "C에서 pthread 1만 개를 만드는 코드가 대부분 실패하는 주된 이유는?",
+          "o": [
+            "스레드당 2MB 스택 메모리",
+            "채널 버퍼 부족",
+            "GOMAXPROCS 제한",
+            "GC 정지 시간"
+          ],
+          "a": 0,
+          "h": "C 예제는 pthread_create를 10,000번 호출하는데, 각 OS 스레드는 생성 시 고정 크기 스택을 미리 할당합니다. 10,000 × 스레드당 스택 크기를 계산하면 수십 GB가 필요해져 메모리 부족이나 EAGAIN으로 실패합니다.",
+          "w": "10,000개 × 2MB = 20GB가 필요해 메모리 부족이나 EAGAIN 에러로 실패합니다. 같은 일을 고루틴으로 하면 약 20MB(10,000 × 2KB) 수준입니다.",
+          "an": "Go언어프로그래밍_3일차.md 1교시 §1.5 C pthread vs Go 고루틴",
+          "src": "이 코드를 그대로 돌리면 대부분의 시스템에서 **메모리 부족**이나 **`EAGAIN`** 에러로 실패합니다. 10,000개 × 2MB = **20GB**가 필요하기 때문입니다."
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "P의 로컬 큐가 비었을 때 다른 P의 G를 가져와 실행하는 동작은?",
+          "o": [
+            "preemption",
+            "work stealing",
+            "컨텍스트 스위칭",
+            "랑데부"
+          ],
+          "a": 1,
+          "h": "M:N 스케줄러에서 각 P는 자신의 로컬 큐에 실행 대기 G를 가집니다. 로컬 큐가 비면 놀지 않고 다른 P의 큐에서 G를 '훔쳐 와' 실행하며, 이 동작을 영어로 '일 훔치기'라고 부릅니다.",
+          "w": "로컬 큐가 빈 P는 다른 P의 G를 훔쳐오는데, 이를 work stealing이라 합니다. preemption은 오래 실행되는 고루틴을 강제로 전환하는 선점이고, 랑데부는 unbuffered 채널의 송수신 만남입니다.",
+          "an": "Go언어프로그래밍_3일차.md 1교시 §1.4 동작 흐름",
+          "src": "### 동작 흐름\n\n1. P는 **자신의 로컬 큐**에 실행 대기 중인 G들을 가지고 있습니다.\n2. M은 P 하나와 연결되어, P의 큐에서 G를 꺼내 실행합니다.\n3. G가 시스템 콜에 들어가면 M이 블로킹되므로, 런타임이 **새 M을 만들거나 다른 M을 가져다 P를 붙입니다**.\n4. P의 로컬 큐가 비면 다른 P에서 G를 훔쳐옵니다 (**work stealing**)."
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "day3/thread.c입니다. <code>int global=6;</code>이고 스레드 함수 foo는 <code>++global</code>을 출력합니다. main은 <code>pthread_create</code> 후 <code>pthread_join</code>을 호출하고 global을 출력합니다. main이 출력하는 값은?",
+          "o": [
+            "6",
+            "8",
+            "0",
+            "7"
+          ],
+          "a": 3,
+          "h": "foo 스레드는 전역 변수 global을 전위 증가(++global)한 뒤 출력합니다. 스레드는 프로세스의 전역 변수를 공유하고, main은 pthread_join으로 스레드가 끝날 때까지 기다린 뒤 global을 출력하므로 6에서 한 번 증가한 값이 보입니다.",
+          "w": "스레드는 같은 전역 변수를 공유하므로 foo가 global을 7로 올린 뒤 join이 끝나면 main도 7을 출력합니다. join이 없으면 main이 스레드보다 먼저 끝날 수 있습니다.",
+          "an": "day3/thread.c · Go언어프로그래밍_3일차.md 1교시 §1.3",
+          "src": "int global=6;\nvoid * foo(void *data)\n{\n printf(\"foo(), global=%d\\n\", ++global);\n return 0; // pthread_exit(0);\n}\n\nint main()\n{\n pthread_t thread;\n\n pthread_create(&thread, 0, foo, 0);\n\n pthread_join(thread, 0);\n printf(\"main(), global=%d\\n\", global);\n}"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "GOMAXPROCS(P의 개수) 기본값은 CPU 코어 수이다.",
+          "a": true,
+          "h": "runtime.GOMAXPROCS(0)은 값을 바꾸지 않고 현재 P의 개수만 조회합니다. 교안은 이 값이 보통 하드웨어의 코어 수와 같으며, 기본값이 그렇게 정해지므로 평소엔 건드릴 필요가 없다고 설명합니다.",
+          "w": "맞습니다. 기본값은 CPU 코어 수이며 평소에는 건드릴 필요가 없습니다. <code>runtime.GOMAXPROCS(4)</code>처럼 수동으로 바꿀 수도 있습니다.",
+          "an": "Go언어프로그래밍_3일차.md 1교시 §1.4 GOMAXPROCS",
+          "src": "### GOMAXPROCS — P의 개수 조절\n\n```go\nimport \"runtime\"\n\nn := runtime.GOMAXPROCS(0) // 현재 값 조회 (변경 없음)\nfmt.Println(\"GOMAXPROCS:\", n)\n// 보통 코어 수와 같음\n\n// 수동 변경\nruntime.GOMAXPROCS(4)\n```\n\n기본값은 **CPU 코어 수**입니다. 평소엔 건드릴 필요 없습니다."
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Go 1.14 이후에도 CPU만 쓰는 루프는 스스로 양보하지 않으면 전환되지 않는다.",
+          "a": false,
+          "h": "Go 스케줄러는 원래 함수 호출·채널·시스템 콜 같은 지점에서 전환하는 협력형 위주였습니다. 교안은 Go 1.14부터 선점형(preemptive) 스케줄링이 도입되어 CPU만 쓰는 루프도 일정 시간(10ms)이 지나면 강제로 전환된다고 설명합니다.",
+          "w": "틀립니다. Go 1.14부터 선점형(preemptive) 스케줄링이 도입되어 CPU만 쓰는 루프도 일정 시간(10ms)이 지나면 강제로 전환됩니다. 그 전에는 협력형 위주였습니다.",
+          "an": "Go언어프로그래밍_3일차.md 1교시 §1.6 Go 스케줄러가 일하는 시점",
+          "src": "> Go 1.14부터는 **선점형(preemptive) 스케줄링**도 도입되어, CPU만 쓰는 루프도 일정 시간(10ms)이 지나면 강제 전환됩니다. 그 전까지는 협력형(cooperative) 위주였습니다."
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "Go 스케줄러의 세 가지 추상화와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "G (Goroutine)",
+              "함수+스택+상태를 가진 실행 단위"
+            ],
+            [
+              "M (Machine)",
+              "CPU에서 실행되는 OS 커널 스레드"
+            ],
+            [
+              "P (Processor)",
+              "G를 실행할 권한을 가진 논리 프로세서"
+            ]
+          ],
+          "h": "Go 스케줄러는 G·M·P 세 추상화로 동작합니다. G는 함수·스택·상태를 가진 고루틴, M은 Machine의 약자로 실제 CPU에서 도는 OS 커널 스레드, P는 Processor의 약자로 G를 실행할 권한을 가진 논리 프로세서입니다.",
+          "w": "G는 실제 실행 단위, M은 OS 스레드, P는 G를 실행할 권한을 가진 논리 프로세서로 보통 코어 수만큼 있습니다. M은 P 하나와 연결되어 P의 큐에서 G를 꺼내 실행합니다.",
+          "an": "Go언어프로그래밍_3일차.md 1교시 §1.4 G, M, P",
+          "src": "| 약자 | 의미 | 역할 |\n|---|---|---|\n| **G** (Goroutine) | 고루틴 | 실제 실행 단위, 함수 + 스택 + 상태 |\n| **M** (Machine) | OS 스레드 | 실제 CPU에서 실행되는 커널 스레드 |\n| **P** (Processor) | 논리 프로세서 | G를 실행할 권한, 보통 코어 수만큼 존재 |"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "M:N 스케줄러의 동작 흐름을 자료 순서대로 나열하세요.",
+          "steps": [
+            "P가 자신의 로컬 큐에 실행 대기 G를 보유",
+            "M이 P와 연결되어 큐에서 G를 꺼내 실행",
+            "G가 시스템 콜로 블록되면 P를 다른 M에 붙임",
+            "로컬 큐가 비면 다른 P에서 G를 훔쳐옴"
+          ],
+          "h": "동작 흐름은 네 단계입니다. P가 로컬 큐에 G를 보유하고, M이 P와 연결되어 G를 꺼내 실행하며, G가 시스템 콜로 블록되면 런타임이 P를 다른 M에 붙이고, 로컬 큐가 비면 다른 P에서 G를 가져옵니다.",
+          "w": "P가 큐를 갖고, M이 P에 붙어 G를 실행합니다. 시스템 콜로 M이 블록되면 런타임이 새 M을 만들거나 다른 M에 P를 붙이고, 큐가 비면 work stealing을 합니다.",
+          "an": "Go언어프로그래밍_3일차.md 1교시 §1.4 동작 흐름",
+          "src": "### 동작 흐름\n\n1. P는 **자신의 로컬 큐**에 실행 대기 중인 G들을 가지고 있습니다.\n2. M은 P 하나와 연결되어, P의 큐에서 G를 꺼내 실행합니다.\n3. G가 시스템 콜에 들어가면 M이 블로킹되므로, 런타임이 **새 M을 만들거나 다른 M을 가져다 P를 붙입니다**.\n4. P의 로컬 큐가 비면 다른 P에서 G를 훔쳐옵니다 (**work stealing**)."
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "자료에 제시된 Go 스케줄러의 고루틴 전환 시점을 모두 고르세요.",
+          "o": [
+            "채널 송수신",
+            "시스템 콜 블로킹",
+            "변수에 값 대입",
+            "runtime.Gosched() 호출",
+            "pthread_join 호출"
+          ],
+          "a": [
+            0,
+            1,
+            3
+          ],
+          "h": "교안 §1.6은 고루틴 전환 시점으로 함수 호출 체크, 채널 송수신, 시스템 콜 블로킹, time.Sleep·select, GC, 명시적 양보 함수 호출을 나열합니다. 통신·블로킹·명시적 양보가 일어나는 지점을 찾아보세요.",
+          "w": "함수 호출, 채널 송수신, 시스템 콜, time.Sleep·select, GC, runtime.Gosched()가 전환 시점입니다. 단순 대입은 전환 시점이 아니고, pthread_join은 C 함수입니다.",
+          "an": "Go언어프로그래밍_3일차.md 1교시 §1.6",
+          "src": "Go 스케줄러는 다음 시점에 고루틴을 전환합니다.\n\n1. **함수 호출 시점**: 컴파일러가 삽입한 체크 코드가 트리거\n2. **채널 송수신**: 즉시 다른 고루틴으로 전환\n3. **시스템 콜**: 블로킹 발생 시 P를 다른 M에 넘김\n4. **`time.Sleep`, `select`** 등 명시적 양보\n5. **GC** 등 런타임 이벤트\n6. **`runtime.Gosched()`** 명시적 양보 호출"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "고루틴 심화 · 스택·함정",
+      "ref": "3일차 2교시 §2.1–2.6 · day3/go_sched.c·fork.c",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>go</code> 키워드 바로 뒤에 와야 하는 것은?",
+          "o": [
+            "함수 이름",
+            "함수 호출",
+            "채널 변수",
+            "스레드 ID"
+          ],
+          "a": 1,
+          "h": "고루틴은 go 키워드 뒤에 실행할 코드를 붙여 시작합니다. 교안은 go myFunc는 컴파일 에러, go myFunc()와 go myFunc(1, 2)는 OK라고 보여 주며 '함수가 아니라 ○○'이라는 점을 강조합니다.",
+          "w": "<code>go</code> 다음에는 함수가 아니라 함수 호출이 옵니다. <code>go myFunc</code>는 호출이 아니므로 컴파일 에러이고 <code>go myFunc()</code>는 정상입니다.",
+          "an": "Go언어프로그래밍_3일차.md 2교시 §2.1 고루틴의 정체",
+          "src": "## 2.1 고루틴의 정체 — 코드부터\n\n```go\ngo func() {\n fmt.Println(\"새 고루틴!\")\n}()\n```\n\n이게 전부입니다. `go` 키워드 다음에 **함수 호출**이 옵니다. **함수가 아니라 함수 호출**이라는 점을 주의하세요.\n\n```go\ngo myFunc // ❌ 컴파일 에러 — 호출이 아님\ngo myFunc() // ✅ OK\ngo myFunc(1, 2) // ✅ OK\n```"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "main 함수가 끝나면 아직 실행 중인 고루틴은 어떻게 됩니까?",
+          "o": [
+            "끝까지 계속 실행된다",
+            "데몬으로 전환된다",
+            "다른 M으로 옮겨진다",
+            "함께 강제 종료된다"
+          ],
+          "a": 3,
+          "h": "교안은 main 함수가 끝나면 그 안에서 띄운 고루틴도 기다려 주지 않는다고 경고합니다. C에서 main이 pthread_join 없이 끝나면 백그라운드 스레드가 죽는 것과 같아서, WaitGroup이나 채널로 명시적으로 기다려야 합니다.",
+          "w": "main이 끝나면 모든 고루틴이 강제 종료되므로 WaitGroup이나 채널로 명시적으로 기다려야 합니다. time.Sleep으로 기다리는 것은 운에 맡기는 코드입니다.",
+          "an": "Go언어프로그래밍_3일차.md 2교시 §2.1 main 함수 끝나면 모든 고루틴 종료",
+          "src": "```go\nfunc main() {\n go func() {\n fmt.Println(\"hello from goroutine\")\n }()\n // main이 끝나면 위 고루틴도 강제 종료!\n // 아무 출력도 없을 가능성 큼\n}\n```\n\nC에서 `main`이 `pthread_join` 없이 끝나면 백그라운드 스레드들이 죽는 것과 같습니다. **명시적으로 기다려야 합니다**"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "고루틴 스택을 키우기 위해 컴파일러가 스택 검사 코드를 넣는 위치는?",
+          "o": [
+            "모든 함수 진입부",
+            "모든 루프의 끝",
+            "채널 송신 직전",
+            "main 시작 시 한 번"
+          ],
+          "a": 0,
+          "h": "고루틴 스택이 동적으로 자라려면 스택이 부족한지 미리 검사해야 합니다. 교안의 의사 코드는 'function prologue', 즉 함수가 시작되는 지점에서 스택이 부족하면 더 큰 스택을 할당·복사한다고 설명합니다.",
+          "w": "모든 함수 진입부(prologue)에서 스택이 부족하면 더 큰 스택을 할당하고 내용을 복사한 뒤 포인터를 재조정합니다. 그래서 고루틴은 필요한 만큼만 메모리를 씁니다.",
+          "an": "Go언어프로그래밍_3일차.md 2교시 §2.2 스택 관리 · 어떻게 가능한가?",
+          "src": "### 어떻게 가능한가?\n\nGo 컴파일러는 **모든 함수 진입부에 스택 검사 코드**를 삽입합니다.\n\n```\nfunction prologue:\n if 스택 부족:\n 더 큰 스택 할당\n 기존 스택 내용 복사\n 포인터들 재조정\n 계속 실행\n```\n\n이 작업은 1μs 이내에 끝나며, 고루틴이 실제로 필요한 만큼만 메모리를 씁니다.\n\n> **결과**: 대부분의 고루틴은 **2~8KB**로 충분하기 때문에, 백만 개 고루틴도 가벼운 메모리로 운영 가능합니다."
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "Go 1.21 이전에서 <code>for i := 0; i < 5; i++ { go func() { fmt.Println(i) }() }</code> 뒤에 잠시 기다리면 실제 출력은?",
+          "o": [
+            "5 5 5 5 5",
+            "0 1 2 3 4 (순서 무관)",
+            "4 4 4 4 4",
+            "컴파일 에러"
+          ],
+          "a": 0,
+          "h": "Go 1.21 이전에는 클로저가 루프 변수 i를 값이 아니라 참조로 캡처했습니다. 고루틴이 실제로 실행될 즈음에는 루프가 이미 끝나 i가 종료 조건 값에 도달해 있으므로 다섯 고루틴이 모두 같은 값을 출력합니다.",
+          "w": "클로저가 i를 참조로 캡처하고, 고루틴이 실행될 때는 루프가 끝나 i가 5이므로 5가 다섯 번 출력됩니다. Go 1.22부터는 루프 변수가 반복마다 새 변수로 취급되어 이 문제가 사라졌습니다.",
+          "an": "Go언어프로그래밍_3일차.md 2교시 §2.4 클로저 캡처",
+          "src": "### 왜 그럴까?\n\n클로저가 `i`를 **값이 아니라 참조로** 캡처하기 때문입니다. 고루틴이 실행될 때 이미 `i`는 루프 종료 후 5가 되어 있습니다."
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "day3/go_sched.c에서 현재 CPU 상태를 저장하고 다른 컨텍스트로 전환하는 함수는?",
+          "o": [
+            "makecontext",
+            "getcontext",
+            "swapcontext",
+            "pthread_create"
+          ],
+          "a": 2,
+          "h": "go_sched.c는 ucontext로 유저 모드 컨텍스트 스위칭을 흉내 냅니다. 고루틴 역할의 func_g1은 현재 CPU 상태를 ctx_g1에 저장하고 ctx_g2를 로드하는 함수를 호출하는데, 이름이 '맞바꾸다'와 'context'를 합친 형태입니다.",
+          "w": "<code>swapcontext(&ctx_g1, &ctx_g2)</code>는 현재 상태를 ctx_g1에 저장하고 ctx_g2를 로드합니다. getcontext는 기본 CPU 세팅 복사, makecontext는 실행할 함수(PC) 지정에 씁니다.",
+          "an": "day3/go_sched.c (유저 모드 컨텍스트 스위칭)",
+          "src": "void func_g1() {\n printf(\"[G1] 1단계 작업을 시작합니다.\\n\");\n // Go의 채널 대기나 자원 양보(runtime.Gosched())와 같은 역할\n printf(\"[G1] 내부 요인 발생! 작업을 양보하고 G2에게 순서를 넘깁니다.\\n\");\n swapcontext(&ctx_g1, &ctx_g2); // 현재 CPU 상태를 ctx_g1에 저장하고, ctx_g2 상태를 로드!"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "고루틴은 자신을 만든 함수가 반환되면 자동으로 함께 종료된다.",
+          "a": false,
+          "h": "교안 §2.5는 고루틴이 자동으로 끝나지 않는다고 경고합니다. 호출자가 반환되어도 고루틴은 살아남아 메모리를 차지하며, 아무도 보내지 않는 채널을 기다리는 leak() 예제가 이런 누수를 보여 줍니다.",
+          "w": "틀립니다. 고루틴은 자동으로 끝나지 않아 호출자가 끝나도 살아남습니다. 이것이 고루틴 누수이며, done 채널과 select로 명시적 종료 신호를 주어 막습니다.",
+          "an": "Go언어프로그래밍_3일차.md 2교시 §2.5 고루틴 누수",
+          "src": "## 2.5 고루틴의 흔한 함정 ② — 고루틴 누수\n\n고루틴은 **자동으로 끝나지 않습니다.** 호출자가 죽어도 살아남아 메모리를 차지합니다."
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "day3/fork.c에서 <code>fork()</code>가 0을 반환하는 쪽은 자식 프로세스이다.",
+          "a": true,
+          "h": "fork()는 한 번 호출되어 두 번 반환됩니다. fork.c는 반환값 pid를 검사해 0인 블록에서 'child'를 세 번 출력하고 exit(7)하며, 나머지 경로에서는 'parent'를 출력합니다.",
+          "w": "맞습니다. fork.c는 pid가 0이면 child를, 0보다 크면 parent를 출력합니다. fork는 프로세스를 복제하므로 고루틴보다 훨씬 무거운 실행 단위입니다.",
+          "an": "day3/fork.c",
+          "src": "pid = fork();\n if( pid == 0)\n {\n for(i=0; i<3; i++)\n {\n sleep(1);\n printf(\"child\\n\");\n }\n exit(7);"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "runtime 패키지 함수와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "runtime.NumGoroutine()",
+              "현재 고루틴 개수 확인"
+            ],
+            [
+              "runtime.Gosched()",
+              "다른 고루틴에 차례 양보"
+            ],
+            [
+              "runtime.NumCPU()",
+              "CPU 수 조회"
+            ],
+            [
+              "runtime.GOMAXPROCS(0)",
+              "P 개수 조회(변경 없음)"
+            ]
+          ],
+          "h": "runtime 패키지 함수 이름이 역할을 알려 줍니다. NumGoroutine은 현재 고루틴 수, Gosched는 다른 고루틴에 차례 양보, NumCPU는 CPU 수, GOMAXPROCS(0)은 값을 바꾸지 않고 P의 개수를 조회합니다.",
+          "w": "NumGoroutine은 누수 진단, Gosched는 C의 sched_yield와 비슷한 명시적 양보, NumCPU는 CPU 수, GOMAXPROCS(0)은 현재 P 개수 조회입니다.",
+          "an": "Go언어프로그래밍_3일차.md 2교시 §2.5–2.6 · goroutine_basic.go",
+          "src": "fmt.Println(\"CPU 수:\", runtime.NumCPU())\n fmt.Println(\"시작 시 고루틴 수:\", runtime.NumGoroutine())"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "day3/go_sched.c의 실행 흐름을 순서대로 나열하세요.",
+          "steps": [
+            "main이 G1·G2 컨텍스트와 독립 스택을 설정",
+            "swapcontext로 main에서 G1으로 전환",
+            "G1이 1단계 후 G2에게 양보",
+            "G2가 할 일을 마치고 G1을 깨움",
+            "G1이 마무리 후 main으로 복귀"
+          ],
+          "h": "go_sched.c의 main은 먼저 G1·G2용 컨텍스트와 독립 스택을 설정한 뒤 swapcontext로 G1에 실행을 넘깁니다. G1은 1단계 작업 후 G2에게 양보하고, G2는 할 일을 마친 뒤 G1을 깨우며, G1은 마무리하고 main(스케줄러)으로 돌아갑니다.",
+          "w": "main이 getcontext·makecontext로 환경을 준비한 뒤 G1으로 점프합니다. G1이 G2로 양보하고, G2가 다시 G1으로 넘기며, G1은 마무리 후 main 스케줄러로 돌아갑니다.",
+          "an": "day3/go_sched.c",
+          "src": "void func_g1() {\n printf(\"[G1] 1단계 작업을 시작합니다.\\n\");\n // Go의 채널 대기나 자원 양보(runtime.Gosched())와 같은 역할\n printf(\"[G1] 내부 요인 발생! 작업을 양보하고 G2에게 순서를 넘깁니다.\\n\");\n swapcontext(&ctx_g1, &ctx_g2); // 현재 CPU 상태를 ctx_g1에 저장하고, ctx_g2 상태를 로드!\n // G2가 양보하면 이 자리로 돌아옵니다.\n printf(\"[G1] 다시 돌아왔습니다! 2단계 마무리 작업을 합니다.\\n\");\n // 메인 함수(스케줄러)로 돌아갑니다.\n swapcontext(&ctx_g1, &ctx_main);\n}\n// 가상의 고루틴 G2 함수\nvoid func_g2() {"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "클로저 캡처 함정을 해결하는 방법을 모두 고르세요.",
+          "o": [
+            "인자로 값 넘기기",
+            "time.Sleep 늘리기",
+            "루프 안에서 i := i",
+            "Go 1.22 이상 사용",
+            "runtime.Gosched() 호출"
+          ],
+          "a": [
+            0,
+            2,
+            3
+          ],
+          "h": "클로저 함정은 모든 고루틴이 같은 i를 공유해서 생깁니다. 교안은 i를 함수 인자로 값 복사해 넘기는 방법, 루프 안에서 같은 이름의 새 변수를 재선언하는 방법, 그리고 루프 변수를 매 반복 새로 만드는 Go 버전을 쓰는 방법을 제시합니다.",
+          "w": "<code>go func(n int){...}(i)</code>로 값을 넘기거나, <code>i := i</code>로 재선언하거나, Go 1.22 이상을 쓰면 해결됩니다. Sleep이나 Gosched는 실행 시점만 바꿀 뿐 참조 캡처를 고치지 못합니다.",
+          "an": "Go언어프로그래밍_3일차.md 2교시 §2.4 해결책 ①② · Go 1.22+",
+          "src": "### ✅ 해결책 ① — 인자로 넘기기 (가장 안전)\n\n```go\nfor i := 0; i < 5; i++ {\n go func(n int) {\n fmt.Println(n)\n }(i) // i를 값으로 복사하여 전달\n}\n```"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "Channel 기초 · 랑데부",
+      "ref": "3일차 3교시 §3.1–3.7",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "unbuffered 채널에서 송신과 수신이 동시에 만나야 진행되는 것을 무엇이라 합니까?",
+          "o": [
+            "랑데부",
+            "브로드캐스트",
+            "work stealing",
+            "백프레셔"
+          ],
+          "a": 0,
+          "h": "unbuffered 채널의 송신자는 받는 쪽이 나타날 때까지 블록되고, 수신자도 송신자를 만날 때까지 블록됩니다. 교안은 이렇게 두 고루틴이 같은 지점에서 '만나야' 진행되는 것을 프랑스어에서 온 '약속된 만남'이라는 단어로 표현합니다.",
+          "w": "unbuffered 채널은 송신자와 수신자가 랑데부(rendezvous)해야 진행됩니다. 이 특성 덕분에 두 고루틴의 진행을 동기화하는 도구로 쓸 수 있습니다.",
+          "an": "Go언어프로그래밍_3일차.md 3교시 §3.3 Unbuffered Channel",
+          "src": "출력:\n```\n보내기 직전\n[1초 대기]\n받기 시작\n받음: 1\n보내기 완료\n```\n\n송신/수신이 **랑데부(rendezvous)**한다고 표현합니다. 둘 다 만나야 진행됩니다."
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>for v := range ch</code> 루프는 언제 끝납니까?",
+          "o": [
+            "값을 하나 받으면",
+            "버퍼가 가득 차면",
+            "채널이 닫히면",
+            "1초간 값이 없으면"
+          ],
+          "a": 2,
+          "h": "채널을 range로 돌리면 값을 하나씩 자동으로 수신합니다. 예제의 송신 고루틴은 defer close(ch)로 끝날 때 채널을 닫으며, 루프는 채널이 어떤 상태가 될 때까지 계속 수신하는지 생각해 보세요.",
+          "w": "채널을 range로 돌리면 닫힐 때까지 자동으로 수신합니다. 그래서 송신자가 모든 값을 보낸 뒤 close해야 루프가 끝납니다.",
+          "an": "Go언어프로그래밍_3일차.md 3교시 §3.4 range로 순회",
+          "src": "### `range`로 순회\n\n채널을 `range`로 돌리면 닫힐 때까지 자동으로 수신합니다.\n\n```go\nch := make(chan int)\n\ngo func() {\n defer close(ch)\n for i := 1; i <= 5; i++ {\n ch <- i\n }\n}()\n\nfor v := range ch {\n fmt.Println(v)\n}\n// 1 2 3 4 5\n```\n\n**닫기 책임은 송신자**가 집니다. 수신자가 닫으면 송신자가 panic할 수 있기 때문입니다."
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "채널을 닫는 책임은 누구에게 있습니까?",
+          "o": [
+            "수신자",
+            "송신자",
+            "Go 런타임",
+            "가장 늦게 끝난 고루틴"
+          ],
+          "a": 1,
+          "h": "닫힌 채널에 송신하면 panic이 납니다. 그래서 교안은 수신자가 채널을 닫으면 아직 보내던 쪽이 panic할 수 있으므로, 값을 다 보낸 뒤 닫는 책임을 보내는 쪽에 둔다고 설명합니다.",
+          "w": "닫기 책임은 송신자가 집니다. 수신자가 닫으면 아직 보내려는 송신자가 panic할 수 있기 때문입니다.",
+          "an": "Go언어프로그래밍_3일차.md 3교시 §3.4 채널 닫기",
+          "src": "```go\nch := make(chan int)\n\ngo func() {\n defer close(ch)\n for i := 1; i <= 5; i++ {\n ch <- i\n }\n}()\n\nfor v := range ch {\n fmt.Println(v)\n}\n// 1 2 3 4 5\n```\n\n**닫기 책임은 송신자**가 집니다. 수신자가 닫으면 송신자가 panic할 수 있기 때문입니다."
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "main 함수에서 <code>ch := make(chan int); ch <- 1; <-ch</code>를 차례로 실행하면 어떻게 됩니까?",
+          "o": [
+            "1을 받고 정상 종료",
+            "컴파일 에러",
+            "감지 없이 영원히 대기",
+            "데드락 fatal error"
+          ],
+          "a": 3,
+          "h": "unbuffered 채널 송신 ch <- 1은 받는 고루틴이 나타날 때까지 블록됩니다. main 고루틴 하나뿐이라 다음 줄 <-ch까지 갈 수 없고, 모든 고루틴이 멈추면 Go 런타임이 'all goroutines are asleep'을 감지해 종료시킵니다.",
+          "w": "같은 고루틴에서 송신하면 받는 사람이 없어 블록되고, 모든 고루틴이 멈췄으므로 런타임이 'all goroutines are asleep - deadlock!'으로 종료합니다. 송신을 별도 고루틴에서 하면 정상 동작합니다.",
+          "an": "Go언어프로그래밍_3일차.md 3교시 §3.6 데드락",
+          "src": "## 3.6 데드락 — 가장 흔한 함정\n\n**모든 고루틴이 멈추면** Go 런타임이 데드락을 감지하고 패닉합니다.\n\n```go\nfunc main() {\n ch := make(chan int)\n ch <- 1 // 받는 사람 없음 → 영원히 블록\n // fatal error: all goroutines are asleep - deadlock!\n}\n```"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>func consumer(ch <-chan int)</code> 안에서 <code>ch <- 1</code>을 쓰면?",
+          "o": [
+            "컴파일 에러",
+            "런타임 panic",
+            "데드락",
+            "정상 송신"
+          ],
+          "a": 0,
+          "h": "함수 인자 타입에 채널 방향을 적을 수 있습니다. <-chan int는 수신 전용, chan<- int는 송신 전용이며, 교안은 C의 const처럼 이 의도를 실행 시점이 아닌 컴파일 시점에 강제한다고 설명합니다.",
+          "w": "<code><-chan int</code>는 수신 전용이라 송신은 컴파일 에러입니다. 채널 방향은 컴파일 시점에 의도를 강제해 버그를 줄입니다.",
+          "an": "Go언어프로그래밍_3일차.md 3교시 §3.5 채널 방향",
+          "src": "// 수신 전용\nfunc consumer(ch <-chan int) {\n v := <-ch\n fmt.Println(v)\n // ch <- 1 // ❌ 컴파일 에러\n}\n\nfunc main() {\n ch := make(chan int)\n go producer(ch)\n consumer(ch)\n}\n```\n\nC에 비유하면 `const` 같은 역할입니다. **컴파일 시점에 의도를 강제**"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>chan struct{}</code>는 0바이트인 struct{}를 써서 신호 전용 채널로 관용적으로 쓰인다.",
+          "a": true,
+          "h": "done 채널 예제는 make(chan struct{})로 신호 전용 채널을 만들고 done <- struct{}{}로 신호를 보냅니다. 교안의 관용구 설명은 struct{}의 크기가 0바이트라 메모리 효율이 가장 좋다고 정리합니다.",
+          "w": "맞습니다. 값 자체보다 '신호'가 목적이므로 메모리 효율이 가장 좋은 0바이트 struct{}를 씁니다.",
+          "an": "Go언어프로그래밍_3일차.md 3교시 §3.3 관용구",
+          "src": "```go\ndone := make(chan struct{}) // 신호 전용 채널\n\ngo func() {\n fmt.Println(\"작업 중...\")\n time.Sleep(time.Second)\n fmt.Println(\"작업 완료\")\n done <- struct{}{} // 신호 전송\n}()\n\n<-done // 신호 받을 때까지 대기\nfmt.Println(\"메인 계속\")\n```\n\n> **관용구**: `chan struct{}`은 \"신호\" 용도. `struct{}`는 0바이트라 메모리 효율 최고."
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "nil 채널에 송신하면 즉시 panic이 발생한다.",
+          "a": false,
+          "h": "교안 §3.4 규칙 표는 닫힌 채널에 송신·닫힌 채널 닫기는 panic, 닫힌 채널 수신은 즉시 zero value라고 정리합니다. nil 채널의 송수신 행은 panic이 아니라 다른 동작으로 적혀 있습니다.",
+          "w": "틀립니다. nil 채널 송수신은 영원히 블록됩니다. panic이 나는 것은 닫힌 채널에 송신하거나 닫힌 채널을 다시 닫을 때입니다.",
+          "an": "Go언어프로그래밍_3일차.md 3교시 §3.4 규칙",
+          "src": "### 규칙\n\n| 행동 | 동작 |\n|---|---|\n| 닫힌 채널에 송신 | **panic** |\n| 닫힌 채널에서 수신 | 즉시 zero value 반환 (블록되지 않음) |\n| 닫힌 채널 닫기 | **panic** |\n| nil 채널 송수신 | 영원히 블록 |"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "채널 동작과 결과를 연결하세요.",
+          "pairs": [
+            [
+              "닫힌 채널에 송신",
+              "panic 발생"
+            ],
+            [
+              "닫힌 채널에서 수신",
+              "즉시 zero value 반환"
+            ],
+            [
+              "nil 채널 송수신",
+              "영원히 블록"
+            ],
+            [
+              "v, ok := <-ch 에서 ok가 false",
+              "닫혔고 남은 값이 없음"
+            ]
+          ],
+          "h": "규칙 표에 따르면 닫힌 채널에 송신은 panic, 닫힌 채널에서 수신은 블록 없이 zero value, nil 채널 송수신은 영원히 블록입니다. v, ok := <-ch에서 ok가 false이면 채널이 닫혔고 남은 값도 없다는 뜻입니다.",
+          "w": "닫힌 채널 송신은 panic, 수신은 즉시 zero value를 돌려줍니다. nil 채널은 영원히 블록되며, ok가 false면 채널이 닫혀 더 받을 값이 없다는 뜻입니다.",
+          "an": "Go언어프로그래밍_3일차.md 3교시 §3.4 규칙 · v, ok 패턴",
+          "src": "### 규칙\n\n| 행동 | 동작 |\n|---|---|\n| 닫힌 채널에 송신 | **panic** |\n| 닫힌 채널에서 수신 | 즉시 zero value 반환 (블록되지 않음) |\n| 닫힌 채널 닫기 | **panic** |\n| nil 채널 송수신 | 영원히 블록 |"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "송신 고루틴은 즉시 송신하고 main은 1초 뒤 수신하는 unbuffered 예제의 출력 순서를 맞추세요.",
+          "steps": [
+            "보내기 직전",
+            "받기 시작",
+            "받음: 1",
+            "보내기 완료"
+          ],
+          "h": "송신 고루틴은 '보내기 직전'을 찍고 ch <- 1에서 수신자가 나타날 때까지 멈춥니다. main은 1초 뒤 '받기 시작'을 찍고 수신하며, 랑데부 후 main의 '받음' 출력과 송신자의 '보내기 완료' 출력이 이어집니다.",
+          "w": "송신자는 '보내기 직전'을 출력한 뒤 블록됩니다. 1초 뒤 main이 '받기 시작'을 출력하고 값을 받아 '받음: 1'을 출력한 다음에야 송신자가 '보내기 완료'를 출력합니다.",
+          "an": "Go언어프로그래밍_3일차.md 3교시 §3.3 핵심 동작",
+          "src": "출력:\n```\n보내기 직전\n[1초 대기]\n받기 시작\n받음: 1\n보내기 완료\n```\n\n송신/수신이 **랑데부(rendezvous)**한다고 표현합니다. 둘 다 만나야 진행됩니다."
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "channel_basic.go 예제가 보여주는 내용을 모두 고르세요.",
+          "o": [
+            "여러 워커가 한 jobs 채널에서 수신",
+            "buffered 채널로 부하 흡수",
+            "range로 채널 순회",
+            "close로 작업 종료 신호",
+            "Mutex로 results 보호"
+          ],
+          "a": [
+            0,
+            2,
+            3
+          ],
+          "h": "channel_basic.go는 워커 3개가 같은 jobs 채널에서 for j := range jobs로 작업을 받습니다. 송신 고루틴은 작업 5개를 보낸 뒤 close(jobs)로 끝을 알리며, jobs·results는 용량 없이 make(chan int)로 만들어집니다.",
+          "w": "워커 3개가 같은 jobs 채널에서 작업을 받아 자연스럽게 부하가 분산되고, range로 순회하며, close(jobs)로 종료를 알립니다. 두 채널 모두 unbuffered이고 Mutex는 쓰지 않습니다.",
+          "an": "Go언어프로그래밍_3일차.md 3교시 §3.7 channel_basic.go",
+          "src": "// 작업자 — 수신 전용 채널\nfunc worker(id int, jobs <-chan int, results chan<- int) {\n for j := range jobs {\n fmt.Printf(\"worker %d: %d 처리 중...\\n\", id, j)\n time.Sleep(100 * time.Millisecond)\n results <- j * 2\n }\n fmt.Printf(\"worker %d: 종료\\n\", id)\n}\n\nfunc main() {\n jobs := make(chan int)\n results := make(chan int)\n\n // 워커 3개 시작\n for w := 1; w <= 3; w++ {\n go worker(w, jobs, results)\n }"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "Channel 심화 · select·패턴",
+      "ref": "3일차 4교시 §4.1–4.5 · day3/select.c",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>ch := make(chan int, 5)</code>에 값 2개를 보낸 뒤 <code>len(ch)</code>, <code>cap(ch)</code>는?",
+          "o": [
+            "2, 5",
+            "5, 2",
+            "2, 2",
+            "5, 5"
+          ],
+          "a": 0,
+          "h": "buffered 채널에 len을 쓰면 현재 버퍼에 들어 있는 개수, cap을 쓰면 make에서 지정한 최대 용량이 나옵니다. 용량 5짜리 채널에 값 두 개를 보낸 상태를 대입해 보세요.",
+          "w": "len(ch)는 현재 버퍼에 들어 있는 2개, cap(ch)는 make에서 지정한 최대 용량 5를 돌려줍니다.",
+          "an": "Go언어프로그래밍_3일차.md 4교시 §4.1 len과 cap",
+          "src": "### `len`과 `cap`\n\n```go\nch := make(chan int, 5)\nch <- 1\nch <- 2\n\nfmt.Println(len(ch)) // 2 - 현재 들어있는 개수\nfmt.Println(cap(ch)) // 5 - 최대 용량\n```"
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "select에서 여러 case가 동시에 준비되면 어떤 case가 실행됩니까?",
+          "o": [
+            "첫 번째 case",
+            "랜덤하게 하나",
+            "마지막 case",
+            "준비된 case 모두"
+          ],
+          "a": 1,
+          "h": "select 동작 규칙은 준비된 case가 하나면 그것을, 모두 준비 안 됐으면 블록, default가 있으면 즉시 default를 실행합니다. 여러 case가 동시에 준비된 경우에는 특정 case에 편향되지 않도록 선택한다고 적혀 있습니다.",
+          "w": "여러 case가 준비되면 편향을 막기 위해 랜덤하게 하나를 고릅니다. 하나만 준비되면 그것을, 아무것도 준비되지 않으면 블록합니다.",
+          "an": "Go언어프로그래밍_3일차.md 4교시 §4.3 동작 규칙",
+          "src": "### 동작 규칙\n\n1. **준비된 case가 하나** → 그것을 실행\n2. **여러 개 준비됨** → **랜덤하게** 하나 선택 (편향 방지)\n3. **모두 준비 안 됨** → 하나라도 준비될 때까지 블록\n4. **`default` 있음** → 즉시 default 실행 (non-blocking)"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "select에 <code>default</code>를 두면 생기는 효과는?",
+          "o": [
+            "1초 타임아웃 설정",
+            "모든 case 순차 실행",
+            "준비된 case 없으면 즉시 실행",
+            "채널을 자동으로 닫음"
+          ],
+          "a": 2,
+          "h": "select 규칙 4번은 default가 있을 때의 동작입니다. 준비된 case가 없으면 블록하지 않고 곧장 default를 실행하므로, 교안은 이를 Non-blocking 송수신으로 소개합니다.",
+          "w": "default가 있으면 준비된 case가 없을 때 블록하지 않고 즉시 default를 실행합니다. 타임아웃은 <code>time.After</code> case로 구현합니다.",
+          "an": "Go언어프로그래밍_3일차.md 4교시 §4.3 Non-blocking 송수신",
+          "src": "### 동작 규칙\n\n1. **준비된 case가 하나** → 그것을 실행\n2. **여러 개 준비됨** → **랜덤하게** 하나 선택 (편향 방지)\n3. **모두 준비 안 됨** → 하나라도 준비될 때까지 블록\n4. **`default` 있음** → 즉시 default 실행 (non-blocking)"
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "timeoutDemo에서 고루틴은 2초 뒤 ch에 '느린 응답'을 보내고, main은 <code>case v := <-ch</code>와 <code>case <-time.After(1 * time.Second)</code>로 select합니다. 출력은?",
+          "o": [
+            "받음: 느린 응답",
+            "데드락 panic",
+            "두 메시지 모두 출력",
+            "타임아웃!"
+          ],
+          "a": 3,
+          "h": "timeoutDemo의 고루틴은 2초 잠든 뒤에야 ch에 값을 보냅니다. select의 다른 case인 time.After(1 * time.Second)는 1초 뒤 준비되므로, 먼저 준비되는 case의 출력문이 실행됩니다.",
+          "w": "1초 타이머가 2초 송신보다 먼저 준비되므로 '타임아웃!'이 출력됩니다. select는 하나의 case만 실행합니다.",
+          "an": "Go언어프로그래밍_3일차.md 4교시 §4.5 channel_patterns.go timeoutDemo",
+          "src": "func timeoutDemo() {\n ch := make(chan string)\n go func() {\n time.Sleep(2 * time.Second)\n ch <- \"느린 응답\"\n }()\n select {\n case v := <-ch:\n fmt.Println(\"받음:\", v)\n case <-time.After(1 * time.Second):\n fmt.Println(\"타임아웃!\")\n }\n}\n```"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "day3/select.c처럼 키보드와 FIFO를 함께 감시하는 일에 대응하는 Go 구문은?",
+          "o": [
+            "select 문",
+            "sync.Cond",
+            "sync.WaitGroup",
+            "runtime.Gosched()"
+          ],
+          "a": 0,
+          "h": "C의 select.c는 fd_set으로 키보드와 FIFO 등 여러 파일 디스크립터를 동시에 감시합니다. Go는 여러 채널을 동시에 다루는 다중화 구문을 제공하며, 교안은 이를 C의 select()·poll()과 개념이 비슷하다고 소개합니다.",
+          "w": "select.c는 <code>select()</code>로 fd 0과 myfifo 중 준비된 쪽을 읽습니다. Go의 select 문은 여러 채널 중 준비된 쪽을 고르는 채널 다중화 구문입니다.",
+          "an": "day3/select.c · Go언어프로그래밍_3일차.md 4교시 §4.3",
+          "src": "## 4.3 `select` — 채널 다중화\n\n여러 채널을 동시에 다루는 핵심 구문입니다. C의 `select()` / `poll()`과 개념이 비슷하지만, 더 강력합니다.\n\n```go\nselect {\ncase v := <-ch1:\n fmt.Println(\"ch1에서:\", v)\ncase v := <-ch2:\n fmt.Println(\"ch2에서:\", v)\ncase ch3 <- 42:\n fmt.Println(\"ch3에 송신\")\n}\n```"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>close(done)</code>은 done을 기다리는 여러 고루틴에 한 번에 종료 신호를 보낸다.",
+          "a": true,
+          "h": "닫힌 채널은 모든 수신자에게 즉시 zero value를 돌려줍니다. 그래서 done 채널 패턴에서 close(done) 한 번이면 select로 done을 기다리던 여러 워커가 동시에 return할 수 있어 broadcast 신호처럼 쓰입니다.",
+          "w": "맞습니다. 닫힌 채널은 모든 수신자에게 즉시 값을 반환하므로 close(done)은 broadcast 신호처럼 동작합니다.",
+          "an": "Go언어프로그래밍_3일차.md 4교시 §4.4 패턴 ① Done 채널",
+          "src": "close(done) // 종료 신호 (모든 수신자에게 broadcast)\n}\n```\n\n**`close(done)`이 핵심**입니다. 닫힌 채널은 모든 수신자에게 즉시 zero value를 반환하므로, **여러 고루틴에 한 번에 신호**를 보낼 수 있습니다."
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "채널은 처음부터 buffered로 만들고, 문제가 생기면 unbuffered로 바꾸는 것이 기본 원칙이다.",
+          "a": false,
+          "h": "교안 §4.2는 '빠르게 하기 위해' 무작정 버퍼링하는 것을 문제를 가리는 부적절한 사용으로 꼽습니다. 기본 원칙은 처음엔 버퍼 없는 채널로 시작하고, 성능을 측정한 뒤 필요할 때만 버퍼를 추가하는 것입니다.",
+          "w": "틀립니다. 기본 원칙은 unbuffered로 시작하고, 성능 측정 후 필요하면 버퍼를 추가하는 것입니다. 무작정 버퍼링하면 문제를 가리는 효과가 있습니다.",
+          "an": "Go언어프로그래밍_3일차.md 4교시 §4.2 기본 원칙",
+          "src": "### ❌ 부적절한 경우\n\n1. **\"빠르게 하기 위해\" 무작정 버퍼링** — 문제 가리는 효과\n2. **메모리 누수 우려** — 버퍼에 값이 쌓이기만 함\n3. **순서 보장이 중요한데 buffered 사용** — 모든 채널은 FIFO이지만, 다중 송신자가 있으면 모듈 변경에 취약\n\n**기본 원칙**: 일단 unbuffered로 시작하고, 성능 측정 후 필요하면 버퍼링 추가."
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "채널 패턴과 설명을 연결하세요.",
+          "pairs": [
+            [
+              "Generator",
+              "채널을 반환하며 값을 차례로 생산"
+            ],
+            [
+              "Fan-out",
+              "여러 워커가 한 채널에서 작업을 나눠 받음"
+            ],
+            [
+              "Fan-in",
+              "여러 채널을 하나로 합침"
+            ],
+            [
+              "Heartbeat",
+              "주기적으로 생존 신호를 보냄"
+            ]
+          ],
+          "h": "Generator는 채널을 반환하며 값을 차례로 만들어 내고, Heartbeat는 주기적으로 살아 있다는 신호를 보냅니다. Fan-out은 여러 워커가 한 채널에서 작업을 나눠 받는 '퍼뜨림', Fan-in은 merge처럼 여러 채널을 하나로 '모음'입니다.",
+          "w": "Generator는 Python generator와 비슷한 생산 패턴, Fan-out은 작업 분배, Fan-in은 merge로 결과 수집, Heartbeat는 ticker로 생존 신호를 보내는 패턴입니다.",
+          "an": "Go언어프로그래밍_3일차.md 4교시 §4.4 패턴 ②~⑤",
+          "src": "### 패턴 ④ — Fan-in (결과 수집)\n\n여러 채널을 하나로 합칩니다.\n\n```go\nfunc merge(chs ...<-chan int) <-chan int {\n out := make(chan int)\n var wg sync.WaitGroup\n\n for _, ch := range chs {\n wg.Add(1)\n go func(c <-chan int) {\n defer wg.Done()\n for v := range c {\n out <- v\n }\n }(ch)\n }\n\n go func() {\n wg.Wait()\n close(out)\n }()\n\n return out\n}\n```"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "<code>ch := make(chan int, 2)</code> 동작 예시를 블록 없이 진행되는 순서로 나열하세요.",
+          "steps": [
+            "ch <- 1 (버퍼 [1])",
+            "ch <- 2 (버퍼 [1, 2])",
+            "<-ch 로 1을 꺼냄 (버퍼 [2])",
+            "ch <- 3 (버퍼 [2, 3])"
+          ],
+          "h": "용량 2인 채널은 값 두 개까지 즉시 들어가고, 세 번째 송신은 버퍼가 가득 차 블록됩니다. 예시는 1, 2를 넣은 뒤 <-ch로 하나를 꺼내 자리를 만들고 나서 3을 넣으며, 채널은 FIFO라 먼저 넣은 값이 먼저 나옵니다.",
+          "w": "용량 2까지는 즉시 송신되고, 버퍼가 가득 차면 송신이 블록됩니다. 하나를 꺼내 자리가 생긴 뒤에야 <code>ch <- 3</code>이 진행됩니다.",
+          "an": "Go언어프로그래밍_3일차.md 4교시 §4.1 동작 예시",
+          "src": "### 동작 예시\n\n```go\nch := make(chan int, 2)\n\nch <- 1 // 즉시 진행 (버퍼: [1])\nch <- 2 // 즉시 진행 (버퍼: [1, 2])\n// ch <- 3 // 여기서 블록 - 버퍼 가득\n\nfmt.Println(<-ch) // 1 (버퍼: [2])\nch <- 3 // 이제 OK (버퍼: [2, 3])\n```\n\nC로 비유하면 **producer-consumer 큐가 있는 파이프**입니다."
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "buffered 채널이 적절한 경우를 모두 고르세요.",
+          "o": [
+            "생산·소비 속도 차이 흡수",
+            "빠르게 하려고 무작정 버퍼링",
+            "고정 크기 워커 풀",
+            "작업 개수가 확실히 알려짐",
+            "순서가 중요한 다중 송신자"
+          ],
+          "a": [
+            0,
+            2,
+            3
+          ],
+          "h": "교안의 '✅ 적절한 경우'는 일시적 burst를 흡수하는 생산·소비 속도 차이, make(chan int, N)처럼 작업 개수가 확실히 알려진 경우, 동시에 N개만 진행하는 고정 크기 워커 풀입니다. '빠르게 하려고' 버퍼링하는 것은 부적절한 경우입니다.",
+          "w": "속도 차이(burst) 흡수, 알려진 작업 개수, 고정 크기 워커 풀이 적절한 경우입니다. 무작정 버퍼링과 순서가 중요한 다중 송신자는 부적절한 경우로 제시되었습니다.",
+          "an": "Go언어프로그래밍_3일차.md 4교시 §4.2 언제 Buffered를 쓰나?",
+          "src": "### ✅ 적절한 경우\n\n1. **생산/소비 속도 차이 흡수** — 일시적 burst 처리\n2. **확실히 알려진 작업 개수** — `make(chan int, N)`로 N개 송신\n3. **고정 크기 워커 풀** — 동시에 N개 작업만 진행"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "sync I · Mutex·RWMutex",
+      "ref": "3일차 5교시 §5.1–5.6 · day3/mutex.c·race.go",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "격언 'Channels orchestrate; mutexes serialize.'에서 mutex에 맞는 일은?",
+          "o": [
+            "고루틴 간 흐름 조율",
+            "데이터 보호",
+            "종료 신호 broadcast",
+            "작업 분배"
+          ],
+          "a": 1,
+          "h": "Go 격언은 채널과 mutex의 역할을 나눕니다. 채널(orchestrate)은 고루틴 간 흐름 조율에, mutex(serialize, 한 번에 하나씩 접근하게 함)는 공유 자료를 지키는 데 적합하다고 교안은 설명합니다.",
+          "w": "채널은 고루틴 간 흐름 조율, mutex는 데이터 보호에 적합합니다. 단순 카운터처럼 공유 데이터를 지키는 데는 채널이 오버킬일 수 있습니다.",
+          "an": "Go언어프로그래밍_3일차.md 5교시 §5.1 채널만으로 부족할 때",
+          "src": "> **Go 격언**: \"Channels orchestrate; mutexes serialize.\"\n> 채널은 **고루틴 간 흐름 조율**, mutex는 **데이터 보호**에 적합합니다."
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "실행 중 data race를 감지하려면 어떤 명령을 씁니까?",
+          "o": [
+            "go run -race",
+            "go vet",
+            "go test -bench",
+            "go build -o"
+          ],
+          "a": 0,
+          "h": "Go 툴체인에는 실행 중 data race를 잡아내는 플래그가 내장되어 있습니다. go run 뒤에 이 플래그를 붙이면 'WARNING: DATA RACE'가 출력되며, C/C++의 ThreadSanitizer와 같은 역할을 별도 설치 없이 합니다.",
+          "w": "<code>-race</code> 플래그를 켜면 'WARNING: DATA RACE'로 경합을 알려 줍니다. go vet은 Mutex 값 복사 같은 정적 실수를 잡고, -bench는 벤치마크용입니다.",
+          "an": "Go언어프로그래밍_3일차.md 5교시 §5.2 -race 플래그로 감지",
+          "src": "### `-race` 플래그로 감지\n\n```bash\ngo run -race main.go\n```\n\n```\n==================\nWARNING: DATA RACE\nWrite at 0x000000123456 by goroutine 7:\n main.main.func1()\n ...\nPrevious write at 0x000000123456 by goroutine 6:\n main.main.func1()\n ...\n==================\n```\n\n**`-race`는 Go의 강력한 무기**입니다. 개발 중 항상 켜고 테스트하세요. C/C++의 ThreadSanitizer와 같은 역할이지만, 별도 설치 없이 즉시 쓸 수 있습니다."
+        },
+        {
+          "id": "t5-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "C의 PTHREAD_MUTEX_INITIALIZER에 해당하는 sync.Mutex 초기화는?",
+          "o": [
+            "sync.NewMutex() 호출",
+            "mu.Init() 호출",
+            "불필요(zero value 사용)",
+            "defer mu.Init()"
+          ],
+          "a": 2,
+          "h": "C에서는 pthread_mutex_t를 PTHREAD_MUTEX_INITIALIZER나 pthread_mutex_init으로 초기화해야 했습니다. 교안의 비교 표는 Go의 sync.Mutex가 var mu sync.Mutex 선언만으로 쓸 수 있다고, 즉 zero value 상태가 곧 사용 가능한 락이라고 정리합니다.",
+          "w": "Go의 sync.Mutex는 zero value를 그대로 쓸 수 있어 초기화가 필요 없습니다. 종료 시 해제(pthread_mutex_destroy)도 GC가 처리합니다.",
+          "an": "Go언어프로그래밍_3일차.md 5교시 §5.3 C pthread_mutex와 비교",
+          "src": "| 항목 | C pthread_mutex | Go sync.Mutex |\n|---|---|---|\n| 초기화 | `PTHREAD_MUTEX_INITIALIZER` 또는 `pthread_mutex_init` | **불필요** (zero value 사용 가능) |\n| 락 해제 보장 | 수동 (`pthread_mutex_unlock`) | **`defer`로 자동** |\n| 에러 반환 | 있음 | 없음 (panic만) |\n| 종료 시 해제 | `pthread_mutex_destroy` | 불필요 (GC가 처리) |"
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "day3/race.go의 고루틴 1000개는 각각 <code>defer wg.Done(); defer mu.Unlock(); mu.Lock(); counter++</code>를 실행합니다. 출력되는 counter는?",
+          "o": [
+            "1000보다 작은 값",
+            "0",
+            "데드락 panic",
+            "항상 1000"
+          ],
+          "a": 3,
+          "h": "race.go의 고루틴은 defer wg.Done()과 defer mu.Unlock()을 먼저 등록한 뒤 mu.Lock()을 하고 counter++를 실행합니다. defer는 함수가 끝날 때 실행되므로 증가 연산은 락 안에서 보호되고, wg.Wait() 후 출력됩니다.",
+          "w": "defer로 등록한 Unlock은 함수 종료 시 실행되므로 Lock 뒤 counter++가 보호된 채 수행되어 항상 1000이 나옵니다. 주석의 '보호 없음'과 달리 이 파일은 Mutex로 보호된 버전입니다.",
+          "an": "day3/race.go · Go언어프로그래밍_3일차.md 5교시 §5.3 defer mu.Unlock() 패턴",
+          "src": "func main() {\n var wg sync.WaitGroup\n for i := 0; i < 1000; i++ {\n wg.Add(1)\n go func() {\n defer wg.Done()\n defer mu.Unlock()\n mu.Lock()\n counter++ // 보호 없음 — race!\n }()\n }\n wg.Wait()\n fmt.Println(counter) // 1000이 안 나옴!\n}"
+        },
+        {
+          "id": "t5-05",
+          "ty": "num",
+          "lv": 3,
+          "game": false,
+          "p": "day3/mutex.c는 스레드 10개가 각각 <code>pthread_mutex_lock</code>으로 보호하며 counter++를 1,000,000번 반복합니다. 마지막에 출력되는 counter 값은?",
+          "a": 10000000,
+          "h": "mutex.c의 increment는 for 루프를 1,000,000번 돌며 매번 pthread_mutex_lock으로 counter++를 보호합니다. 보호가 완전하므로 결과는 손실 없이 '스레드 수 × 스레드당 반복 횟수'가 됩니다.",
+          "w": "mutex로 보호하므로 증가가 하나도 유실되지 않아 10 × 1,000,000 = 10,000,000이 출력됩니다. 보호가 없다면 race로 더 작은 값이 나올 수 있습니다.",
+          "an": "day3/mutex.c · Go언어프로그래밍_3일차.md 5교시 §5.3",
+          "src": "int counter;\n\npthread_mutex_t mu = PTHREAD_MUTEX_INITIALIZER;\n\nvoid* increment(void* data) {\n int i;\n for(i=0; i<1000000; i++)\n {\n pthread_mutex_lock(&mu);\n counter++;\n pthread_mutex_unlock(&mu);\n }\n}\n\nint main()\n{\n pthread_t thread[10];\n int i;\n\n for(i=0; i<10; i++)\n pthread_create(&thread[i], 0, increment, 0);\n\n for(i=0; i<10; i++)\n pthread_join(thread[i], 0);"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "RWMutex는 일반 Mutex보다 항상 빠르다.",
+          "a": false,
+          "h": "교안은 RWMutex가 항상 더 빠른 것은 아니라고 경고합니다. critical section이 짧으면 RW의 오버헤드 때문에 일반 Mutex가 더 빠를 수 있고, 쓰기 빈도가 높으면 비슷하거나 더 느리므로 벤치마크로 측정하라고 합니다.",
+          "w": "틀립니다. 짧은 critical section에서는 일반 Mutex가 더 빠를 수 있고, 쓰기가 잦으면 비슷하거나 더 느립니다. 추측하지 말고 벤치마크로 측정해야 합니다.",
+          "an": "Go언어프로그래밍_3일차.md 5교시 §5.4 RWMutex가 항상 더 빠른 건 아님",
+          "src": "### 🔥 주의: RWMutex가 항상 더 빠른 건 아님\n\n- **짧은 critical section**: 일반 Mutex가 더 빠를 수 있음 (RW는 오버헤드 큼)\n- **쓰기 빈도가 높음**: Mutex와 비슷하거나 더 느림\n- **벤치마크 필수**: 추측하지 말고 측정"
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Mutex를 포함한 구조체는 값으로 복사하지 말고 포인터로 전달해야 한다.",
+          "a": true,
+          "h": "Mutex를 담은 구조체를 other := c처럼 값으로 복사하면 Mutex도 복사되어 새 락이 생깁니다. 교안은 그래서 이런 구조체를 포인터로 전달해야 하며, go vet이 이런 실수를 잡아 준다고 설명합니다.",
+          "w": "맞습니다. 값으로 복사하면 Mutex도 복사되어 새 락이 생기므로 보호가 깨집니다. go vet이 이런 실수를 잡아 줍니다.",
+          "an": "Go언어프로그래밍_3일차.md 5교시 §5.5 함정 ① 값 복사",
+          "src": "### ❌ 함정 ① — 값 복사\n\n```go\n// 잘못된 코드\ntype Counter struct {\n mu sync.Mutex\n value int\n}\n\nfunc badPattern() {\n c := Counter{}\n other := c // ❌ Mutex가 복사됨 — 새 락이 생김\n}\n```\n\nMutex를 포함한 구조체는 **포인터로 전달**해야 합니다.\n\n```go\n// 올바른 코드\nfunc goodPattern() {\n c := &Counter{}\n work(c) // 포인터 전달\n}\n\nfunc work(c *Counter) {\n c.mu.Lock()\n defer c.mu.Unlock()\n c.value++\n}\n```\n\n`go vet`이 이런 실수를 잡아줍니다."
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "락 관련 코드와 의미를 연결하세요.",
+          "pairs": [
+            [
+              "rw.RLock()",
+              "읽기 락, 여러 개 동시 보유 가능"
+            ],
+            [
+              "rw.Lock()",
+              "쓰기 락, 단독 보유"
+            ],
+            [
+              "defer mu.Unlock()",
+              "함수 종료 시 자동 해제"
+            ],
+            [
+              "go vet",
+              "Mutex 값 복사 실수 탐지"
+            ]
+          ],
+          "h": "RWMutex의 RLock은 읽기 락으로 여러 고루틴이 동시에 가질 수 있고, Lock은 쓰기 락으로 단독 보유입니다. defer mu.Unlock()은 함수 종료 시 자동 해제를 보장하며, go vet은 Mutex 값 복사 실수를 탐지합니다.",
+          "w": "RLock은 읽기끼리 동시에 허용하고 Lock은 쓰기 단독입니다. defer Unlock은 여러 return·panic 경로에서도 해제를 보장하고, go vet은 Mutex 복사를 잡습니다.",
+          "an": "Go언어프로그래밍_3일차.md 5교시 §5.3–5.5",
+          "src": "```go\nvar (\n cache = make(map[string]string)\n rw sync.RWMutex\n)\n\nfunc read(key string) string {\n rw.RLock() // 읽기 락 — 동시에 여러 개 가능\n defer rw.RUnlock()\n return cache[key]\n}\n\nfunc write(key, value string) {\n rw.Lock() // 쓰기 락 — 단독\n defer rw.Unlock()\n cache[key] = value\n}\n```"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "5교시 race 실습 흐름을 순서대로 나열하세요.",
+          "steps": [
+            "보호 없는 counter++로 race 재현",
+            "go run -race로 DATA RACE 경고 확인",
+            "mu.Lock()과 defer mu.Unlock()으로 보호",
+            "go run -race mutex_basic.go로 안전성 확인"
+          ],
+          "h": "5교시는 먼저 보호 없는 counter++로 race를 재현하고, go run -race로 DATA RACE 경고를 확인합니다. 그 다음 mu.Lock()과 defer mu.Unlock()으로 보호한 mutex_basic.go를 다시 -race로 실행해 안전성을 확인합니다.",
+          "w": "먼저 1000이 안 나오는 race를 재현하고 -race로 감지한 뒤, Mutex로 보호하고 다시 -race로 실행해 경고가 없음을 확인합니다.",
+          "an": "Go언어프로그래밍_3일차.md 5교시 §5.2–5.6",
+          "src": "// 캐시 테스트\n cache := NewCache()\n cache.Set(\"name\", \"Alice\")\n cache.Set(\"age\", \"30\")\n if v, ok := cache.Get(\"name\"); ok {\n fmt.Println(\"name =\", v)\n }\n}\n```\n`-race`로 실행해 안전성 확인:\n```bash\ngo run -race mutex_basic.go\n```"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "자료가 제시한 Mutex 사용 시 함정을 모두 고르세요.",
+          "o": [
+            "Mutex가 든 구조체 값 복사",
+            "defer mu.Unlock() 사용",
+            "return 전에 Unlock 누락",
+            "여러 고루틴의 동시 RLock",
+            "락 획득 순서 불일치"
+          ],
+          "a": [
+            0,
+            2,
+            4
+          ],
+          "h": "교안 §5.5는 Mutex 함정 세 가지를 듭니다. Mutex가 든 구조체를 값으로 복사하는 것, 에러로 return할 때 Unlock을 빠뜨리는 것, 두 고루틴이 락을 서로 다른 순서로 획득하는 것이며, 체크포인트도 '복사·미해제·순서'로 요약합니다.",
+          "w": "함정은 값 복사, 잊은 Unlock, 락 순서 불일치 세 가지입니다. defer Unlock은 해결책이고, RLock은 읽기끼리 동시에 잡아도 안전합니다.",
+          "an": "Go언어프로그래밍_3일차.md 5교시 §5.5 · 5교시 체크포인트",
+          "src": "### ❌ 함정 ③ — 락 순서 불일치 (deadlock)\n\n```go\n// 고루틴 A\nmu1.Lock()\nmu2.Lock()\n// ...\nmu2.Unlock()\nmu1.Unlock()\n\n// 고루틴 B - 반대 순서!\nmu2.Lock()\nmu1.Lock() // 데드락 가능\n// ...\n```\n\n**락은 항상 같은 순서로 획득**하는 규칙을 정해두세요. C에서도 동일한 원칙입니다."
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "sync II · WaitGroup·Once·Cond",
+      "ref": "3일차 6교시 §6.1–6.6",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>wg.Done()</code>과 같은 효과를 내는 호출은?",
+          "o": [
+            "wg.Add(1)",
+            "wg.Wait()",
+            "wg.Add(-1)",
+            "wg.Add(0)"
+          ],
+          "a": 2,
+          "h": "WaitGroup은 내부적으로 세마포어 카운터입니다. Add(n)은 카운터에 n을 더하고, Done()은 카운터를 하나 줄이며, Wait()는 0이 될 때까지 블록합니다. Done을 Add로 표현하면 어떤 인자가 필요한지 생각해 보세요.",
+          "w": "Done()은 Add(-1)과 같습니다. Add(n)은 카운터에 n을 더하고, Wait()는 카운터가 0이 될 때까지 블록합니다.",
+          "an": "Go언어프로그래밍_3일차.md 6교시 §6.1 WaitGroup 메서드 표",
+          "src": "| 메서드 | 효과 |\n|---|---|\n| `Add(n)` | 카운터에 n 더함 |\n| `Done()` | 카운터 -1 (=`Add(-1)`) |\n| `Wait()` | 카운터가 0이 될 때까지 블록 |"
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "<code>wg.Add(1)</code>을 고루틴 안에서 호출하면 생길 수 있는 문제는?",
+          "o": [
+            "Wait가 먼저 통과할 수 있음",
+            "컴파일 에러",
+            "고루틴이 두 번 실행됨",
+            "Done이 무시됨"
+          ],
+          "a": 0,
+          "h": "wg.Add(1)을 고루틴 안에서 호출하면, 고루틴이 실제로 실행되기 전에 main이 wg.Wait()에 먼저 도달할 수 있습니다. 그때 카운터가 아직 0이라 Wait가 기다리지 않고 지나가므로, 교안은 Add를 고루틴 시작 전에 호출하라고 합니다.",
+          "w": "고루틴이 시작되기 전에 Wait가 실행되면 카운터가 0이라 그냥 통과할 수 있습니다. 그래서 Add는 반드시 고루틴 시작 '전'에 호출합니다.",
+          "an": "Go언어프로그래밍_3일차.md 6교시 §6.1 Add는 고루틴 시작 전에",
+          "src": "### 🔥 주의: Add는 고루틴 시작 **전**에\n\n```go\n// ❌ 잘못된 순서\ngo func() {\n wg.Add(1) // 너무 늦음 — Wait가 먼저 통과할 수 있음\n defer wg.Done()\n}()\n\n// ✅ 올바른 순서\nwg.Add(1)\ngo func() {\n defer wg.Done()\n}()\n```"
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "C의 <code>pthread_once</code>와 같은 역할을 하는 Go 도구는?",
+          "o": [
+            "sync.Cond",
+            "sync.WaitGroup",
+            "sync.Map",
+            "sync.Once"
+          ],
+          "a": 3,
+          "h": "C의 pthread_once는 PTHREAD_ONCE_INIT 제어 변수로 초기화 함수를 한 번만 실행합니다. Go에서는 sync 패키지의 타입 하나가 Do 메서드로 같은 일을 하며, 여러 고루틴이 동시에 호출해도 함수는 정확히 한 번만 실행됩니다.",
+          "w": "sync.Once의 Do는 여러 고루틴이 동시에 호출해도 함수를 단 한 번만 실행합니다. 싱글톤 초기화나 게으른 로딩에 씁니다.",
+          "an": "Go언어프로그래밍_3일차.md 6교시 §6.2 sync.Once",
+          "src": "```go\nvar (\n once sync.Once\n config *Config\n)\n\nfunc GetConfig() *Config {\n once.Do(func() {\n // 여러 고루틴이 동시에 호출해도 단 한 번만 실행됨\n config = loadConfig()\n })\n return config\n}\n```\n\nC에서 `pthread_once`와 같은 역할입니다.\n\n```c\n// C\nstatic pthread_once_t once_control = PTHREAD_ONCE_INIT;"
+        },
+        {
+          "id": "t6-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>cond.Wait()</code>를 반드시 for 루프 안에서 호출하는 이유는?",
+          "o": [
+            "성능 향상",
+            "spurious wakeup 대비",
+            "데드락 자동 감지",
+            "락 순서 보장"
+          ],
+          "a": 1,
+          "h": "cond.Wait()는 락을 풀고 대기했다가 깨어나면 락을 다시 잡습니다. 그런데 조건이 충족되지 않았는데도 이유 없이 깨어날 수 있어서, 교안은 C와 마찬가지로 Wait를 반드시 for 루프 안에서 조건을 다시 확인하며 호출하라고 합니다.",
+          "w": "이유 없이 깨어나는 spurious wakeup이 있을 수 있어 조건을 다시 검사해야 합니다. C의 pthread_cond_wait도 같은 규칙을 따릅니다.",
+          "an": "Go언어프로그래밍_3일차.md 6교시 §6.3 핵심 규칙",
+          "src": "**핵심 규칙**: `Wait`는 **반드시 `for` 루프 안에서**. spurious wakeup (이유 없이 깨어남) 가능성 때문입니다. 이것도 C와 동일합니다.\n\n| 메서드 | 효과 |\n|---|---|\n| `Wait()` | 락 풀고 대기, 깨어나면 락 재획득 |\n| `Signal()` | 대기 중인 고루틴 하나 깨움 |\n| `Broadcast()` | 대기 중인 모든 고루틴 깨움 |"
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "sync_advanced.go에서 고루틴 10개가 동시에 <code>GetConfig()</code>를 호출합니다. 'Config 로딩 중...'은 몇 번 출력됩니까?",
+          "o": [
+            "10번",
+            "1번",
+            "0번",
+            "11번"
+          ],
+          "a": 1,
+          "h": "GetConfig 안의 'Config 로딩 중...' 출력은 cfgOnce.Do에 넘긴 함수 안에 있습니다. sync.Once는 여러 고루틴이 동시에 호출해도 그 함수를 정확히 한 번만 실행하며, 교안도 실행 결과로 이를 확인하라고 안내합니다.",
+          "w": "출력이 cfgOnce.Do 안에 있으므로 동시 호출이 10번이어도 단 한 번만 출력됩니다. 나머지 호출은 이미 만들어진 cfg를 돌려받습니다.",
+          "an": "Go언어프로그래밍_3일차.md 6교시 §6.6 sync_advanced.go",
+          "src": "// Once 테스트 - 동시 호출\n var wg sync.WaitGroup\n for i := 0; i < 10; i++ {\n wg.Add(1)\n go func() {\n defer wg.Done()\n c := GetConfig()\n _ = c\n }()\n }\n wg.Wait()\n fmt.Println(\"Config 로딩 시각:\", cfg.Loaded)\n}\n```\n실행:\n```bash\ngo run sync_advanced.go\n```\n\"Config 로딩 중...\"이 **딱 한 번만** 출력됨을 확인하세요."
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "parallelMap 예제는 고루틴마다 다른 인덱스에 쓰므로 락 없이도 안전하다.",
+          "a": true,
+          "h": "parallelMap은 결과 슬라이스를 미리 len(items) 크기로 만들고, 각 고루틴이 results[idx] = f(val)로 자기 인덱스에만 씁니다. 두 고루틴이 같은 칸을 건드리지 않으므로 data race가 생기지 않는다고 교안은 설명합니다.",
+          "w": "맞습니다. 각 고루틴이 서로 다른 인덱스에만 쓰므로 race가 없고, WaitGroup으로 모두 끝날 때까지 기다린 뒤 결과를 반환합니다.",
+          "an": "Go언어프로그래밍_3일차.md 6교시 §6.1 작업 분배 후 결과 수집",
+          "src": "### 패턴: 작업 분배 후 결과 수집\n\n```go\nfunc parallelMap(items []int, f func(int) int) []int {\n results := make([]int, len(items))\n var wg sync.WaitGroup\n\n for i, v := range items {\n wg.Add(1)\n go func(idx, val int) {\n defer wg.Done()\n results[idx] = f(val) // 인덱스 다르므로 race 없음\n }(i, v)\n }\n\n wg.Wait()\n return results\n}\n```\n\n각 고루틴이 **서로 다른 인덱스**에 쓰므로 락 없이도 안전합니다."
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "sync.Map은 대부분의 경우 map + RWMutex보다 빠르다.",
+          "a": false,
+          "h": "교안은 sync.Map이 '읽기/쓰기 패턴이 매우 특수한 경우'용이라고 소개합니다. 각 키가 한 번 쓰이고 여러 번 읽히거나 고루틴들이 서로 다른 키를 다루는 경우가 아니라면, map + sync.RWMutex가 보통 더 빠르다고 정리합니다.",
+          "w": "틀립니다. 키가 한 번 쓰이고 여러 번 읽히거나, 고루틴들이 서로 다른 키를 다루는 경우가 아니면 map + sync.RWMutex가 보통 더 빠릅니다.",
+          "an": "Go언어프로그래밍_3일차.md 6교시 §6.5 sync.Map",
+          "src": "**언제 일반 map + Mutex보다 유리한가?**\n\n- **거의 항상 다른 키에 쓰기/읽기** (각 키가 한 번 쓰이고 여러 번 읽힘)\n- **수가 많고 안정적인 키 집합**\n\n위 조건이 아니면 **`map + sync.RWMutex`가 보통 더 빠릅니다.**"
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "sync.Cond 메서드와 효과를 연결하세요.",
+          "pairs": [
+            [
+              "Wait()",
+              "락을 풀고 대기, 깨어나면 락 재획득"
+            ],
+            [
+              "Signal()",
+              "대기 중인 고루틴 하나를 깨움"
+            ],
+            [
+              "Broadcast()",
+              "대기 중인 고루틴 모두를 깨움"
+            ]
+          ],
+          "h": "sync.Cond 메서드 표에서 Wait()는 락을 풀고 대기했다가 깨어나면 락을 다시 잡습니다. Signal()은 대기 중인 고루틴 하나를, Broadcast()는 '모두에게 방송'하듯 대기 중인 고루틴 전부를 깨웁니다.",
+          "w": "Wait는 락을 풀고 기다렸다가 깨어나면 다시 락을 잡습니다. Signal은 하나, Broadcast는 모든 대기자를 깨웁니다.",
+          "an": "Go언어프로그래밍_3일차.md 6교시 §6.3 메서드 표",
+          "src": "| 메서드 | 효과 |\n|---|---|\n| `Wait()` | 락 풀고 대기, 깨어나면 락 재획득 |\n| `Signal()` | 대기 중인 고루틴 하나 깨움 |\n| `Broadcast()` | 대기 중인 모든 고루틴 깨움 |"
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "sync.Cond로 만든 Queue의 Pop 동작을 순서대로 나열하세요.",
+          "steps": [
+            "q.mu.Lock()으로 락 획득",
+            "items가 비어 있으면 for 루프에서 cond.Wait()",
+            "items[0]을 꺼내고 슬라이스를 줄임",
+            "defer로 q.mu.Unlock() 실행"
+          ],
+          "h": "Queue.Pop은 먼저 q.mu.Lock()으로 락을 잡고 defer로 해제를 예약합니다. 그 다음 items가 비어 있는 동안 for 루프에서 cond.Wait()로 기다리고, 값이 생기면 items[0]을 꺼내 슬라이스를 줄인 뒤 함수가 끝날 때 락이 풀립니다.",
+          "w": "Pop은 락을 잡고, 큐가 비어 있는 동안 for 루프에서 Wait로 기다린 뒤, 첫 항목을 꺼내고 함수가 끝나며 defer로 락을 풉니다.",
+          "an": "Go언어프로그래밍_3일차.md 6교시 §6.3 사용 예",
+          "src": "func (q *Queue) Pop() int {\n q.mu.Lock()\n defer q.mu.Unlock()\n for len(q.items) == 0 {\n q.cond.Wait() // 락 풀고 대기, 깨어나면 다시 락\n }\n v := q.items[0]\n q.items = q.items[1:]\n return v\n}\n```"
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 1,
+          "game": true,
+          "p": "sync.Map이 제공하는 메서드를 모두 고르세요.",
+          "o": [
+            "Store",
+            "Get",
+            "Load",
+            "Set",
+            "Range"
+          ],
+          "a": [
+            0,
+            2,
+            4
+          ],
+          "h": "sync.Map은 일반 map 문법 대신 메서드로 다룹니다. 교안 예제와 map.go는 값을 저장하는 메서드, 키로 단건 조회하는 메서드, 콜백 함수로 전체를 순회하는 메서드를 사용합니다.",
+          "w": "sync.Map은 Store로 저장, Load로 조회, Range로 순회합니다. Get·Set은 솔루션의 Cache 인터페이스 메서드 이름입니다.",
+          "an": "Go언어프로그래밍_3일차.md 6교시 §6.5 · day3/map.go",
+          "src": "```go\nvar m sync.Map\n\nm.Store(\"key1\", 100)\nv, ok := m.Load(\"key1\")\nm.Range(func(k, v interface{}) bool {\n fmt.Println(k, v)\n return true // false면 순회 종료\n})"
+        }
+      ]
+    },
+    {
+      "id": "t7",
+      "title": "실습 · Producer-Consumer",
+      "ref": "3일차 7교시 §7.1–7.10",
+      "qs": [
+        {
+          "id": "t7-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "로그 처리 파이프라인 예제의 Producer 수·Consumer 수·채널 용량은?",
+          "o": [
+            "3개 · 5개 · 10",
+            "5개 · 3개 · 10",
+            "3개 · 5개 · 0",
+            "3개 · 3개 · 5"
+          ],
+          "a": 0,
+          "h": "시나리오는 로그를 생성하는 Producer 여러 개와 로그를 처리하는 Consumer 여러 개, 그리고 그 사이에서 부하를 흡수하는 buffered 채널로 구성됩니다. 코드에서는 numProducers, numConsumers, channelCapacity 상수로 그 값을 정합니다.",
+          "w": "Producer 3개, Consumer 5개, 채널 용량 10으로 구성됩니다. buffered 채널이 생산과 소비 사이의 부하를 흡수합니다.",
+          "an": "Go언어프로그래밍_3일차.md 7교시 §7.1 시나리오 · §7.6",
+          "src": "- **Producer 3개**: 각각 로그를 생성 (예: 다른 서버에서 수집)\n- **Consumer 5개**: 받은 로그를 처리 (예: 파일에 쓰기, DB에 저장)\n- **Channel**: 로그를 버퍼링하여 부하 흡수\n- **Graceful shutdown**: Ctrl+C 시 안전하게 종료"
+        },
+        {
+          "id": "t7-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Consumer가 별도 종료 신호 없이 끝날 수 있는 이유는?",
+          "o": [
+            "done 채널을 감시해서",
+            "range가 채널 닫힘에서 끝나서",
+            "Ctrl+C를 직접 받아서",
+            "WaitGroup이 강제 종료해서"
+          ],
+          "a": 1,
+          "h": "consumer는 for entry := range in으로 로그를 받습니다. range는 채널이 닫힐 때까지 자동 수신하고 닫히면 루프를 빠져나오므로, 교안은 채널 닫힘 자체가 Consumer의 종료 신호 역할을 한다고 설명합니다.",
+          "w": "range in은 채널이 닫힐 때까지 자동으로 수신하므로 채널 닫힘 자체가 종료 신호가 됩니다. done 채널은 Producer 쪽에서 씁니다.",
+          "an": "Go언어프로그래밍_3일차.md 7교시 §7.5 Consumer 구현",
+          "src": "**Consumer는 더 간단합니다**:\n- `range in`이 채널이 닫힐 때까지 자동 수신\n- 별도 종료 신호 불필요 (채널 닫힘이 종료 신호)"
+        },
+        {
+          "id": "t7-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Producer가 송신도 <code>select</code>와 <code><-done</code>으로 감싸는 이유는?",
+          "o": [
+            "채널이 가득 차도 종료하려고",
+            "송신 속도를 높이려고",
+            "출력 순서를 보장하려고",
+            "race를 감지하려고"
+          ],
+          "a": 0,
+          "h": "buffered 채널이 가득 차면 out <- entry 송신은 Consumer가 꺼내 갈 때까지 블록됩니다. 그래서 Producer는 송신도 select로 감싸 <-done과 함께 기다리며, 블록된 상태에서도 종료 신호를 받으면 빠져나올 수 있게 합니다.",
+          "w": "채널이 가득 차면 송신이 블록되므로, 송신을 select로 감싸 done이 닫히면 언제든 빠져나올 수 있게 합니다.",
+          "an": "Go언어프로그래밍_3일차.md 7교시 §7.4 Producer 핵심 포인트",
+          "src": "// 송신할 때도 done 확인 - 채널이 가득 차면 빠져나갈 수 있도록\n select {\n case out <- entry:\n case <-done:\n return\n }\n }\n}\n```\n\n**핵심 포인트**:\n- `select` 안에 `<-done`을 두어 **언제든 빠져나올 수 있게** 함\n- 송신도 `select`로 감싸 채널이 가득 차도 종료 가능"
+        },
+        {
+          "id": "t7-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "종료 처리에서 <code>close(logChan)</code>을 먼저 하고 그다음 <code>close(done)</code>을 하면 어떤 문제가 생길 수 있습니까?",
+          "o": [
+            "정상 종료",
+            "Consumer 데드락",
+            "send on closed channel panic",
+            "로그가 두 번 처리됨"
+          ],
+          "a": 2,
+          "h": "종료 순서에서 Producer가 아직 송신 중인데 logChan을 먼저 닫으면, 닫힌 채널에 송신하는 일이 생깁니다. 3교시 규칙 표에서 닫힌 채널에 송신하면 어떤 일이 일어나는지 떠올려 보세요.",
+          "w": "Producer가 아직 송신 중인데 채널을 닫으면 닫힌 채널에 송신하게 되어 'send on closed channel' panic이 납니다. 송신자가 모두 멈춘 뒤에만 채널을 닫아야 합니다.",
+          "an": "Go언어프로그래밍_3일차.md 7교시 §7.7 잘못된 순서",
+          "src": "**잘못된 순서**:\n\n```go\n// ❌ 잘못 — Producer가 아직 송신 중인데 채널 닫음\nclose(logChan)\nclose(done)\n// → \"send on closed channel\" panic!\n```\n\n**규칙**: **송신자가 모두 멈춘 후에만 채널을 닫는다.**"
+        },
+        {
+          "id": "t7-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "예제가 <code>signal.Notify</code>로 받는 시그널 두 가지는?",
+          "o": [
+            "SIGCHLD, SIGKILL",
+            "SIGUSR1, SIGHUP",
+            "SIGPIPE, SIGALRM",
+            "SIGINT, SIGTERM"
+          ],
+          "a": 3,
+          "h": "Graceful Shutdown 코드는 os.Signal 채널을 만들고 signal.Notify에 syscall 패키지의 시그널 두 개를 넘깁니다. 하나는 Ctrl+C를 누를 때 오는 인터럽트 시그널이고, 다른 하나는 일반적인 종료(terminate) 요청 시그널입니다.",
+          "w": "<code>signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)</code>으로 Ctrl+C(SIGINT)와 SIGTERM을 받아 graceful shutdown을 시작합니다.",
+          "an": "Go언어프로그래밍_3일차.md 7교시 §7.6 Graceful Shutdown",
+          "src": "// 시그널 핸들러\n sigs := make(chan os.Signal, 1)\n signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)"
+        },
+        {
+          "id": "t7-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>go run -race main.go</code> 실행 후 Ctrl+C를 눌렀을 때 race 경고가 없으면 안전하다고 본다.",
+          "a": true,
+          "h": "7교시 §7.9는 완성한 파이프라인을 go run -race main.go로 실행해 Ctrl+C로 종료까지 확인하도록 합니다. 교안의 주석은 이때 race 경고가 나오지 않으면 안전하다고 판단한다고 정리합니다.",
+          "w": "맞습니다. 자료는 -race로 실행하고 잠시 뒤 Ctrl+C로 종료했을 때 race 경고가 없으면 안전하다고 안내합니다.",
+          "an": "Go언어프로그래밍_3일차.md 7교시 §7.9 race 검사",
+          "src": "# race 경고 없으면 안전\n```"
+        },
+        {
+          "id": "t7-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "로그 채널은 Consumer가 닫는 것이 올바른 설계이다.",
+          "a": false,
+          "h": "3교시 규칙은 닫힌 채널에 송신하면 panic이므로 닫기 책임을 보내는 쪽에 둡니다. 7교시 종료 순서도 Producer가 모두 송신을 멈춘 뒤 main이 logChan을 닫고, Consumer는 range로 받기만 합니다.",
+          "w": "틀립니다. 모든 Producer가 멈춘 것을 producerWG.Wait()로 확인한 뒤 main이 logChan을 닫습니다. 수신자가 닫으면 송신자가 panic할 수 있습니다.",
+          "an": "Go언어프로그래밍_3일차.md 7교시 §7.7 규칙 · 3교시 §3.4",
+          "src": "**규칙**: **송신자가 모두 멈춘 후에만 채널을 닫는다.**"
+        },
+        {
+          "id": "t7-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "7교시 도전 과제와 내용을 연결하세요.",
+          "pairs": [
+            [
+              "메트릭 추가",
+              "atomic 카운터로 처리 개수 집계"
+            ],
+            [
+              "백프레셔 측정",
+              "채널이 가득 차 Producer가 블록된 시간 측정"
+            ],
+            [
+              "Dynamic worker pool",
+              "Consumer 수를 런타임에 늘리고 줄임"
+            ],
+            [
+              "Priority queue",
+              "높은 우선순위 로그를 먼저 처리"
+            ]
+          ],
+          "h": "도전 과제 이름을 풀어 보면 됩니다. 메트릭은 atomic 카운터로 처리 개수를 집계하고, 백프레셔는 채널이 가득 차 Producer가 막힌 시간을 재며, Dynamic worker pool은 Consumer 수를 런타임에 조절하고, Priority queue는 우선순위 높은 로그를 먼저 처리합니다.",
+          "w": "메트릭은 atomic 카운터, 백프레셔는 블록 시간, Dynamic pool은 런타임 워커 조절, Priority queue는 우선순위 처리입니다.",
+          "an": "Go언어프로그래밍_3일차.md 7교시 §7.10 도전 과제",
+          "src": "## 7.10 🎯 도전 과제 (선택)\n\n1. **메트릭 추가** — Producer/Consumer별 처리 개수를 atomic 카운터로 집계해 종료 시 출력\n2. **백프레셔(Backpressure) 측정** — 채널이 가득 차서 Producer가 블록된 시간을 측정\n3. **Dynamic worker pool** — Consumer 개수를 런타임에 늘리고 줄일 수 있게 변경\n4. **Priority queue** — LogEntry에 우선순위 필드를 두고, 높은 우선순위가 먼저 처리되도록"
+        },
+        {
+          "id": "t7-09",
+          "ty": "order",
+          "lv": 3,
+          "game": false,
+          "p": "SIGINT를 받은 뒤 graceful shutdown 순서를 나열하세요.",
+          "steps": [
+            "close(done)으로 Producer에 중단 신호",
+            "producerWG.Wait()로 송신 완전 중단 대기",
+            "close(logChan)으로 채널 닫기",
+            "consumerWG.Wait()로 남은 데이터 처리 대기"
+          ],
+          "h": "교안의 종료 순서는 네 단계입니다. close(done)으로 Producer에 중단을 알리고, producerWG.Wait()로 송신이 완전히 멈추길 기다린 뒤, logChan을 닫고, consumerWG.Wait()로 남은 데이터 처리를 기다립니다.",
+          "w": "Producer에 신호를 보내고 모두 멈출 때까지 기다린 뒤 채널을 닫아야 안전합니다. Consumer는 닫힌 채널에 남은 데이터를 끝까지 처리한 뒤 종료합니다.",
+          "an": "Go언어프로그래밍_3일차.md 7교시 §7.7 종료 순서의 중요성",
+          "src": "위 순서가 매우 중요합니다.\n\n```\n1. close(done) → Producer들에게 \"이제 그만 보내라\"\n2. producerWG.Wait() → 모든 Producer가 송신 완전히 멈출 때까지 대기\n3. close(logChan) → 채널 닫기 (이제 안전 — 송신자 없음)\n4. consumerWG.Wait() → Consumer가 남은 데이터 처리 후 종료"
+        },
+        {
+          "id": "t7-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "실행 결과의 관찰 포인트로 제시된 것을 모두 고르세요.",
+          "o": [
+            "남은 데이터를 끝까지 처리",
+            "출력이 생산 순서와 같음",
+            "한 데이터가 두 번 처리 안 됨",
+            "데이터 누락 없음",
+            "Producer가 마지막에 종료"
+          ],
+          "a": [
+            0,
+            2,
+            3
+          ],
+          "h": "실행 결과에서 종료 신호 후 Producer들이 먼저 멈추고, Consumer들이 채널에 남은 이벤트를 계속 처리한 뒤 종료합니다. 교안의 관찰 포인트는 남은 데이터 처리, 중복 처리 없음(채널이 보장), 데이터 누락 없음입니다.",
+          "w": "남은 데이터 처리, 중복 처리 없음(채널이 보장), 누락 없음이 관찰 포인트입니다. 출력은 여러 Consumer가 섞여 순서가 보장되지 않고, Producer가 먼저 종료됩니다.",
+          "an": "Go언어프로그래밍_3일차.md 7교시 §7.8 관찰 포인트",
+          "src": "**관찰 포인트**:\n- 종료 시점에 채널에 남아있던 데이터를 Consumer들이 끝까지 처리\n- 한 데이터가 두 번 처리되지 않음 (채널이 보장)\n- 데이터 누락 없음"
+        }
+      ]
+    },
+    {
+      "id": "t8",
+      "title": "실습 · Mutex vs Channel",
+      "ref": "3일차 8교시 §8.1–8.11",
+      "qs": [
+        {
+          "id": "t8-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "AtomicCounter의 Inc 메서드가 사용하는 함수는?",
+          "o": [
+            "atomic.AddInt64",
+            "atomic.LoadInt64",
+            "sync.Mutex.Lock",
+            "atomic.StoreInt64"
+          ],
+          "a": 0,
+          "h": "AtomicCounter는 int64 필드를 sync/atomic 함수로 다룹니다. Value는 atomic.LoadInt64로 값을 읽고, Inc는 값을 1 '더하는' 원자 연산 함수를 호출하며, 교안은 이를 GCC의 __atomic_fetch_add에 비유합니다.",
+          "w": "<code>atomic.AddInt64(&c.value, 1)</code>로 CPU 명령어 수준의 원자 증가를 합니다. LoadInt64는 Value에서 값을 읽을 때 씁니다.",
+          "an": "Go언어프로그래밍_3일차.md 8교시 §8.6 Atomic 버전",
+          "src": "```go\nimport \"sync/atomic\"\n\ntype AtomicCounter struct {\n value int64\n}\n\nfunc (c *AtomicCounter) Inc() {\n atomic.AddInt64(&c.value, 1)\n}\n\nfunc (c *AtomicCounter) Value() int {\n return int(atomic.LoadInt64(&c.value))\n}\n```\n\nC로 치면 GCC의 `__atomic_fetch_add"
+        },
+        {
+          "id": "t8-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "ChannelCounter가 락 없이 race를 막는 핵심 아이디어는?",
+          "o": [
+            "버퍼 100이 race를 막음",
+            "loop 고루틴이 값의 유일한 소유자",
+            "valCh가 락 역할을 함",
+            "GC가 접근을 직렬화함"
+          ],
+          "a": 1,
+          "h": "ChannelCounter는 value 변수를 구조체 필드가 아닌 loop() 함수의 지역 변수로 둡니다. 증가·조회 요청은 모두 채널로 loop 고루틴에 전달되어 한 고루틴에서만 value를 건드리므로 race가 원천 차단됩니다.",
+          "w": "value는 loop 고루틴 안에만 있고 모든 연산이 채널로 직렬화되어 그 고루틴에서만 처리됩니다. 그래서 락 없이도 race가 원천 차단됩니다.",
+          "an": "Go언어프로그래밍_3일차.md 8교시 §8.5 Channel 버전 핵심 아이디어",
+          "src": "func (c *ChannelCounter) loop() {\n value := 0\n for {\n select {\n case <-c.incCh:\n value++\n case respCh := <-c.valCh:\n respCh <- value\n case <-c.quit:\n return\n }\n }\n}"
+        },
+        {
+          "id": "t8-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "선택 가이드라인에서 단순한 카운터·플래그에 추천하는 도구는?",
+          "o": [
+            "Channel",
+            "RWMutex",
+            "atomic",
+            "Once"
+          ],
+          "a": 2,
+          "h": "8교시 선택 가이드라인 표는 상황별 추천 도구를 정리합니다. 단순한 카운터·플래그처럼 값 하나를 바꾸는 경우에는 CPU 명령어 수준의 원자 연산을 쓰는 방식이 추천되며, 벤치마크에서도 속도·메모리 모두 최고 등급이었습니다.",
+          "w": "단순 카운터와 플래그에는 atomic을 추천합니다. RWMutex는 읽기 >> 쓰기, Once는 일회성 초기화, Channel은 작업 분배와 파이프라인에 맞습니다.",
+          "an": "Go언어프로그래밍_3일차.md 8교시 §8.10 선택 가이드라인",
+          "src": "| 상황 | 추천 |\n|---|---|\n| 단순한 카운터, 플래그 | **atomic** |\n| 짧은 critical section + 공유 자료구조 | **Mutex** |\n| 읽기 >> 쓰기 | **RWMutex** |\n| 일회성 초기화"
+        },
+        {
+          "id": "t8-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "ChannelCounter의 Value는 <code>resp := make(chan int); c.valCh <- resp; return <-resp</code>입니다. valCh 타입이 <code>chan chan int</code>인 이유는?",
+          "o": [
+            "버퍼 크기를 늘리려고",
+            "채널을 두 번 닫으려고",
+            "race 검사를 피하려고",
+            "loop가 그 채널로 값을 돌려주려고"
+          ],
+          "a": 3,
+          "h": "ChannelCounter의 valCh는 값 조회 요청을 보내는 채널인데, 주석에 '응답 채널 동봉'이라고 적혀 있습니다. Value는 응답용 chan int를 만들어 valCh로 보내고, loop는 그 채널을 받아 respCh <- value로 현재 값을 돌려줍니다.",
+          "w": "조회 요청에 응답 채널을 함께 보내면 loop 고루틴이 <code>respCh <- value</code>로 그 채널에 현재 값을 돌려줍니다. 요청과 응답을 모두 채널로 처리하는 방식입니다.",
+          "an": "Go언어프로그래밍_3일차.md 8교시 §8.5 ChannelCounter",
+          "src": "type ChannelCounter struct {\n incCh chan struct{} // 증가 요청\n valCh chan chan int // 값 조회 요청 (응답 채널 동봉)\n quit chan struct{}\n}\n\nfunc NewChannelCounter() *ChannelCounter {\n c := &ChannelCounter{\n incCh: make(chan struct{}, 100),\n valCh: make(chan chan int),\n quit: make(chan struct{}),\n }\n go c.loop()\n return c\n}\n\nfunc (c *ChannelCounter) loop() {\n value := 0\n for {\n select {\n case <-c.incCh:\n value++"
+        },
+        {
+          "id": "t8-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "N=100 단순 증가 벤치마크에서 가장 느린 방식은?",
+          "o": [
+            "Atomic",
+            "Mutex",
+            "Channel",
+            "세 방식이 같음"
+          ],
+          "a": 2,
+          "h": "결과 해석 표는 N=100 단순 증가에서 Atomic이 별 다섯, Mutex가 별 넷인 반면 한 방식은 속도·메모리 모두 별 두 개입니다. 벤치마크 출력에서도 ns/op가 가장 큰 줄(250000 ns/op)이 그 방식입니다.",
+          "w": "전형적 결과에서 Channel이 약 250000 ns/op로 가장 느리고 메모리도 많이 씁니다. Atomic이 가장 빠르고 Mutex가 그다음입니다.",
+          "an": "Go언어프로그래밍_3일차.md 8교시 §8.7–8.8 벤치마크·결과 해석",
+          "src": "## 8.8 Step 7 — 결과 해석\n\n**일반적 경향** (N=100 단순 증가의 경우):\n\n| 방식 | 속도 | 메모리 | 코드 복잡도 |\n|---|---|---|---|\n| Atomic | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ (특수 API) |\n| Mutex | ⭐⭐⭐⭐ | ⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ (단순) |\n| Channel | ⭐⭐ | ⭐⭐ | ⭐⭐ (이해 어려움) |"
+        },
+        {
+          "id": "t8-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "벤치마크에서 Mutex가 Channel보다 빠르므로 모든 동시성 문제는 Mutex로 푸는 것이 좋다.",
+          "a": false,
+          "h": "교안은 '그럼 Mutex만 쓰면 되겠네?'라는 질문에 채널이 빛나는 경우를 따로 듭니다. 상태 전이가 많고 외부 입력에 반응해야 하는 상태 머신은 select로 쓰면 자연스럽지만, Mutex로 짜면 매우 복잡해진다고 설명합니다.",
+          "w": "틀립니다. 그 결과는 단순 카운터 증가의 경우일 뿐이고, 복잡한 상태 머신·파이프라인·소유권 이동에서는 채널이 더 자연스럽습니다.",
+          "an": "Go언어프로그래밍_3일차.md 8교시 §8.8–8.9",
+          "src": "### ① 복잡한 상태 머신\n\n상태 전이가 여러 개 있고, 외부 입력에 반응해야 한다면 채널이 자연스럽습니다.\n\n```go\n// 예: 연결 상태 머신\nfor {\n select {\n case msg := <-incomingMsg:\n handleMessage(msg)\n case <-ctx.Done():\n cleanup()\n return\n case <-time.After(idleTimeout):\n sendHeartbeat()\n case cmd := <-control:\n handleControl(cmd)\n }\n}\n```\n\n이걸 Mutex로 짜려면 매우 복잡해집니다."
+        },
+        {
+          "id": "t8-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "RaceCounter로 벤치마크를 -race와 함께 돌리면 WARNING: DATA RACE가 출력된다.",
+          "a": true,
+          "h": "RaceCounter의 Inc는 아무 보호 없이 c.value++만 합니다. §8.11은 Mutex·Channel·Atomic 버전은 -race로 돌려도 race가 없지만, 보호 없는 버전을 추가해 -race로 실행하면 경고가 나오는지 비교해 보라고 안내합니다.",
+          "w": "맞습니다. <code>go test -race -run=^$ -bench=BenchmarkRace</code>는 DATA RACE 경고를 출력하고, Mutex·Channel·Atomic 버전은 race가 없습니다.",
+          "an": "Go언어프로그래밍_3일차.md 8교시 §8.11 race 검증",
+          "src": "## 8.11 race 검증\n\n각 버전을 `-race`로 돌려 검증해보세요.\n\n```bash\ngo test -race -run=^$ -bench=BenchmarkMutex\ngo test -race -run=^$ -bench=BenchmarkChannel\ngo test -race -run=^$ -bench=BenchmarkAtomic\n```\n\n세 가지 모두 race 없음이 출력됩니다.\n\n이제 race 버전도 추가해 비교해보세요:\n\n```go\nfunc BenchmarkRace(b *testing.B) {\n runBench(b, func() Counter { return &RaceCounter{} })\n}\n```\n\n```bash\ngo test -race -run=^$ -bench=BenchmarkRace"
+        },
+        {
+          "id": "t8-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "상황과 추천 도구를 연결하세요.",
+          "pairs": [
+            [
+              "읽기 >> 쓰기",
+              "RWMutex"
+            ],
+            [
+              "일회성 초기화",
+              "Once"
+            ],
+            [
+              "여러 고루틴 완료 대기",
+              "WaitGroup"
+            ],
+            [
+              "종료 신호 broadcast",
+              "close(channel)"
+            ]
+          ],
+          "h": "선택 가이드라인 표에서 읽기가 쓰기보다 훨씬 많으면 읽기/쓰기 분리 락, 일회성 초기화는 '한 번'을 뜻하는 타입, 여러 고루틴 완료 대기는 카운터로 기다리는 타입, 종료 신호 broadcast는 채널 닫기가 추천됩니다.",
+          "w": "읽기 위주는 RWMutex, 일회성 초기화는 Once, 완료 대기는 WaitGroup, 종료 신호 broadcast는 close(channel)을 추천합니다.",
+          "an": "Go언어프로그래밍_3일차.md 8교시 §8.10 선택 가이드라인",
+          "src": "| 상황 | 추천 |\n|---|---|\n| 단순한 카운터, 플래그 | **atomic** |\n| 짧은 critical section + 공유 자료구조 | **Mutex** |\n| 읽기 >> 쓰기 | **RWMutex** |\n| 일회성 초기화 | **Once** |\n| 작업 분배 | **Channel** |\n| 파이프라인, fan-in/out | **Channel** |\n| 종료 신호 broadcast | **close(channel)** |\n| 여러 고루틴 완료 대기 | **WaitGroup** |\n| 복잡한 상태 머신"
+        },
+        {
+          "id": "t8-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "8교시 안전한 카운터 실습 단계를 순서대로 나열하세요.",
+          "steps": [
+            "Counter 인터페이스 정의",
+            "RaceCounter 작성",
+            "MutexCounter 작성",
+            "ChannelCounter 작성",
+            "go test -bench=. -benchmem 실행"
+          ],
+          "h": "8교시 실습은 Inc()와 Value()를 가진 공통 Counter 인터페이스를 먼저 정의합니다. 그 다음 보호 없는 Race 버전으로 문제를 보이고, Mutex 버전과 Channel 버전을 차례로 만든 뒤 go test -bench=. -benchmem으로 측정합니다.",
+          "w": "공통 인터페이스를 정의하고 의도적 버그가 있는 Race 버전, Mutex 버전, Channel 버전(그리고 Atomic 보너스)을 만든 뒤 벤치마크로 비교합니다.",
+          "an": "Go언어프로그래밍_3일차.md 8교시 §8.2–8.7",
+          "src": "## 8.2 Step 1 — 공통 인터페이스\n\n```bash\nmkdir -p ~/go-class/day3/counter\ncd ~/go-class/day3/counter\ngo mod init counter\n```\n\n`counter.go`:\n\n```go\npackage main\n\ntype Counter interface {\n Inc()\n Value() int\n}\n```"
+        },
+        {
+          "id": "t8-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "자료에서 '채널이 빛나는 경우'로 든 것을 모두 고르세요.",
+          "o": [
+            "복잡한 상태 머신",
+            "단순 카운터 증가",
+            "파이프라인",
+            "짧은 critical section",
+            "명확한 소유권 이동"
+          ],
+          "a": [
+            0,
+            2,
+            4
+          ],
+          "h": "§8.9 '채널이 빛나는 경우'는 세 가지입니다. 여러 입력에 select로 반응하는 복잡한 상태 머신, 데이터가 단계별로 흐르는 파이프라인, 그리고 '이 데이터는 이제 너 거야'를 전하는 명확한 소유권 이동입니다.",
+          "w": "상태 머신, 파이프라인, 소유권 이동이 채널이 빛나는 경우입니다. 단순 카운터는 atomic, 짧은 critical section은 Mutex가 추천됩니다.",
+          "an": "Go언어프로그래밍_3일차.md 8교시 §8.9 채널이 빛나는 경우",
+          "src": "### ③ 명확한 소유권 이동\n\n\"이 데이터는 이제 너 거야\" 같은 의미 전달.\n\n```go\njob := makeJob()\njobsChan <- job // 소유권을 워커에게 이동\n// 여기서부터는 job을 건드리지 않음\n```"
+        }
+      ]
+    },
+    {
+      "id": "t9",
+      "title": "복습·도전 과제 솔루션",
+      "ref": "3일차_솔루션 복습 ①~④ · 도전 ①~④",
+      "qs": [
+        {
+          "id": "t9-01",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "누수 탐지기에서 safeCancel() 후에도 고루틴 17개가 남는 이유는?",
+          "o": [
+            "leakingFunc는 ctx로 제어 불가",
+            "모니터가 개수를 잘못 셈",
+            "GC가 늦게 돌아서",
+            "safeFunc가 다시 시작돼서"
+          ],
+          "a": 0,
+          "h": "누수 탐지기 실행 결과에서 안전한 고루틴 5개는 ctx로 관리되어 safeCancel() 후 사라지지만, 누수 시나리오 함수가 띄운 고루틴들은 남습니다. 솔루션은 그 함수들이 ctx.Done()을 감시하지 않아 취소로 제어할 수 없다고 설명합니다.",
+          "w": "safeCancel은 ctx를 감시하는 안전한 고루틴 5개만 정리합니다. 송신자 없는 채널을 기다리는 leakingFunc 고루틴과 Stop 없는 ticker 고루틴은 영원히 남습니다.",
+          "an": "Go언어프로그래밍_3일차_솔루션.md 복습 과제 ① 실행 결과·학습 포인트",
+          "src": "--- 안전한 고루틴 정리 ---\n[모니터] 현재: 17 🚨 누수 의심 (+15)\n[모니터] 현재: 17 🚨 누수 의심 (+15)\n```\n\n**`leakingFunc()`은 ctx로 제어할 수 없으므로** safeCancel() 후에도 17개가 남습니다. 누수 패턴이 명확히 보입니다."
+        },
+        {
+          "id": "t9-02",
+          "ty": "num",
+          "lv": 2,
+          "game": false,
+          "p": "Fan-out/Fan-in 솔루션은 1~20을 각각 제곱해 더합니다. 워커 수와 무관하게 나오는 총합은?",
+          "a": 2870,
+          "h": "Fan-out/Fan-in 솔루션은 1부터 20까지 각 수를 제곱해 더하므로 워커 수는 시간에만 영향을 줍니다. 제곱수의 합 공식 n(n+1)(2n+1)/6에 n=20을 넣어 계산하면 순차·병렬 모두 같은 합이 나옵니다.",
+          "w": "1²+2²+…+20² = 2870이며, 순차든 워커 1·2·4·8개든 결과는 같습니다. 워커가 늘면 시간만 줄어듭니다(CPU 코어 수까지).",
+          "an": "Go언어프로그래밍_3일차_솔루션.md 복습 과제 ② 학습 포인트",
+          "src": "```\n순차: 합=2870, 시간=205.123ms\n워커 1개: 합=2870, 시간=210.456ms (1.0x 가속)\n워커 2개: 합=2870, 시간=105.789ms (1.9x 가속)\n워커 4개: 합=2870, 시간=56.234ms (3.6x 가속)\n워커 8개"
+        },
+        {
+          "id": "t9-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "캐시 벤치마크 해석에서 sync.Map이 유리한 시나리오는?",
+          "o": [
+            "Read 100%",
+            "Read 95%",
+            "단일 고루틴",
+            "Read 50% / Write 50%"
+          ],
+          "a": 3,
+          "h": "복습③ 결과 해석 표는 Read만(100%), Read 위주(95%), 단일 고루틴에서는 RWMutex를 추천합니다. 쓰기가 섞여 RWMutex가 쓰기 락 때문에 손해를 보는 혼합 시나리오에서만 sync.Map이 유리하다고 정리합니다.",
+          "w": "혼합(50/50)에서는 sync.Map이 유리했고, Read 100%·95%·단일 고루틴에서는 RWMutex가 더 빨랐습니다. 가정하지 말고 측정하라는 것이 결론입니다.",
+          "an": "Go언어프로그래밍_3일차_솔루션.md 복습 과제 ③ 결과 해석",
+          "src": "## 결과 해석\n\n| 시나리오 | 추천 |\n|---|---|\n| **Read만** (100%) | RWMutex (sync.Map보다 빠름) |\n| **Read 위주** (95%) | RWMutex (근소 차이지만 우위) |\n| **혼합** (50/50) | sync.Map이 유리 |\n| **단일 고루틴** | RWMutex (sync.Map은 오버헤드만 큼) |"
+        },
+        {
+          "id": "t9-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Bounded worker pool에서 동시 실행 수를 제한하는 도구는?",
+          "o": [
+            "sync.Once",
+            "용량 N인 세마포어 채널",
+            "sync.Cond",
+            "unbuffered 결과 채널"
+          ],
+          "a": 1,
+          "h": "BoundedPool은 sem chan struct{} 필드를 make(chan struct{}, maxConcurrent)로 만듭니다. Submit은 이 채널에 값을 넣어 슬롯을 얻고 작업이 끝나면 빼므로, 채널의 용량이 동시에 실행될 수 있는 작업 수의 상한이 됩니다.",
+          "w": "용량 N인 <code>chan struct{}</code>에 슬롯을 넣어야 작업을 시작하고 끝나면 꺼내므로, 동시에 최대 N개만 실행됩니다.",
+          "an": "Go언어프로그래밍_3일차_솔루션.md 복습 과제 ④ BoundedPool",
+          "src": "type BoundedPool struct {\n sem chan struct{}\n wg sync.WaitGroup\n // 통계\n submitted int64\n running int64\n completed int64\n}\nfunc NewBoundedPool(maxConcurrent int) *BoundedPool {\n return &BoundedPool{\n sem: make(chan struct{}, maxConcurrent),\n }\n}"
+        },
+        {
+          "id": "t9-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "maxConcurrent=3인 BoundedPool에 작업 10개를 제출하고 <code>pool.Wait()</code> 뒤 Stats를 출력하면?",
+          "o": [
+            "제출=10 실행=3 완료=7",
+            "제출=3 실행=3 완료=0",
+            "제출=10 실행=0 완료=10",
+            "제출=10 실행=10 완료=10"
+          ],
+          "a": 2,
+          "h": "BoundedPool은 동시에 최대 3개만 실행하지만 결국 10개 작업을 모두 처리합니다. pool.Wait()는 모든 작업이 끝날 때까지 기다리고, running은 작업 시작 시 +1·종료 시 -1 되므로 마지막 Stats의 제출·실행·완료 값을 따져 보세요.",
+          "w": "Wait 이후에는 모든 작업이 끝났으므로 제출 10, 실행 중 0, 완료 10입니다. 실행 중에는 running이 3을 넘지 않습니다.",
+          "an": "Go언어프로그래밍_3일차_솔루션.md 복습 과제 ④ 실행 결과",
+          "src": "## 실행 결과\n\n```\n → 작업 1 시작\n → 작업 2 시작\n → 작업 3 시작\n[모니터] 제출=3 실행=3 완료=0\n[모니터] 제출=3 실행=3 완료=0\n ← 작업 1 완료\n → 작업 4 시작\n ← 작업 2 완료\n → 작업 5 시작\n ← 작업 3 완료\n → 작업 6 시작\n[모니터] 제출=6 실행=3 완료=3\n...\n최종: 제출=10 실행=0 완료=10\n```\n\n**동시에 최대 3개만 실행됨**을 확인할 수 있습니다."
+        },
+        {
+          "id": "t9-06",
+          "ty": "ox",
+          "lv": 3,
+          "game": true,
+          "p": "백프레셔 측정은 default로 non-blocking 송신을 먼저 시도하고 실패할 때만 블록 시간을 잰다.",
+          "a": true,
+          "h": "백프레셔 측정의 핵심 아이디어는 select에 default를 둔 non-blocking 송신을 먼저 시도하는 것입니다. 채널이 가득 차 실패할 때에만 타임스탬프를 찍고 blocking 송신으로 전환해, 막혀 있던 시간만 정확히 잽니다.",
+          "w": "맞습니다. 즉시 송신에 성공하면 블록이 없고, 채널이 가득 차 default로 가면 시간을 기록한 뒤 blocking 송신으로 전환해 블록 시간을 누적합니다.",
+          "an": "Go언어프로그래밍_3일차_솔루션.md 도전 과제 ② 핵심 아이디어",
+          "src": "## 핵심 아이디어\n\n`select` + non-blocking 송신을 먼저 시도하고, 실패하면 타임스탬프를 찍은 후 blocking 송신으로 전환."
+        },
+        {
+          "id": "t9-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Dynamic worker pool은 모든 워커가 quit 채널 하나를 공유해 워커를 하나씩 제거한다.",
+          "a": false,
+          "h": "Dynamic worker pool은 workers map[int]chan struct{} 필드로 워커마다 따로 종료 채널을 둡니다. RemoveWorker는 가장 최근 워커의 채널만 close하고 map에서 지우므로, 특정 워커 하나만 골라 멈출 수 있습니다.",
+          "w": "틀립니다. 워커마다 개별 종료 채널을 두고 RemoveWorker가 해당 워커의 채널만 close합니다. 공유 채널을 닫으면 모든 워커가 한꺼번에 종료됩니다.",
+          "an": "Go언어프로그래밍_3일차_솔루션.md 도전 과제 ③ 핵심 아이디어",
+          "src": "## 핵심 아이디어\n\n각 워커에 **개별 종료 채널**을 두고, 컨트롤러가 워커 추가/제거를 관리."
+        },
+        {
+          "id": "t9-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "솔루션과 핵심으로 쓴 패키지·함수를 연결하세요.",
+          "pairs": [
+            [
+              "Priority queue",
+              "container/heap"
+            ],
+            [
+              "메트릭",
+              "sync/atomic"
+            ],
+            [
+              "누수 탐지기",
+              "runtime.NumGoroutine"
+            ],
+            [
+              "Fan-out/Fan-in 취소",
+              "context.WithCancel"
+            ]
+          ],
+          "h": "3일차 솔루션 마무리 표의 '핵심 학습' 열을 보면 됩니다. 누수 탐지기는 runtime의 고루틴 개수 함수, 메트릭은 원자 연산 패키지, Priority queue는 container 패키지의 힙, Fan-out/Fan-in은 취소 가능한 context로 모든 단계를 묶습니다.",
+          "w": "Priority queue는 container/heap + sync.Cond, 메트릭은 sync/atomic, 누수 탐지기는 runtime.NumGoroutine, 파이프라인 취소는 context로 통일합니다.",
+          "an": "Go언어프로그래밍_3일차_솔루션.md 3일차 솔루션 마무리",
+          "src": "| 솔루션 | 핵심 학습 |\n|---|---|\n| 누수 탐지기 | `runtime.NumGoroutine`, 모니터 패턴 |\n| Fan-out/Fan-in | 워커 수에 따른 가속 확인 |\n| RWMutex vs sync.Map | 벤치마크 기반 의사결정 |\n| Bounded pool | 세마포어 채널, atomic 카운터 |\n| 메트릭 | `sync/atomic`으로 안전한 카운터 |\n| 백프레셔 | non-blocking 송신 + 시간 측정 |\n| Dynamic pool | 개별 quit 채널, 런타임 워커 조절 |\n| Priority queue | `container/heap` + `sync.Cond` |"
+        },
+        {
+          "id": "t9-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "Fan-out/Fan-in 파이프라인 단계를 순서대로 나열하세요.",
+          "steps": [
+            "generate로 정수 생성",
+            "square 워커 N개로 제곱(Fan-out)",
+            "merge로 결과 합치기(Fan-in)",
+            "sum으로 총합 계산"
+          ],
+          "h": "fanout_fanin.go는 단계별 함수로 나뉩니다. generate가 정수를 채널로 내보내고, 여러 square 워커가 같은 채널에서 받아 제곱(Fan-out)하며, merge가 워커 채널들을 하나로 합치고(Fan-in), sum이 총합을 냅니다.",
+          "w": "Stage 1 생성, Stage 2 여러 워커가 같은 입력 채널에서 소비하는 fan-out, Stage 3 merge로 fan-in, Stage 4 sink에서 총합을 냅니다.",
+          "an": "Go언어프로그래밍_3일차_솔루션.md 복습 과제 ② 솔루션",
+          "src": "// Stage 4 (Sink): 총합\nfunc sum(in <-chan int) int {\n total := 0\n for v := range in {\n total += v\n }\n return total\n}\n// 전체 파이프라인을 함수로 래핑\nfunc parallelSumOfSquares(nums []int, numWorkers int) (int, time.Duration) {\n ctx, cancel := context.WithCancel(context.Background())\n defer cancel()\n start := time.Now()\n // 1. 생성\n input := generate(ctx, nums)\n // 2. Fan-out: numWorkers개 워커가 같은 채널에서 소비"
+        },
+        {
+          "id": "t9-10",
+          "ty": "multi",
+          "lv": 1,
+          "game": true,
+          "p": "heap.Interface가 요구하는 메서드를 모두 고르세요.",
+          "o": [
+            "Len",
+            "Less",
+            "Store",
+            "Swap",
+            "Wait"
+          ],
+          "a": [
+            0,
+            1,
+            3
+          ],
+          "h": "container/heap을 쓰려면 heap.Interface를 구현해야 하며, 솔루션 학습 포인트 표는 5개 메서드를 나열합니다. 그중 Push·Pop은 힙 전용이고, 나머지 세 개는 정렬(sort.Interface)에서 쓰는 길이·비교·교환 메서드입니다.",
+          "w": "heap.Interface는 Len, Less, Swap, Push, Pop 5개를 요구합니다. Store는 sync.Map, Wait는 WaitGroup·Cond의 메서드입니다.",
+          "an": "Go언어프로그래밍_3일차_솔루션.md 도전 과제 ④ 학습 포인트",
+          "src": "## 학습 포인트\n\n| 요소 | 역할 |\n|---|---|\n| `heap.Interface` | `Len`, `Less`, `Swap`, `Push`, `Pop` 5개 메서드 |\n| `sync.Mutex + Cond` | 빈 큐 대기 처리 (5교시 sync.Cond 활용) |\n| `Broadcast` | 종료 시 모든 대기자 깨우기 |\n\nC에서 `priority_queue`를 직접 구현하면 200줄 이상의 코드가 필요하지만, Go는 `container/heap` 인터페이스만 구현하면 됩니다.\n\n---"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,1529 @@
+{
+  "id": "lc-d07",
+  "code": "LC7",
+  "title": "LangChain 7일차 · Runnable 인터페이스 (실행 메서드·Parallel·Passthrough·Lambda·@chain)",
+  "subtitle": "invoke·batch·stream 실행 메서드 · RunnableParallel·Passthrough·Lambda · ConfigurableField·@chain",
+  "course": "05 · LangChain · RAG · Agent",
+  "source": "05-langchain-agent/day07/7일차_LLM_LCEL 인터페이스_Runnable Interface_new_배포.ipynb",
+  "salt": "lc-d07",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "Chat Model · 순차 체인",
+      "ref": "7일차 LLM(Model) · Chat Model 인터페이스 · 순차적인 체인연결",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "레거시 <code>OpenAI()</code> 대신 메시지 기반 대화형 입출력을 지원하는 Chat Model 클래스는?",
+          "o": [
+            "ChatOpenAI",
+            "OpenAIEmbeddings",
+            "StrOutputParser",
+            "PromptTemplate"
+          ],
+          "a": 0,
+          "h": "7일차는 <code>langchain_openai</code>에서 두 가지 모델 클래스를 비교합니다. 레거시 LLM 클래스는 문자열을 그대로 돌려주고, Chat Model은 HumanMessage·AIMessage 같은 메시지 기반 입출력을 지원합니다. 레거시 클래스 이름 앞에 '대화형'임을 드러내는 말이 붙은 클래스를 떠올려 보세요.",
+          "w": "<code>ChatOpenAI</code>는 메시지 기반 Chat Model 인터페이스입니다. OpenAIEmbeddings는 텍스트를 벡터로 바꾸고, StrOutputParser는 출력을 문자열로 바꾸며, PromptTemplate은 프롬프트를 만드는 도구입니다.",
+          "an": "7일차 LLM(Model) · Chat Model 인터페이스",
+          "src": "# LangChain의 Chat Model 인터페이스 사용 예제\nfrom langchain_openai import ChatOpenAI"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>chain = chat_prompt | chat</code>처럼 출력 파서 없이 invoke하면 반환값의 형태는?",
+          "o": [
+            "순수 문자열(str)",
+            "딕셔너리(dict)",
+            "AIMessage 객체",
+            "Document 리스트"
+          ],
+          "a": 2,
+          "h": "Chat Model은 응답을 메시지 객체로 돌려줍니다. 노트북의 레거시 셀 출력을 보면 답변 문장 앞뒤로 content=, response_metadata= 같은 필드가 함께 찍혀 있습니다.",
+          "w": "파서가 없으면 Chat Model의 응답인 <code>AIMessage</code> 객체(content·response_metadata 포함)가 그대로 반환됩니다. 순수 문자열을 얻으려면 StrOutputParser를 붙이거나 <code>.content</code>를 꺼내야 합니다.",
+          "an": "7일차 Chat Model 인터페이스 · 레거시 체인 실행 결과",
+          "src": "# StrOutputParser\n#\n# AIMessage 객체가 아닌\n# 순수 문자열(String)을 반환한다."
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "자료가 든 Chat Model의 주요 기능에 해당하지 <b>않는</b> 것은?",
+          "o": [
+            "멀티턴 대화",
+            "스트리밍",
+            "Tool Calling",
+            "벡터 유사도 검색"
+          ],
+          "a": 3,
+          "h": "자료는 Chat Model의 주요 기능을 다섯 가지로 듭니다. 단일 질의응답, 여러 차례 이어지는 대화, 토큰 단위 실시간 출력, 구조화된 출력, 함수 호출입니다. 모두 모델이 응답을 만들어 돌려주는 방식이므로, 문서를 저장해 두고 찾아오는 다른 구성 요소의 일이 무엇인지 생각해 보세요.",
+          "w": "Chat Model의 주요 기능은 단일 질의응답·멀티턴 대화·스트리밍·구조화된 출력·Tool Calling입니다. 벡터 유사도 검색은 FAISS 같은 Vector DB의 역할입니다.",
+          "an": "7일차 Chat Model 인터페이스 · 주요 기능",
+          "src": "- 주요 기능\n 1. 단일 질의응답(Chat)\n 2. 멀티턴 대화(Multi-turn Conversation)\n 3. 스트리밍(Streaming)\n 4. 구조화된 출력(Structured Output)\n 5. Tool Calling(Function Calling)"
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "<code>chat_prompt | chat | output_parser</code>에서 <code>output_parser = StrOutputParser()</code>를 붙이면 달라지는 점은?",
+          "o": [
+            "응답이 토큰 단위로 출력",
+            "content 문자열만 반환",
+            "temperature가 0으로 고정",
+            "system 메시지가 추가"
+          ],
+          "a": 1,
+          "h": "노트북 주석은 출력 파서를 추가하면 '출력 타입이 str으로 .content만 추출'된다고 설명합니다. 파서는 모델 설정이나 프롬프트를 바꾸지 않고, 모델이 돌려준 메시지 객체를 후처리만 합니다.",
+          "w": "StrOutputParser는 AIMessage에서 content만 꺼내 문자열로 반환합니다. 스트리밍 여부, temperature, 프롬프트 메시지 구성은 파서와 관계없습니다.",
+          "an": "7일차 Chat Model 인터페이스 · LCEL 체인(Prompt → Model → OutputParser)",
+          "src": "# 출력 파서\n# 추가함으로써 출력 타입: str으로 .content만 추출됨"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "chain1(한국어→영어 번역) 결과를 prompt2의 <code>{english_word}</code>에 넣는 chain2 코드로 알맞은 것은?",
+          "o": [
+            "{'english_word': chain1} | prompt2 | llm | StrOutputParser()",
+            "chain1 | {'english_word': prompt2} | llm",
+            "prompt2 | chain1 | llm | StrOutputParser()",
+            "{'korean_word': chain1} | prompt2 | llm"
+          ],
+          "a": 0,
+          "h": "LCEL에서는 딕셔너리의 키 이름이 다음 프롬프트의 변수 이름이 되고, 값 자리에 둔 체인의 결과가 그 변수에 채워집니다. prompt2는 <code>{english_word}</code>를 기다리고, 처음 invoke에는 <code>{'korean_word': '인공지능'}</code>이 들어갑니다.",
+          "w": "<code>{'english_word': chain1}</code>이 chain1의 번역 결과를 english_word 키에 담아 prompt2로 넘깁니다. 키를 korean_word로 쓰거나 prompt2를 chain1보다 앞에 두면 변수가 맞지 않습니다.",
+          "an": "7일차 LCEL 응용 · 순차적인 체인연결",
+          "src": "# 체인 2 : 영어 단어 설명\nprompt2 = ChatPromptTemplate.from_template(\n \"\"\"\n What is '{english_word}'?"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": false,
+          "p": "LangChain의 Model 인터페이스는 OpenAI 외에 Anthropic·Google·Ollama 등 여러 제공업체를 같은 방식으로 다루게 해 준다.",
+          "a": true,
+          "h": "자료는 Model 인터페이스의 특징으로 '표준화된 인터페이스 제공'과 '다양한 AI 모델 제공업체 지원'을 듭니다. 사용 사례로는 다중 모델 통합, 유연한 모델 전환, 동일한 코드로 다양한 모델 사용이 나옵니다.",
+          "w": "맞습니다. 표준화된 인터페이스 덕분에 같은 코드로 여러 제공업체의 모델을 바꿔 쓸 수 있습니다.",
+          "an": "7일차 LLM(Model) · Model 인터페이스의 특징",
+          "src": "- Model 인터페이스의 특징\n 1. 표준화된 인터페이스 제공\n 2. 다양한 AI 모델 제공업체 지원\n (OpenAI, Anthropic, Google, Ollama 등)"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "LCEL에서 chain1 결과를 chain2에 넘기려면 <code>english_word = chain1.invoke(...)</code>를 먼저 직접 작성해야 한다.",
+          "a": false,
+          "h": "순차 체인 셀의 주석은 chain1에서 출력한 값을 english_word 변수에 저장해 chain2 입력으로 제공하는 과정을 설명합니다. LCEL에서는 딕셔너리의 값 자리에 chain1 자체를 두면, 그 실행 결과가 다음 프롬프트의 변수로 이어집니다. 이 연결을 위해 사람이 중간 결과를 따로 invoke해 변수에 담아야 하는지 생각해 보세요.",
+          "w": "틀렸습니다. <code>{'english_word': chain1}</code>처럼 연결하면 LCEL이 중간 결과를 자동으로 넘겨 주므로 invoke를 따로 쓸 필요가 없습니다.",
+          "an": "7일차 LCEL 응용 · 순차적인 체인연결",
+          "src": "# english_word = chain1.invoke(...)를 직접 작성하지 않아도 된다는 것이 LCEL의 장점"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "Chat Model 체인 구성 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "ChatOpenAI",
+              "메시지 기반으로 응답하는 Chat Model"
+            ],
+            [
+              "ChatPromptTemplate.from_messages",
+              "system·user 메시지로 프롬프트 구성"
+            ],
+            [
+              "StrOutputParser",
+              "AIMessage를 문자열로 변환"
+            ],
+            [
+              "invoke",
+              "단일 입력으로 체인을 호출"
+            ]
+          ],
+          "h": "기본 LCEL 체인은 Prompt → Model → OutputParser → Invoke 순서로 설명됩니다. 프롬프트는 ('system', ...)과 ('user', '{user_input}') 튜플 목록으로 만들고, 파서는 마지막에 결과 형태를 바꾸며, 실행은 메서드 호출로 합니다.",
+          "w": "from_messages는 역할별 메시지로 프롬프트를 만들고, ChatOpenAI가 응답을 생성하며, StrOutputParser가 문자열로 바꿉니다. invoke는 단일 입력으로 체인을 실행합니다.",
+          "an": "7일차 Chat Model 인터페이스 · LCEL 체인 구성",
+          "src": "# ChatPromptTemplate을 사용하여 시스템 메시지와 사용자 입력 메시지를 포함하는 프롬프트 생성\nchat_prompt = ChatPromptTemplate.from_messages(\n [\n ('system', '이 시스템은 여행 전문가이다'),\n (('user'), '{user_input}'),\n ]\n)"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "'인공지능'을 입력한 순차 체인의 처리 순서대로 나열하세요.",
+          "steps": [
+            "입력 '인공지능'",
+            "chain1이 영어로 번역",
+            "결과가 english_word로 전달",
+            "prompt2와 LLM이 설명 생성",
+            "최종 출력"
+          ],
+          "h": "자료의 순서도는 한국어 단어 입력에서 시작해 번역 체인, 번역 결과를 담는 변수, 두 번째 프롬프트와 LLM을 거쳐 최종 출력으로 끝납니다. 번역이 먼저 끝나야 그 결과로 두 번째 프롬프트의 <code>{english_word}</code>가 채워질 수 있다는 점을 기준으로 순서를 잡아 보세요.",
+          "w": "chain1이 먼저 번역하고, 그 결과가 english_word로 prompt2에 들어가 LLM이 옥스퍼드 사전식 설명을 생성합니다.",
+          "an": "7일차 LCEL 응용 · 순차적인 체인연결 순서도",
+          "src": "입력\n↓\n인공지능\n↓\nchain1\n↓\nArtificial Intelligence\n↓\nenglish_word\n↓\nprompt2\n↓\nLLM\n↓\n설명 생성\n↓\n최종 출력"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "<code>chain = chat_prompt | chat | output_parser</code> 후 <code>chain.invoke({'user_input': '...'})</code>를 실행할 때 옳은 설명을 모두 고르세요.",
+          "o": [
+            "Prompt → Model → Parser 순으로 실행",
+            "invoke 결과는 문자열",
+            "user_input 값은 dict로 전달",
+            "system 메시지를 매번 입력해야 함",
+            "파서를 빼도 반환형이 같음"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "<code>|</code> 연산자는 왼쪽 결과를 오른쪽 입력으로 넘기는 파이프입니다. system 메시지는 from_messages에서 미리 고정했고, <code>{user_input}</code> 변수만 invoke 때 딕셔너리 키로 채웁니다. 파서 유무에 따라 AIMessage와 문자열 중 무엇이 나오는지도 떠올리세요.",
+          "w": "체인은 Prompt → Model → Parser 순으로 실행되고, 파서 덕분에 결과가 문자열입니다. system 메시지는 템플릿에 이미 들어 있고, 파서를 빼면 AIMessage가 반환되어 형태가 달라집니다.",
+          "an": "7일차 Chat Model 인터페이스 · LCEL 체인 생성",
+          "src": "# LCEL(Prompt → Model → Parser) 적용\nchain = (\n prompt\n | llm\n | StrOutputParser()\n)"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "Runnable 실행 메서드",
+      "ref": "7일차 LCEL 인터페이스 · 체인을 실행하는 방법 · batch + stream 개념",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "입력 리스트에 대해 체인을 호출하고 결과를 리스트로 돌려주는 Runnable 메서드는?",
+          "o": [
+            "invoke",
+            "stream",
+            "batch",
+            "assign"
+          ],
+          "a": 2,
+          "h": "Runnable 프로토콜의 표준 메서드는 응답 청크를 흘려보내는 것, 단일 입력을 호출하는 것, 입력 목록을 호출하는 것 세 가지입니다. 여러 입력(dict)을 한 번에 넣고 결과 묶음을 받는 메서드를 고르세요.",
+          "w": "batch는 입력 리스트를 받아 각 결과를 리스트로 반환합니다. invoke는 단일 입력, stream은 청크 스트리밍이며, assign은 RunnablePassthrough의 키 추가 기능입니다.",
+          "an": "7일차 LCEL 인터페이스 · 체인을 실행하는 방법",
+          "src": "2. batch : 입력 리스트에 대해 체인을 호출하고, 각 입력에 대한 결과를 리스트로 반환한다. 이 메소드는 여러 입력에 대해 동기적으로 작동하며, 표율적인 배치처리를 한다"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "최종 응답뿐 아니라 실행 중 발생하는 중간 단계까지 스트리밍하는 비동기 메서드는?",
+          "o": [
+            "astream_log",
+            "astream",
+            "abatch",
+            "ainvoke"
+          ],
+          "a": 0,
+          "h": "LCEL 인터페이스 자료는 동기 메서드 stream·invoke·batch에 대응하는 비동기 메서드로 astream·ainvoke·abatch를 들고, 여기에 하나를 더 소개합니다. 그 마지막 메서드는 최종 응답만이 아니라 실행 중 거치는 중간 단계까지 기록처럼 흘려보낸다고 설명됩니다.",
+          "w": "astream_log는 최종 응답과 함께 중간 단계를 스트리밍합니다. astream은 응답 청크만, abatch는 입력 목록, ainvoke는 단일 입력을 비동기로 처리합니다.",
+          "an": "7일차 LCEL 인터페이스 · 비동기 메소드",
+          "src": "- 비동기 메소드도 있습니다.\n 1. astream: 비동기적으로 응답의 청크를 스트리밍합니다.\n 2. ainvoke: 비동기적으로 입력에 대해 체인을 호출합니다.\n 3. abatch: 비동기적으로 입력 목록에 대해 체인을 호출합니다.\n 4. astream_log: 최종 응답뿐만 아니라 발생하는 중간 단계를 스트리밍합니다."
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>chain.batch([...], config={'max_concurrency': N})</code>에서 max_concurrency의 역할은?",
+          "o": [
+            "입력 리스트 길이 제한",
+            "동시에 실행할 개수 제한",
+            "응답 최대 토큰 수 제한",
+            "실패 시 재시도 횟수"
+          ],
+          "a": 1,
+          "h": "노트북 주석은 이 설정을 '과부하를 막으면서 병렬 처리'하는 방법으로 소개합니다. batch는 여러 입력을 병렬로 처리할 수 있는데, N은 그중 한꺼번에 돌아가는 작업 수에 관한 값입니다.",
+          "w": "max_concurrency는 동시에 실행할 작업 수를 N으로 제한해 과부하를 막습니다. 입력 개수나 응답 길이, 재시도와는 관계없습니다.",
+          "an": "7일차 LCEL 인터페이스 · 동기 batch with concurrency",
+          "src": "config={\"max_concurrency\": N} : 동시에 실행할 개수를 N으로 제한"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "stream 출력 코드 <code>print(token, end='', flush=True)</code>에서 <code>flush=True</code>의 목적은?",
+          "o": [
+            "줄바꿈 없이 이어 붙임",
+            "토큰을 리스트로 모음",
+            "끝에 개행을 추가",
+            "기다리지 않고 바로 출력"
+          ],
+          "a": 3,
+          "h": "노트북 주석은 두 인자를 따로 설명합니다. <code>end=''</code>는 줄바꿈 없이 이어서 출력하게 하고, 다른 하나는 출력 버퍼를 즉시 비워 Colab에서 실시간으로 보이게 합니다.",
+          "w": "flush=True는 버퍼를 즉시 비워 토큰이 생기는 대로 화면에 보이게 합니다. 줄바꿈 없이 이어 붙이는 것은 end=''의 역할입니다.",
+          "an": "7일차 LCEL 인터페이스 · 동기 스트림 출력 주석",
+          "src": "# flush=True\n # 출력 버퍼를 즉시 비워 실시간 출력 효과 제공"
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "기존 <code>LLMChain(llm=llm, prompt=prompt)</code> 코드를 최신 LCEL 방식으로 바꾼 것은?",
+          "o": [
+            "LLMChain(prompt | llm)",
+            "llm.invoke(prompt).content",
+            "prompt | llm | StrOutputParser()",
+            "prompt.batch(llm)"
+          ],
+          "a": 2,
+          "h": "Sequential Stream 셀은 'LLMChain 제거'와 'LCEL(Prompt → Model → Parser) 적용'을 개선 내용으로 적었습니다. 최신 방식은 클래스로 감싸지 않고 파이프 연산자로 구성 요소를 이어 붙입니다.",
+          "w": "LCEL은 <code>prompt | llm | StrOutputParser()</code>처럼 파이프로 체인을 구성합니다. LLMChain을 그대로 쓰거나 프롬프트 객체를 모델에 직접 넣는 것은 개선 코드가 아닙니다.",
+          "an": "7일차 batch + stream 개념 · 개선 코드(최신 LCEL 방식)",
+          "src": "# LLMChain 제거\n# LCEL(Prompt → Model → Parser) 적용\nchain = (\n prompt\n | llm\n | StrOutputParser()\n)"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "batch는 모든 작업이 끝난 뒤 결과를 리스트로 반환하므로 처리 중간 결과는 확인할 수 없다.",
+          "a": true,
+          "h": "자료는 batch를 '여러 입력을 동시에 처리하고, 모든 작업이 완료된 후 결과를 리스트로 반환'한다고 정리합니다. 반대로 stream은 응답 생성 과정을 바로 확인할 수 있다고 대비합니다.",
+          "w": "맞습니다. batch는 모두 끝난 뒤 리스트를 돌려주므로 중간 결과를 볼 수 없고, 생성 과정을 보려면 stream을 씁니다.",
+          "an": "7일차 batch + stream 개념",
+          "src": "batch\n- 여러 입력을 동시에 처리한다.\n- 모든 작업이 완료된 후 결과를 리스트로 반환한다.\n- 처리 중간 결과는 확인할 수 없다."
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "stream은 보통 여러 요청을 한꺼번에 병렬로 보낼 때 쓰는 메서드다.",
+          "a": false,
+          "h": "자료의 stream 설명은 '하나의 요청에 대해 응답을 토큰 단위로 실시간 출력'하며 '일반적으로 단일 요청에 사용'한다는 것입니다. 여러 요청을 병렬로 실행하면서 결과를 즉시 출력하려면 asyncio와 astream()을 조합한다고 나옵니다.",
+          "w": "틀렸습니다. stream은 보통 단일 요청의 응답을 토큰 단위로 실시간 출력할 때 씁니다. 여러 요청을 병렬로 보내는 것은 batch이고, 둘을 합치려면 asyncio + astream()을 씁니다.",
+          "an": "7일차 batch + stream 개념",
+          "src": "stream\n- 하나의 요청에 대해 응답을 토큰 단위로 실시간 출력한다.\n- 응답 생성 과정을 바로 확인할 수 있다.\n- 일반적으로 단일 요청에 사용한다."
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "Runnable 메서드와 설명을 연결하세요.",
+          "pairs": [
+            [
+              "invoke",
+              "단일 입력을 동기로 호출"
+            ],
+            [
+              "batch",
+              "입력 목록을 처리해 리스트 반환"
+            ],
+            [
+              "stream",
+              "응답 청크를 실시간 스트리밍"
+            ],
+            [
+              "ainvoke",
+              "invoke의 비동기 버전"
+            ]
+          ],
+          "h": "표준 인터페이스는 stream·invoke·batch이고, 앞에 a가 붙은 메서드는 각각의 비동기 버전입니다. invoke는 단일 입력, batch는 입력 리스트, stream은 결과 조각을 다룹니다.",
+          "w": "invoke는 단일 입력 동기 호출, batch는 입력 목록 처리, stream은 청크 스트리밍, ainvoke는 invoke의 비동기 버전입니다.",
+          "an": "7일차 체인을 실행하는 방법 · Runnable 프로토콜",
+          "src": "1. invoke : 주어진 입력에 대해 체인을 호출하고, 결과를 반환한다. 이 메소드는 단일 입력에 대해 동기적으로 작동한다\n 2. batch : 입력 리스트에 대해 체인을 호출하고, 각 입력에 대한 결과를 리스트로 반환한다. 이 메소드는 여러 입력에 대해 동기적으로 작동하며, 표율적인 배치처리를 한다\n 3. stream : 입력에 대해 체인을 호출하고, 결과의 조각들을 스트리밍한다. 대용량 처리나 실시간 데이터 처리에 유용하다"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "LangChain으로 커스텀 체인을 만드는 과정을 순서대로 나열하세요.",
+          "steps": [
+            "필요한 컴포넌트를 정의하고 Runnable 구현",
+            "컴포넌트를 조합해 사용자 정의 체인 생성",
+            "생성한 체인으로 데이터 처리 수행"
+          ],
+          "h": "자료는 커스텀 체인 생성 과정을 세 단계로 설명합니다. 부품을 준비하고, 부품을 조립하고, 조립한 결과를 사용하는 흐름입니다.",
+          "w": "먼저 각 컴포넌트를 Runnable로 정의하고, 이를 조합해 체인을 만든 다음, 그 체인으로 데이터를 처리합니다.",
+          "an": "7일차 LangChain을 사용하여 커스텀 체인을 생성하는 과정",
+          "src": "LangChain을 사용하여 커스텀 체인을 생성하는 과정\n 1. 필요한 컴포넌트를 정의하고, 각각 'Runnalbe' 인터페이스 구현\n 2. 컴포넌트들을 조합하여 사용자 정의 체인 생성\n 3. 생성된 체인을 사용하여 데이터 처리 작업을 수행한다."
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "학생A가 질문 100개를 한 번에 처리하되 API 과부하를 피하려 합니다. 알맞은 선택을 모두 고르세요.",
+          "o": [
+            "batch()에 입력 리스트 전달",
+            "config에 max_concurrency 지정",
+            "stream()으로 한 글자씩 출력",
+            "astream_log()로 중간 단계 기록",
+            "temperature를 0으로 설정"
+          ],
+          "a": [
+            0,
+            1
+          ],
+          "h": "여러 입력을 한 번에 처리하는 메서드와, 그 병렬 처리에서 동시에 도는 작업 수를 제한하는 config 옵션을 떠올리세요. 스트리밍이나 중간 단계 기록, 출력 다양성 설정은 과부하 문제와 관계가 없습니다.",
+          "w": "batch로 입력 리스트를 처리하고 <code>config={'max_concurrency': N}</code>로 동시 실행 수를 제한하면 됩니다. stream·astream_log·temperature는 처리량 제어와 무관합니다.",
+          "an": "7일차 LCEL 인터페이스 · 동기 batch with concurrency",
+          "src": "config={\"max_concurrency\": N} : 동시에 실행할 개수를 N으로 제한"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "비동기 실행 · 문제)",
+      "ref": "7일차 비동기 async_main · 문제) invoke/batch/stream/ainvoke",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Colab에서 이미 실행 중인 이벤트 루프를 재사용해 비동기 코드를 돌리도록 적용하는 것은?",
+          "o": [
+            "asyncio.run()",
+            "nest_asyncio.apply()",
+            "chain.batch()",
+            "userdata.get()"
+          ],
+          "a": 1,
+          "h": "노트북은 'Colab/Jupyter 환경에서는 이미 이벤트 루프가 실행 중'이라 비동기 코드를 바로 돌리기 어렵다고 설명합니다. 그래서 별도 패키지를 import한 뒤 그 패키지의 적용 함수를 한 번 호출해, 이미 실행 중인 이벤트 루프를 재사용하도록 설정합니다.",
+          "w": "<code>nest_asyncio.apply()</code>는 실행 중인 이벤트 루프를 재사용하게 해 줍니다. asyncio.run()은 오히려 Colab에서 오류를 낼 수 있습니다.",
+          "an": "7일차 비동기 실행 · nest_asyncio 개선 코드",
+          "src": "# Colab/Jupyter 환경에서는 이미 이벤트 루프가 실행 중이다.\n# 따라서 비동기 코드를 실행하기 위해 nest_asyncio를 적용한다.\nimport nest_asyncio"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Colab에서 <code>asyncio.run(async_main())</code>을 쓰면 RuntimeError가 날 수 있는 이유는?",
+          "o": [
+            "이벤트 루프가 이미 실행 중",
+            "API 키가 설정되지 않음",
+            "async 함수에 return 없음",
+            "StrOutputParser 누락"
+          ],
+          "a": 0,
+          "h": "노트북에 적힌 오류 메시지는 'asyncio.run() cannot be called from a running event loop'입니다. Colab 같은 노트북 환경이 이미 무엇을 돌리고 있는지 떠올리세요.",
+          "w": "Colab은 이미 이벤트 루프를 돌리고 있어 asyncio.run()을 호출할 수 없습니다. 그래서 개선 코드는 <code>await async_main()</code>만 사용합니다.",
+          "an": "7일차 비동기 실행 · asyncio.run() 오류 설명",
+          "src": "# Colab에서는 이미 이벤트 루프가 실행 중이므로\n# asyncio.run() 사용 시 오류 발생 가능\n#\n# RuntimeError:\n# asyncio.run() cannot be called from a running event loop"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "async_main 안에서 응답을 토큰 단위로 비동기 수신하는 코드로 알맞은 것은?",
+          "o": [
+            "for t in await chain.ainvoke(x)",
+            "async for t in chain.abatch(x)",
+            "for t in chain.batch(x)",
+            "async for t in chain.astream(x)"
+          ],
+          "a": 3,
+          "h": "기존 코드는 비동기 스트림을 반복문으로 받아 토큰마다 print합니다. 비동기 반복에는 for 앞에 키워드가 하나 붙고, 스트리밍 메서드는 stream의 비동기 이름을 씁니다.",
+          "w": "<code>async for token in chain.astream(...)</code>가 비동기 스트림입니다. ainvoke는 완성된 결과 하나, abatch는 입력 목록 결과를 돌려주므로 토큰 단위 수신이 아닙니다.",
+          "an": "7일차 비동기 실행 · async_main 기존 코드(astream)",
+          "src": "# async for token in chain.astream(\n# {'topic': 'YouTube'}\n# ):\n# print(token, end='', flush=True)"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "기존 코드 <code>my_process = chain.ainvoke({'topic': 'NVDA'})</code> 직후 my_process에 담긴 것은?",
+          "o": [
+            "완성된 응답 문자열",
+            "토큰 리스트",
+            "아직 실행 결과가 아닌 대기 객체",
+            "AIMessage 객체"
+          ],
+          "a": 2,
+          "h": "기존 코드는 ainvoke 호출 결과를 my_process에 담은 뒤, 다음 줄에서 <code>result = await my_process</code>로 결과를 얻습니다. 결과를 받으려면 await가 한 번 더 필요하다는 점에서 생각하세요.",
+          "w": "ainvoke는 비동기 작업을 돌려주므로 await해야 결과 문자열을 얻습니다. 그래서 개선 코드는 <code>result = await chain.ainvoke(...)</code>로 한 줄에 씁니다.",
+          "an": "7일차 비동기 실행 · async_main 기존 코드(ainvoke)",
+          "src": "# my_process = chain.ainvoke(\n# {'topic': 'NVDA'}\n# )\n#\n# result = await my_process"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "최신 LangChain에서 <code>ChatOpenAI</code>를 import하는 패키지는?",
+          "o": [
+            "langchain_openai",
+            "langchain.chat_models",
+            "langchain_core.prompts",
+            "langchain.schema"
+          ],
+          "a": 0,
+          "h": "문제) 풀이 셀의 기존 코드는 <code>from langchain.chat_models import ChatOpenAI</code>였습니다. 개선 코드 주석은 'ChatOpenAI는 별도 패키지에서 import'한다고 설명하며, 이 패키지는 OpenAI 연동 부분만 따로 떼어 낸 통합 패키지로 설치 셀에서 함께 설치합니다. pip 이름의 하이픈이 import 때 어떻게 바뀌는지도 떠올려 보세요.",
+          "w": "최신 버전은 <code>from langchain_openai import ChatOpenAI</code>를 씁니다. langchain.chat_models는 기존 경로이고, langchain_core.prompts는 프롬프트용입니다.",
+          "an": "7일차 문제) 개선 코드 · import 경로",
+          "src": "# 최신 LangChain 권장 Import\nfrom langchain_openai import ChatOpenAI"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "문제)의 요구 조건은 출력의 창의성을 위해 temperature=0.7 이상을 권장한다.",
+          "a": true,
+          "h": "문제) 요구 조건 2번은 LLM 모델로 gpt-4o-mini 또는 gpt-3.5-turbo를 쓰라고 합니다. 이어서 출력의 창의성을 위해 temperature를 어느 정도 높게 잡으라고 권장합니다.",
+          "w": "맞습니다. 요구 조건은 창의성을 위해 temperature=0.7 이상을 권장합니다. temperature=0은 일관된 결과를 원할 때 씁니다.",
+          "an": "7일차 문제) 요구 조건 2",
+          "src": "2. LLM 모델 -> gpt-4o-mini 또는 gpt-3.5-turbo 모델을 사용하세요. 출력의 창의성을 위해 temperature=0.7 이상을 권장합니다."
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "ainvoke()로 실행하면 API 응답을 기다리는 동안 다른 비동기 작업을 수행할 수 없다.",
+          "a": false,
+          "h": "노트북 주석은 ainvoke()를 'invoke()의 비동기 버전'이라고 설명합니다. 비동기 방식의 장점이 응답을 기다리는 동안 무엇을 할 수 있게 해 주는지 떠올리세요.",
+          "w": "틀렸습니다. 주석에 따르면 ainvoke()는 API 응답을 기다리는 동안 다른 비동기 작업을 수행할 수 있습니다.",
+          "an": "7일차 문제) 비동기 실행 개선 코드 주석",
+          "src": "# Runnable의 ainvoke()\n# invoke()의 비동기 버전\n#\n# API 응답을 기다리는 동안\n# 다른 비동기 작업을 수행할 수 있다."
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "문제)의 실행 메서드와 다룬 주제를 연결하세요.",
+          "pairs": [
+            [
+              "invoke()",
+              "컴퓨터 과학(단일 주제)"
+            ],
+            [
+              "batch()",
+              "로봇공학·사회경제학·인문학"
+            ],
+            [
+              "stream()",
+              "자율주행자동차를 한 글자씩 출력"
+            ],
+            [
+              "ainvoke()",
+              "자율주행자동차를 비동기로 실행"
+            ]
+          ],
+          "h": "문제)는 네 가지 실행 메서드를 각각 써 보게 합니다. 단일 주제 하나, 주제 세 개 묶음, 같은 주제를 실시간 출력, 같은 주제를 비동기로 실행하는 구성입니다.",
+          "w": "invoke는 '컴퓨터 과학', batch는 세 주제, stream과 ainvoke는 '자율주행자동차'를 각각 실시간·비동기로 처리합니다.",
+          "an": "7일차 문제) 실행 메서드 요구 사항",
+          "src": "- 다음 실행 메서드를 각각 사용하여 결과를 출력하세요:\n\n 1. invoke() : 단일 주제 (\"컴퓨터 과학\")\n\n 2. batch() : 여러 주제 (\"로봇공학\", \"사회경제학\", \"인문학\")\n\n 3. stream() : \"자율주행자동차\" 주제에 대해 한 글자씩 출력\n\n 4. ainvoke() : \"자율주행자동차\"를 비동기로 실행"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "문제)의 체인을 구성하고 실행하는 순서대로 나열하세요.",
+          "steps": [
+            "topic을 받아 프롬프트 생성",
+            "ChatOpenAI 모델이 응답 생성",
+            "StrOutputParser로 문자열 변환",
+            "실행 메서드로 결과 출력"
+          ],
+          "h": "요구 조건은 Prompt, LLM 모델, Output Parser, 체인 구성 순으로 적혀 있습니다. 체인은 <code>prompt | model | parser</code> 형태의 선언형 구성이고, 그 뒤에 invoke·batch·stream·ainvoke로 실행합니다.",
+          "w": "프롬프트가 '{topic}에서 인공지능에 대해 간단히 설명해 주세요.'를 만들고, 모델이 응답하고, 파서가 문자열로 바꾼 뒤, 실행 메서드로 출력합니다.",
+          "an": "7일차 문제) 요구 조건 1~4",
+          "src": "1. Prompt -> 입력값 topic을 받아 다음과 같은 프롬프트를 생성하세요: \"{topic}에서 인공지능에 대해 간단히 설명해 주세요.\"\n\n\n 2. LLM 모델 -> gpt-4o-mini 또는 gpt-3.5-turbo 모델을 사용하세요. 출력의 창의성을 위해 temperature=0.7 이상을 권장합니다.\n\n 3. Output Parser -> LLM 응답을 문자열로 반환하는 StrOutputParser를 사용하세요.\n\n 4. 체인 구성 -> prompt | model | parser 형태로 LangChain의 Runnable 체인을 선언형으로 구성하세요."
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "문제)의 batch 출력 코드 <code>for topic, result in zip(topics, results): print(f'{topic} 설명 : {result[:250]}')</code>에 대해 옳은 것을 모두 고르세요.",
+          "o": [
+            "results는 topics 순서의 리스트",
+            "result[:250]은 앞 250자만 출력",
+            "각 result는 문자열",
+            "results는 딕셔너리 하나",
+            "batch가 결과를 하나씩 스트리밍"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "batch는 입력 리스트의 순서대로 결과 리스트를 돌려주고, zip은 두 리스트를 같은 위치끼리 짝짓습니다. 체인 끝의 StrOutputParser가 각 결과를 어떤 형태로 바꾸는지와 문자열 슬라이싱의 의미도 떠올리세요.",
+          "w": "batch 결과는 입력 순서를 따른 문자열 리스트이므로 zip으로 주제와 짝지을 수 있고, [:250]은 앞 250자만 자릅니다. batch는 모두 끝난 뒤 리스트를 돌려주며 스트리밍하지 않습니다.",
+          "an": "7일차 문제) 3. batch 메소드 사용",
+          "src": "# 모든 작업이 완료된 후 결과 리스트를 반환한다.\n\ntopics = ['로봇공학', '사회경제학', '인문학']\n\nresults =\n\n\nfor topic, result in zip(topics, results):\n print(f'{topic} 설명 : {result[:250]}\\n')"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "RunnableParallel · batch",
+      "ref": "7일차 RunnableParallel · batch()에서의 병렬 처리",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "RunnableParallel의 실행 결과는 어떤 형태로 반환되나요?",
+          "o": [
+            "딕셔너리(Key-Value)",
+            "문자열 하나",
+            "튜플",
+            "Document 리스트"
+          ],
+          "a": 0,
+          "h": "RunnableParallel은 Runnable을 키워드 인자, 즉 키 이름과 함께 정의합니다. 자료의 그림에서 A·B·C가 동시에 실행된 뒤 각 결과가 키 이름 아래 묶여 나옵니다.",
+          "w": "RunnableParallel은 정의한 키마다 결과를 담은 딕셔너리를 반환합니다. 예: <code>{'capital': ..., 'area': ...}</code>.",
+          "an": "7일차 RunnableParallel · 특징",
+          "src": "RunnableParallel\n\n- 여러 Runnable을 동시에 실행하기 위한 컴포넌트\n- 동일한 입력을 여러 체인에 전달하여 병렬 처리할 수 있다.\n- 결과는 딕셔너리(Dictionary) 형태로 반환된다."
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>combined = RunnableParallel(capital=chain1, area=chain2)</code>를 invoke한 result에서 면적 답만 꺼내는 코드는?",
+          "o": [
+            "result['country']",
+            "result[1]",
+            "result['area']",
+            "result.area()"
+          ],
+          "a": 2,
+          "h": "RunnableParallel을 만들 때 쓴 키워드 이름이 결과 딕셔너리의 키가 됩니다. 노트북은 '결과 개별 출력'에서 수도 정보와 면적 정보를 각각 키로 꺼내 print합니다.",
+          "w": "결과는 dict이므로 정의할 때 쓴 키 <code>'area'</code>로 꺼냅니다. country는 입력 키이고, dict는 인덱스 1이나 메서드 호출로 접근하지 않습니다.",
+          "an": "7일차 RunnableParallel · 병렬 실행 결과 개별 출력",
+          "src": "# 결과 개별 출력\nprint(\"수도 정보 :\")\nprint(result[\"capital\"])\n\nprint()\n\nprint(\"면적 정보 :\")\nprint(result[\"area\"])"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>combined.batch([{'country': '대한민국'}, {'country': '미국'}])</code>의 반환 형태는?",
+          "o": [
+            "Dict[List]",
+            "List[Dict]",
+            "List[str]",
+            "str"
+          ],
+          "a": 1,
+          "h": "batch는 입력마다 결과 하나를 만들어 리스트로 돌려줍니다. 이번에는 각 입력을 처리하는 Runnable이 수도와 면적을 동시에 조회해 키별로 묶는 RunnableParallel이라는 점을 함께 생각하세요.",
+          "w": "combined는 입력마다 {'capital', 'area'} 딕셔너리를 만들고, batch가 이를 리스트로 묶으므로 List[Dict]입니다. chain1.batch처럼 문자열 체인만 쓰면 List[str]가 됩니다.",
+          "an": "7일차 RunnableParallel + batch()",
+          "src": "# combined는 RunnableParallel이므로\n# 각 입력마다\n#\n# 1. 수도 조회(chain1)\n# 2. 면적 조회(chain2)\n#\n# 를 동시에 수행한다.\n#\n# 반환 결과는 List[Dict] 형태이다."
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "국가 3개에 대해 수도와 면적을 모두 물어 국가별 dict로 받으려 합니다. 가장 알맞은 방법은?",
+          "o": [
+            "chain1.batch 후 chain2.invoke",
+            "combined.invoke(입력 3개 리스트)",
+            "chain1 | chain2로 순차 연결",
+            "combined.batch(입력 3개)"
+          ],
+          "a": 3,
+          "h": "여러 입력을 한 번에 처리하는 메서드와, 하나의 입력으로 두 체인을 동시에 실행하는 Runnable을 함께 쓰는 실습이 있었습니다. 그 실습의 결과는 입력마다 capital·area를 담은 딕셔너리의 리스트였습니다.",
+          "w": "RunnableParallel인 combined에 batch를 쓰면 입력마다 수도·면적을 병렬 조회해 List[Dict]로 돌려줍니다. invoke는 단일 입력용이고, chain1 | chain2는 순차 연결이라 의도와 다릅니다.",
+          "an": "7일차 RunnableParallel + batch()",
+          "src": "# RunnableParallel + batch()\n#\n# batch()는 여러 입력을 처리한다.\n#\n# combined는 RunnableParallel이므로\n# 각 입력마다\n#\n# 1. 수도 조회(chain1)\n# 2. 면적 조회(chain2)\n#\n# 를 동시에 수행한다."
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "<code>RunnableParallel</code>을 import하는 모듈은?",
+          "o": [
+            "langchain_core.prompts",
+            "langchain_core.runnables",
+            "langchain_openai",
+            "langchain_core.output_parsers"
+          ],
+          "a": 1,
+          "h": "7일차의 RunnableParallel·RunnablePassthrough·RunnableLambda·ConfigurableField는 모두 같은 모듈에서 가져옵니다. 모듈 이름은 이들이 공통으로 구현하는 프로토콜 이름의 복수형입니다.",
+          "w": "<code>from langchain_core.runnables import RunnableParallel</code>입니다. prompts는 템플릿, output_parsers는 파서, langchain_openai는 OpenAI 모델용입니다.",
+          "an": "7일차 RunnableParallel · import",
+          "src": "from langchain_core.runnables import RunnableParallel\n# RunnableParallel 인스턴스 생성"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "RunnableParallel은 같은 입력을 여러 Runnable에 전달해 동시에 실행한다.",
+          "a": true,
+          "h": "자료는 RunnableParallel을 '여러 Runnable을 동시에 실행하기 위한 컴포넌트'라고 정의합니다. 특징으로 '동일 입력을 여러 체인에 전달 가능'과 '실행 시간을 단축할 수 있음'을 듭니다.",
+          "w": "맞습니다. 하나의 입력을 각 Runnable에 동시에 전달해 병렬로 실행하고 결과를 dict로 묶습니다.",
+          "an": "7일차 RunnableParallel · 정의",
+          "src": "RunnableParallel\n\n- 병렬 요청을 지원하는 Runnable 컴포넌트\n- 딕셔너리 형태로 Runnable을 정의\n- 각 Runnable은 동일 입력을 받아 동시에 실행\n- 결과는 딕셔너리 형태로 반환"
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "batch()에서 각 입력은 앞 입력의 결과를 이어받아 순서대로 처리된다.",
+          "a": false,
+          "h": "자료는 batch()가 여러 딕셔너리를 담은 리스트를 입력으로 받는다고 설명합니다. 그리고 '각 입력은 독립적으로 처리되며 결과는 리스트로 반환된다'고, 내부적으로 병렬 실행될 수 있다고 덧붙입니다.",
+          "w": "틀렸습니다. batch의 각 입력은 독립적으로 처리되고 병렬로 실행될 수 있습니다. 앞 결과를 다음 단계로 넘기는 것은 순차 체인(|)입니다.",
+          "an": "7일차 batch()에서의 병렬 처리",
+          "src": "- 각 딕셔너리는 체인에 전달될 입력값을 나타낸다.\n- 각 입력은 독립적으로 처리되며 결과는 리스트(List) 형태로 반환된다.\n- 내부적으로 병렬 실행될 수 있어 여러 요청을 효율적으로 처리할 수 있다."
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "코드와 실행 구조를 연결하세요.",
+          "pairs": [
+            [
+              "prompt | model | parser",
+              "순차(Sequential) 실행"
+            ],
+            [
+              "RunnableParallel(key1=chain1, key2=chain2)",
+              "동시 실행 후 dict 반환"
+            ],
+            [
+              "chain1.batch([...])",
+              "여러 입력을 처리해 List[str] 반환"
+            ],
+            [
+              "combined.batch([...])",
+              "입력마다 병렬 실행해 List[Dict] 반환"
+            ]
+          ],
+          "h": "자료는 Sequential과 Parallel 표기를 나란히 비교합니다. 파이프는 앞 결과를 다음으로 넘기고, RunnableParallel은 키별로 동시에 실행합니다. batch는 어떤 Runnable에 붙느냐에 따라 리스트 안의 원소 형태가 달라집니다.",
+          "w": "파이프는 순차 실행, RunnableParallel은 병렬 실행 후 dict 반환입니다. 문자열 체인의 batch는 List[str], RunnableParallel의 batch는 List[Dict]입니다.",
+          "an": "7일차 RunnableParallel · Sequential vs Parallel · batch",
+          "src": "Sequential\nprompt | model | parser\n\nParallel\nRunnableParallel(\n key1=chain1,\n key2=chain2\n)"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "<code>combined.invoke({'country': '대한민국'})</code>의 처리 순서대로 나열하세요.",
+          "steps": [
+            "입력 dict가 combined에 전달",
+            "chain1·chain2가 같은 입력으로 동시에 실행",
+            "결과를 capital·area 키에 담음",
+            "dict로 반환"
+          ],
+          "h": "주석은 RunnableParallel이 '입력값을 각 체인에 동시에 전달'하고, 두 체인이 병렬 실행된 뒤 '결과를 Dictionary 형태로 반환'한다고 설명합니다. 입력 → 동시 실행 → 키별 정리 → 반환의 흐름을 떠올리세요.",
+          "w": "입력이 들어오면 chain1(수도)과 chain2(면적)가 동시에 실행되고, 결과가 capital·area 키에 담긴 딕셔너리로 반환됩니다.",
+          "an": "7일차 RunnableParallel · combined 실행 주석",
+          "src": "# 입력값을 각 체인에 동시에 전달한다.\n#\n# chain1 → 수도 조회\n# chain2 → 면적 조회\n#\n# 두 체인이 병렬 실행된 후\n# 결과를 Dictionary 형태로 반환한다."
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 1,
+          "game": true,
+          "p": "자료가 든 RunnableParallel의 특징을 모두 고르세요.",
+          "o": [
+            "여러 체인을 동시에 실행",
+            "동일 입력을 여러 체인에 전달",
+            "결과를 Key-Value로 반환",
+            "실행 시간을 단축할 수 있음",
+            "입력 데이터를 영구 저장"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "자료의 '특징' 목록은 네 항목입니다. 동시 실행, 같은 입력 공유, 결과 형태, 그리고 그 결과로 얻는 시간상의 이점입니다. 데이터를 보관하는 기능은 Vector DB 같은 다른 구성 요소의 일입니다.",
+          "w": "동시 실행·동일 입력 전달·Key-Value 반환·실행 시간 단축이 자료에 나온 특징입니다. 데이터를 영구 저장하는 기능은 없습니다.",
+          "an": "7일차 RunnableParallel · 특징 1~4",
+          "src": "특징\n\n1. 여러 체인을 동시에 실행\n2. 동일 입력을 여러 체인에 전달 가능\n3. 결과를 Key-Value 형태로 반환\n4. 실행 시간을 단축할 수 있음"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "RunnablePassthrough · assign",
+      "ref": "7일차 데이터를 효과적으로 전달하는 방법 · RunnablePassthrough",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "입력 데이터를 변경하지 않고 그대로 다음 Runnable에 전달하는 컴포넌트는?",
+          "o": [
+            "RunnableLambda()",
+            "RunnablePassthrough()",
+            "StrOutputParser()",
+            "ConfigurableField()"
+          ],
+          "a": 1,
+          "h": "자료는 '데이터를 효과적으로 전달하는 방법'에서 입력값을 재사용하거나 중간 결과를 함께 전달할 때 쓰는 컴포넌트를 소개합니다. 이름에 '그대로 통과시킨다'는 뜻이 들어 있습니다.",
+          "w": "RunnablePassthrough()는 입력을 그대로 반환합니다. RunnableLambda는 사용자 함수를 실행하고, StrOutputParser는 문자열 변환, ConfigurableField는 런타임 설정용입니다.",
+          "an": "7일차 RunnablePassthrough · 주요 기능 1",
+          "src": "데이터를 효과적으로 전달하는 방법\n\nRunnablePassthrough\n\n- 입력 데이터를 변경하지 않고 그대로 다음 Runnable에 전달할 수 있다.\n- 기존 입력값을 유지하면서 새로운 데이터를 추가할 수도 있다.\n- LCEL에서 입력값을 재사용하거나 중간 결과를 함께 전달할 때 자주 사용된다.\n\n주요 기능\n\n1. RunnablePassthrough()\n\n - 입력값을 그대로 반환한다."
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>RunnablePassthrough.assign(new_num=lambda x: x['num'] * 3).invoke({'num': 1})</code>의 결과는?",
+          "o": [
+            "{'num': 1, 'new_num': 3}",
+            "{'new_num': 3}",
+            "{'num': 3}",
+            "3"
+          ],
+          "a": 0,
+          "h": "assign은 '기존 입력 + 추가 필드'를 만듭니다. 주석은 입력 {'num': 1}에서 기존 데이터를 유지하고, new_num을 num × 3으로 계산해 덧붙이는 과정을 단계별로 보여 줍니다.",
+          "w": "assign은 기존 키를 유지하고 새 키를 추가하므로 <code>{'num': 1, 'new_num': 3}</code>입니다. 기존 num을 덮어쓰거나 새 키만 남기지 않습니다.",
+          "an": "7일차 RunnablePassthrough.assign() 사용",
+          "src": "# -> 입력 값으로 들어온 값의 key/ value 쌍과 새롭게 할당된 key/ value 쌍을 합친다\n\nfrom langchain_core.runnables import RunnablePassthrough\n# RunnablePassthrough.assign()\n#\n# 기존 입력값은 그대로 유지하면서\n# 새로운 key/value를 추가한다. 즉, “기존 입력 + 추가 필드”\n#\n# 입력:\n# {'num': 1}\n#\n# ↓\n#\n# 1) 기존 데이터 유지\n# {'num': 1}\n#\n# 2) new_num 추가 생성\n# new_num = num * 3 = 3\n#\n# ↓\n#\n# 최종 출력:\n# {'num': 1, 'new_num': 3}\n\nresult =\n\n\nprint(\"결과 :\", result)"
+        },
+        {
+          "id": "t5-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "템플릿 '{num}의 100배는?' 체인에 <code>chain.invoke(5)</code>처럼 값만 넘길 수 있는 조건은?",
+          "o": [
+            "출력 파서가 없을 때",
+            "temperature가 0일 때",
+            "값이 문자열일 때",
+            "템플릿 입력 변수가 1개일 때"
+          ],
+          "a": 3,
+          "h": "기존 코드 주석은 라이브러리가 업데이트되면서 템플릿에 변수가 하나만 있으면 딕셔너리 대신 값만 전달해도 된다고 설명합니다. 변수가 그보다 많으면 오류가 난다고 경고합니다.",
+          "w": "템플릿 입력 변수가 1개뿐이면 값만 넘겨도 그 변수에 들어갑니다. <code>chain.invoke(5)</code>는 <code>chain.invoke({'num': 5})</code>와 같으며, 출력 결과는 둘 다 '5의 100배는 500입니다.'입니다.",
+          "an": "7일차 RunnablePassthrough · 값만 전달하는 invoke",
+          "src": "# langchain 라이브러리가 업데이트 되면서\n# 1개의 변수만 템플릿에 포함하고 있다면\n# -> 값만 전달도 가능하다 -> 1개 이상인 경우 오류!!!\n#\n# result = chain.invoke(5)\n# result.content\n# ============================================================\n# 개선 코드\n# ============================================================\n# LangChain 최신 버전에서는\n# PromptTemplate의 입력 변수가 1개 이상인 경우를 위해\n# Dictionary 대신 값(Value)만 직접 전달할 수 있다."
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>run_chain = {'num': RunnablePassthrough()} | prompt | llm | StrOutputParser()</code>에 <code>invoke(10)</code>을 하면 모델이 받는 프롬프트는?",
+          "o": [
+            "'{num}의 100배는?'",
+            "'1000의 100배는?'",
+            "'10의 100배는?'",
+            "'num의 100배는?'"
+          ],
+          "a": 2,
+          "h": "주석은 입력 10이 RunnablePassthrough를 거쳐 {'num': 10}이 되고, 그다음 prompt가 실행된다고 설명합니다. 프롬프트 템플릿은 '{num}의 100배는?'입니다.",
+          "w": "RunnablePassthrough가 10을 num 키에 그대로 넣어 '10의 100배는?'이 만들어집니다. 실제 출력은 '10의 100배는 1000입니다...'였습니다.",
+          "an": "7일차 RunnablePassthrough · run_chain",
+          "src": "from langchain_core.output_parsers import StrOutputParser\nfrom langchain_openai import ChatOpenAI\n# 숫자를 입력받아 100배를 계산하도록 요청하는 프롬프트\nprompt = PromptTemplate.from_template(\n \"{num}의 100배는?\"\n)\n# ============================================================\n# 기존 코드\n# ============================================================\n# llm = ChatOpenAI("
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "노트북 주석에서 <code>RunnablePassthrough()</code>와 같다고 한 람다 표현은?",
+          "o": [
+            "lambda x: x",
+            "lambda x: None",
+            "lambda x: [x]",
+            "lambda x: x * 100"
+          ],
+          "a": 0,
+          "h": "RunnablePassthrough는 입력값을 변경하지 않고 그대로 반환합니다. 주석의 예시도 입력 {'num':10}이 출력 {'num':10}으로 똑같이 나옵니다. 받은 값을 손대지 않고 돌려주는 함수를 고르세요.",
+          "w": "주석은 <code>RunnablePassthrough() == lambda x: x</code>라고 적었습니다. 입력을 그대로 돌려주는 항등 함수와 같습니다.",
+          "an": "7일차 RunnablePassthrough 사용 주석",
+          "src": "# RunnablePassthrough() == lambda x: x\n#\n# 입력값을 변경하지 않고\n# 그대로 반환한다.\n#\n# 입력\n# {'num':10}\n#\n# 출력\n# {'num':10}\n#\n# 사용이유 : 변수를 추가해서 딕셔너리를 사용하고자 할때"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "RunnablePassthrough.assign()은 기존 입력 데이터를 지우고 새 key만 반환한다.",
+          "a": false,
+          "h": "자료의 주요 기능 2번은 assign()을 세 줄로 설명합니다. 기존 입력 데이터를 어떻게 하는지, 새 Key-Value를 어떻게 하는지, 그리고 여러 체인 결과를 어디에 모을 때 유용한지입니다.",
+          "w": "틀렸습니다. assign()은 기존 입력을 유지한 채 새 key/value를 추가합니다.",
+          "an": "7일차 RunnablePassthrough · 주요 기능 2",
+          "src": "데이터를 효과적으로 전달하는 방법\n\nRunnablePassthrough\n\n- 입력 데이터를 변경하지 않고 그대로 다음 Runnable에 전달할 수 있다.\n- 기존 입력값을 유지하면서 새로운 데이터를 추가할 수도 있다.\n- LCEL에서 입력값을 재사용하거나 중간 결과를 함께 전달할 때 자주 사용된다.\n\n주요 기능\n\n1. RunnablePassthrough()\n\n - 입력값을 그대로 반환한다.\n - 입력 데이터를 수정하지 않고 다음 단계로 전달할 때 사용한다.\n\n2. RunnablePassthrough.assign()\n\n - 기존 입력 데이터를 유지한다.\n - 새로운 Key-Value 데이터를 추가한다.\n - 여러 체인의 결과를 하나의 Dictionary로 합칠 때 유용하다."
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "체인 끝에 StrOutputParser를 붙였다면 결과를 쓸 때 <code>result.content</code>를 다시 호출할 필요가 없다.",
+          "a": true,
+          "h": "기존 코드는 <code>chain = prompt | llm</code> 뒤에 <code>result.content</code>로 답을 꺼냈습니다. 개선 코드는 체인 끝에 출력 파서를 붙였고, 주석은 그 결과가 이미 어떤 자료형인지 설명합니다.",
+          "w": "맞습니다. StrOutputParser가 AIMessage를 문자열로 바꿔 주므로 result가 이미 문자열이고, .content를 다시 꺼낼 필요가 없습니다.",
+          "an": "7일차 RunnablePassthrough 앞 셀 · 기존 코드 result.content",
+          "src": "# StrOutputParser를 사용했으므로\n# result는 이미 문자열(String)이다.\n\nprint(\"결과 :\", result)\n```\n\n```python\n# ============================================================\n# 기존 코드\n# ============================================================\n# langchain 라이브러리가 업데이트 되면서\n# 1개의 변수만 템플릿에 포함하고 있다면\n# -> 값만 전달도 가능하다 -> 1개 이상인 경우 오류!!!\n#\n# result = chain.invoke(5)\n# result.content"
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "<code>RunnableParallel(passed=RunnablePassthrough(), extra=RunnablePassthrough.assign(mult=lambda x: x['num'] * 3), modified=lambda x: x['num'] + 10)</code>에 <code>{'num': 1}</code>을 넣었을 때 키와 결과를 연결하세요.",
+          "pairs": [
+            [
+              "passed",
+              "{'num': 1}"
+            ],
+            [
+              "extra",
+              "{'num': 1, 'mult': 3}"
+            ],
+            [
+              "modified",
+              "11"
+            ]
+          ],
+          "h": "passed는 입력을 그대로, extra는 기존 입력에 새 키를 덧붙여, modified는 lambda 함수가 계산한 값 하나를 돌려줍니다. 주석에 따르면 lambda 함수도 Runnable로 자동 변환되어 같은 입력 {'num': 1}을 받습니다.",
+          "w": "실제 출력은 <code>{'passed': {'num': 1}, 'extra': {'num': 1, 'mult': 3}, 'modified': 11}</code>입니다.",
+          "an": "7일차 RunnableParaller 셀 · 실행 결과",
+          "src": "# x는 입력 dict 전체를 의미한다.\n #\n # 입력: {\"num\": 1}\n # mult = 1 * 3 = 3\n # 출력: {\"num\": 1, \"mult\": 3}\n # --------------------------------------------------------\n extra =\n# 입력된 딕셔너리 num 키에 해당 값에 10을 증가\n # --------------------------------------------------------\n # [상세 설명]\n # lambda 함수도 Runnable로 자동 변환된다.\n #\n # 입력: {\"num\": 1}\n # 출력: 11\n # --------------------------------------------------------\n modified ="
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "<code>run_chain.invoke(10)</code>의 처리 순서대로 나열하세요.",
+          "steps": [
+            "입력값 10",
+            "{'num': 10}으로 매핑",
+            "prompt가 '10의 100배는?' 생성",
+            "ChatOpenAI가 응답 생성",
+            "StrOutputParser가 문자열 반환"
+          ],
+          "h": "주석은 입력 10 → {'num': 10} → prompt 실행 순서를 화살표로 보여 줍니다. 그 뒤로는 모델 호출과 출력 파서가 차례로 이어지는 기본 LCEL 체인입니다.",
+          "w": "RunnablePassthrough가 10을 num 키에 넣고, 프롬프트 → 모델 → 파서 순으로 실행되어 문자열이 반환됩니다.",
+          "an": "7일차 RunnablePassthrough · run_chain 주석",
+          "src": "# RunnablePassthrough()는 입력값을 그대로 다음 체인에 전달하는 Runnable\n#\n# invoke()로 전달된 입력값을\n# \"num\" 키에 그대로 전달한다.\n#\n# 입력\n# 10\n#\n# ↓\n#\n# {'num': 10}\n#\n# ↓\n#\n# prompt 실행\n\nrun_chain =\n# 입력값 10 전달\nresult =\n# prompt.invoke(\n# {\"num\": 10}\n# ) 와 동일한 의미\n# StrOutputParser()를 사용하므로\n# 결과는 문자열(String)이다."
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "RunnablePassthrough.assign()에 대한 설명으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "기존 입력 데이터를 유지",
+            "새 Key-Value를 추가",
+            "여러 체인 결과를 한 dict로 합칠 때 유용",
+            "입력은 반드시 문자열",
+            "모델 종류를 런타임에 교체"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "자료의 주요 기능 2번은 assign()이 무엇을 유지하고 무엇을 더하는지, 그리고 어떤 상황에서 유용한지를 설명합니다. 실습 입력이 {'num': 1} 같은 딕셔너리였다는 점과, 모델 교체는 7일차 뒷부분 다른 기능의 일이라는 점도 떠올리세요.",
+          "w": "assign()은 기존 입력을 유지하며 새 키를 추가하고, 여러 결과를 하나의 dict로 합칠 때 유용합니다. 입력은 dict를 쓰며, 모델 교체는 configurable 기능의 역할입니다.",
+          "an": "7일차 RunnablePassthrough · 주요 기능 2",
+          "src": "데이터를 효과적으로 전달하는 방법\n\nRunnablePassthrough\n\n- 입력 데이터를 변경하지 않고 그대로 다음 Runnable에 전달할 수 있다.\n- 기존 입력값을 유지하면서 새로운 데이터를 추가할 수도 있다.\n- LCEL에서 입력값을 재사용하거나 중간 결과를 함께 전달할 때 자주 사용된다.\n\n주요 기능\n\n1. RunnablePassthrough()\n\n - 입력값을 그대로 반환한다.\n - 입력 데이터를 수정하지 않고 다음 단계로 전달할 때 사용한다.\n\n2. RunnablePassthrough.assign()\n\n - 기존 입력 데이터를 유지한다.\n - 새로운 Key-Value 데이터를 추가한다.\n - 여러 체인의 결과를 하나의 Dictionary로 합칠 때 유용하다."
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "RunnableLambda · 라우팅",
+      "ref": "7일차 RunnableLambda 사용자 정의 함수 맵핑 · 동적 분기",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "일반 Python 함수를 LCEL 체인의 한 단계로 쓰도록 감싸는 클래스는?",
+          "o": [
+            "RunnableParallel",
+            "ChatPromptTemplate",
+            "RunnableLambda",
+            "ConfigurableField"
+          ],
+          "a": 2,
+          "h": "7일차는 '사용자 정의 함수 맵핑'에서 get_today 같은 함수를 체인에 연결합니다. 이 클래스 이름에는 파이썬의 익명 함수 키워드가 들어 있습니다.",
+          "w": "RunnableLambda는 사용자 함수를 Runnable로 감싸 체인에 넣습니다. RunnableParallel은 병렬 실행, ConfigurableField는 런타임 설정용입니다.",
+          "an": "7일차 RunnableLambda를 사용하여 사용자 정의 함수 맵핑",
+          "src": "- @chain 데코레이터는 LangChain에서 함수를 Runnable 객체로 변환하는 기능이다.\n\n- 즉, 일반 Python 함수를 LCEL 체인에 바로 연결할 수 있게 만들어준다.\n\n- 핵심 개념\n1. 일반 함수 → RunnableLambda 자동 변환\n2. LCEL 체인에 직접 연결 가능"
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>get_today(a)</code> 함수에서 매개변수 a의 역할은?",
+          "o": [
+            "호환성용 dummy 매개변수",
+            "날짜 형식 문자열",
+            "나열할 유명인 수",
+            "사용할 모델 이름"
+          ],
+          "a": 0,
+          "h": "get_today는 현재 날짜를 'Jun-18' 같은 문자열로 돌려주는 유틸 함수입니다. 주석은 a가 실제로는 사용되지 않지만 Runnable/LCEL 구조에서 입력을 받아야 하기 때문에 존재한다고 설명합니다.",
+          "w": "a는 쓰이지 않지만 Runnable/LCEL 구조와 호환되도록 둔 dummy parameter입니다. 날짜 형식은 함수 안에서 정하고, 유명인 수는 n으로 전달됩니다.",
+          "an": "7일차 RunnableLambda · get_today 주석",
+          "src": "# [상세 설명]\n# get_today 함수는 \"현재 날짜\"를 문자열로 반환하는 유틸 함수이다.\n#\n# 입력:\n# a → 사용되지 않지만 Runnable/LCEL 구조에서\n# 호환성을 위해 dummy parameter로 존재\n#\n# 출력:\n# 예) \"Jun-18\"\n#\n# 사용 목적:\n# - LangChain에서 RunnableLambda 또는 assign에 연결하여\n# 동적으로 현재 날짜를 prompt에 주입할 때 사용"
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "생일 체인 <code>{'today': RunnableLambda(get_today), 'n': RunnablePassthrough()} | prompt | llm | StrOutputParser()</code>에서 <code>invoke(5)</code>의 5가 채우는 프롬프트 변수는?",
+          "o": [
+            "today",
+            "n",
+            "num",
+            "question"
+          ],
+          "a": 1,
+          "h": "템플릿은 '{today}가 생일인 유명인 {n}명을 나열하세요.'입니다. 주석은 RunnableLambda가 현재 날짜를 만들고, RunnablePassthrough가 입력값을 그대로 넘긴다고 설명합니다.",
+          "w": "RunnablePassthrough()로 연결된 n 키에 5가 그대로 들어갑니다. today는 get_today가 만든 날짜 문자열로 채워집니다.",
+          "an": "7일차 RunnableLambda · 생일 체인 실행 흐름",
+          "src": "# [상세 설명]\n# 이 체인은 현재 날짜(today)와 사용자 입력(n)을 결합해서\n# “오늘 생일인 유명인 목록”을 생성하는 LCEL 구조다.\n#\n# 실행 흐름:\n# 1) RunnableLambda(get_today)\n# → 현재 날짜 생성\n#\n# 2) RunnablePassthrough()\n# → 입력값 그대로 n으로 전달\n#\n# 3) PromptTemplate\n# → 완성된 프롬프트 생성\n#\n# 4) ChatOpenAI\n# → LLM 응답 생성\n#\n# 5) StrOutputParser\n# → 문자열로 변환"
+        },
+        {
+          "id": "t6-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "라우팅 예제에서 <code>classification_chain</code>의 역할은?",
+          "o": [
+            "질문을 영어로 번역",
+            "분류별 전문가 답변 생성",
+            "답변을 문자열로 변환",
+            "질문을 수학·과학·기타로 분류"
+          ],
+          "a": 3,
+          "h": "전체 흐름은 질문 분류 → router()가 체인 선택 → 전문가 체인이 응답 생성 순입니다. 이 체인의 프롬프트는 '한 단어 이상으로 응답하지 마세요'라고 요구합니다.",
+          "w": "classification_chain은 질문을 '수학', '과학', '기타' 중 하나로 분류합니다. 답변 생성은 math·science·general 체인이 맡습니다.",
+          "an": "7일차 RunnableLambda로 동적 분기 · 1. 질문 분류 체인",
+          "src": "사용자의 질문을 자동으로 분류하고, 그에 맞는 전문가 스타일로 답변을 생성하는 LangChain 기반 OpenAI 응답 시스템\n\nRunnableLambda로 동적 분기\n\n```python\n# ------------------------------------------------------------\n# [상세 설명]\n# 이 코드는 사용자의 질문을 \"수학 / 과학 / 기타\"로 분류한 뒤\n# 해당 카테고리에 맞는 전문가 체인으로 라우팅하는 LCEL 구조이다.\n#\n# 전체 흐름:\n# 1. classification_chain → 질문 분류\n# 2. router() → 분류 결과 기반 체인 선택\n# 3. math / science / general chain → 응답 생성"
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "router 함수가 분류 결과에 '수학'이 들어 있을 때 돌려줘야 하는 것은?",
+          "o": [
+            "math_chain",
+            "classification_chain",
+            "general_chain",
+            "router_chain"
+          ],
+          "a": 0,
+          "h": "router()는 분류 결과에 따라 '적절한 체인'을 골라 돌려주는 함수입니다. 수학 질문 '2+2는 무엇인가요?'의 실제 답변은 수학 전문가 페르소나의 말투로 시작했습니다.",
+          "w": "분류가 수학이면 수학 전문가 체인 math_chain을 반환합니다. general_chain은 기타 질문용이고, router_chain은 router를 RunnableLambda로 감싼 최종 체인 자체입니다.",
+          "an": "7일차 RunnableLambda로 동적 분기 · 5. 라우터 함수",
+          "src": "# 이 코드는 사용자의 질문을 \"수학 / 과학 / 기타\"로 분류한 뒤\n# 해당 카테고리에 맞는 전문가 체인으로 라우팅하는 LCEL 구조이다.\n#\n# 전체 흐름:\n# 1. classification_chain → 질문 분류\n# 2. router() → 분류 결과 기반 체인 선택\n# 3. math / science / general chain → 응답 생성\n# 4. RunnableLambda → 동적 실행 구조 구성"
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "RunnableLambda를 쓰면 실행 중 입력에 따라 다른 체인을 고르는 동적 분기를 만들 수 있다.",
+          "a": true,
+          "h": "라우팅 예제의 6번 단계는 '최종 라우팅 체인 (RunnableLambda로 동적 분기)'입니다. router 함수가 분류 결과를 보고 체인을 고르고, 그 함수를 감싼 Runnable이 최종 체인이 됩니다.",
+          "w": "맞습니다. router 함수를 RunnableLambda로 감싸 입력마다 math·science·general 체인 중 하나를 골라 실행합니다.",
+          "an": "7일차 RunnableLambda로 동적 분기",
+          "src": "# 이 코드는 사용자의 질문을 \"수학 / 과학 / 기타\"로 분류한 뒤\n# 해당 카테고리에 맞는 전문가 체인으로 라우팅하는 LCEL 구조이다.\n#\n# 전체 흐름:\n# 1. classification_chain → 질문 분류\n# 2. router() → 분류 결과 기반 체인 선택\n# 3. math / science / general chain → 응답 생성\n# 4. RunnableLambda → 동적 실행 구조 구성"
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": false,
+          "p": "각 체인이 <code>{'country': RunnablePassthrough()}</code>로 시작하면, <code>combined_chain.invoke('대한민국')</code>처럼 문자열만 넣을 때 country 키가 없어 오류가 난다.",
+          "a": false,
+          "h": "주석은 'invoke 입력이 문자열인데도 동작하는 이유'를 따로 설명합니다. 각 체인 맨 앞의 RunnablePassthrough가 입력값을 그대로 country 키에 넣어 준다는 내용입니다.",
+          "w": "틀렸습니다. RunnablePassthrough가 문자열 '대한민국'을 그대로 country에 매핑하므로 정상 동작하고, capital·area 결과가 dict로 반환됩니다.",
+          "an": "7일차 RunnableParaller · chain도 RunnableParallel 적용 가능",
+          "src": "# - capital → chain1 결과 (수도)\n# - area → chain2 결과 (면적)\n#\n# 즉, 하나의 입력을 받아\n# 여러 체인을 \"병렬 실행\"한다.\n# ------------------------------------------------------------\n# 실행\nresult =\n# ------------------------------------------------------------\n# [상세 설명]\n# invoke 입력이 문자열(\"대한민국\")인데도 동작하는 이유:\n#\n# RunnableParallel 내부에서\n# 각 chain이 {'country': RunnablePassthrough()} 구조이므로\n# 입력값이 자동으로 country로 매핑된다."
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "라우팅 예제의 체인과 역할을 연결하세요.",
+          "pairs": [
+            [
+              "classification_chain",
+              "질문을 수학·과학·기타로 분류"
+            ],
+            [
+              "math_chain",
+              "수학 전문가 말투로 답변"
+            ],
+            [
+              "science_chain",
+              "과학 전문가 말투로 답변"
+            ],
+            [
+              "general_chain",
+              "기타 질문에 간결히 답변"
+            ]
+          ],
+          "h": "예제는 분류 체인 하나와 답변 체인 세 개로 이루어져 있습니다. 답변 체인의 프롬프트는 각각 'expert in math', 'expert in science', 'Respond ... concisely'로 시작합니다.",
+          "w": "classification_chain이 분류하고, 분류 결과에 따라 math·science·general 체인이 각자의 스타일로 답합니다.",
+          "an": "7일차 RunnableLambda로 동적 분기 · 1~4",
+          "src": "사용자의 질문을 자동으로 분류하고, 그에 맞는 전문가 스타일로 답변을 생성하는 LangChain 기반 OpenAI 응답 시스템\n\nRunnableLambda로 동적 분기\n\n```python\n# ------------------------------------------------------------\n# [상세 설명]\n# 이 코드는 사용자의 질문을 \"수학 / 과학 / 기타\"로 분류한 뒤\n# 해당 카테고리에 맞는 전문가 체인으로 라우팅하는 LCEL 구조이다.\n#\n# 전체 흐름:\n# 1. classification_chain → 질문 분류\n# 2. router() → 분류 결과 기반 체인 선택\n# 3. math / science / general chain → 응답 생성"
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "라우팅 체인의 처리 순서대로 나열하세요.",
+          "steps": [
+            "classification_chain이 질문 분류",
+            "router()가 분류 결과로 체인 선택",
+            "선택된 전문가 체인이 응답 생성"
+          ],
+          "h": "코드 맨 위 주석이 전체 흐름을 번호로 정리합니다. 무엇에 관한 질문인지 먼저 알아야 담당 체인을 고를 수 있고, 담당 체인이 정해져야 답변이 나옵니다.",
+          "w": "질문을 먼저 분류하고, router가 해당 체인을 고르면, 그 체인이 최종 답변을 생성합니다.",
+          "an": "7일차 RunnableLambda로 동적 분기 · 전체 흐름",
+          "src": "# 이 코드는 사용자의 질문을 \"수학 / 과학 / 기타\"로 분류한 뒤\n# 해당 카테고리에 맞는 전문가 체인으로 라우팅하는 LCEL 구조이다.\n#\n# 전체 흐름:\n# 1. classification_chain → 질문 분류\n# 2. router() → 분류 결과 기반 체인 선택\n# 3. math / science / general chain → 응답 생성\n# 4. RunnableLambda → 동적 실행 구조 구성"
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "생일 체인을 <code>chain.invoke(5)</code>로 실행할 때 옳은 설명을 모두 고르세요.",
+          "o": [
+            "today에 현재 날짜 문자열이 들어감",
+            "n에는 5가 그대로 들어감",
+            "dict의 각 값이 같은 입력 5를 받음",
+            "get_today가 5를 날짜로 바꿈",
+            "결과는 AIMessage 객체"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "체인 맨 앞의 딕셔너리는 같은 입력을 각 값(Runnable)에 나눠 줍니다. get_today는 받은 입력을 dummy로 무시하고 오늘 날짜(실행 당시 'Jul-03')를 돌려주며, 체인 끝에는 StrOutputParser가 있습니다.",
+          "w": "입력 5는 today·n 두 값 모두에 전달되지만 get_today는 이를 무시하고 날짜를 만들고, n에는 5가 그대로 들어갑니다. 파서가 있으므로 결과는 문자열입니다.",
+          "an": "7일차 RunnableLambda · 생일 체인",
+          "src": "# [상세 설명]\n# 이 체인은 현재 날짜(today)와 사용자 입력(n)을 결합해서\n# “오늘 생일인 유명인 목록”을 생성하는 LCEL 구조다.\n#\n# 실행 흐름:\n# 1) RunnableLambda(get_today)\n# → 현재 날짜 생성\n#\n# 2) RunnablePassthrough()\n# → 입력값 그대로 n으로 전달\n#\n# 3) PromptTemplate\n# → 완성된 프롬프트 생성\n#\n# 4) ChatOpenAI\n# → LLM 응답 생성\n#\n# 5) StrOutputParser\n# → 문자열로 변환"
+        }
+      ]
+    },
+    {
+      "id": "t7",
+      "title": "런타임 구성 · ConfigurableField",
+      "ref": "7일차 런타임에 체인 내부 구성하기 · 동적 속성 지정",
+      "qs": [
+        {
+          "id": "t7-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "실행 가능한 객체의 특정 필드(모델·temperature 등)를 런타임에 바꾸는 기능은?",
+          "o": [
+            "configurable_alternatives",
+            "RunnablePassthrough.assign",
+            "batch",
+            "configurable_fields"
+          ],
+          "a": 3,
+          "h": "'런타임에 체인 내부 구성하기'는 두 기능을 비교합니다. 하나는 체인 구조는 그대로 두고 내부 설정값만 바꾸고, 다른 하나는 구성 요소 자체를 교체합니다. 이 질문은 '필드(설정값)'를 바꾸는 쪽입니다.",
+          "w": "configurable_fields는 모델 종류·temperature·프롬프트 변수 같은 필드를 런타임에 바꿉니다. configurable_alternatives는 구성 요소 자체를 교체합니다.",
+          "an": "7일차 런타임에 체인 내부 구성하기 · 1. configurable_fields",
+          "src": "1. configurable_fields\n\n - 실행 가능한 객체의 특정 필드를 런타임에서 변경할 수 있는 기능이다.\n\n - 예를 들어 다음과 같은 값을 동적으로 변경할 수 있다:\n\n 1. 모델 종류 (GPT-4o, GPT-3.5 등)\n 2. temperature 값\n 3. 프롬프트 내부 변수\n\n - 즉, 체인의 구조는 그대로 두고 내부 설정만 바꾸는 방식이다.\n\n2. configurable_alternatives\n - 실행 중에 구성 요소 자체를 교체할 수 있는 기능이다.\n\n - 예를 들어:\n\n 1. 서로 다른 LLM 교체 (GPT ↔ Claude 등)"
+        },
+        {
+          "id": "t7-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "실행 중 LLM이나 프롬프트 같은 구성 요소 자체를 교체하는 기능은?",
+          "o": [
+            "configurable_fields",
+            "configurable_alternatives",
+            "RunnableParallel",
+            "StrOutputParser"
+          ],
+          "a": 1,
+          "h": "자료는 이 기능을 '단순 파라미터 변경이 아니라 실행 구조 자체를 바꾸는 방식'이라고 설명합니다. 예로 서로 다른 LLM 교체, 프롬프트 A ↔ B 교체, 체인 구성 요소 전체 변경을 듭니다. '대안(alternative)'이라는 단어를 떠올리세요.",
+          "w": "configurable_alternatives는 구성 요소 자체를 다른 것으로 바꿉니다. configurable_fields는 같은 구성 요소의 설정값만 바꿉니다.",
+          "an": "7일차 런타임에 체인 내부 구성하기 · 2. configurable_alternatives",
+          "src": "- 예를 들어 다음과 같은 값을 동적으로 변경할 수 있다:\n\n 1. 모델 종류 (GPT-4o, GPT-3.5 등)\n 2. temperature 값\n 3. 프롬프트 내부 변수\n\n - 즉, 체인의 구조는 그대로 두고 내부 설정만 바꾸는 방식이다.\n\n2. configurable_alternatives\n - 실행 중에 구성 요소 자체를 교체할 수 있는 기능이다.\n\n - 예를 들어:\n\n 1. 서로 다른 LLM 교체 (GPT ↔ Claude 등)\n 2. 프롬프트 A ↔ 프롬프트 B 교체\n 3. 체인 구성 요소 전체 변경\n\n - 즉, 단순 파라미터 변경이 아니라 실행 구조 자체를 바꾸는 방식이다.\n\n핵심 정리\n- configurable_fields: 설정값 변경"
+        },
+        {
+          "id": "t7-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "자료가 든 '정적 모델 설정 방식'의 한계는?",
+          "o": [
+            "실행 중 모델 변경 불가",
+            "응답이 스트리밍되지 않음",
+            "프롬프트 변수 사용 불가",
+            "batch 실행 불가"
+          ],
+          "a": 0,
+          "h": "정적 방식은 모델을 코드에 고정값으로 지정합니다. 자료는 그 특징으로 항상 같은 모델만 쓰고, 실험이나 A/B 테스트에 제한이 있다는 점을 듭니다.",
+          "w": "모델을 코드에 고정하면 실행 중에 바꿀 수 없어 실험이나 A/B 테스트에 제한이 있습니다. 스트리밍·프롬프트 변수·batch는 정적 설정과 관계없이 쓸 수 있습니다.",
+          "an": "7일차 런타임에 체인 내부 구성하기 · 정적 모델 설정 방식",
+          "src": "## 정적 모델 설정 방식\n\n기존 방식에서는 모델을 코드에 고정값으로 지정한다.\n\n특징은 다음과 같다:\n\n1. 항상 동일한 모델만 사용된다\n2. 실행 중 모델 변경이 불가능하다\n3. 실험이나 A/B 테스트에 제한이 있다\n\n---\n## 동적 모델 설정 방식 (ConfigurableField)\n\n고정된 모델 대신 실행 시점에 모델을 변경하고 싶을 때 `ConfigurableField`를 사용한다.\n\n이를 통해 다음과 같은 기능을 구현할 수 있다:\n\n1. 실행 환경에 따른 모델 선택\n2. gpt-4o vs gpt-4o-mini A/B 테스트\n3. 비용과 성능을 상황에 따라 최적화\n\n즉, 코드 수정 없이 실행 단계에서 모델을 바꿀 수 있다."
+        },
+        {
+          "id": "t7-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>model.invoke('...', config={'configurable': {'gpt_version': 'gpt-4o-mini'}})</code>가 동작하려면 <code>ConfigurableField</code>의 id는?",
+          "o": [
+            "'model_name'",
+            "'configurable'",
+            "'gpt_version'",
+            "'gpt-4o-mini'"
+          ],
+          "a": 2,
+          "h": "개선 코드는 model_name 필드를 ConfigurableField로 감싸 런타임에 바꿀 수 있게 만듭니다. 실행할 때는 config 안 'configurable' 딕셔너리에 그 필드의 id를 키로, 원하는 모델 이름을 값으로 넣습니다.",
+          "w": "config의 키 <code>gpt_version</code>이 ConfigurableField의 id와 같아야 합니다. model_name은 바뀌는 필드 이름이고, 'gpt-4o-mini'는 넘기는 값입니다.",
+          "an": "7일차 동적 속성 지정 · 4. 동적 모델 설정",
+          "src": "# 개선 코드 (model_name을 런타임 변경 가능하게 설정)\nmodel =\n# gpt-3.5-turbo 실행\nresult_35 = model.invoke(\n \"대한민국의 수도는 어디야?\", # 입력 질문\n config={\"configurable\": {\"gpt_version\": \"gpt-3.5-turbo\"}} # 런타임 설정\n)\nprint(\"gpt-3.5-turbo 출력:\", result_35.content)\n# gpt-4o-mini 실행"
+        },
+        {
+          "id": "t7-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "노트북 '7. 런타임 설정 변경'에서 체인에 실행 시점 설정을 붙이는 메서드는?",
+          "o": [
+            "from_template",
+            "as_retriever",
+            "assign",
+            "with_config"
+          ],
+          "a": 3,
+          "h": "노트북의 학습 목표 주석은 포함 기능을 넷으로 정리합니다. 기본 호출, configurable_fields로 런타임 모델 변경, PromptTemplate + LCEL 체인, 그리고 '실행 시점 설정 변경'입니다. 이름이 '설정과 함께'라는 뜻입니다.",
+          "w": "<code>with_config</code>로 체인에 configurable 값을 붙여 실행 시점에 모델 설정을 바꿉니다. from_template은 프롬프트 생성, as_retriever는 VectorStore 변환용입니다.",
+          "an": "7일차 동적 속성 지정 · 7. 런타임 설정 변경(with_config)",
+          "src": "# 이 코드는 LangChain의 핵심 기능을 하나의 흐름으로 학습하는 예제다.\n# 포함 기능:\n# - ChatOpenAI 모델 기본 호출\n# - configurable_fields를 이용한 런타임 모델 변경\n# - PromptTemplate + LCEL 체인 구성\n# - with_config를 이용한 실행 시점 설정 변경\n# 핵심 목표:\n# \"코드 수정 없이 실행 시점에서 모델과 프롬프트를 유연하게 변경하는 구조 이해\""
+        },
+        {
+          "id": "t7-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "configurable_fields는 체인 구조는 그대로 두고 내부 설정값만 바꾸는 방식이다.",
+          "a": true,
+          "h": "자료의 핵심 정리는 configurable_fields를 '설정값 변경', configurable_alternatives를 '구성 요소 변경'으로 요약합니다. 목적은 둘 다 코드 수정 없이 런타임에 동적으로 제어하는 것입니다.",
+          "w": "맞습니다. configurable_fields는 구조를 유지하고 설정값만 바꿉니다.",
+          "an": "7일차 런타임에 체인 내부 구성하기 · 핵심 정리",
+          "src": "- 즉, 체인의 구조는 그대로 두고 내부 설정만 바꾸는 방식이다.\n\n2. configurable_alternatives\n - 실행 중에 구성 요소 자체를 교체할 수 있는 기능이다.\n\n - 예를 들어:\n\n 1. 서로 다른 LLM 교체 (GPT ↔ Claude 등)\n 2. 프롬프트 A ↔ 프롬프트 B 교체\n 3. 체인 구성 요소 전체 변경\n\n - 즉, 단순 파라미터 변경이 아니라 실행 구조 자체를 바꾸는 방식이다.\n\n핵심 정리\n- configurable_fields: 설정값 변경\n- configurable_alternatives: 구성 요소 변경\n- 목적: 코드 수정 없이 런타임 동적 제어\n## 동적 속성 지정\n\n`ChatOpenAI`를 사용할 때 모델 설정을 통해 사용할 LLM을 지정할 수 있다."
+        },
+        {
+          "id": "t7-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "ConfigurableField를 써도 gpt-4o와 gpt-4o-mini를 바꿔 보려면 코드를 매번 수정해야 한다.",
+          "a": false,
+          "h": "자료의 한 줄 요약은 ConfigurableField로 ChatOpenAI 모델을 실행 시점에 동적으로 바꿀 수 있다고 말합니다. 노트북에서는 같은 model 객체로 config 값만 달리해 gpt-3.5-turbo와 gpt-4o-mini를 차례로 호출했습니다.",
+          "w": "틀렸습니다. ConfigurableField를 쓰면 코드 수정 없이 invoke의 config 값만 바꿔 모델을 고를 수 있습니다.",
+          "an": "7일차 동적 속성 지정 · 한 줄 요약",
+          "src": "이를 통해 다음과 같은 기능을 구현할 수 있다:\n\n1. 실행 환경에 따른 모델 선택\n2. gpt-4o vs gpt-4o-mini A/B 테스트\n3. 비용과 성능을 상황에 따라 최적화\n\n즉, 코드 수정 없이 실행 단계에서 모델을 바꿀 수 있다.\n\n---\n## 핵심 정리\n\n- `model`: ChatOpenAI에서 사용하는 모델 지정 파라미터\n- 정적 설정: 코드에 고정된 모델 사용 방식\n- 동적 설정: ConfigurableField를 통한 실행 시 변경 방식\n- 목적: 코드 수정 없이 유연한 모델 선택\n\n---\n## 한 줄 요약\n\nConfigurableField를 사용하면 ChatOpenAI 모델을 코드 수정 없이 실행 시점에 동적으로 변경할 수 있다."
+        },
+        {
+          "id": "t7-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "용어와 설명을 연결하세요.",
+          "pairs": [
+            [
+              "configurable_fields",
+              "설정값 변경"
+            ],
+            [
+              "configurable_alternatives",
+              "구성 요소 변경"
+            ],
+            [
+              "ConfigurableField",
+              "필드를 런타임 변경 가능하게 지정"
+            ],
+            [
+              "model",
+              "ChatOpenAI의 모델 지정 파라미터"
+            ]
+          ],
+          "h": "자료의 두 '핵심 정리' 블록을 떠올리세요. 하나는 fields와 alternatives를 비교하고, 다른 하나는 model 파라미터와 정적·동적 설정, 그리고 동적 설정에 쓰는 클래스를 정리합니다.",
+          "w": "fields는 설정값, alternatives는 구성 요소를 바꿉니다. ConfigurableField는 필드를 런타임 변경 대상으로 지정하고, model은 ChatOpenAI의 모델 파라미터입니다.",
+          "an": "7일차 런타임에 체인 내부 구성하기 · 핵심 정리",
+          "src": "- 즉, 단순 파라미터 변경이 아니라 실행 구조 자체를 바꾸는 방식이다.\n\n핵심 정리\n- configurable_fields: 설정값 변경\n- configurable_alternatives: 구성 요소 변경\n- 목적: 코드 수정 없이 런타임 동적 제어\n## 동적 속성 지정\n\n`ChatOpenAI`를 사용할 때 모델 설정을 통해 사용할 LLM을 지정할 수 있다.\n\n일반적으로 사용하는 설정은 `model`이며, 이를 통해 GPT 모델 버전을 선택한다.\n\n예를 들어 다음과 같은 모델을 지정할 수 있다:\n\n- gpt-4o\n- gpt-4o-mini\n- gpt-3.5-turbo (레거시)\n\n---\n## 정적 모델 설정 방식"
+        },
+        {
+          "id": "t7-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "configurable 실습 노트북의 학습 흐름을 순서대로 나열하세요.",
+          "steps": [
+            "ChatOpenAI 기본 호출",
+            "configurable_fields로 런타임 모델 변경",
+            "PromptTemplate + LCEL 체인 구성",
+            "with_config로 실행 시점 설정 변경"
+          ],
+          "h": "실습 셀은 번호 붙은 섹션으로 진행됩니다. 3. 모델 생성 → 4. 동적 모델 설정 → 5. PromptTemplate + LCEL 체인 → 6. Hub 대체 → 7. 런타임 설정 변경입니다.",
+          "w": "기본 호출로 시작해 configurable_fields로 모델을 바꾸고, 프롬프트 체인을 만든 뒤 with_config로 실행 시점 설정을 바꿉니다.",
+          "an": "7일차 동적 속성 지정 · 상세 설명(포함 기능)",
+          "src": "# 이 코드는 LangChain의 핵심 기능을 하나의 흐름으로 학습하는 예제다.\n# 포함 기능:\n# - ChatOpenAI 모델 기본 호출\n# - configurable_fields를 이용한 런타임 모델 변경\n# - PromptTemplate + LCEL 체인 구성\n# - with_config를 이용한 실행 시점 설정 변경\n# 핵심 목표:\n# \"코드 수정 없이 실행 시점에서 모델과 프롬프트를 유연하게 변경하는 구조 이해\""
+        },
+        {
+          "id": "t7-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "학생A가 평소엔 gpt-4o-mini, 중요한 질문엔 gpt-4o를 쓰려 합니다. 알맞은 설명을 모두 고르세요.",
+          "o": [
+            "model_name을 ConfigurableField로 지정",
+            "invoke 때 config로 모델 선택",
+            "A/B 테스트에도 활용 가능",
+            "모델마다 별도 코드 작성 필요",
+            "temperature는 런타임 변경 불가"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "자료는 ConfigurableField로 할 수 있는 일로 실행 환경에 따른 모델 선택, gpt-4o vs gpt-4o-mini A/B 테스트, 비용과 성능의 상황별 최적화를 듭니다. configurable_fields로 바꿀 수 있는 값의 예에는 모델 종류와 temperature가 함께 나옵니다.",
+          "w": "model_name을 ConfigurableField로 지정하고 invoke의 config로 모델을 고르면 되며, 같은 방식으로 A/B 테스트도 할 수 있습니다. 코드를 따로 만들 필요가 없고, temperature도 런타임에 바꿀 수 있는 필드입니다.",
+          "an": "7일차 동적 속성 지정 · 동적 모델 설정 방식",
+          "src": "기존 방식에서는 모델을 코드에 고정값으로 지정한다.\n\n특징은 다음과 같다:\n\n1. 항상 동일한 모델만 사용된다\n2. 실행 중 모델 변경이 불가능하다\n3. 실험이나 A/B 테스트에 제한이 있다\n\n---\n## 동적 모델 설정 방식 (ConfigurableField)\n\n고정된 모델 대신 실행 시점에 모델을 변경하고 싶을 때 `ConfigurableField`를 사용한다.\n\n이를 통해 다음과 같은 기능을 구현할 수 있다:\n\n1. 실행 환경에 따른 모델 선택\n2. gpt-4o vs gpt-4o-mini A/B 테스트\n3. 비용과 성능을 상황에 따라 최적화\n\n즉, 코드 수정 없이 실행 단계에서 모델을 바꿀 수 있다."
+        }
+      ]
+    },
+    {
+      "id": "t8",
+      "title": "@chain · Runnable 파이프라인",
+      "ref": "7일차 @chain 데코레이터 · 파이프라인 처리 시스템",
+      "qs": [
+        {
+          "id": "t8-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "일반 Python 함수를 Runnable 객체로 바꿔 주는 데코레이터는?",
+          "o": [
+            "@chain",
+            "@staticmethod",
+            "@property",
+            "@dataclass"
+          ],
+          "a": 0,
+          "h": "자료는 이 데코레이터를 함수 위에 붙이면 함수가 RunnableLambda로 자동 변환되어 LCEL 체인에 바로 연결된다고 설명합니다. <code>langchain_core.runnables</code>에서 import하며, 이름은 LangChain이 만드는 '연결된 처리 흐름'을 가리킵니다.",
+          "w": "<code>@chain</code>은 함수를 Runnable로 바꿉니다. 나머지는 Python 표준 데코레이터로 Runnable 변환과 관계없습니다.",
+          "an": "7일차 @chain 데코레이터 · 상세 설명",
+          "src": "상세 설명\n\n\n- @chain 데코레이터는 LangChain에서 함수를 Runnable 객체로 변환하는 기능이다.\n\n- 즉, 일반 Python 함수를 LCEL 체인에 바로 연결할 수 있게 만들어준다.\n\n- 핵심 개념\n1. 일반 함수 → RunnableLambda 자동 변환"
+        },
+        {
+          "id": "t8-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "<code>@chain</code>을 붙인 <code>custom_chain</code>을 실행하는 올바른 방법은?",
+          "o": [
+            "custom_chain.run('양자역학')",
+            "custom_chain.content('양자역학')",
+            "custom_chain.invoke('양자역학')",
+            "custom_chain.text('양자역학')"
+          ],
+          "a": 2,
+          "h": "자료는 데코레이팅 뒤 custom_chain이 '실행 가능한 객체(runnable)'가 되었으므로 Runnable의 표준 실행 메서드를 써야 한다고 말합니다. 단일 입력을 동기로 처리하는 메서드를 떠올리세요.",
+          "w": "custom_chain은 Runnable이므로 <code>invoke()</code>로 실행합니다. run·content·text는 Runnable 표준 메서드가 아닙니다.",
+          "an": "7일차 @chain 데코레이터 · custom_chain 호출",
+          "src": "custom_chain은 이제 실행 가능한 객체(runnable)이므로, invoke() 를 사용하여 실행해야 합니다.\n\n```python\n# custom_chain을 호출\nprint(custom_chain.invoke(\"양자역학\"))\n```\n\n**`langchain`** 라이브러리를 활용한 파이프라인 처리 시스템입니다. 이 시스템은 **텍스트 전처리**, **요약**, **GPT 모델을 활용한 질의응답**의 세 가지 단계를 거쳐, 최종적으로 **GPT-4** 모델을 사용하여 답변을 생성하는 구조\n### **핵심 개념**\n\n1. **Runnable**: `langchain`에서 각 단계를 `Runnable`로 정의하여, 그 각 단계가 독립적으로 작동하고, 그 결과를 다른 단계로 전달할 수 있도록 합니다."
+        },
+        {
+          "id": "t8-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "입력에 1을 더하는 <code>add_one</code> 함수를 <code>RunnableLambda(add_one).invoke(10)</code>으로 실행한 결과는?",
+          "o": [
+            "10",
+            "11",
+            "1",
+            "20"
+          ],
+          "a": 1,
+          "h": "RunnableLambda는 감싼 함수를 그대로 실행해 결과를 돌려줍니다. 함수 이름처럼 입력에 1을 더하며, 같은 함수를 @chain 방식으로 실행한 셀도 같은 값을 출력했습니다.",
+          "w": "add_one(10)이 실행되어 11이 반환됩니다. RunnableLambda 방식과 @chain 방식 모두 출력은 11이었습니다.",
+          "an": "7일차 @chain 데코레이터 · 2-1 RunnableLambda 방식",
+          "src": "#2-1. RunnableLambda 방식 (기존 방식)\nfrom langchain_core.runnables import RunnableLambda\n\n\n\n\nchain =\n\nresult = chain.invoke(10)"
+        },
+        {
+          "id": "t8-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "custom_chain 예제에서 첫 체인 출력 output1이 들어가는 prompt2의 변수는?",
+          "o": [
+            "topic",
+            "text",
+            "output1",
+            "sentence"
+          ],
+          "a": 3,
+          "h": "prompt1은 '{topic} 에 대해 짧게 한글로 설명해주세요.'이고, prompt2는 받은 문장을 emoji를 활용한 인스타그램 게시글로 만들어 달라고 요청합니다. 기존 코드의 두 번째 invoke가 어떤 키로 output1을 넘기는지 떠올리세요.",
+          "w": "prompt2는 '{sentence} 를 emoji를 활용한 인스타그램 게시글로...'이므로 <code>chain2.invoke({'sentence': output1})</code>로 넘깁니다. topic은 prompt1의 변수입니다.",
+          "an": "7일차 @chain 데코레이터 · custom_chain(prompt1·prompt2)",
+          "src": "# 3. 프롬프트 (기존 코드 유지)\n# ============================================================\n\nprompt1 = ChatPromptTemplate.from_template(\n \"{topic} 에 대해 짧게 한글로 설명해주세요.\"\n)\n\nprompt2 = ChatPromptTemplate.from_template(\n \"{sentence} 를 emoji를 활용한 인스타그램 게시글로 만들어주세요.\""
+        },
+        {
+          "id": "t8-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "텍스트 처리 파이프라인에서 GPT로 최종 응답을 생성하는 Runnable 클래스는?",
+          "o": [
+            "AskGPT",
+            "CleanText",
+            "SummarizeText",
+            "ProcessPipeline"
+          ],
+          "a": 0,
+          "h": "파이프라인은 전처리 → 요약 → GPT 질의응답의 3단계이고, 각 단계가 독립된 Runnable 클래스입니다. 마지막 단계의 클래스 이름은 GPT에게 '묻는다'는 뜻입니다.",
+          "w": "AskGPT가 GPT 모델로 최종 응답을 생성합니다. CleanText는 전처리, SummarizeText는 요약, ProcessPipeline은 세 단계를 묶어 실행하는 클래스입니다.",
+          "an": "7일차 파이프라인 처리 시스템 · 전체 구조 요약",
+          "src": "* 각 단계는 `invoke` 메서드를 통해 데이터를 주고받으며, 마지막에 `AskGPT` 객체에서 최종 결과가 생성됩니다.\n```python\n\"\"\"\n============================================================\nLangChain 파이프라인 처리 시스템 설명\n============================================================\n이 시스템은 LangChain을 활용하여 텍스트 전처리 → 요약 → GPT 기반 질의응답으로 이어지는\n3단계 파이프라인 구조를 구성한 것이다.\n전체 구조는 각 단계가 독립적인 실행 단위로 동작하면서도, 결과를 다음 단계로 전달하는 방식으로"
+        },
+        {
+          "id": "t8-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "@chain으로 데코레이팅한 함수는 LCEL 체인에 바로 연결할 수 있다.",
+          "a": true,
+          "h": "자료의 핵심 개념은 일반 함수 → RunnableLambda 자동 변환, LCEL 체인에 직접 연결 가능, 복잡한 클래스 없이 파이프라인 구성 가능입니다. 3번 셀은 함수 기반 LCEL로 final_chain을 만들어 invoke(5)를 실행합니다.",
+          "w": "맞습니다. @chain 함수는 Runnable이 되므로 다른 Runnable과 파이프로 연결할 수 있습니다.",
+          "an": "7일차 @chain 데코레이터 · 핵심 개념",
+          "src": "- @chain 데코레이터는 LangChain에서 함수를 Runnable 객체로 변환하는 기능이다.\n\n- 즉, 일반 Python 함수를 LCEL 체인에 바로 연결할 수 있게 만들어준다.\n\n- 핵심 개념\n1. 일반 함수 → RunnableLambda 자동 변환\n2. LCEL 체인에 직접 연결 가능\n3. 복잡한 클래스 없이 간단한 파이프라인 구성 가능\n- 핵심 장점\n1. 코드가 매우 간결해진다\n2. 함수 기반 로직을 그대로 체인에 연결 가능\n3. RunnableLambda보다 더 직관적\n4. 디버깅이 쉬움\n5. LCEL 구조와 자연스럽게 통합됨"
+        },
+        {
+          "id": "t8-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "ProcessPipeline 방식에서는 각 단계가 앞 단계 출력이 아니라 원본 텍스트를 받는다.",
+          "a": false,
+          "h": "ProcessPipeline의 invoke는 <code>data = ...</code> 대입을 세 번 반복한 뒤 마지막에 data를 반환합니다. 자료는 '각 단계의 출력은 다음 단계의 입력이 됨'이라고 데이터 흐름을 설명합니다.",
+          "w": "틀렸습니다. 각 단계 결과를 data에 다시 담아 다음 단계에 넘기므로 전처리 → 요약 → GPT 순으로 결과가 이어집니다.",
+          "an": "7일차 파이프라인 처리 시스템 · invoke() 기반 데이터 흐름",
+          "src": "형태의 실행 흐름이 자동으로 구성된다.\n3. invoke() 기반 데이터 흐름\n각 단계는 invoke()를 통해 데이터를 전달받고 처리 결과를 반환한다.\n입력 데이터는 첫 번째 단계로 전달됨\n각 단계의 출력은 다음 단계의 입력이 됨\n마지막 단계의 출력이 최종 결과가 됨\n4. 최종 출력 생성\n마지막 단계인 AskGPT는 GPT-4 모델을 활용하여 최종 응답을 생성한다.\n따라서 전체 파이프라인의 결과는 GPT-4 기반 응답이 된다.\n============================================================\n전체 구조 요약\n============================================================\n입력 텍스트\n ↓\nCleanText (전처리)"
+        },
+        {
+          "id": "t8-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "파이프라인 클래스와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "CleanText",
+              "텍스트 전처리"
+            ],
+            [
+              "SummarizeText",
+              "텍스트 요약"
+            ],
+            [
+              "AskGPT",
+              "GPT 질의응답으로 최종 응답"
+            ],
+            [
+              "ProcessPipeline",
+              "세 단계를 invoke로 차례로 실행"
+            ]
+          ],
+          "h": "클래스 이름이 각자 하는 일을 그대로 말해 줍니다. 앞의 세 개는 1·2·3단계이고, 마지막 하나는 __init__에서 세 Runnable을 만들어 invoke에서 순서대로 호출하는 '4단계: 파이프라인 구성 클래스'입니다.",
+          "w": "CleanText는 전처리, SummarizeText는 요약, AskGPT는 GPT 응답 생성을 맡고, ProcessPipeline이 이들을 순서대로 실행합니다.",
+          "an": "7일차 파이프라인 처리 시스템 · 4~7단계",
+          "src": "**`langchain`** 라이브러리를 활용한 파이프라인 처리 시스템입니다. 이 시스템은 **텍스트 전처리**, **요약**, **GPT 모델을 활용한 질의응답**의 세 가지 단계를 거쳐, 최종적으로 **GPT-4** 모델을 사용하여 답변을 생성하는 구조\n### **핵심 개념**\n\n1. **Runnable**: `langchain`에서 각 단계를 `Runnable`로 정의하여, 그 각 단계가 독립적으로 작동하고, 그 결과를 다른 단계로 전달할 수 있도록 합니다.\n2. **@chain**: `@chain` 데코레이터는 여러 `Runnable` 객체를 연결하여, 순차적으로 처리할 수 있게 해주는 역할을 합니다. 즉, 여러 단계를 체인처럼 이어서 실행할 수 있게 합니다."
+        },
+        {
+          "id": "t8-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "텍스트 처리 파이프라인의 실행 순서대로 나열하세요.",
+          "steps": [
+            "입력 텍스트",
+            "CleanText",
+            "SummarizeText",
+            "AskGPT",
+            "최종 결과 출력"
+          ],
+          "h": "자료의 '전체 구조 요약' 그림은 입력에서 출발해 전처리 → 요약 → GPT 질의응답을 거쳐 결과로 끝납니다. 텍스트를 먼저 정리하고 줄인 다음 GPT에 묻는 순서입니다.",
+          "w": "입력 → CleanText(전처리) → SummarizeText(요약) → AskGPT(GPT-4 응답) → 최종 결과입니다.",
+          "an": "7일차 파이프라인 처리 시스템 · 전체 구조 요약",
+          "src": "마지막 단계인 AskGPT는 GPT-4 모델을 활용하여 최종 응답을 생성한다.\n따라서 전체 파이프라인의 결과는 GPT-4 기반 응답이 된다.\n============================================================\n전체 구조 요약\n============================================================\n입력 텍스트\n ↓\nCleanText (전처리)\n ↓\nSummarizeText (요약)\n ↓\nAskGPT (GPT-4 질의응답)\n ↓\n최종 결과 출력\n============================================================\n핵심 정리"
+        },
+        {
+          "id": "t8-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "<code>@chain def custom_chain(text):</code> 안에서 <code>chain1 = prompt1 | llm | StrOutputParser()</code>, <code>chain2 = prompt2 | llm | StrOutputParser()</code>일 때 빈칸에 알맞은 코드를 모두 고르세요.",
+          "o": [
+            "output1 = chain1.invoke({'topic': text})",
+            "return chain2.invoke({'sentence': output1})",
+            "output1 = chain1.invoke({'sentence': text})",
+            "return chain2.invoke({'topic': output1})",
+            "output1 = prompt1.invoke(text) | llm"
+          ],
+          "a": [
+            0,
+            1
+          ],
+          "h": "기존 코드(주석)에 정답 구조가 남아 있습니다. 각 체인은 자기 프롬프트의 변수 이름을 키로 한 딕셔너리를 받으며, prompt1은 {topic}, prompt2는 {sentence}를 씁니다. 첫 체인의 결과가 두 번째 체인의 입력이 됩니다.",
+          "w": "chain1에는 topic 키로 text를, chain2에는 sentence 키로 output1을 넘겨야 합니다. 키 이름을 바꾸면 프롬프트 변수가 채워지지 않습니다.",
+          "an": "7일차 @chain 데코레이터 · custom_chain 기존 코드",
+          "src": "# 기존 코드\n# ----------------------------\n# def custom_chain(text):\n# chain1 = prompt1 | ChatOpenAI(model=\"gpt-4o-mini\") | StrOutputParser()\n# output1 = chain1.invoke({\"topic\": text})\n#\n# chain2 = prompt2 | ChatOpenAI(model=\"gpt-4o-mini\") | StrOutputParser()\n# return chain2.invoke({\"sentence\": output1})\n# ----------------------------\n# 개선 코드 (@chain 적용)"
+        }
+      ]
+    }
+  ]
+}

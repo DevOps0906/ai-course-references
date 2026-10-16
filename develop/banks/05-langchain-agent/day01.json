@@ -1,0 +1,590 @@
+{
+  "id": "lc-d01",
+  "code": "LC1",
+  "title": "LangChain 1일차 · 프롬프트 템플릿과 LCEL 대화형 챗봇",
+  "subtitle": "프롬프트 원칙·템플릿 요소 · ChatPromptTemplate·LCEL · 대화 메모리 챗봇",
+  "course": "05 · LangChain · RAG · Agent",
+  "source": "05-langchain-agent/day01/1일차_LangChain_프롬프트_1_new_배포완성.ipynb",
+  "salt": "lc-d01",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "프롬프트 원칙·템플릿 4요소",
+      "ref": "1일차 §프롬프트 정의 · 6대 원칙 · 템플릿 구성 요소",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "사용자와 LLM의 상호작용에서 모델 응답의 품질과 방향을 결정짓는 핵심 입력값은?",
+          "o": [
+            "출력 파서",
+            "프롬프트",
+            "체인",
+            "세션 기록"
+          ],
+          "a": 1,
+          "h": "자료는 이 용어를 사용자와 언어 모델 사이 상호작용에서 '모델에게 건네는 입력'으로 정의합니다. 이 입력이 달라지면 응답의 품질과 방향이 함께 달라집니다. 파서·체인처럼 결과를 가공하거나 연결하는 부품과는 구분하세요.",
+          "w": "프롬프트는 모델의 응답 품질과 방향을 결정짓는 핵심 입력값입니다. 출력 파서는 결과를 가공하고, 체인은 구성 요소를 잇는 구조입니다.",
+          "an": "1일차 §프롬프트 (Prompt) 정의",
+          "src": "- 프롬프트 (Prompt) 정의\n사용자와 언어 모델(LLM) 간의 상호작용에서 모델의 응답 품질과 방향을 결정짓는 핵심 입력값입니다."
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "프롬프트 작성 6대 원칙 중 '풍부한 컨텍스트로 환각을 막는다'는 원칙은?",
+          "o": [
+            "명확성과 구체성",
+            "간결함 유지",
+            "배경 정보 제공",
+            "열린 질문 활용"
+          ],
+          "a": 2,
+          "h": "6대 원칙은 구체성, 배경, 간결함, 열린 질문, 목표, 문체를 다룹니다. 그중 하나는 모델에게 풍부한 컨텍스트를 줘서 근거 없는 답(환각)을 줄이고 정확도를 높이는 것을 목적으로 합니다. 정보를 '빼는' 원칙이 아니라 '채워 주는' 원칙입니다.",
+          "w": "배경 정보 제공은 풍부한 컨텍스트로 환각(Hallucination)을 방지하고 정확도를 높이는 원칙입니다. 간결함 유지는 반대로 불필요한 정보를 빼는 원칙입니다.",
+          "an": "1일차 §프롬프트 작성 6대 원칙 2",
+          "src": "- 프롬프트 작성 6대 원칙\n1. 명확성과 구체성: 모호함을 제거하고, 모델이 이해할 수 있는 명확한 지시어를 사용합니다.\n2. 배경 정보 제공: 풍부한 컨텍스트를 제공하여 환각(Hallucination) 현상을 방지하고 정확도를 높입니다.\n3. 간결함 유지: 불필요한 정보는 배제하고 핵심적인 작업에만 집중합니다."
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "기대하는 결과물의 형식(표·코드·요약)과 범위를 미리 정하는 원칙은?",
+          "o": [
+            "명확한 목표 설정",
+            "맥락에 맞는 문체",
+            "열린 질문 활용",
+            "간결함 유지"
+          ],
+          "a": 0,
+          "h": "자료의 다섯 번째 원칙은 기대하는 결과물의 형식(표, 코드, 요약 등)과 범위를 미리 정해 두라고 말합니다. 톤앤매너를 정하는 원칙이나 단답형을 피하라는 원칙과는 다릅니다. 결과물의 '모양과 범위'에 초점을 맞춘 원칙을 고르세요.",
+          "w": "명확한 목표 설정은 결과물의 형식과 범위를 사전에 정의하는 원칙입니다. 맥락에 맞는 문체는 톤앤매너, 열린 질문은 상세한 답변 유도에 관한 원칙입니다.",
+          "an": "1일차 §프롬프트 작성 6대 원칙 5",
+          "src": "4. 열린 질문 활용: \"예/아니오\" 단답형을 넘어, 모델이 상세하고 분석적인 답변을 생성하도록 유도합니다.\n5. 명확한 목표 설정: 기대하는 결과물의 형식(표, 코드, 요약 등)과 범위를 사전에 정의합니다.\n6. 맥락에 맞는 언어/문체: 대화의 목적과 대상 독자에 적합한 톤앤매너를 설정합니다."
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "프롬프트 템플릿 4요소 중 'RAG의 핵심'으로 소개된 요소는?",
+          "o": [
+            "지시 (Instruction)",
+            "예시 (Few-shot)",
+            "질문 (Input)",
+            "맥락 (Context)"
+          ],
+          "a": 3,
+          "h": "템플릿 4요소는 작업 지시, 모범 답안, 추가 지식·데이터, 답할 대상으로 나뉩니다. 자료는 이 중 '작업 수행에 필요한 추가 지식이나 데이터'를 넣는 요소를 RAG의 핵심이라고 설명합니다. 검색해 온 문서가 들어가는 자리를 떠올리세요.",
+          "w": "맥락(Context)은 작업 수행에 필요한 추가 지식·데이터로, 자료에서 RAG의 핵심이라고 설명합니다. 예시는 모범 답안, 질문은 답할 대상입니다.",
+          "an": "1일차 §프롬프트 템플릿의 구성 요소 3",
+          "src": "2. 예시 (Few-shot): 작업 방식에 대한 모범 답안을 제공하여 모델의 이해도를 극대화합니다.\n3. 맥락 (Context): 작업을 수행하는 데 필요한 추가 지식이나 데이터(RAG의 핵심).\n4. 질문 (Input/Question): 모델이 답변해야 할 구체적인 대상."
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "학생A가 프롬프트에 '모범 답안 2개'를 함께 넣었습니다. 보강한 템플릿 요소는?",
+          "o": [
+            "지시 (Instruction)",
+            "예시 (Few-shot)",
+            "맥락 (Context)",
+            "질문 (Input)"
+          ],
+          "a": 1,
+          "h": "자료에서 한 요소는 '작업 방식에 대한 모범 답안을 제공해 모델의 이해도를 높이는 것'으로 설명됩니다. 반면 지시는 수행할 작업, 맥락은 추가 지식, 질문은 답할 대상입니다. 견본 답안이 어느 설명과 맞는지 비교하세요.",
+          "w": "모범 답안을 제공해 작업 방식을 이해시키는 것은 예시(Few-shot)입니다. 지시는 수행할 작업 자체, 맥락은 추가 지식·데이터입니다.",
+          "an": "1일차 §프롬프트 템플릿의 구성 요소 2",
+          "src": "2. 예시 (Few-shot): 작업 방식에 대한 모범 답안을 제공하여 모델의 이해도를 극대화합니다.\n3. 맥락 (Context): 작업을 수행하는 데 필요한 추가 지식이나 데이터(RAG의 핵심).\n4. 질문 (Input/Question): 모델이 답변해야 할 구체적인 대상."
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "'열린 질문 활용' 원칙은 예/아니오 단답형 답변을 유도하라는 뜻이다.",
+          "a": false,
+          "h": "자료의 네 번째 원칙은 '예/아니오' 단답형을 넘어서라고 말합니다. 모델이 상세하고 분석적인 답변을 생성하도록 유도하는 것이 목적입니다. 단답형을 유도하는 것과 이 목적이 맞는지 따져 보세요.",
+          "w": "틀렸습니다. 열린 질문 활용은 예/아니오 단답형을 넘어 상세하고 분석적인 답변을 이끌어 내라는 원칙입니다.",
+          "an": "1일차 §프롬프트 작성 6대 원칙 4",
+          "src": "3. 간결함 유지: 불필요한 정보는 배제하고 핵심적인 작업에만 집중합니다.\n4. 열린 질문 활용: \"예/아니오\" 단답형을 넘어, 모델이 상세하고 분석적인 답변을 생성하도록 유도합니다.\n5. 명확한 목표 설정: 기대하는 결과물의 형식(표, 코드, 요약 등)과 범위를 사전에 정의합니다."
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "최신 LangChain에서는 템플릿의 구성 요소를 <code>ChatPromptTemplate</code>으로 구조화한다.",
+          "a": true,
+          "h": "자료는 프롬프트를 구성하는 4가지 요소를 소개한 뒤, 최신 LangChain에서 특정 클래스를 통해 이를 구조화한다고 설명합니다. 이 클래스는 1일차 리팩토링 코드 전반에서 from_template, from_messages로 쓰입니다. 문장 속 클래스가 그 클래스와 같은지 확인하세요.",
+          "w": "맞습니다. 자료는 지시·예시·맥락·질문 4요소를 최신 LangChain에서 ChatPromptTemplate으로 구조화한다고 설명합니다.",
+          "an": "1일차 §프롬프트 템플릿 (Prompt Template) 구조",
+          "src": "- 프롬프트 템플릿 (Prompt Template) 구조\n효율적인 자동화 및 재사용성을 위해 프롬프트를 구성하는 4가지 필수 요소입니다. 최신 LangChain에서는 ChatPromptTemplate을 통해 이를 구조화합니다."
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "프롬프트 템플릿의 구성 요소와 설명을 연결하세요.",
+          "pairs": [
+            [
+              "지시 (Instruction)",
+              "모델이 수행할 구체적인 작업"
+            ],
+            [
+              "예시 (Few-shot)",
+              "작업 방식의 모범 답안"
+            ],
+            [
+              "맥락 (Context)",
+              "작업에 필요한 추가 지식이나 데이터"
+            ],
+            [
+              "질문 (Input)",
+              "모델이 답변해야 할 구체적인 대상"
+            ]
+          ],
+          "h": "자료는 지시를 '구체적인 작업', 예시를 '모범 답안', 맥락을 'RAG의 핵심인 추가 지식', 질문을 '답변해야 할 대상'으로 설명합니다. 각 요소가 모델에게 무엇을 건네는지로 구분하세요. 견본과 참고 데이터는 서로 다른 요소입니다.",
+          "w": "지시는 작업, 예시는 모범 답안, 맥락은 추가 지식(RAG의 핵심), 질문은 답할 대상입니다. 네 요소를 나누면 템플릿을 재사용하기 쉽습니다.",
+          "an": "1일차 §프롬프트 템플릿의 구성 요소",
+          "src": "2. 예시 (Few-shot): 작업 방식에 대한 모범 답안을 제공하여 모델의 이해도를 극대화합니다.\n3. 맥락 (Context): 작업을 수행하는 데 필요한 추가 지식이나 데이터(RAG의 핵심).\n4. 질문 (Input/Question): 모델이 답변해야 할 구체적인 대상."
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "자료에 소개된 프롬프트 템플릿 구성 요소를 번호 순서대로 나열하세요.",
+          "steps": [
+            "지시 (Instruction)",
+            "예시 (Few-shot)",
+            "맥락 (Context)",
+            "질문 (Input)"
+          ],
+          "h": "자료는 네 요소에 1~4번 번호를 붙여 소개합니다. 먼저 무엇을 할지 알려 주고, 이어 작업 방식의 견본, 필요한 추가 지식을 준 뒤, 마지막에 실제로 답할 대상을 둡니다. 이 흐름대로 나열하세요.",
+          "w": "자료는 1. 지시 → 2. 예시 → 3. 맥락 → 4. 질문 순서로 소개합니다. 마지막에 답해야 할 질문이 오는 구조입니다.",
+          "an": "1일차 §프롬프트 템플릿의 구성 요소 1~4",
+          "src": "2. 예시 (Few-shot): 작업 방식에 대한 모범 답안을 제공하여 모델의 이해도를 극대화합니다.\n3. 맥락 (Context): 작업을 수행하는 데 필요한 추가 지식이나 데이터(RAG의 핵심).\n4. 질문 (Input/Question): 모델이 답변해야 할 구체적인 대상."
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "6대 원칙에 맞게 프롬프트를 고친 것을 모두 고르세요.",
+          "o": [
+            "'정리해줘'를 '3줄로 요약해줘'로",
+            "관련 배경 자료를 함께 제공",
+            "무관한 잡담을 덧붙여 길게",
+            "예/아니오로만 답하게 질문",
+            "대상 독자에 맞는 톤 지정"
+          ],
+          "a": [
+            0,
+            1,
+            4
+          ],
+          "h": "6대 원칙은 모호함 제거(구체성), 컨텍스트 제공, 불필요한 정보 배제(간결함), 단답형 피하기(열린 질문), 결과 형식 정의(목표), 독자에 맞는 톤(문체)입니다. 각 보기가 이 중 하나를 지키는지 어기는지 대어 보세요. 길게 늘이거나 예/아니오로 묻는 것은 어느 원칙과 충돌하는지 생각하세요.",
+          "w": "구체적 지시, 배경 정보 제공, 독자에 맞는 문체는 원칙에 맞습니다. 무관한 내용 추가는 '간결함 유지', 예/아니오 질문은 '열린 질문 활용'에 어긋납니다.",
+          "an": "1일차 §프롬프트 작성 6대 원칙",
+          "src": "- 프롬프트 작성 6대 원칙\n1. 명확성과 구체성: 모호함을 제거하고, 모델이 이해할 수 있는 명확한 지시어를 사용합니다.\n2. 배경 정보 제공: 풍부한 컨텍스트를 제공하여 환각(Hallucination) 현상을 방지하고 정확도를 높입니다.\n3. 간결함 유지: 불필요한 정보는 배제하고 핵심적인 작업에만 집중합니다.\n4. 열린 질문 활용: \"예/아니오\" 단답형을 넘어, 모델이 상세하고 분석적인 답변을 생성하도록 유도합니다.\n5. 명확한 목표 설정: 기대하는 결과물의 형식(표, 코드, 요약 등)과 범위를 사전에 정의합니다.\n6. 맥락에 맞는 언어/문체: 대화의 목적과 대상 독자에 적합한 톤앤매너를 설정합니다."
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "PromptTemplate → LCEL",
+      "ref": "1일차 §legacy 템플릿 · 최신 표준 리팩토링 · 챗 프롬프트 템플릿",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "legacy <code>PromptTemplate</code>에서 변수에 값을 채워 완성 문자열을 만드는 메서드는?",
+          "o": [
+            "invoke()",
+            "format()",
+            "stream()",
+            "launch()"
+          ],
+          "a": 1,
+          "h": "legacy 셀은 <code>PromptTemplate.from_template()</code>로 템플릿을 만든 뒤 한 메서드로 name·age에 값을 채워 완전한 문자열을 만듭니다. 이 단계는 모델을 호출하지 않습니다. 체인을 실행하는 메서드나 Gradio를 띄우는 메서드와 구분하세요.",
+          "w": "<code>prompt_tmp.format(name='홍길동', age=20)</code>처럼 format()으로 변수를 채워 완전한 프롬프트 문자열을 만듭니다. invoke()는 LCEL 체인 실행, launch()는 Gradio 실행입니다.",
+          "an": "1일차 §legacy 문자열 템플릿",
+          "src": "prompt_tmp = PromptTemplate.from_template(tmp_txt)\n\n# format()를 사용하여 템플릿의 변수에 값을 채워 완전한 프롬프트 문자열을 생성\nfilled_prompt = prompt_tmp.format(name='홍길동', age=20)"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>PromptTemplate.from_template(tmp_txt).format(name='홍길동', age=20)</code>의 결과는?",
+          "o": [
+            "변수가 채워진 문자열",
+            "AIMessage 객체",
+            "메시지 객체 리스트",
+            "변수 이름 딕셔너리"
+          ],
+          "a": 0,
+          "h": "legacy 문자열 템플릿은 중괄호 변수만 값으로 바꿔 그대로 돌려줍니다. 셀 출력은 따옴표로 감싼 한 줄 '안녕하세요. 내 이를은 홍길동이고…'였습니다. 모델을 부르지 않았으니 AI 응답 객체가 나올 수 없습니다.",
+          "w": "출력은 '안녕하세요. 내 이를은 홍길동이고, 나이는 20살 입니다'라는 문자열입니다. 모델을 호출하지 않았으므로 AIMessage가 아니며, 메시지 리스트는 챗 템플릿의 format_messages 결과입니다.",
+          "an": "1일차 §legacy 문자열 템플릿 · 셀 출력",
+          "src": "# name과 age라는 두개의 변수를 사용하여 문자열 프롬픝 템플릿을 정의\ntmp_txt = '안녕하세요. 내 이를은 {name}이고, 나이는 {age}살 입니다'\n\nprompt_tmp = PromptTemplate.from_template(tmp_txt)\n\n# format()를 사용하여 템플릿의 변수에 값을 채워 완전한 프롬프트 문자열을 생성\nfilled_prompt = prompt_tmp.format(name='홍길동', age=20)"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "LCEL에서 프롬프트·모델·파서를 연결하는 연산자는?",
+          "o": [
+            "+",
+            ">>",
+            "|",
+            "&"
+          ],
+          "a": 2,
+          "h": "최신 표준 코드의 4번 주석은 프롬프트 템플릿, 모델, StrOutputParser를 차례로 이어 하나의 파이프라인(체인)을 만든다고 설명합니다. 이 연결 기호는 리눅스 셸에서 앞 명령의 출력을 다음 명령의 입력으로 넘기는 기호와 같습니다. legacy 셀에서 템플릿끼리 이어 붙일 때 쓴 덧셈 기호와는 다른 연산자입니다.",
+          "w": "LCEL은 <code>prompt | model | StrOutputParser()</code>처럼 파이프(|)로 연결합니다. +는 legacy에서 템플릿끼리 문자열을 이어 붙일 때 쓴 연산자입니다.",
+          "an": "1일차 §최신 표준 리팩토링 · LCEL 파이프라인 구성",
+          "src": "# 4. LCEL 파이프라인 구성\n\n# prompt | model | StrOutputParser 순\nchain = prompt_tmplate | model | StrOutputParser()"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "LCEL 체인을 <code>chain.invoke(...)</code>로 실행할 때 입력값을 넘기는 형태는?",
+          "o": [
+            "위치 인자 두 개",
+            "문자열 하나",
+            "튜플의 리스트",
+            "변수 이름이 키인 딕셔너리"
+          ],
+          "a": 3,
+          "h": "리팩토링 요약 2번은 <code>chain.invoke()</code>로 입력 데이터를 특정 자료형으로 전달한다고 정리합니다. 예제는 템플릿 변수 name과 age 각각에 값을 짝지어 넘깁니다. 키와 값의 짝으로 이루어진 파이썬 자료형을 떠올리세요.",
+          "w": "<code>chain.invoke({'name': '홍길동', 'age': 20})</code>처럼 템플릿 변수 이름을 키로 한 딕셔너리를 넘깁니다. 리팩토링 요약에서도 invoke()로 딕셔너리를 전달한다고 정리합니다.",
+          "an": "1일차 §리팩토링 요약 2",
+          "src": "2. 실행 최적화: chain.invoke() 메서드를 사용하여 입력 데이터를 딕셔너리 형태로 전달하며, StrOutputParser()를 도입해 출력 결과가 AI 객체가 아닌 깔끔한 마크다운 텍스트로 바로 나오도록 수정했습니다."
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>prompt_tmp + PromptTemplate.from_template('…') + '{language}로 번역해줘.'</code>를 format할 때 넘겨야 하는 변수는? (prompt_tmp는 name·age 사용)",
+          "o": [
+            "name·age만",
+            "language만",
+            "name·age·language",
+            "변수 없이 호출"
+          ],
+          "a": 2,
+          "h": "템플릿을 + 로 결합하면 각 조각에 있던 중괄호 변수가 결합 결과에 모두 남습니다. prompt_tmp에는 name·age가, 마지막 문자열에는 다른 변수 하나가 있습니다. 셀은 format에 영어까지 넘겨 '영어로 번역해줘.'를 출력했습니다.",
+          "w": "결합 템플릿은 각 조각의 변수를 모두 가지므로 <code>format(name='홍길동', age=20, language='영어')</code>처럼 세 변수를 넘깁니다. 하나라도 빠지면 완성 문자열을 만들 수 없습니다.",
+          "an": "1일차 §legacy 프롬프트 템플릿간 결합",
+          "src": "combined_prompt = (\n prompt_tmp\n + PromptTemplate.from_template(\"\\n\\n아버지를 아버지라 부르지 못한다\")\n + '\\n\\n{language}로 번역해줘.'\n)\n\ncombined_prompt\n\nprint(combined_prompt.format(name='홍길동', age=20, language='영어'))"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Message 유형 중 AIMessage는 사용자의 질문을 나타낸다.",
+          "a": false,
+          "h": "자료의 Message 유형은 System(시스템 기능 설명), Human(사용자 질문), AI(모델 응답), Function(함수 호출 결과), Tool(도구 호출 결과)입니다. 이름이 곧 '누가 말했는가'를 나타냅니다. 사용자 질문을 담는 유형이 어느 것인지 대조하세요.",
+          "w": "틀렸습니다. 사용자 질문은 HumanMessage, AIMessage는 AI 모델의 응답입니다. SystemMessage는 시스템의 기능을 설명합니다.",
+          "an": "1일차 §챗 프롬프트 템플릿 · Message 유형",
+          "src": "- Message 유형\n 1. SystemMessage : 시스템의 기능을 설명\n 2. HumanMessage : 사용자 질문을 나타낸다\n 3. AIMessage : AI 모델의 응답을 제공\n 4. FunctionMessage : 특정 함수 호출의 결과\n 5. ToolMessage : 도구 호출의 결"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "체인 끝에 <code>StrOutputParser()</code>를 두면 결과가 AI 객체가 아닌 텍스트로 바로 나온다.",
+          "a": true,
+          "h": "리팩토링 요약 2번 '실행 최적화'는 체인 끝에 출력 파서를 도입한 이유를 설명합니다. 파서가 없으면 결과가 AI 객체로 나와 .content를 꺼내야 했습니다. 파서를 붙인 뒤 결과가 어떤 형태로 나온다고 했는지 떠올리세요.",
+          "w": "맞습니다. StrOutputParser()를 도입해 출력 결과가 AI 객체가 아닌 깔끔한 마크다운 텍스트로 바로 나오도록 했다고 정리합니다.",
+          "an": "1일차 §리팩토링 요약 2",
+          "src": "2. 실행 최적화: chain.invoke() 메서드를 사용하여 입력 데이터를 딕셔너리 형태로 전달하며, StrOutputParser()를 도입해 출력 결과가 AI 객체가 아닌 깔끔한 마크다운 텍스트로 바로 나오도록 수정했습니다."
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "챗 프롬프트 템플릿의 Message 유형과 설명을 연결하세요.",
+          "pairs": [
+            [
+              "SystemMessage",
+              "시스템의 기능을 설명"
+            ],
+            [
+              "HumanMessage",
+              "사용자 질문을 나타냄"
+            ],
+            [
+              "AIMessage",
+              "AI 모델의 응답을 제공"
+            ],
+            [
+              "FunctionMessage",
+              "특정 함수 호출의 결과"
+            ],
+            [
+              "ToolMessage",
+              "도구 호출의 결과"
+            ]
+          ],
+          "h": "챗 프롬프트 템플릿 입력은 role과 content로 된 메시지 리스트이고, 자료는 다섯 가지 Message 유형을 나열합니다. 시스템 기능 설명, 사용자 질문, 모델 응답, 함수 호출 결과, 도구 호출 결과가 각각 하나씩 대응합니다. 이름의 앞부분이 역할을 알려 줍니다.",
+          "w": "각 메시지는 role과 content로 구성되며, 유형 이름이 역할을 나타냅니다. Function과 Tool은 각각 함수·도구 호출의 결과를 담습니다.",
+          "an": "1일차 §챗 프롬프트 템플릿 · Message 유형",
+          "src": "- Message 유형\n 1. SystemMessage : 시스템의 기능을 설명\n 2. HumanMessage : 사용자 질문을 나타낸다\n 3. AIMessage : AI 모델의 응답을 제공\n 4. FunctionMessage : 특정 함수 호출의 결과\n 5. ToolMessage : 도구 호출의 결"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "최신 표준 리팩토링 코드의 작성 순서를 맞추세요.",
+          "steps": [
+            "API 키 설정",
+            "ChatOpenAI 모델 설정",
+            "ChatPromptTemplate 정의",
+            "prompt | model | parser 체인 구성",
+            "invoke()에 딕셔너리를 넘겨 실행"
+          ],
+          "h": "최신 표준 리팩토링 코드는 주석 1~5번으로 단계를 나눕니다. 키가 있어야 모델을 만들 수 있고, 프롬프트와 모델이 준비돼야 파이프로 연결할 수 있으며, 연결된 체인이 있어야 실행할 수 있습니다. 의존 관계대로 배열하세요.",
+          "w": "코드는 1. API 키 → 2. 모델 → 3. 프롬프트 → 4. LCEL 파이프라인 → 5. invoke 실행 순서입니다. 체인은 프롬프트와 모델이 준비된 뒤에 만들 수 있습니다.",
+          "an": "1일차 §최신 표준 리팩토링 코드 주석 1~5",
+          "src": "# 4. LCEL 파이프라인 구성\n\n# prompt | model | StrOutputParser 순\nchain = combined_prompt | model | StrOutputParser()\n\n# 5. 실행 (invoke를 통한 딕셔너리 전달)\nresult = chain.invoke({\"name\": \"홍길동\", \"age\": 20, \"language\": \"영어\"})"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "<code>ChatPromptTemplate.from_messages([('human', '…{name}…{age}…'), ('human', '아버지를 아버지라 부르지 못한다.'), ('human', '{language}로 번역해줘.')])</code>에 대해 옳은 것을 모두 고르세요.",
+          "o": [
+            "세 메시지 모두 human 역할이다",
+            "invoke에 name·age·language가 필요하다",
+            "+ 연산으로 이어 붙인 legacy 방식이다",
+            "부분을 메시지로 나눠 가독성이 좋다",
+            "system 메시지가 하나 포함되어 있다"
+          ],
+          "a": [
+            0,
+            1,
+            3
+          ],
+          "h": "튜플의 첫 원소는 메시지 역할, 두 번째는 내용이며 내용 속 중괄호가 invoke에 넘길 변수입니다. 자료는 각 부분을 메시지 구성 요소로 나눠 관리하면 가독성과 유지보수가 좋아진다고 설명합니다. 문자열을 + 로 잇던 것은 이전 셀의 legacy 방식이었습니다.",
+          "w": "세 튜플 모두 'human'이고, 변수 name·age·language를 invoke 딕셔너리로 넘깁니다. 자료는 메시지 단위로 나누면 가독성과 유지보수가 좋아진다고 설명하며, + 결합은 legacy 방식입니다.",
+          "an": "1일차 §최신 표준 리팩토링 · ChatPromptTemplate의 리스트 결합",
+          "src": "# 각 부분을 메시지 구성요소로 나누어 관리하면 가독성과 유지보수가 좋아진다\ncombined_prompt = ChatPromptTemplate.from_messages(\n [\n (\"human\", \"안녕하세요. 내 이름은 {name}이고, 나이는 {age}살 입니다.\"),\n (\"human\", \"아버지를 아버지라 부르지 못한다.\"),\n (\"human\", \"{language}로 번역해줘.\")"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "역할 프롬프트·대화 챗봇",
+      "ref": "1일차 §assist() 대신 체인 생성 · Gradio 웹 UI",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "기술 문서 작성기 system 메시지가 지정한 마크다운 구조에 <b>없는</b> 섹션은?",
+          "o": [
+            "## 개요",
+            "## 핵심 개념",
+            "## 참고 자료",
+            "## 실행 결과 로그"
+          ],
+          "a": 3,
+          "h": "기술 문서 작성기의 system 메시지는 '구조는 다음과 같아' 뒤에 마크다운 제목 네 개를 줄바꿈으로 나열합니다. 개요로 시작해 개념 설명, 코드 예제, 참고 자료로 끝납니다. 이 네 개에 들지 않는 섹션을 찾으세요.",
+          "w": "지정 구조는 개요 · 핵심 개념 · 파이썬 코드 예제 · 참고 자료 네 섹션입니다. '실행 결과 로그'는 지시에 없습니다.",
+          "an": "1일차 §assist() 대신 체인 생성 · 역할 기반 프롬프트",
+          "src": "\"너는 숙련된 기술 문서 작성자야.\"\n \"개발자들을 위한 문서를 마크다운 형식으로 작성해.\"\n \"구조는 다음과 같아 : \\n\\n\"\n \"## 개요\\n\\n\"\n \"## 핵심 개념\\n\\n\"\n \"## 파이썬 코드 예제\\n\\n\"\n \"## 참고 자료\\n\\n\"\n \"항상 한국어로 작성해.\""
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>tech_chain = prompt | model</code>(파서 없음)의 실행 결과에서 본문을 출력하는 코드는?",
+          "o": [
+            "print(result)",
+            "print(result.content)",
+            "print(result['text'])",
+            "print(result.text())"
+          ],
+          "a": 1,
+          "h": "파서 없이 <code>prompt | model</code>만 연결하면 결과는 문자열이 아니라 AI 메시지 객체입니다. 그래서 첫 셀은 객체의 본문 속성을 꺼내 출력했고, StrOutputParser를 붙인 다음 셀은 결과를 바로 print했습니다. 메시지 객체에서 본문을 담는 속성 이름을 떠올리세요.",
+          "w": "파서 없이 <code>prompt | model</code>이면 AI 메시지 객체가 반환되어 <code>result.content</code>로 본문을 꺼냅니다. StrOutputParser를 붙인 다음 셀에서는 <code>print(result)</code>만으로 텍스트가 나옵니다.",
+          "an": "1일차 §assist() 대신 체인 생성 · tech_chain 두 셀 비교",
+          "src": "tech_chain = prompt | model\n\n\ntopic = \"Langchain의 LLMChain 구성 요소 설명해줘\"\n\n# 5. 실행 (invoke를 통한 딕셔너리 전달)\nresult = tech_chain.invoke({\"topic\": topic})\n\nprint(result.content)"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "프롬프트 안에 지난 대화 맥락이 들어갈 자리를 표시하는 클래스는?",
+          "o": [
+            "MessagesPlaceholder",
+            "StrOutputParser",
+            "ChatMessageHistory",
+            "PromptTemplate"
+          ],
+          "a": 0,
+          "h": "챗봇 프롬프트는 system 메시지와 human 질문 사이에 '대화 맥락이 들어갈 자리'를 둡니다. 이 자리 표시용 객체는 <code>variable_name='history'</code>로 이름을 받습니다. 대화를 실제로 저장하는 ChatMessageHistory와는 역할이 다릅니다.",
+          "w": "<code>MessagesPlaceholder(variable_name='history')</code>가 대화 맥락이 들어갈 자리입니다. ChatMessageHistory는 대화를 실제로 저장하는 객체입니다.",
+          "an": "1일차 §Gradio 웹 UI · 3. 프롬프트 정의",
+          "src": "prompt = ChatPromptTemplate.from_messages([\n (\"system\", \"당신은 사용자에게 친절하게 답변하는 AI 어시스턴트입니다.\"),\n MessagesPlaceholder(variable_name=\"history\"), # 대화 맥락이 들어갈 자리\n (\"human\", \"{question}\")\n])"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "<code>get_session_history(session_id)</code>는 store에 해당 세션이 없으면 어떻게 하나요?",
+          "o": [
+            "예외를 발생시킨다",
+            "기존 세션을 모두 지운다",
+            "새 ChatMessageHistory를 만들어 저장한다",
+            "기본 프롬프트를 반환한다"
+          ],
+          "a": 2,
+          "h": "메모리 관리 코드는 <code>if session_id not in store:</code>로 세션 존재 여부를 확인합니다. 없을 때 실행되는 줄은 store[session_id]에 새 객체를 대입하고, 함수는 마지막에 그 세션 기록을 반환합니다. 오류를 내거나 다른 세션을 건드리는 코드는 없습니다.",
+          "w": "세션이 없으면 <code>store[session_id] = ChatMessageHistory()</code>로 새 기록을 만든 뒤 반환합니다. 그래서 세션별로 대화가 따로 쌓입니다.",
+          "an": "1일차 §Gradio 웹 UI · 5. 메모리 관리 설정",
+          "src": "store = {} # 세션별 대화 저장을 위한 딕셔너리\n\ndef get_session_history(session_id: str):\n if session_id not in store:\n store[session_id] = ChatMessageHistory()\n return store[session_id]"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "프롬프트를 <code>MessagesPlaceholder(variable_name='chat_history')</code>로 바꿨다면 <code>RunnableWithMessageHistory</code>에서 함께 맞춰야 할 인자는?",
+          "o": [
+            "input_messages_key",
+            "history_messages_key",
+            "session_id",
+            "get_session_history"
+          ],
+          "a": 1,
+          "h": "RunnableWithMessageHistory는 사용자 입력이 들어갈 키와 대화 기록이 들어갈 키를 각각 따로 인자로 받습니다. 원래 코드에서는 입력 쪽 키가 'question', 기록 쪽 키가 MessagesPlaceholder의 variable_name과 같은 'history'였습니다. placeholder 이름을 바꾸면 기록 쪽 키를 지정하는 인자도 같은 이름으로 맞춰야 합니다.",
+          "w": "<code>history_messages_key</code>는 대화 기록을 넣을 자리 이름이므로 placeholder 이름과 같아야 합니다. input_messages_key는 사용자 입력 키('question')입니다.",
+          "an": "1일차 §Gradio 웹 UI · 6. RunnableWithMessageHistory로 래핑",
+          "src": "chain_with_history = RunnableWithMessageHistory(\n chain,\n get_session_history,\n input_messages_key=\"question\",\n history_messages_key=\"history\"\n)"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": false,
+          "p": "최신 표준에서는 대화형 어시스턴트를 만들 때 ConversationBufferMemory와 LLMChain을 결합하는 방식을 더 이상 쓰지 않는다.",
+          "a": true,
+          "h": "자료는 ChatGPT 같은 대화형 어시스턴트를 만들 때 과거에는 대화 버퍼 메모리와 LLMChain을 결합하는 복잡한 방식을 썼다고 소개합니다. 최신 표준은 RunnableWithMessageHistory로 대화 맥락을 체인에 주입해 코드를 단순하게 만듭니다. 이 설명과 문장을 대조하세요.",
+          "w": "맞습니다. 최신 표준에서는 RunnableWithMessageHistory로 대화 맥락을 체인에 주입해 코드가 단순해지고 모델 교체도 쉬워집니다.",
+          "an": "1일차 §Gradio 웹 UI에서 ChatGPT처럼 대화 가능",
+          "src": "- ChatGPT와 같은 대화형 어시스턴트를 LangChain으로 구현할 때는, 더 이상 과거의 ConversationBufferMemory와 LLMChain을 결합하는 복잡한 방식을 사용하지 않습니다.\n\n최신 표준에서는\n- RunnableWithMessageHistory를 사용하여 대화 맥락(Memory)을 체인에 주입하는 방식을 사용합니다. 이를 통해 코드의 복잡성을 대폭 낮추고, 어떤 모델이든 쉽게 교체할 수 있는 구조를 만듭니다."
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "챗봇 코드의 store 딕셔너리는 모든 사용자의 대화를 하나의 기록으로 합쳐 저장한다.",
+          "a": false,
+          "h": "store는 주석에 '세션별 대화 저장을 위한 딕셔너리'로 적혀 있고 키는 session_id입니다. 호출할 때 <code>config={'configurable': {'session_id': …}}</code>로 어떤 기록을 쓸지 고릅니다. 세션마다 별도 기록이 생기는 구조인지 생각하세요.",
+          "w": "틀렸습니다. store는 session_id를 키로 하는 '세션별 대화 저장' 딕셔너리입니다. 호출할 때 config의 session_id로 어느 기록을 쓸지 정합니다.",
+          "an": "1일차 §Gradio 웹 UI · 5. 메모리 관리 설정",
+          "src": "store = {} # 세션별 대화 저장을 위한 딕셔너리\n\ndef get_session_history(session_id: str):\n if session_id not in store:\n store[session_id] = ChatMessageHistory()\n return store[session_id]"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "대화형 챗봇 코드의 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "store",
+              "세션별 대화를 저장하는 딕셔너리"
+            ],
+            [
+              "session_id",
+              "config로 넘기는 대화 구분 키"
+            ],
+            [
+              "respond 함수",
+              "메시지로 체인을 호출해 content 반환"
+            ],
+            [
+              "gr.ChatInterface",
+              "채팅 화면을 만드는 Gradio UI"
+            ]
+          ],
+          "h": "챗봇 코드는 저장소 딕셔너리, 호출 때 config로 넘기는 구분 키, 메시지를 받아 체인을 부르고 본문을 돌려주는 함수, 그리고 그 함수를 fn으로 받아 채팅 화면을 띄우는 Gradio 객체로 이루어집니다. 각 이름이 저장·구분·처리·화면 중 무엇인지 나눠 보세요.",
+          "w": "store가 기록을 담고, session_id('default_user')로 기록을 고르며, respond가 체인 결과의 content를 돌려주고, ChatInterface가 이를 채팅 UI로 보여 줍니다.",
+          "an": "1일차 §Gradio 웹 UI · 5~7",
+          "src": "def respond(message, chat_history):\n response = chain_with_history.invoke(\n {\"question\": message},\n config={\"configurable\": {\"session_id\": \"default_user\"}}\n )\n return response.content\n\n# Gradio 인터페이스 실행\ngr.ChatInterface(fn=respond).launch(share=True)"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "Gradio 대화형 챗봇 코드의 구성 순서를 맞추세요.",
+          "steps": [
+            "ChatOpenAI 모델 설정",
+            "MessagesPlaceholder를 넣은 프롬프트 정의",
+            "prompt | model 체인 구성",
+            "세션 저장소와 get_session_history 정의",
+            "RunnableWithMessageHistory로 래핑",
+            "gr.ChatInterface(fn=respond).launch()"
+          ],
+          "h": "챗봇 코드 주석은 2. 모델 설정 → 3. 프롬프트 정의 → 4. 체인 구성 → 5. 메모리 관리 설정 → 6. 래핑 → 7. Gradio UI 순입니다. 래핑에는 이미 만든 체인과 세션 기록 함수가 모두 필요합니다. UI는 모든 준비가 끝난 뒤 launch합니다.",
+          "w": "모델 → 프롬프트 → 체인 → 메모리 관리 → 래핑 → UI 실행 순서입니다. 래핑에는 체인과 get_session_history가 모두 있어야 합니다.",
+          "an": "1일차 §Gradio 웹 UI · 코드 주석 2~7",
+          "src": "chain = prompt | model\n\n# 5. 메모리 관리 설정\nstore = {} # 세션별 대화 저장을 위한 딕셔너리\n\ndef get_session_history(session_id: str):\n if session_id not in store:\n store[session_id] = ChatMessageHistory()\n return store[session_id]\n\n# 6. RunnableWithMessageHistory로 래핑\nchain_with_history = RunnableWithMessageHistory(\n chain,\n get_session_history,\n input_messages_key=\"question\",\n history_messages_key=\"history\"\n)"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "챗봇 셀 실행 출력에서 확인되는 내용을 모두 고르세요.",
+          "o": [
+            "RunnableWithMessageHistory 사용 중단 경고",
+            "LangGraph 내장 지속성 사용 권장",
+            "share 링크는 최대 1주 유지 안내",
+            "실행 전 별도 서버 배포 필수",
+            "session_id 없이 호출해 오류 발생"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "챗봇 셀 출력에는 langchain-community 지원 종료 경고, RunnableWithMessageHistory가 deprecated이니 LangGraph의 내장 persistence를 쓰라는 경고, 그리고 Gradio 공개 URL과 share 링크 유효 기간 안내가 찍혔습니다. Colab에서 바로 실행돼 공개 링크가 생성됐습니다. 출력에 없던 내용은 고르지 마세요.",
+          "w": "출력에는 RunnableWithMessageHistory가 deprecated이니 LangGraph의 내장 persistence를 쓰라는 경고와, share 링크가 최대 1주 유지된다는 안내가 있습니다. Colab에서 바로 공개 URL이 생성되었고 session_id는 config로 넘겼습니다.",
+          "an": "1일차 §Gradio 웹 UI · 셀 출력",
+          "src": "최신 표준에서는\n- RunnableWithMessageHistory를 사용하여 대화 맥락(Memory)을 체인에 주입하는 방식을 사용합니다."
+        }
+      ]
+    }
+  ]
+}

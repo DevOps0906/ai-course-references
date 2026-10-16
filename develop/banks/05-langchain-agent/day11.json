@@ -1,0 +1,1535 @@
+{
+  "id": "lc-d11",
+  "code": "LC11",
+  "title": "LangChain 11일차 · 임베딩 · 벡터스토어 · 다문서 RAG 챗봇",
+  "subtitle": "임베딩·코사인 유사도 · FAISS·Chroma VectorStore · LCEL RAG 챗봇",
+  "course": "05 · LangChain · RAG · Agent",
+  "source": "05-langchain-agent/day11/11일차_Agent_LLM_여러_문서에서_답변찾는_RAG_기반_QA챗봇_시스템_단계_2_배포완성_new.ipynb",
+  "salt": "lc-d11",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "임베딩 개념 · OpenAIEmbeddings",
+      "ref": "11일차 Embedding · OpenAIEmbeddings",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "자료에서 Embedding은 RAG 시스템의 몇 번째 단계로 소개되나요?",
+          "o": [
+            "두 번째 단계",
+            "세 번째 단계",
+            "네 번째 단계",
+            "다섯 번째 단계"
+          ],
+          "a": 1,
+          "h": "자료는 Embedding을 '문서분할 단계에서 생성된 문서 단위들을 수치로 바꾸는 과정'으로 설명합니다. 문서 분할 바로 다음, VectorStore 바로 앞에 오는 단계라는 점에서 순서를 세어 보세요.",
+          "w": "Embedding은 시스템의 세 번째 단계로, 분할된 문서를 기계가 이해하는 수치로 바꿉니다. VectorStore가 네 번째 단계입니다.",
+          "an": "11일차 Embedding",
+          "src": "Embedding\n - 시스템의 세번째 단계\n - 문서분할 단계에서 생성된 문서 단위들을 기계가 이해할 수 있는 수치적 형태로 변환하는 과정"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "임베딩은 문서의 의미를 어떤 형태로 표시하나요?",
+          "o": [
+            "벡터(숫자의 배열)",
+            "키워드 목록",
+            "트리 구조",
+            "요약 문장"
+          ],
+          "a": 0,
+          "h": "자료는 임베딩을 '기계가 이해할 수 있는 수치적 형태로 변환하는 과정'이라고 정의합니다. 출력 셀을 보면 문장 하나가 실수 여러 개가 나열된 리스트로 바뀌어 있습니다.",
+          "w": "임베딩은 문서의 의미를 벡터, 즉 숫자의 배열로 표시합니다. 키워드나 요약문처럼 사람이 읽는 형태가 아닙니다.",
+          "an": "11일차 Embedding",
+          "src": "문서분할 단계에서 생성된 문서 단위들을 기계가 이해할 수 있는 수치적 형태로 변환하는 과정\n - 문서의 의미를 벡터(숫자의 배열)형태로 표시"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "문장 5개가 든 리스트를 <code>embedding_model.embed_documents(texts)</code>에 넣었습니다. <code>len(embeddings)</code>의 값은?",
+          "o": [
+            "1",
+            "5",
+            "384",
+            "1536"
+          ],
+          "a": 1,
+          "h": "주석에 '(문장 수 x embedding 차원) 구조 생성', 'embeddings 개수 = 문장 개수'라고 적혀 있습니다. 바깥 리스트 길이와 안쪽 벡터 길이를 구분해서 생각하세요.",
+          "w": "embed_documents는 문장마다 벡터 하나를 만들므로 바깥 리스트 길이는 문장 수인 5입니다. 1536은 <code>len(embeddings[0])</code>, 즉 벡터 차원입니다.",
+          "an": "11일차 OpenAIEmbeddings · 결과 shape 확인",
+          "src": "# 결과: (문장 수 x embedding 차원) 구조 생성\n\nembeddings = embedding_model.embed_documents(texts)\n\n# =========================================================\n\n# 4. 결과 shape 확인\n\n# =========================================================\n\n# embeddings 개수 = 문장 개수\n\n# embeddings[0] 길이 = 벡터 차원 (예: 1536)\n\nprint(\"벡터 개수:\", len(embeddings))\nprint(\"벡터 차원:\", len(embeddings[0]))"
+        },
+        {
+          "id": "t1-04",
+          "ty": "num",
+          "lv": 3,
+          "game": false,
+          "p": "OpenAIEmbeddings로 문장 5개를 임베딩했더니 각 벡터가 1536차원이었습니다. 결과 전체에 들어 있는 실수 값은 모두 몇 개인가요?",
+          "a": 7680,
+          "unit": "개",
+          "h": "계산식은 '문장 수 × 벡터 차원'입니다. 출력 셀의 '벡터 개수'와 '벡터 차원' 두 숫자를 곱하면 (문장 수 x embedding 차원) 구조 전체의 원소 수가 됩니다.",
+          "w": "5개 문장 × 1536차원 = 7,680개의 실수가 저장됩니다. 문장이 늘수록 저장할 숫자도 비례해서 늘어납니다.",
+          "an": "11일차 OpenAIEmbeddings · 실행 결과(벡터 개수 5, 차원 1536)",
+          "src": "# embeddings 개수 = 문장 개수\n\n# embeddings[0] 길이 = 벡터 차원 (예: 1536)\n\nprint(\"벡터 개수:\", len(embeddings))\nprint(\"벡터 차원:\", len(embeddings[0]))"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "사용자의 질문 한 문장을 벡터로 바꿀 때 노트북이 쓴 메서드는?",
+          "o": [
+            "similarity_search",
+            "embed_documents",
+            "invoke",
+            "embed_query"
+          ],
+          "a": 3,
+          "h": "노트북은 여러 문장 리스트와 질문 한 문장을 서로 다른 메서드로 임베딩합니다. 'Query embedding 생성' 셀에서 질문과 답변 문장을 각각 하나씩 넣은 메서드를 떠올려 보세요.",
+          "w": "질문 한 문장은 <code>embed_query</code>로 벡터화합니다. <code>embed_documents</code>는 문장 리스트를, similarity_search는 벡터 DB 검색을 담당합니다.",
+          "an": "11일차 OpenAIEmbeddings · Query/Answer Embedding 테스트",
+          "src": "# 역할: 사용자의 질문을 vector로 변환\n\nembedded_q = embedding_model.embed_query(\n \"이 대화에서 언급된 이름은?\"\n)"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "자료가 든 임베딩의 필요성 두 가지는 '의미 이해'와 '정보 검색 향상'이다.",
+          "a": true,
+          "h": "Embedding 소개 부분에 '필요성'이 번호를 붙여 두 줄로 정리되어 있습니다. 문장의 뜻을 숫자로 담으면 기계가 무엇을 할 수 있게 되는지 생각해 보세요.",
+          "w": "맞습니다. 자료는 필요성으로 1. 의미 이해, 2. 정보 검색 향상을 듭니다. 의미를 벡터로 담아야 뜻이 비슷한 문서를 찾을 수 있습니다.",
+          "an": "11일차 Embedding · 필요성",
+          "src": "Embedding\n - 시스템의 세번째 단계\n - 문서분할 단계에서 생성된 문서 단위들을 기계가 이해할 수 있는 수치적 형태로 변환하는 과정\n - 문서의 의미를 벡터(숫자의 배열)형태로 표시\n - 필요성\n 1. 의미 이해\n 2. 정보 검색 향상"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "질문 임베딩과 답변 임베딩은 차원이 서로 달라도 코사인 유사도로 비교할 수 있다.",
+          "a": false,
+          "h": "노트북은 질문·답변 벡터를 만든 뒤 '두 벡터의 차원이 동일한지 확인 (정상 여부 체크)'을 합니다. 내적은 같은 위치의 원소끼리 곱해 더하는 연산이라는 점을 떠올리세요.",
+          "w": "틀렸습니다. 내적은 같은 길이의 벡터끼리만 계산되므로 두 벡터는 같은 모델로 만들어 차원(1536)이 같아야 합니다. 그래서 노트북도 차원을 먼저 출력해 확인합니다.",
+          "an": "11일차 OpenAIEmbeddings · embedding 차원 확인",
+          "src": "# 역할: 두 벡터의 차원이 동일한지 확인 (정상 여부 체크)\n\nprint(\"Query embedding 차원:\", len(embedded_q))\nprint(\"Answer embedding 차원:\", len(embedded_a))"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "OpenAI 임베딩 실습의 코드와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "OpenAIEmbeddings",
+              "API로 텍스트를 벡터로 바꾸는 모델"
+            ],
+            [
+              "embed_documents",
+              "문장 리스트를 벡터 리스트로 변환"
+            ],
+            [
+              "embed_query",
+              "질문 한 문장을 벡터로 변환"
+            ],
+            [
+              "os.getenv('OPENAI_API_KEY')",
+              "환경 변수에서 API 키 읽기"
+            ]
+          ],
+          "h": "주석의 '역할:' 줄을 차례로 보세요. 키를 읽고, 모델을 초기화하고, 문서와 질문을 각각 벡터로 바꾸는 흐름입니다.",
+          "w": "OpenAIEmbeddings는 text → vector 변환 모델, embed_documents는 여러 문장, embed_query는 질문 하나를 변환합니다. API 키는 코드에 직접 쓰지 않고 환경 변수에서 읽습니다.",
+          "an": "11일차 OpenAIEmbeddings",
+          "src": "# 역할: 환경 변수에 저장된 API Key를 안전하게 가져옴\n\napi_key = os.getenv(\"OPENAI_API_KEY\")\n\n# =========================================================\n\n# 3. Embedding 모델 초기화\n\n# =========================================================\n\n# 역할: text → vector 변환 (RAG에서 핵심 단계)\n\n# 결과: 문장을 고차원 숫자 벡터로 변환\n\nembedding_model = OpenAIEmbeddings(\n api_key = api_key\n)"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "OpenAI 임베딩 테스트 순서대로 나열하세요.",
+          "steps": [
+            "필요한 패키지 설치",
+            "API 키를 환경 변수에 설정",
+            "OpenAIEmbeddings 모델 초기화",
+            "embed_documents로 벡터 생성",
+            "벡터 개수와 차원 출력"
+          ],
+          "h": "셀 번호 주석 '1. 필요한 라이브러리 → 2. API Key 로드 → 3. Embedding 모델 초기화'를 따라가세요. 결과를 확인하는 출력은 벡터를 만든 뒤에야 할 수 있습니다.",
+          "w": "설치 → 키 설정 → 모델 초기화 → 임베딩 생성 → shape 확인 순입니다. 키가 없으면 모델 호출이 실패하므로 키 설정이 먼저입니다.",
+          "an": "11일차 OpenAIEmbeddings",
+          "src": "# 1. 필요한 라이브러리\n\n# =========================================================\n\nimport os # 환경 변수 접근용\n\nfrom langchain_openai import OpenAIEmbeddings # 최신 embedding import"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "OpenAI 임베딩 실행 결과로 옳은 것을 모두 고르세요.",
+          "o": [
+            "벡터 개수는 5였다",
+            "벡터 차원은 1536이었다",
+            "질문 벡터 차원은 384였다",
+            "첫 벡터는 실수 배열이었다",
+            "한글 문장은 임베딩되지 않았다"
+          ],
+          "a": [
+            0,
+            1,
+            3
+          ],
+          "h": "출력 셀에는 '벡터 개수', '벡터 차원', '첫 번째 벡터 샘플'이 찍혀 있습니다. 입력 문장에는 한글과 영어가 섞여 있었고, 384는 다른 모델(bge-small-en)의 차원이라는 점도 함께 확인하세요.",
+          "w": "5개 문장이 모두 1536차원 실수 벡터로 바뀌었습니다. 한글 문장도 정상 임베딩되었고, 384차원은 HuggingFace bge-small-en 결과입니다.",
+          "an": "11일차 OpenAIEmbeddings · 실행 결과",
+          "src": "위의 결과를 보면\n - 총 5개의 문장을 임베딩하였고 1536차원의 실수 벡터로 변환되었다"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "코사인 유사도 계산",
+      "ref": "11일차 OpenAIEmbeddings · 유사도 계산",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "자료에 적힌 코사인 유사도 계산식은?",
+          "o": [
+            "A · B / |A||B|",
+            "|A| + |B|",
+            "A − B의 길이",
+            "A · B × |A|"
+          ],
+          "a": 0,
+          "h": "코드의 <code>cos_sim</code> 함수는 두 벡터의 내적(<code>dot</code>)을 각 벡터 크기(<code>norm</code>)의 곱으로 나눕니다. 이렇게 하면 벡터 길이의 영향이 사라지고 방향만 비교됩니다. 이 코드 구조를 기호로 옮긴 식을 고르세요.",
+          "w": "코사인 유사도는 A · B / |A||B|입니다. 길이로 나누기 때문에 벡터 크기와 상관없이 방향(의미)만 비교합니다.",
+          "an": "11일차 OpenAIEmbeddings · cosine similarity 설명",
+          "src": "cosine similarity (가장 중요)\nA · B / |A||B|"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "코사인 유사도 값이 1.0이면 자료는 어떤 의미라고 설명하나요?",
+          "o": [
+            "반대 의미",
+            "전혀 다른 의미",
+            "완전히 같은 의미",
+            "절반만 같은 의미"
+          ],
+          "a": 2,
+          "h": "자료는 1.0, 0.0, -1.0 세 값의 의미를 표로 정리합니다. 값이 클수록 두 문장이 의미 공간에서 같은 방향을 가리킨다고 생각하세요.",
+          "w": "1.0은 완전히 같은 의미, 0.0은 전혀 다른 의미, -1.0은 반대 의미입니다.",
+          "an": "11일차 OpenAIEmbeddings · cosine similarity 설명",
+          "src": "1.0 → 완전히 같은 의미\n0.0 → 전혀 다른 의미\n-1.0 → 반대 의미 (거의 안 씀)"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "자료 예시에서 '고양이가 잔다'와 '강아지가 잔다'의 유사도 범위는?",
+          "o": [
+            "0.1~0.3",
+            "-1.0 근처",
+            "0.4~0.5",
+            "0.8~0.95"
+          ],
+          "a": 3,
+          "h": "자료는 '고양이 vs 강아지'와 '고양이 vs 날씨' 두 비교를 '높음'과 '낮음'으로 나눠 보여 줍니다. 둘 다 동물이 자는 문장이라 의미가 가까운 쪽입니다.",
+          "w": "고양이 vs 강아지는 0.8~0.95로 높고, 고양이 vs 날씨는 0.1~0.3으로 낮습니다.",
+          "an": "11일차 OpenAIEmbeddings · cosine similarity 비교표",
+          "src": "비교 결과\n고양이 vs 강아지 0.8~0.95 (높음)\n고양이 vs 날씨 0.1~0.3 (낮음)"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>def cos_sim(A, B): return dot(A, B)/(norm(A)*norm(B))</code>에서 <code>norm</code>이 구하는 것은?",
+          "o": [
+            "두 벡터의 내적",
+            "벡터의 길이(크기)",
+            "벡터의 차원 수",
+            "벡터 원소의 평균"
+          ],
+          "a": 1,
+          "h": "<code>numpy.linalg</code>에서 가져온 함수로, 식 |A||B|의 세로 막대 부분을 계산합니다. 내적은 이미 <code>dot</code>이 맡고 있습니다.",
+          "w": "norm은 벡터의 길이(크기)를 구합니다. 내적은 dot이 계산하고, 두 길이의 곱으로 나눠 방향만 비교합니다.",
+          "an": "11일차 OpenAIEmbeddings · 유사도 계산 함수",
+          "src": "from numpy import dot\nfrom numpy.linalg import norm\nimport numpy as np\n\n# 벡터 유사도 계산 함수(코사인 유사도)\ndef cos_sim(A, B):\n\n return dot(A, B)/(norm(A)*norm(B))"
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "질문 '이 대화에서 언급된 이름은?'과 비교한 세 문장 중 OpenAI 임베딩 유사도가 가장 높았던 것은?",
+          "o": [
+            "답변 문장 '…이름은 ○○.'",
+            "'제 이름은 ○○입니다'",
+            "'랭체인은 유용합니다'",
+            "세 문장 모두 같았다"
+          ],
+          "a": 0,
+          "h": "출력은 0.900, 0.844, 0.759 순으로 찍혔고, 각 print 줄 끝 주석이 어떤 문장과 비교한 값인지 알려 줍니다. 첫 번째 print가 질문 벡터와 어느 벡터를 비교했는지 확인해 보세요.",
+          "w": "질문-답변 유사도가 약 0.90으로 가장 높았고, 이름 소개 문장 0.84, 무관한 문장 0.76 순이었습니다. 무관한 문장도 꽤 높게 나오므로 절댓값보다 순위로 판단합니다.",
+          "an": "11일차 OpenAIEmbeddings · 유사도 계산 결과",
+          "src": "print(cos_sim(embedded_q, embedded_a)) # 질문과 답변간 유사도"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "자료에 따르면 코사인 유사도 -1.0은 반대 의미이며, 실제로는 거의 쓰이지 않는다.",
+          "a": true,
+          "h": "자료의 값 설명은 1.0, 0.0, -1.0 세 줄입니다. -1.0 줄 끝에 괄호로 붙은 메모를 확인해 보세요.",
+          "w": "맞습니다. 자료는 '-1.0 → 반대 의미 (거의 안 씀)'이라고 적었습니다. 실제 비교는 주로 0~1 범위에서 이뤄집니다.",
+          "an": "11일차 OpenAIEmbeddings · cosine similarity 설명",
+          "src": "1.0 → 완전히 같은 의미\n0.0 → 전혀 다른 의미\n-1.0 → 반대 의미 (거의 안 씀)"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "'랭체인은 유용합니다'는 질문과 무관하므로 OpenAI 임베딩 유사도가 0에 가깝게 나왔다.",
+          "a": false,
+          "h": "유사도 계산 셀의 세 번째 출력값을 보세요. 무관한 문장이라도 같은 언어·문장 구조라면 값이 꽤 높게 나올 수 있습니다.",
+          "w": "틀렸습니다. 무관한 문장도 약 0.76이 나왔습니다. 그래서 유사도는 절댓값보다 다른 문장과의 상대 순위로 비교해야 합니다.",
+          "an": "11일차 OpenAIEmbeddings · 유사도 계산 결과",
+          "src": "print(cos_sim(embedded_q, embeddings[3])) # 질문과 '랭체인은 유용합니다' 유사도"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "코사인 유사도 값(또는 비교)과 의미를 연결하세요.",
+          "pairs": [
+            [
+              "1.0",
+              "완전히 같은 의미"
+            ],
+            [
+              "0.0",
+              "전혀 다른 의미"
+            ],
+            [
+              "-1.0",
+              "반대 의미"
+            ],
+            [
+              "고양이 vs 날씨",
+              "0.1~0.3 (낮음)"
+            ]
+          ],
+          "h": "자료의 큰 문자열 셀에 값별 의미와 비교 예시가 함께 있습니다. 값이 1에 가까울수록 의미가 가깝습니다.",
+          "w": "1.0 같은 의미, 0.0 다른 의미, -1.0 반대 의미입니다. 고양이와 날씨처럼 주제가 다르면 0.1~0.3으로 낮습니다.",
+          "an": "11일차 OpenAIEmbeddings · cosine similarity 설명",
+          "src": "비교 결과\n고양이 vs 강아지 0.8~0.95 (높음)\n고양이 vs 날씨 0.1~0.3 (낮음)\n\n1.0 → 완전히 같은 의미\n0.0 → 전혀 다른 의미\n-1.0 → 반대 의미 (거의 안 씀)"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 3,
+          "game": false,
+          "p": "질문과 답변의 의미 유사도를 확인하는 순서대로 나열하세요.",
+          "steps": [
+            "질문을 embed_query로 벡터화",
+            "답변을 embed_query로 벡터화",
+            "두 벡터의 차원이 같은지 확인",
+            "cos_sim으로 유사도 계산",
+            "값이 큰 문장을 관련 문장으로 판단"
+          ],
+          "h": "노트북의 'Query / Answer Embedding 테스트' 셀은 질문 → 답변 → 차원 확인 순서로 주석이 달려 있습니다. 유사도는 두 벡터가 모두 준비되고 차원이 맞아야 계산할 수 있습니다.",
+          "w": "질문·답변을 각각 벡터로 만들고, 차원을 확인한 뒤 cos_sim으로 비교합니다. 유사도가 높은 문장이 의미상 관련 있는 문장입니다.",
+          "an": "11일차 OpenAIEmbeddings · Query/Answer 테스트",
+          "src": "# 역할: 질문과 답변이 동일한 embedding space에서 얼마나 잘 정렬되는지 확인\n\n# 의미: RAG에서 retrieval 정확도와 직결되는 핵심 테스트"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "자료가 든 '벡터 간 유사도 비교'의 활용처를 모두 고르세요.",
+          "o": [
+            "검색",
+            "분류",
+            "클러스터링",
+            "이미지 압축",
+            "암호화"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "실행 결과 해설에 '벡터 간 유사도 비교를 통해 ○○, ○○, ○○등에 활용할 수 있다'라는 문장이 있습니다. 의미가 가까운 것끼리 찾고 묶는 작업을 떠올리세요.",
+          "w": "자료는 검색, 분류, 클러스터링을 활용처로 듭니다. 이미지 압축이나 암호화는 언급되지 않습니다.",
+          "an": "11일차 OpenAIEmbeddings · 결과 해설",
+          "src": "위의 결과를 보면\n - 총 5개의 문장을 임베딩하였고 1536차원의 실수 벡터로 변환되었다\n - 벡터 간 유사도 비교를 통해 검색, 분류, 클러스터링등에 활용할 수 있다"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "HuggingFace · 한국어 임베딩",
+      "ref": "11일차 Huggingface Embedding · 한국어 사전학습 모델 · 한국어 파인 튜닝",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "HuggingFace 임베딩 모델을 쓰기 위해 설치한 라이브러리는?",
+          "o": [
+            "sentence_transformers",
+            "faiss-cpu",
+            "tiktoken",
+            "chromadb"
+          ],
+          "a": 0,
+          "h": "설치 셀 주석은 이 라이브러리를 'HuggingFace 기반의 사전학습 임베딩 모델 사용 라이브러리', 'OpenAI 없이 로컬에서도 embedding 생성 가능'이라고 설명합니다. 나머지는 벡터 DB나 토큰 계산용입니다.",
+          "w": "sentence_transformers가 HuggingFace 임베딩 모델을 로컬에서 돌리게 해 줍니다. faiss-cpu·chromadb는 벡터 저장소, tiktoken은 토큰 계산용입니다.",
+          "an": "11일차 Huggingface Embedding · 설치",
+          "src": "# 역할: HuggingFace 기반의 사전학습 임베딩 모델 사용 라이브러리\n\n# 특징: OpenAI 없이 로컬에서도 embedding 생성 가능\n\n# 용도: RAG, semantic search, clustering 등\n\n!pip install -q sentence_transformers"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "bge-small-en 모델로 만든 벡터의 차원은?",
+          "o": [
+            "1536",
+            "768",
+            "384",
+            "1024"
+          ],
+          "a": 2,
+          "h": "주석은 이 모델을 '경량 영어 embedding 모델'이라고 소개합니다. 출력 셀의 '벡터 차원' 값은 OpenAI 임베딩(1536)보다 훨씬 작습니다.",
+          "w": "bge-small-en은 384차원 벡터를 만듭니다. 1536은 OpenAIEmbeddings 결과입니다.",
+          "an": "11일차 Huggingface Embedding · 실행 결과",
+          "src": "model_name = \"BAAI/bge-small-en\" # 설명: BAAI에서 제공하는 경량 영어 embedding 모델"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>encode_kwargs = {'normalize_embeddings': True}</code>를 넣은 이유로 주석에 적힌 것은?",
+          "o": [
+            "GPU 사용을 강제",
+            "토큰 수를 줄이기",
+            "한국어 자동 번역",
+            "코사인 유사도 안정화"
+          ],
+          "a": 3,
+          "h": "정규화는 벡터 길이를 1로 맞추는 작업이라 방향만 비교하는 지표와 잘 맞습니다. 주석은 이를 'RAG 필수 옵션'이라고까지 적었습니다.",
+          "w": "normalize_embeddings=True는 벡터를 정규화해 cosine similarity를 안정화합니다. 장치 선택은 model_kwargs의 device가 맡습니다.",
+          "an": "11일차 Huggingface Embedding · 모델 설정",
+          "src": "encode_kwargs = {\n \"normalize_embeddings\" : True\n # 역할: cosine similarity 안정화 (RAG 필수 옵션)"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>model_kwargs = {'device': 'cpu'}</code>에서 GPU를 쓸 수 있으면 주석은 어떤 값으로 바꾸라고 하나요?",
+          "o": [
+            "gpu",
+            "cuda",
+            "tpu",
+            "auto"
+          ],
+          "a": 1,
+          "h": "주석에 'GPU 사용 가능하면 ○○로 변경'이라고 적혀 있습니다. PyTorch 계열에서 NVIDIA GPU 장치를 가리키는 이름입니다.",
+          "w": "GPU가 있으면 device를 'cuda'로 바꿉니다. 기본값 'cpu'는 GPU 없이도 실행되는 설정입니다.",
+          "an": "11일차 Huggingface Embedding · model_kwargs",
+          "src": "model_kwargs = {\n\n \"device\" : \"cpu\"\n # GPU 사용 가능하면 \"cuda\"로 변경"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "영어 경량 모델 bge-small-en으로 한국어 질문(아버지 이름 묻기)을 비교했을 때 생긴 일은?",
+          "o": [
+            "오답 문장이 정답보다 높았다",
+            "정답 문장이 가장 높았다",
+            "모든 값이 0에 가까웠다",
+            "무관 문장이 가장 높았다"
+          ],
+          "a": 0,
+          "h": "출력값은 '아버지는 엄했다' 0.94, 이름 소개 0.89, 랭체인 0.84, 아버지 이름 정답 문장 0.92였습니다. 이름을 알려 주는 문장과 그렇지 않은 문장의 점수를 비교하세요.",
+          "w": "이름을 알려 주지 않는 '아버지는 엄했다'가 0.94로 정답 문장(0.92)보다 높았습니다. 무관한 문장도 0.84로 높아, 영어 모델이 한국어 의미를 잘 구분하지 못했습니다.",
+          "an": "11일차 Huggingface Embedding · 유사도 결과",
+          "src": "model_name = \"BAAI/bge-small-en\" # 설명: BAAI에서 제공하는 경량 영어 embedding 모델"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "ko-sbert-nli는 한국어 사전학습 임베딩 모델이다.",
+          "a": true,
+          "h": "'한국어 사전학습 모델 임베딩' 절의 코드 주석에 모델 이름 옆 설명이 붙어 있습니다. 같은 HuggingFaceEmbeddings 클래스로 불러옵니다.",
+          "w": "맞습니다. ko-sbert-nli는 한국어 사전학습 모델로, HuggingFaceEmbeddings로 불러와 씁니다.",
+          "an": "11일차 한국어 사전학습 모델 임베딩",
+          "src": "한국어 사전학습 모델 임베딩\n - ko-sbert-nli\n```python\nfrom langchain_community.embeddings import HuggingFaceEmbeddings\nmodel_name = 'jhgan/ko-sbert-nli' # 한국어 사전학습 모델"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "bge-m3-korean 결과에서 '랭체인은 유용합니다'의 유사도는 0.84로 높게 나왔다.",
+          "a": false,
+          "h": "한국어 파인 튜닝 모델 셀 출력에서 '랭체인은 유용합니다' 줄은 질문과 무관한 문장을 비교한 값입니다. 한국어 특화 BGE-M3 파인튜닝 모델은 무관한 문장의 점수를 0 쪽으로 크게 낮추었고, 0.84는 앞의 다른 모델 실험에서 본 값입니다. 두 실험의 값을 섞지 말고 확인해 보세요.",
+          "w": "틀렸습니다. bge-m3-korean에서 무관한 문장은 0.06으로 매우 낮았습니다. 0.84는 영어 모델 결과로, 한국어 특화 모델이 무관한 문장을 훨씬 잘 걸러 냅니다.",
+          "an": "11일차 한국어 파인 튜닝 · 실행 결과",
+          "src": "model_name = \"upskyy/bge-m3-korean\"\n\n# 설명: 한국어 특화 BGE-M3 파인튜닝 모델\n\n# 특징: multilingual + retrieval optimized"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "임베딩 모델과 특징을 연결하세요.",
+          "pairs": [
+            [
+              "bge-small-en",
+              "경량 영어 모델 (384차원)"
+            ],
+            [
+              "ko-sbert-nli",
+              "한국어 사전학습 모델"
+            ],
+            [
+              "bge-m3-korean",
+              "한국어 특화 파인튜닝 모델"
+            ],
+            [
+              "OpenAIEmbeddings",
+              "API 기반 1536차원 모델"
+            ]
+          ],
+          "h": "각 셀 주석의 모델 설명을 떠올리세요. 영어 경량, 한국어 사전학습, 한국어 특화 파인튜닝, 그리고 API로 호출하는 모델이 하나씩 있습니다.",
+          "w": "bge-small-en은 경량 영어, ko-sbert-nli는 한국어 사전학습, bge-m3-korean은 한국어 특화 BGE-M3 파인튜닝 모델입니다. OpenAIEmbeddings는 API로 1536차원 벡터를 만듭니다.",
+          "an": "11일차 Huggingface Embedding · 한국어 모델",
+          "src": "model_name = \"upskyy/bge-m3-korean\"\n\n# 설명: 한국어 특화 BGE-M3 파인튜닝 모델"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "HuggingFace 임베딩 실험 순서대로 나열하세요.",
+          "steps": [
+            "sentence_transformers 설치",
+            "model_name·model_kwargs·encode_kwargs 설정",
+            "HuggingFaceEmbeddings 객체 생성",
+            "embed_documents·embed_query로 벡터화",
+            "cos_sim으로 문장 유사도 비교"
+          ],
+          "h": "노트북 주석은 '1. 설치 → 2. 모델 설정 → 3. Embedding 모델 초기화' 순서입니다. 유사도 비교는 벡터가 만들어진 뒤에 합니다.",
+          "w": "라이브러리 설치 → 설정 → 객체 생성 → 벡터화 → 유사도 비교 순입니다.",
+          "an": "11일차 Huggingface Embedding",
+          "src": "# 1. Sentence Transformers 설치\n\n# =========================================================\n\n# 역할: HuggingFace 기반의 사전학습 임베딩 모델 사용 라이브러리\n\n# 특징: OpenAI 없이 로컬에서도 embedding 생성 가능\n\n# 용도: RAG, semantic search, clustering 등\n\n!pip install -q sentence_transformers"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "ko-sbert-nli 결과(엄했다 0.46, 이름 소개 0.52, 랭체인 0.03, 정답 0.59)에 대해 옳은 것을 모두 고르세요.",
+          "o": [
+            "정답 문장이 가장 높았다",
+            "무관한 문장은 0에 가까웠다",
+            "'엄했다' 문장이 가장 높았다",
+            "영어 모델보다 무관 문장 점수가 낮았다",
+            "모든 점수가 0.9 이상이었다"
+          ],
+          "a": [
+            0,
+            1,
+            3
+          ],
+          "h": "문제에 주어진 네 숫자를 크기순으로 정렬해 보세요. 영어 모델 bge-small-en에서는 무관한 문장이 0.84였다는 점과도 비교합니다.",
+          "w": "정답 문장 0.59가 가장 높고 무관한 문장은 0.03으로 0에 가깝습니다. 영어 모델의 0.84보다 훨씬 낮아 한국어 모델이 의미를 더 잘 구분합니다.",
+          "an": "11일차 한국어 사전학습 모델 임베딩 · 실행 결과",
+          "src": "의미적으로 가까운 문장이 높은 유사도를 보이는지 확인하면, BGE 임베딩과 모델 세팅이 잘 작동하고 있다는 뜻입니다."
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "Top-K 검색 · Recall@K",
+      "ref": "11일차 한국어 파인 튜닝 · Top-K Retrieval · Recall@K",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Top-K 검색 실습에서 벡터 DB 대신 검색 대상으로 쓴 것은?",
+          "o": [
+            "문장 5개 리스트(Corpus)",
+            "FAISS 인덱스",
+            "Chroma 컬렉션",
+            "PDF 페이지"
+          ],
+          "a": 0,
+          "h": "첫 주석이 '평가용 문서 데이터 (Corpus)', '역할: vector DB 대신 사용할 문서 집합'입니다. 이 셀에서는 아직 벡터 저장소를 만들지 않았습니다.",
+          "w": "sentences 리스트 5문장을 Corpus로 써서 직접 유사도를 계산했습니다. FAISS·Chroma는 뒤의 VectorStore 절에서 등장합니다.",
+          "an": "11일차 한국어 파인 튜닝 · Top-K Retrieval",
+          "src": "# 1. 평가용 문서 데이터 (Corpus)\n\n# =========================================================\n\n# 역할: vector DB 대신 사용할 문서 집합\n\n# 목적: embedding 기반 retrieval 성능 테스트"
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>sorted(scores, key=lambda x:x[1], reverse=True)</code>의 역할은?",
+          "o": [
+            "문장 이름순 정렬",
+            "유사도 오름차순 정렬",
+            "유사도 내림차순 정렬",
+            "무작위로 섞기"
+          ],
+          "a": 2,
+          "h": "scores에는 (문장, 점수) 튜플이 들어 있고 <code>x[1]</code>은 두 번째 값입니다. <code>reverse=True</code>는 큰 값부터 놓으라는 뜻입니다.",
+          "w": "점수(x[1]) 기준으로 큰 값부터, 즉 유사도 내림차순으로 정렬합니다. 그래야 앞에서부터 K개를 자르면 Top-K가 됩니다.",
+          "an": "11일차 Top-K Retrieval · similarity 정렬",
+          "src": "# similarity 기준 내림차순 정렬\nscores = sorted(scores, key=lambda x:x[1], reverse=True)"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>top_k = [doc for doc, _ in scores[:3]]</code>에서 top_k에 담기는 것은?",
+          "o": [
+            "상위 3개의 점수",
+            "상위 3개의 문장",
+            "하위 3개의 문장",
+            "세 번째 문장 하나"
+          ],
+          "a": 1,
+          "h": "정렬된 scores의 앞 3개 튜플을 꺼내 언패킹할 때, 점수 자리는 밑줄 <code>_</code>로 버립니다. 남는 변수가 무엇인지 보세요.",
+          "w": "점수는 _로 버리고 문장(doc)만 모으므로 유사도 상위 3개 문장이 담깁니다.",
+          "an": "11일차 Recall@K 평가",
+          "src": "top_k = [doc for doc, _ in scores[:3]]\nprint(\"\\n==============================\")\nprint(\"Recall@3:\", ground_truth in top_k)"
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Recall@K 평가가 확인하는 것은?",
+          "o": [
+            "응답이 K초 이내인지",
+            "벡터 차원이 K인지",
+            "답변이 K문장인지",
+            "정답이 상위 K개 안에 있는지"
+          ],
+          "a": 3,
+          "h": "주석은 Recall@K를 'retrieval 성능' 평가라 부르고 '실제 정답 문장이 top-k 안에 포함되는지 평가'라고 설명합니다. 코드도 <code>ground_truth in top_k</code>를 출력합니다.",
+          "w": "Recall@K는 정답 문서가 검색 상위 K개 안에 들어 있는지 봅니다. 속도나 차원과는 관계없습니다.",
+          "an": "11일차 Recall@K 평가",
+          "src": "# 8. Recall@K 평가 - retrieval 성능\n\n# =========================================================\n\n# 역할: 실제 정답 문장이 top-k 안에 포함되는지 평가"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "bge-m3-korean Top-K 결과에서 상위 3개에 <b>들지 못한</b> 문장은?",
+          "o": [
+            "아버지 이름 정답 문장",
+            "'제 이름은 ○○입니다'",
+            "'이름이 무엇인가요?'",
+            "'안녕하세요'"
+          ],
+          "a": 3,
+          "h": "결과는 0.828, 0.572, 0.224, 0.201, 0.138 순이었고, '이름'이 들어간 문장들이 위쪽을 차지했습니다. 이름과 관련 없는 인사말이 몇 위였는지 따져 보세요.",
+          "w": "상위 3개는 정답 문장(0.828), 이름 소개(0.572), '이름이 무엇인가요?'(0.224)였고 '안녕하세요'는 0.201로 4위입니다.",
+          "an": "11일차 Top-K Retrieval · 실행 결과",
+          "src": "upskyy/bge-m3-korean 모델을 통해 한국어 문장 의미 파악이 잘 되고 있음\n특히 정답 문장을 유사도 기반으로 잘 뽑아내는 점에서 RAG 시스템, 검색, FAQ 추천 등에 활용 가능성이 높음"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "이 실습의 Recall@3 평가 결과는 True였다.",
+          "a": true,
+          "h": "Recall@3 줄은 <code>ground_truth in top_k</code>를 출력하고, top_k는 내림차순 정렬된 scores의 앞 3개 문장입니다. 실행 결과에서 정답 문장의 유사도 0.828이 다섯 문장 가운데 몇 위였는지 따져 보세요.",
+          "w": "맞습니다. 정답 문장이 1위였으므로 Recall@3: True가 출력되었습니다.",
+          "an": "11일차 Recall@K 평가 · 실행 결과",
+          "src": "top_k = [doc for doc, _ in scores[:3]]\nprint(\"\\n==============================\")\nprint(\"Recall@3:\", ground_truth in top_k)"
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "이 실습의 Recall@3 평가는 정답 문장이 1위일 때만 True가 된다.",
+          "a": false,
+          "h": "코드는 상위 3개 문장을 <code>top_k</code> 리스트로 만든 뒤 <code>ground_truth in top_k</code>를 검사합니다. 파이썬의 <code>in</code> 연산자가 리스트에서 무엇을 확인하는지, 순위까지 보는지 떠올려 보세요.",
+          "w": "틀렸습니다. 정답이 2위나 3위여도 top_k 리스트 안에 있으면 True입니다. 순위까지 보려면 다른 지표가 필요합니다.",
+          "an": "11일차 Recall@K 평가",
+          "src": "top_k = [doc for doc, _ in scores[:3]]\nprint(\"\\n==============================\")\nprint(\"Recall@3:\", ground_truth in top_k)"
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "Top-K 실습 변수와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "doc_embeddings",
+              "모든 문서 벡터 (검색 대상)"
+            ],
+            [
+              "query_embedding",
+              "질문 벡터 (검색 기준)"
+            ],
+            [
+              "scores",
+              "(문장, 점수) 목록"
+            ],
+            [
+              "ground_truth",
+              "정답 문장"
+            ]
+          ],
+          "h": "주석의 '역할:' 줄에 'retrieval 대상 생성', '검색 기준 벡터', '(문서, 점수) 저장'이 적혀 있습니다. 평가에 쓰는 기준 문장도 하나 있습니다.",
+          "w": "doc_embeddings는 검색 대상, query_embedding은 검색 기준, scores는 (문장, 유사도) 목록, ground_truth는 Recall 평가용 정답입니다.",
+          "an": "11일차 Top-K Retrieval",
+          "src": "# 역할: 모든 문서를 vector space로 변환 (retrieval 대상 생성)\n\ndoc_embeddings = ko.embed_documents(sentences)"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "Top-K 검색과 평가 순서대로 나열하세요.",
+          "steps": [
+            "문서들을 embed_documents로 벡터화",
+            "질문을 embed_query로 벡터화",
+            "문서마다 cos_sim 계산",
+            "점수 내림차순 정렬",
+            "상위 K개로 Recall@K 확인"
+          ],
+          "h": "코드 주석 번호 2(문서 Embedding) → 4(Query Embedding) → 6(Top-K Retrieval) → 8(Recall@K)을 따라가세요. 정렬은 점수를 다 구한 다음입니다.",
+          "w": "문서·질문 벡터화 → 유사도 계산 → 정렬 → Top-K 평가 순입니다.",
+          "an": "11일차 Top-K Retrieval",
+          "src": "for i, doc_emb in enumerate(doc_embeddings):\n\n # query vs document similarity 계산\n score = cos_sim(query_embedding, doc_emb)\n\n # (문서, 점수) 저장\n scores.append((sentences[i], score))\n\n# similarity 기준 내림차순 정렬\nscores = sorted(scores, key=lambda x:x[1], reverse=True)"
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "Top-K 실습 코드와 결과에 대해 옳은 것을 모두 고르세요.",
+          "o": [
+            "정답 문장 유사도는 0.828이었다",
+            "enumerate로 문서 번호를 함께 얻었다",
+            "FAISS 인덱스를 생성했다",
+            "정렬 기준은 튜플의 두 번째 값이다",
+            "질문은 embed_documents로 임베딩했다"
+          ],
+          "a": [
+            0,
+            1,
+            3
+          ],
+          "h": "반복문은 <code>for i, doc_emb in enumerate(doc_embeddings)</code>이고 정렬 키는 <code>x[1]</code>입니다. 이 셀은 벡터 DB 대신 리스트를 썼고, 질문은 따로 단일 문장용 메서드를 썼습니다.",
+          "w": "정답 유사도 0.828, enumerate로 인덱스 i 사용, 점수(x[1]) 기준 정렬이 맞습니다. FAISS는 쓰지 않았고 질문은 embed_query로 임베딩했습니다.",
+          "an": "11일차 Top-K Retrieval",
+          "src": "for i, doc_emb in enumerate(doc_embeddings):\n\n # query vs document similarity 계산\n score = cos_sim(query_embedding, doc_emb)\n\n # (문서, 점수) 저장\n scores.append((sentences[i], score))\n\n# similarity 기준 내림차순 정렬\nscores = sorted(scores, key=lambda x:x[1], reverse=True)"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "VectorStore · FAISS vs Chroma",
+      "ref": "11일차 VectorStore · Chroma · FAISS · 비교표",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "자료에서 VectorStore는 RAG 시스템의 몇 번째 단계인가요?",
+          "o": [
+            "두 번째 단계",
+            "세 번째 단계",
+            "네 번째 단계",
+            "다섯 번째 단계"
+          ],
+          "a": 2,
+          "h": "VectorStore는 '이전 단계에서 생성된 임베딩 벡터들을 효율적으로 저장하고 관리'합니다. 임베딩이 세 번째 단계였다는 점에서 이어 세어 보세요.",
+          "w": "VectorStore는 네 번째 단계로, 세 번째 단계인 Embedding의 결과 벡터를 저장·관리합니다.",
+          "an": "11일차 VectorStore",
+          "src": "VectorStore\n - 시스템의 네번째 단계로 이전 단계에서 생성된 임베딩 벡터들을 효율적으로 저장하고 관리한다"
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "비교표에서 '인메모리(디스크 저장 X)', '세션 종료 시 데이터 유실'로 정리된 것은?",
+          "o": [
+            "Chroma",
+            "FAISS",
+            "Retriever",
+            "tiktoken"
+          ],
+          "a": 1,
+          "h": "비교표의 두 열은 FAISS와 Chroma입니다. 한쪽은 디스크 기반·지속성 있음, 다른 쪽은 메모리에만 두는 방식입니다.",
+          "w": "FAISS가 인메모리 방식이라 세션이 끝나면 데이터가 사라집니다. Chroma는 디스크 기반으로 지속성이 있습니다.",
+          "an": "11일차 FAISS vs Chroma 비교표",
+          "src": "| 항목 | FAISS | Chroma |\n| ------ | --------------- | -------------- |\n| 저장 방식 | 인메모리 (디스크 저장 X) | 디스크 기반, 지속성 있음 |\n| 장점 | 빠른 검색, 가볍고 간단 | 쿼리 확장 기능 등 지원 |\n| 단점 | 세션 종료 시 데이터 유실 | 약간 더 무거움 |"
+        },
+        {
+          "id": "t5-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "비교표에서 '프로덕션/장기 운영'에 적합하다고 정리된 것은?",
+          "o": [
+            "Chroma",
+            "FAISS",
+            "cos_sim 함수",
+            "텍스트 분할기"
+          ],
+          "a": 0,
+          "h": "장기 운영에는 데이터가 세션이 끝나도 남아 있어야 합니다. 비교표의 '저장 방식' 행에서 '디스크 기반, 지속성 있음'인 쪽을 찾으세요.",
+          "w": "Chroma는 디스크 기반이라 프로덕션·장기 운영에 맞고, FAISS는 빠른 테스트·임시 분석에 맞습니다.",
+          "an": "11일차 FAISS vs Chroma 비교표",
+          "src": "| 항목 | FAISS | Chroma |\n| ------ | --------------- | -------------- |\n| 저장 방식 | 인메모리 (디스크 저장 X) | 디스크 기반, 지속성 있음 |\n| 장점 | 빠른 검색, 가볍고 간단 | 쿼리 확장 기능 등 지원 |\n| 단점 | 세션 종료 시 데이터 유실 | 약간 더 무거움 |\n| 적합한 용도 | 빠른 테스트, 임시 분석 | 프로덕션/장기 운영 |"
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>tokenizer = get_encoding('cl100k_base')</code>로 만든 <code>tiktoken_len</code>을 <code>length_function</code>에 넣으면 chunk_size는 무엇을 기준으로 재나요?",
+          "o": [
+            "문자 수",
+            "단어 수",
+            "페이지 수",
+            "토큰 수"
+          ],
+          "a": 3,
+          "h": "<code>tiktoken_len</code>은 <code>len(tokenizer.encode(text))</code>를 돌려줍니다. 자료는 '문자 수가 아니라 GPT가 실제로 쓰는 ○○ 기준으로 chunk size를 맞춘다'고 설명합니다.",
+          "w": "tiktoken 인코더로 센 토큰 수가 기준이 됩니다. 기본 len을 쓰면 문자 수 기준이 됩니다.",
+          "an": "11일차 FAISS · Token 기반 Chunk Splitter",
+          "src": "from tiktoken import get_encoding\n\ntokenizer = get_encoding(\"cl100k_base\")\n\ndef tiktoken_len(text):\n\n return len(tokenizer.encode(text))\n\n\ntext_splitter = RecursiveCharacterTextSplitter(\n chunk_size=500, # chunk 최대 크기\n chunk_overlap=0, # chunk 간 중복 없음\n length_function=tiktoken_len # token 기준 길이 계산"
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "FAISS 실습의 첫 분할기 설정 <code>chunk_size=500, chunk_overlap=0</code>이 뜻하는 것은?",
+          "o": [
+            "청크끼리 겹치는 부분이 없다",
+            "청크가 0개 생긴다",
+            "청크를 500개 만든다",
+            "청크마다 500토큰 겹친다"
+          ],
+          "a": 0,
+          "h": "chunk_size는 청크 하나의 최대 크기, chunk_overlap은 이웃 청크와 겹치는 크기입니다. 주석에는 '# chunk 간 ○○ 없음'이라고 적혀 있습니다.",
+          "w": "overlap=0은 청크 사이에 겹치는 내용이 없다는 뜻이고, 500은 청크 하나의 최대 토큰 수입니다. 뒤의 RAG 챗봇은 문맥 보존을 위해 overlap=100을 줍니다.",
+          "an": "11일차 FAISS · Token 기반 Chunk Splitter",
+          "src": "text_splitter = RecursiveCharacterTextSplitter(\n chunk_size=500, # chunk 최대 크기\n chunk_overlap=0, # chunk 간 중복 없음"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "자료는 Chroma를 AI 네이티브 오픈 소스 벡터 데이터베이스로 소개한다.",
+          "a": true,
+          "h": "VectorStore 절 아래 Chroma와 FAISS가 한 줄씩 소개되어 있습니다. FAISS는 '라이브러리', Chroma는 '데이터베이스'로 표현됩니다.",
+          "w": "맞습니다. Chroma는 AI 네이티브 오픈 소스 벡터 데이터베이스로 소개됩니다.",
+          "an": "11일차 Chroma",
+          "src": "Chroma\n - AI 네이티브 오픈 소스 벡터 데이터 베이\nFAISS\n - Facebook AI 유사성검색(FAISS)은 고밀도 벡터의 효율적인 유사성을 검색 및 클러스터링을 위한 라이브러리\n - 모든 크기의 벡터 집합에서 검색하는 알고리즘이 포함되어 있다."
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "FAISS는 디스크 기반이라 세션이 끝나도 따로 저장하지 않으면 데이터가 남는다.",
+          "a": false,
+          "h": "비교표의 FAISS 단점 칸과 저장 방식 칸을 보세요. 그래서 노트북은 뒤에서 별도의 저장 메서드로 인덱스를 디스크에 씁니다.",
+          "w": "틀렸습니다. FAISS는 인메모리 방식이라 세션이 끝나면 데이터가 사라집니다. 남기려면 save_local로 저장해야 합니다.",
+          "an": "11일차 FAISS vs Chroma 비교표",
+          "src": "| 항목 | FAISS | Chroma |\n| ------ | --------------- | -------------- |\n| 저장 방식 | 인메모리 (디스크 저장 X) | 디스크 기반, 지속성 있음 |\n| 장점 | 빠른 검색, 가볍고 간단 | 쿼리 확장 기능 등 지원 |\n| 단점 | 세션 종료 시 데이터 유실 | 약간 더 무거움 |"
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "비교표 항목과 내용을 연결하세요.",
+          "pairs": [
+            [
+              "FAISS 장점",
+              "빠른 검색, 가볍고 간단"
+            ],
+            [
+              "FAISS 적합한 용도",
+              "빠른 테스트, 임시 분석"
+            ],
+            [
+              "Chroma 장점",
+              "쿼리 확장 기능 등 지원"
+            ],
+            [
+              "Chroma 단점",
+              "약간 더 무거움"
+            ]
+          ],
+          "h": "비교표는 저장 방식·장점·단점·적합한 용도 네 행입니다. 가벼운 쪽은 테스트에, 지속성 있는 쪽은 운영에 맞다고 정리됩니다.",
+          "w": "FAISS는 빠르고 가벼워 테스트에 좋고, Chroma는 쿼리 확장 같은 기능이 있지만 약간 더 무겁습니다.",
+          "an": "11일차 FAISS vs Chroma 비교표",
+          "src": "| 항목 | FAISS | Chroma |\n| ------ | --------------- | -------------- |\n| 저장 방식 | 인메모리 (디스크 저장 X) | 디스크 기반, 지속성 있음 |\n| 장점 | 빠른 검색, 가볍고 간단 | 쿼리 확장 기능 등 지원 |\n| 단점 | 세션 종료 시 데이터 유실 | 약간 더 무거움 |\n| 적합한 용도 | 빠른 테스트, 임시 분석 | 프로덕션/장기 운영 |"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "FAISS 벡터 DB를 만드는 순서대로 나열하세요.",
+          "steps": [
+            "PyPDFLoader로 PDF 로드",
+            "RecursiveCharacterTextSplitter로 분할",
+            "한국어 임베딩 모델 초기화",
+            "FAISS.from_documents로 DB 생성"
+          ],
+          "h": "FAISS 셀의 주석 번호 2(PDF 로딩) → 3·4(Chunk Splitter, 변환) → 5(Embedding 모델) → 6(FAISS Vector DB 생성)을 따라가세요.",
+          "w": "PDF 로드 → 청크 분할 → 임베딩 모델 준비 → FAISS 생성 순입니다. from_documents가 청크와 임베딩 모델을 함께 받습니다.",
+          "an": "11일차 FAISS 실습",
+          "src": "# 6. FAISS Vector DB 생성 (핵심 단계)\n\n# =========================================================\n\n# 역할: embedding된 document를 FAISS index에 저장\n\n# 결과: semantic search 가능한 vector database 생성\n\nvectordb = FAISS.from_documents(\n documents=docs,\n embedding=ko\n)"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "자료가 든 VectorStore의 필요성을 모두 고르세요.",
+          "o": [
+            "빠른 속도 검색",
+            "스케일러빌리티",
+            "의미 검색",
+            "문서 자동 번역",
+            "답변 문장 생성"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "VectorStore 소개 아래 '필요성'이 세 줄로 적혀 있습니다. 벡터를 저장하고 빠르게 조회하는 역할과 관련된 것만 고르세요.",
+          "w": "자료는 빠른 속도 검색, 스케일러빌리티, 의미 검색을 듭니다. 답변 생성은 LLM의 역할입니다.",
+          "an": "11일차 VectorStore · 필요성",
+          "src": "VectorStore\n - 시스템의 네번째 단계로 이전 단계에서 생성된 임베딩 벡터들을 효율적으로 저장하고 관리한다\n - 향후 검색과정에서 벡터들을 빠르게 조회하고, 관련 문서들을 신속하게 찾아내는 데 필수적이다\n - 필요성\n 1. 빠른 속도 검색\n 2. 스케일러빌리티\n 3. 의미 검색"
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "FAISS 검색 · 저장 · MMR",
+      "ref": "11일차 FAISS · relevance score 의미 · MMR",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "질문과 가장 유사한 Document 리스트만 반환하는 FAISS 메서드는?",
+          "o": [
+            "save_local",
+            "similarity_search",
+            "load_local",
+            "from_documents"
+          ],
+          "a": 1,
+          "h": "'FAISS similarity search 실행' 주석은 'query를 embedding → FAISS에서 가장 유사한 문서 검색, 결과: Document 리스트 반환'이라고 설명합니다. 저장·로드·생성용 메서드와 구분하세요.",
+          "w": "similarity_search가 문서 리스트를 돌려줍니다. save_local·load_local은 저장·로드, from_documents는 DB 생성입니다.",
+          "an": "11일차 FAISS · similarity search",
+          "src": "# 2. FAISS similarity search 실행\n\n# =========================================================\n\n# 역할: query를 embedding → FAISS에서 가장 유사한 문서 검색\n\n# 결과: 가장 관련성 높은 Document 리스트 반환\n\ndocs = db.similarity_search(query)"
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "FAISS 벡터스토어를 로컬 디스크에 저장하는 코드는?",
+          "o": [
+            "db.save_local('faiss_index')",
+            "db.persist()",
+            "db.dump('faiss_index')",
+            "FAISS.load_local('faiss_index')"
+          ],
+          "a": 0,
+          "h": "셀 주석은 'FAISS 벡터스토어를 로컬디스크에 저장'입니다. 불러올 때 쓰는 메서드와 이름이 짝을 이룹니다(local 저장/로드).",
+          "w": "save_local('faiss_index')로 폴더에 저장하고, load_local로 다시 불러옵니다.",
+          "an": "11일차 FAISS · save_local",
+          "src": "# FAISS 벡터스토어를 로컬디스크에 저장\n\ndb.save_local(\"faiss_index\")"
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>FAISS.load_local</code>로 불러올 때 주석이 '반드시 동일해야 함'이라고 강조한 것은?",
+          "o": [
+            "프롬프트 템플릿",
+            "LLM 모델",
+            "청크 개수",
+            "임베딩 모델"
+          ],
+          "a": 3,
+          "h": "load_local의 두 번째 인자로 <code>ko</code>를 넘깁니다. 저장된 벡터와 새 질문 벡터가 같은 공간에 있어야 비교가 된다는 점을 떠올리세요.",
+          "w": "저장할 때와 같은 임베딩 모델(ko)을 써야 질문 벡터를 같은 공간에서 비교할 수 있습니다. LLM이나 프롬프트는 검색과 무관합니다.",
+          "an": "11일차 FAISS 로컬 로드 + 검색",
+          "src": "# 역할: 디스크에 저장된 FAISS index를 다시 메모리에 로드\n\n# 중요: embedding 모델(ko)은 반드시 동일해야 함\n\nnew_db = FAISS.load_local(\n \"faiss_index\",\n ko,\n allow_dangerous_deserialization=True\n)"
+        },
+        {
+          "id": "t6-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "자료의 relevance score 표에서 1.0의 의미는?",
+          "o": [
+            "보통",
+            "거의 무관",
+            "매우 유사",
+            "반대 의미"
+          ],
+          "a": 2,
+          "h": "relevance score 표는 1.0, 0.5, 0.0 세 줄입니다. 값이 클수록 질문과 관련이 깊다고 해석합니다.",
+          "w": "relevance score 1.0은 매우 유사, 0.5는 보통, 0.0은 거의 무관입니다.",
+          "an": "11일차 relevance score 의미",
+          "src": "relevance score 의미\n\n| 값 | 의미 |\n| --- | ----- |\n| 1.0 | 매우 유사 |\n| 0.5 | 보통 |\n| 0.0 | 거의 무관 |"
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>max_marginal_relevance_search(query, k=3, fetch_k=10, lambda_mult=0.3)</code>에서 <code>fetch_k=10</code>의 의미는?",
+          "o": [
+            "먼저 가져오는 후보 문서 수",
+            "최종 반환 문서 수",
+            "다양성 가중치",
+            "최대 토큰 수"
+          ],
+          "a": 0,
+          "h": "주석은 fetch_k를 '유사도 기준으로 먼저 가져온 문서의 총 수'라고 설명합니다. MMR은 후보를 넉넉히 모은 뒤 그중에서 다양하게 k개를 고릅니다.",
+          "w": "fetch_k=10은 유사도로 먼저 뽑는 후보 수이고, 그중 다양성을 고려해 k=3개를 최종 반환합니다. lambda_mult가 다양성 정도를 조절합니다.",
+          "an": "11일차 MMR 검색",
+          "src": "# fetch_k=10 : 유사도 기준으로 먼저 가져온 문서의 총 수\n\n# lambda_mult=0.3 : 다양성을 얼마나 크게 고려할지(0:유사성만, 1:다양성만)"
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": false,
+          "p": "<code>similarity_search_with_score</code> 셀 메모 'score < 0.5 → 사용, score > 1.0 → 무시'는 이 점수가 작을수록 질문에 가깝다는 뜻으로 쓰였다.",
+          "a": true,
+          "h": "메모는 작은 점수를 쓰고 큰 점수를 버리라고 합니다. 이 셀의 점수는 거리처럼 동작해 가장 관련 있는 첫 문서가 1.0591, 다음 문서가 1.0596이었습니다.",
+          "w": "맞습니다. 이 점수는 거리처럼 작을수록 가깝습니다. 반대로 relevance score는 클수록 관련이 깊으니 두 값을 헷갈리지 않아야 합니다.",
+          "an": "11일차 FAISS + Score 기반 Retrieval",
+          "src": "threshold 설정 가능\nscore < 0.5 → 사용\nscore > 1.0 → 무시"
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "MMR 검색은 유사도만 보고 결과 문서들 사이의 다양성은 고려하지 않는다.",
+          "a": false,
+          "h": "MMR 셀 주석은 '가장 유사한 문서를 찾으면서, 결과 문서들간의 ○○○ 고려'라고 설명합니다. 중복 내용을 피하려는 검색 방식입니다.",
+          "w": "틀렸습니다. MMR은 relevance(유사도)와 diversity(다양성)의 균형을 맞춰 중복이 적은 다양한 context를 확보합니다.",
+          "an": "11일차 MMR 검색",
+          "src": "# Max Marginal Relevance 검색 수행\n\n# -> 이 검색은 가장 유사한 문서를 찾으면서, 결과 문서들간의 다양성 고려"
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "FAISS 메서드와 하는 일을 연결하세요.",
+          "pairs": [
+            [
+              "save_local",
+              "인덱스를 디스크에 저장"
+            ],
+            [
+              "load_local",
+              "저장된 인덱스를 메모리로 로드"
+            ],
+            [
+              "similarity_search_with_score",
+              "문서와 점수를 함께 반환"
+            ],
+            [
+              "max_marginal_relevance_search",
+              "유사도와 다양성 균형 검색"
+            ]
+          ],
+          "h": "메서드 이름을 끊어 읽으면 역할이 보입니다: 저장(save), 로드(load), 점수 포함(with_score), 최대 한계 관련성(MMR).",
+          "w": "save_local/load_local은 저장·로드, with_score는 점수까지 반환, MMR은 다양성을 고려한 검색입니다.",
+          "an": "11일차 FAISS",
+          "src": "# - 각 문서와의 거리/유사도 점수 함께 반환\n\ndocs_and_scores = db.similarity_search_with_score(query)"
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "FAISS를 저장했다가 다시 불러와 검색하는 순서대로 나열하세요.",
+          "steps": [
+            "FAISS.from_documents로 DB 생성",
+            "save_local로 디스크에 저장",
+            "같은 임베딩으로 load_local",
+            "relevance score와 함께 k=3 검색"
+          ],
+          "h": "저장하려면 먼저 DB가 있어야 하고, 검색하려면 메모리에 올라와 있어야 합니다. 노트북 셀 순서도 생성 → 저장 → 로드+검색입니다.",
+          "w": "생성 → 저장 → 로드 → 검색 순입니다. 로드할 때는 저장 때와 같은 임베딩 모델을 넘깁니다.",
+          "an": "11일차 FAISS · save_local · load_local",
+          "src": "# FAISS 로컬 로드 + 검색\n\n# =========================================================\n\n# 1. 저장된 FAISS Vector DB 로드\n\n# =========================================================\n\n# 역할: 디스크에 저장된 FAISS index를 다시 메모리에 로드\n\n# 중요: embedding 모델(ko)은 반드시 동일해야 함\n\nnew_db = FAISS.load_local(\n \"faiss_index\",\n ko,\n allow_dangerous_deserialization=True\n)"
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "<code>FAISS.load_local('faiss_index', ko, allow_dangerous_deserialization=True)</code>에 대해 옳은 것을 모두 고르세요.",
+          "o": [
+            "첫 인자는 저장한 폴더 이름이다",
+            "ko는 저장 때와 같은 임베딩이어야 한다",
+            "역직렬화 허용 옵션을 켰다",
+            "호출하면 PDF를 다시 분할한다",
+            "반환값은 LLM 답변 문자열이다"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "save_local('faiss_index')로 저장한 이름을 그대로 넘기고, 주석은 'embedding 모델(ko)은 반드시 동일해야 함'이라고 적었습니다. 로드는 이미 만들어진 인덱스를 메모리로 올릴 뿐입니다.",
+          "w": "폴더 이름, 같은 임베딩 모델, allow_dangerous_deserialization=True가 맞습니다. 로드는 PDF를 다시 처리하지 않고, 반환값은 벡터스토어 객체입니다.",
+          "an": "11일차 FAISS 로컬 로드 + 검색",
+          "src": "# 중요: embedding 모델(ko)은 반드시 동일해야 함\n\nnew_db = FAISS.load_local(\n \"faiss_index\",\n ko,\n allow_dangerous_deserialization=True\n)"
+        }
+      ]
+    },
+    {
+      "id": "t7",
+      "title": "Retriever · LCEL RAG 체인",
+      "ref": "11일차 Retriever · FAISS + GPT LCEL 기반 완전 RAG 챗봇",
+      "qs": [
+        {
+          "id": "t7-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "자료가 정의한 Retriever는?",
+          "o": [
+            "문서를 벡터로 바꾸는 모델",
+            "쿼리를 받아 문서를 돌려주는 인터페이스",
+            "답변을 만드는 LLM",
+            "PDF를 읽는 로더"
+          ],
+          "a": 1,
+          "h": "자료는 Retriever를 '비정형 쿼리가 주어지면 ○○를 반환하는 인터페이스'로 정의하고 '정보 검색의 질을 결정'한다고 합니다.",
+          "w": "Retriever는 쿼리를 받아 관련 문서를 돌려주는 검색 인터페이스입니다. 벡터 변환은 임베딩 모델, 답변 생성은 LLM이 맡습니다.",
+          "an": "11일차 Retriever",
+          "src": "Retriever\n - 정보 검색의 질을 결정\n - 리트리버는 비정형 쿼리가 주어지면 문서를 반환하는 인터페이스이다"
+        },
+        {
+          "id": "t7-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>vector_db.as_retriever(search_kwargs={'k':3})</code>에서 k=3의 의미는?",
+          "o": [
+            "관련 문서 상위 3개 검색",
+            "검색을 3번 재시도",
+            "청크 3개씩 겹치기",
+            "답변을 3문장으로 제한"
+          ],
+          "a": 0,
+          "h": "주석은 이 retriever를 'FAISS 검색 엔진 (top-k retrieval)'이라고 부릅니다. search_kwargs는 검색할 때 쓰는 옵션입니다.",
+          "w": "k=3은 질문과 가장 유사한 문서 3개를 가져오라는 뜻입니다. 답변 길이나 청크 겹침과는 관계없습니다.",
+          "an": "11일차 FAISS + GPT LCEL RAG · Retriever 생성",
+          "src": "# 역할: FAISS 기반 similarity search 엔진\n\nretriever = vector_db.as_retriever(search_kwargs={\"k\":3})"
+        },
+        {
+          "id": "t7-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "<code>{'context': retriever | format_docs, 'question': RunnablePassthrough()}</code>에서 RunnablePassthrough의 역할은?",
+          "o": [
+            "문서를 문자열로 합친다",
+            "관련 문서를 검색한다",
+            "입력 질문을 그대로 넘긴다",
+            "답변을 문자열로 바꾼다"
+          ],
+          "a": 2,
+          "h": "이 딕셔너리는 같은 입력(질문)을 두 갈래로 보냅니다. 한쪽은 검색과 문서 합치기를 거치고, 다른 쪽은 아무 가공 없이 프롬프트의 {question} 자리로 갑니다.",
+          "w": "RunnablePassthrough는 입력 질문을 변형 없이 그대로 전달합니다. 검색은 retriever, 문자열 합치기는 format_docs, 출력 변환은 StrOutputParser가 맡습니다.",
+          "an": "11일차 LCEL RAG Chain 구성",
+          "src": "# retriever → context 생성 → prompt → LLM → output parsing\n\nfrom langchain_core.runnables import RunnablePassthrough\nfrom langchain_core.output_parsers import StrOutputParser\n\ndef format_docs(docs):\n\n return \"\\n\\n\".join([doc.page_content for doc in docs])\n\n\nrag_chain = (\n {\n \"context\": retriever | format_docs,\n \"question\": RunnablePassthrough()\n }\n | prompt\n | llm\n | StrOutputParser()\n)"
+        },
+        {
+          "id": "t7-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "RAG 체인 끝의 <code>StrOutputParser()</code>가 하는 일은?",
+          "o": [
+            "질문을 벡터로 변환",
+            "프롬프트 생성",
+            "관련 문서 검색",
+            "LLM 출력을 문자열로 변환"
+          ],
+          "a": 3,
+          "h": "체인 주석은 'retriever → context 생성 → prompt → LLM → output parsing' 순서입니다. 마지막 단계는 LLM이 만든 메시지를 다루기 쉬운 형태로 바꿉니다.",
+          "w": "StrOutputParser는 LLM의 메시지 객체에서 텍스트만 뽑아 문자열로 돌려줍니다. 그래서 <code>print(result)</code>로 바로 답을 볼 수 있습니다.",
+          "an": "11일차 LCEL RAG Chain 구성",
+          "src": "# retriever → context 생성 → prompt → LLM → output parsing\n\nfrom langchain_core.runnables import RunnablePassthrough\nfrom langchain_core.output_parsers import StrOutputParser\n\ndef format_docs(docs):\n\n return \"\\n\\n\".join([doc.page_content for doc in docs])\n\n\nrag_chain = (\n {\n \"context\": retriever | format_docs,\n \"question\": RunnablePassthrough()\n }\n | prompt\n | llm\n | StrOutputParser()\n)"
+        },
+        {
+          "id": "t7-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "<code>format_docs</code>가 <code>'\\n\\n'.join([doc.page_content for doc in docs])</code>를 반환할 때 결과는?",
+          "o": [
+            "문서들의 메타데이터 목록",
+            "본문을 빈 줄로 이어 붙인 문자열",
+            "검색된 문서의 개수",
+            "첫 문서의 본문만"
+          ],
+          "a": 1,
+          "h": "리스트 컴프리헨션이 각 Document의 page_content(본문)만 꺼내고, join이 그 사이에 줄바꿈 두 개를 넣어 하나로 합칩니다. 주석은 이를 'retrieved Document → 문자열 변환'이라고 합니다.",
+          "w": "모든 검색 문서의 본문이 빈 줄로 구분된 하나의 문자열이 되어 프롬프트의 {context}에 들어갑니다. 메타데이터는 포함되지 않습니다.",
+          "an": "11일차 context formatting 함수",
+          "src": "# 역할: retrieved Document → 문자열 변환\n\ndef format_docs(docs):\n return \"\\n\\n\".join([doc.page_content for doc in docs])"
+        },
+        {
+          "id": "t7-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "자료는 Retriever가 벡터 저장소보다 더 일반적이며, 문서를 저장하지 않고 검색만 할 수 있다고 설명한다.",
+          "a": true,
+          "h": "Retriever 소개 네 줄 중 뒤의 두 줄을 떠올리세요. 저장과 검색 중 Retriever가 맡는 쪽이 무엇인지 생각하면 됩니다.",
+          "w": "맞습니다. Retriever는 벡터 저장소보다 일반적인 인터페이스로, 저장 없이 검색만 할 수 있습니다.",
+          "an": "11일차 Retriever",
+          "src": "Retriever\n - 정보 검색의 질을 결정\n - 리트리버는 비정형 쿼리가 주어지면 문서를 반환하는 인터페이스이다\n - 벡터 저장소보다 더 일반적이다\n - 문서를 저장할 필요 없이 단지 검색만 할 수 있"
+        },
+        {
+          "id": "t7-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "완전 RAG 챗봇의 ChatOpenAI는 다양한 답변을 위해 temperature=1로 설정했다.",
+          "a": false,
+          "h": "LLM 설정 셀은 <code>ChatOpenAI(temperature=?, model='gpt-3.5-turbo')</code>입니다. 문서 기반 답변에서는 같은 질문에 같은 답이 나오는 안정성이 중요합니다.",
+          "w": "틀렸습니다. temperature=0으로 두어 결정적인 답변을 얻습니다. RAG에서는 근거 문서에 충실한 일관된 답이 중요합니다.",
+          "an": "11일차 FAISS + GPT LCEL RAG · LLM 설정",
+          "src": "# 7. LLM 설정 (GPT)\n\n# =========================================================\n\n# 역할: retrieved context 기반 답변 생성\n\nfrom langchain_openai import ChatOpenAI\n\nllm = ChatOpenAI(\n temperature=0,\n model=\"gpt-3.5-turbo\"\n)"
+        },
+        {
+          "id": "t7-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "RAG 프롬프트 구성 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "{context}",
+              "검색된 문서 내용"
+            ],
+            [
+              "{question}",
+              "사용자 질문"
+            ],
+            [
+              "ChatPromptTemplate.from_template",
+              "문자열 템플릿으로 프롬프트 생성"
+            ],
+            [
+              "'반드시 아래 context만 사용'",
+              "문서 밖 내용으로 답하지 않게 제한"
+            ]
+          ],
+          "h": "프롬프트 주석은 '역할: context + question 구조화'입니다. 중괄호 변수는 체인 앞단 딕셔너리의 두 키와 이름이 같습니다.",
+          "w": "{context}에는 format_docs 결과, {question}에는 질문이 들어갑니다. 'context만 사용' 지시는 문서에 근거한 답을 강제합니다.",
+          "an": "11일차 Prompt Template 정의",
+          "src": "# 역할: context + question 구조화\n\nfrom langchain_core.prompts import ChatPromptTemplate\n\nprompt = ChatPromptTemplate.from_template(\"\"\"\n너는 문서 기반 AI 챗봇이다.\n\n반드시 아래 context만 사용해서 답변해라.\n\ncontext:\n{context}\n\nquestion:\n{question}\n\n답변:\n\"\"\")"
+        },
+        {
+          "id": "t7-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "LCEL RAG 체인에서 질문이 처리되는 순서대로 나열하세요.",
+          "steps": [
+            "retriever로 관련 문서 검색",
+            "format_docs로 context 문자열 생성",
+            "prompt에 context와 question 채우기",
+            "llm이 답변 생성",
+            "StrOutputParser로 문자열 변환"
+          ],
+          "h": "체인 정의 주석 'retriever → context 생성 → prompt → LLM → output parsing'을 그대로 따라가세요. 파이프 <code>|</code>는 왼쪽 결과를 오른쪽에 넘깁니다.",
+          "w": "검색 → 문맥 문자열 → 프롬프트 → LLM → 문자열 파싱 순입니다.",
+          "an": "11일차 LCEL RAG Chain 구성",
+          "src": "# retriever → context 생성 → prompt → LLM → output parsing\n\nfrom langchain_core.runnables import RunnablePassthrough\nfrom langchain_core.output_parsers import StrOutputParser\n\ndef format_docs(docs):\n\n return \"\\n\\n\".join([doc.page_content for doc in docs])\n\n\nrag_chain = (\n {\n \"context\": retriever | format_docs,\n \"question\": RunnablePassthrough()\n }\n | prompt\n | llm\n | StrOutputParser()\n)"
+        },
+        {
+          "id": "t7-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "tiktoken 기반으로 다시 만든 FAISS RAG 구성에 대해 옳은 것을 모두 고르세요.",
+          "o": [
+            "임베딩은 OpenAIEmbeddings였다",
+            "cl100k_base 인코딩을 썼다",
+            "chunk_size 500, overlap 100이다",
+            "검색 k는 10이었다",
+            "길이 함수로 토큰 수를 셌다"
+          ],
+          "a": [
+            1,
+            2,
+            4
+          ],
+          "h": "구성 메모는 'PDF → Token chunking (tiktoken) → Embedding (KoSBERT) → FAISS → Retriever → LCEL → GPT'입니다. 분할기 인자와 as_retriever 인자를 확인하세요.",
+          "w": "cl100k_base 토크나이저, chunk_size=500·overlap=100, 토큰 길이 함수가 맞습니다. 임베딩은 ko-sbert-nli였고 k는 3이었습니다.",
+          "an": "11일차 FAISS + GPT LCEL RAG (tiktoken)",
+          "src": "# 2. Token 기반 Text Splitting\n\n# =========================================================\n\n# 역할: LLM context 기준으로 정확한 chunk 생성\n\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\n\ntext_splitter = RecursiveCharacterTextSplitter(\n chunk_size=500, # token 기준 chunk size\n chunk_overlap=100, # 의미 유지용 overlap\n length_function=tiktoken_len\n)"
+        }
+      ]
+    },
+    {
+      "id": "t8",
+      "title": "다문서 RAG 챗봇 문제",
+      "ref": "11일차 여러 문서에서 답변찾는 RAG 기반_QA 에이전트",
+      "qs": [
+        {
+          "id": "t8-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "전체 플로우 메모의 MODEL LAYER에 적힌 Embedding 모델은?",
+          "o": [
+            "text-embedding-3-small",
+            "gpt-4o-mini",
+            "ko-sbert-nli",
+            "bge-small-en"
+          ],
+          "a": 0,
+          "h": "MODEL LAYER에는 LLM과 Embedding이 한 줄씩 적혀 있습니다. 둘 다 OpenAI 모델이며, 하나는 답변 생성용 GPT, 다른 하나는 벡터 변환용입니다.",
+          "w": "빈칸 <code>OpenAIEmbeddings(model=...)</code>에는 text-embedding-3-small이 들어갑니다. gpt-4o-mini는 LLM입니다.",
+          "an": "11일차 전체 플로우 · MODEL LAYER",
+          "src": "[2. MODEL LAYER]\n ↓\nLLM: gpt-4o-mini\nEmbedding: text-embedding-3-small"
+        },
+        {
+          "id": "t8-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "빈칸 <code>loader = ______</code>에서 .txt 기사 폴더 전체를 읽기에 알맞은 것은?",
+          "o": [
+            "PyPDFLoader",
+            "CSVLoader",
+            "DirectoryLoader + TextLoader",
+            "WebBaseLoader"
+          ],
+          "a": 2,
+          "h": "이 셀은 <code>from langchain_community.document_loaders import DirectoryLoader, TextLoader</code>를 가져옵니다. 플로우 메모의 DATA LAYER도 폴더 로더로 .txt 기사를 읽는다고 적었습니다.",
+          "w": "폴더 단위는 DirectoryLoader가, 각 .txt 파일 읽기는 TextLoader가 맡습니다. PDF·CSV·웹 로더는 이 데이터에 맞지 않습니다.",
+          "an": "11일차 RAG 실습 · 데이터 로딩 빈칸",
+          "src": "# 역할: TechCrunch 기사 파일 로드 (.txt)\n\nfrom langchain_community.document_loaders import DirectoryLoader, TextLoader"
+        },
+        {
+          "id": "t8-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "빈칸 <code>chunks = ______</code>에 알맞은 코드는?",
+          "o": [
+            "docs.split(800)",
+            "splitter.split_documents(docs)",
+            "vectordb.add(docs)",
+            "splitter.load(docs)"
+          ],
+          "a": 1,
+          "h": "주석은 'Document → chunk 리스트 변환'입니다. 앞 셀들에서 <code>text_splitter.○○(pages)</code>로 Document 리스트를 나눈 메서드를 떠올리세요.",
+          "w": "RecursiveCharacterTextSplitter의 split_documents로 Document 리스트를 청크로 나눕니다.",
+          "an": "11일차 RAG 실습 · Text Chunking 빈칸",
+          "src": "# 역할: 긴 문서를 LLM 입력 가능한 단위로 분할\n\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter # chunk splitter\n\nsplitter = RecursiveCharacterTextSplitter( # recursive splitter 초기화\n chunk_size=800, # chunk 최대 길이\n chunk_overlap=150 # 문맥 유지용 overlap\n)\n\nchunks = # Document → chunk 리스트 변환"
+        },
+        {
+          "id": "t8-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "플로우 메모에 적힌 Chroma의 persist 경로는?",
+          "o": [
+            "./faiss_index",
+            "./articles",
+            "/content/drive",
+            "./chroma_store_articles"
+          ],
+          "a": 3,
+          "h": "VECTOR STORE LAYER의 'persist:' 줄을 보세요. 기사 압축을 푼 폴더나 FAISS 저장 폴더와는 다른 이름입니다.",
+          "w": "persist_directory 빈칸에는 './chroma_store_articles'가 들어갑니다. './articles'는 원본 기사 폴더입니다.",
+          "an": "11일차 전체 플로우 · VECTOR STORE LAYER",
+          "src": "[5. VECTOR STORE LAYER]\n ↓\nChroma Vector DB\n ↓\nembedding(chunks)\n ↓\npersist: ./chroma_store_articles\n ↓\nretriever (top-k = 5)"
+        },
+        {
+          "id": "t8-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "주석 '# top-5 검색'에 맞게 <code>vectordb.as_retriever( ____ )</code>를 채우면?",
+          "o": [
+            "fetch_k=5",
+            "k_top=5",
+            "search_kwargs={'k': 5}",
+            "limit=5"
+          ],
+          "a": 2,
+          "h": "앞의 FAISS 챗봇은 <code>as_retriever(search_kwargs={'k':3})</code>로 상위 3개를 검색했습니다. 플로우 메모의 retriever 줄에는 top-k = 5라고 적혀 있습니다.",
+          "w": "검색 개수는 search_kwargs의 k로 줍니다. fetch_k는 MMR 후보 수이고, k_top·limit은 쓰지 않습니다.",
+          "an": "11일차 RAG 실습 · Retriever 빈칸",
+          "src": "# 역할: FAISS 기반 similarity search 엔진\n\nretriever = vector_db.as_retriever(search_kwargs={\"k\":3})"
+        },
+        {
+          "id": "t8-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "이 실습에서 로드된 기사 수는 21개였다.",
+          "a": true,
+          "h": "데이터를 내려받는 셀 주석과 실행 출력 '로드된 기사 수:'를 확인하세요. 같은 숫자가 두 곳에 나옵니다.",
+          "w": "맞습니다. 기사 21개(.txt)를 받아 로드했고, 출력도 '로드된 기사 수: 21'이었습니다.",
+          "an": "11일차 RAG 실습 · 실행 결과",
+          "src": "# 기사 21개\n!wget -q https://github.com/kairess/toy-datasets/raw/master/techcrunch-articles.zip"
+        },
+        {
+          "id": "t8-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "실행 루프에서 'exit'를 입력하면 rag_chain.invoke가 한 번 더 실행된 뒤 종료된다.",
+          "a": false,
+          "h": "루프는 입력을 받은 직후 <code>if query.lower() in ['exit', 'quit', 'q']:</code>를 검사하고 조건이 맞으면 break합니다. invoke 줄은 그 아래에 있습니다.",
+          "w": "틀렸습니다. 종료어를 검사해 바로 break하므로 invoke는 실행되지 않습니다. exit 외에 quit, q도 종료어입니다.",
+          "an": "11일차 RAG 실습 · 실행 루프",
+          "src": "while True: # 무한 질의 루프 시작\n\n query = input(\"\\n질문 (exit 입력 시 종료): \") # 사용자 입력\n\n if query.lower() in [\"exit\", \"quit\", \"q\"]: # 종료 조건 체크\n break # 루프 종료\n\n answer = rag_chain.invoke(query) # RAG 실행"
+        },
+        {
+          "id": "t8-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "플로우 메모의 레이어와 구성 요소를 연결하세요.",
+          "pairs": [
+            [
+              "DATA LAYER",
+              "DirectoryLoader로 기사 로드"
+            ],
+            [
+              "CHUNKING LAYER",
+              "RecursiveCharacterTextSplitter"
+            ],
+            [
+              "VECTOR STORE LAYER",
+              "Chroma Vector DB"
+            ],
+            [
+              "PROMPT LAYER",
+              "ChatPromptTemplate"
+            ]
+          ],
+          "h": "전체 플로우는 ENV SETUP부터 INTERACTION LOOP까지 9개 레이어로 나뉩니다. 각 레이어 이름이 하는 일(데이터, 분할, 벡터 저장, 프롬프트)을 그대로 떠올리세요.",
+          "w": "DATA는 로더, CHUNKING은 분할기(800/150), VECTOR STORE는 Chroma, PROMPT는 ChatPromptTemplate입니다.",
+          "an": "11일차 전체 플로우",
+          "src": "[3. DATA LAYER]\n ↓\nDirectoryLoader\n ↓\nTechCrunch .txt articles\n ↓\nDocument List\n────────────────────────────\n\n[4. CHUNKING LAYER]\n ↓\nRecursiveCharacterTextSplitter\n ↓\nchunks (800 tokens, overlap 150)\n────────────────────────────\n[5. VECTOR STORE LAYER]\n ↓\nChroma Vector DB"
+        },
+        {
+          "id": "t8-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "시스템 구조도의 처리 순서대로 나열하세요.",
+          "steps": [
+            "TXT 파일 로딩",
+            "Chunking",
+            "Chroma Vector DB 생성",
+            "Retriever (Top-K 검색)",
+            "Prompt 구성 후 GPT 실행"
+          ],
+          "h": "구조도는 API KEY → 모델 → TXT 로딩 → Chunking → Chroma → Retriever → Context → Prompt → GPT → Answer 순입니다.",
+          "w": "로딩 → 분할 → 벡터 DB → 검색 → 프롬프트·GPT 순입니다.",
+          "an": "11일차 시스템 구조도",
+          "src": "시스템 구조도\n[API KEY]\n ↓\n[LLM + Embedding 모델]\n ↓\n[TXT 파일 로딩]\n ↓\n[Chunking]\n ↓\n[Chroma Vector DB 생성]\n ↓\n[Retriever (Top-K 검색)]\n ↓\n[Context 생성 (문서 → 문자열)]\n ↓\n[Prompt (context + question)]\n ↓\n[GPT 실행]\n ↓\n[Answer 출력]"
+        },
+        {
+          "id": "t8-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "'Agent + RAG 구조'를 일반 RAG 구조와 비교한 설명으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "LLM 추론으로 도구를 선택한다",
+            "RAG 도구 외에 Web 도구를 둔다",
+            "Calculator 도구도 둘 수 있다",
+            "벡터 DB 없이만 동작한다",
+            "도구 결과를 합성해 답한다"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            4
+          ],
+          "h": "일반 RAG는 'User → Retriever → VectorDB → LLM → Answer' 한 줄입니다. Agent 구조는 'Agent (LLM reasoning) → Tool 선택 → 결과 합성'이고, 도구 목록에 VectorDB 검색 도구도 들어 있습니다.",
+          "w": "Agent는 LLM 추론으로 RAG·Web·Calculator 도구 중 골라 쓰고 결과를 합성합니다. RAG Tool이 VectorDB를 검색하므로 벡터 DB 없이만 동작하는 것은 아닙니다.",
+          "an": "11일차 비교 · Agent + RAG 구조",
+          "src": "RAG 구조 :\nUser → Retriever → VectorDB → LLM → Answer\n\nAgent + RAG 구조 :\nUser\n ↓\nAgent (LLM reasoning)\n ↓\nTool 선택\n ├── RAG Tool (VectorDB 검색)\n ├── Web Tool\n ├── Calculator Tool\n ↓\n결과 합성 → Answer"
+        }
+      ]
+    }
+  ]
+}

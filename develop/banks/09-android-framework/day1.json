@@ -1,0 +1,1545 @@
+{
+  "id": "aosp-d1",
+  "code": "AF1",
+  "title": "Android 프레임워크 1일차 · 환경 설정 · Boot · Binder/AIDL",
+  "subtitle": "AOSP 빌드 환경 · Boot·Binder 구조 · AIDL·IPC 패턴",
+  "course": "09 · Android 프레임워크",
+  "source": "09-android_framework-main/Day1/Day1.pdf + md/*.md",
+  "salt": "aosp-d1",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "빌드 서버 접속 · SSH 키",
+      "ref": "실습 1 · 01_ssh_putty_winscp",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "PuTTYgen에서 Ed25519 키를 만들 때 <b>Type of key to generate</b>에서 고르는 항목은?",
+          "o": [
+            "RSA",
+            "DSA",
+            "EdDSA",
+            "ECDSA"
+          ],
+          "a": 2,
+          "h": "PuTTYgen 하단 Parameters 영역에서 먼저 키 종류(Type of key to generate)를 고르고, 그 바로 아래 Curve 항목에서 Ed25519 (255 bits)를 선택합니다. Ed25519는 Edwards 곡선 기반 디지털 서명 알고리즘(Edwards-curve DSA) 계열에 속합니다.",
+          "w": "EdDSA를 고른 뒤 바로 아래 Curve에서 Ed25519 (255 bits)를 선택합니다. RSA·DSA·ECDSA는 이 실습에서 쓰지 않는 키 유형입니다.",
+          "an": "01_ssh_putty_winscp Step 2",
+          "src": "## Step 2. PuTTYgen으로 Ed25519 키 생성\n\n| 순서 | 대화창 설정 |\n|---|---|\n| 1 | 시작 메뉴 → **PuTTYgen** 실행 |\n| 2 | 하단 **Parameters** → **Type of key to generate** → **EdDSA** 선택 |\n| 3 | 바로 아래 **Curve to use for generating this key** → **Ed25519 (255 bits)** 선택 |\n| 4 | **Generate** 클릭 → 빈 영역 위에서 마우스를 움직여 키 생성 |"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "SSH 공개키 방식에서 개인키(<code>.ppk</code>)를 보관하는 곳은?",
+          "o": [
+            "Windows PC",
+            "서버의 authorized_keys",
+            "서버의 /etc/ssh",
+            "WinSCP 원격 디렉토리"
+          ],
+          "a": 0,
+          "h": "공개키 방식에서는 개인키를 클라이언트에만 두고, 서버에는 공개키 한 줄만 authorized_keys에 등록합니다. 자료의 원리 표는 .ppk 파일 경로가 C:\\Users\\<이름>\\.ssh 아래라고 적고 있습니다.",
+          "w": "개인키는 Windows PC의 <code>C:\\Users\\&lt;이름&gt;\\.ssh\\build-server.ppk</code>에만 둡니다. 서버의 <code>~/.ssh/authorized_keys</code>에는 공개키 한 줄만 올라갑니다.",
+          "an": "01_ssh_putty_winscp 원리",
+          "src": "## 원리\n\n| 위치 | 보관 항목 | 파일 |\n|---|---|---|\n| Windows PC | 개인키 (private key) | `C:\\Users\\<이름>\\.ssh\\build-server.ppk` |\n| Ubuntu 서버 | 공개키 (public key) | `~/.ssh/authorized_keys` 의 한 줄 |\n\n개인키는 절대 서버로 보내지 않는다. 서버에는 공개키 한 줄만 올라간다."
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "서버의 <code>authorized_keys</code>에 붙여 넣어야 하는 것은?",
+          "o": [
+            "Save public key로 만든 파일",
+            "상단 박스의 ssh-ed25519 한 줄",
+            ".ppk 파일의 내용",
+            "Key comment 문자열"
+          ],
+          "a": 1,
+          "h": "PuTTYgen 상단에는 'Public key for pasting into OpenSSH authorized_keys file' 박스가 있고, 그 안의 한 줄 전체를 복사해 서버에 붙여 넣습니다. 이 줄은 ssh-ed25519 AAAA… 주석 형태이며, Save public key 파일은 PuTTY 전용 형식이라 쓰지 않습니다.",
+          "w": "상단 박스의 <code>ssh-ed25519 AAAA… 주석</code> 한 줄 전체를 등록합니다. Save public key로 저장한 파일은 PuTTY 전용 형식이라 OpenSSH 서버에 그대로 쓸 수 없습니다.",
+          "an": "01_ssh_putty_winscp Step 2 ⚠",
+          "src": "| 7 | **Save private key** → `C:\\Users\\<이름>\\.ssh\\build-server.ppk` 저장 (passphrase 없음 경고는 **예**) |\n| 8 | 상단 **Public key for pasting into OpenSSH authorized_keys file** 박스의 한 줄 전체(`ssh-ed25519 AAAA… 주석`)를 복사해 메모장에 붙여 두기 |\n\n> `Save public key` 버튼으로 저장한 파일은 PuTTY 전용 형식이므로 서버에는 8번의 한 줄 텍스트를 등록한다."
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "PuTTY에서 접속할 때 ID 입력을 생략하게 해 주는 <b>Auto-login username</b>의 위치는?",
+          "o": [
+            "Session → Host Name",
+            "Connection → SSH → Auth",
+            "Window → Translation",
+            "Connection → Data"
+          ],
+          "a": 3,
+          "h": "PuTTY 설정 트리에서 Auto-login username은 SSH 하위가 아니라 Connection 바로 아래 메뉴에 있습니다. 여기에 서버 계정명(예: worker)을 넣으면 접속 시 ID를 묻지 않고, 키 파일은 SSH → Auth → Credentials에서 지정합니다.",
+          "w": "Auto-login username은 Connection → Data에 있습니다. SSH → Auth → Credentials는 개인키 파일을 지정하는 곳이고, Translation은 문자셋 설정입니다.",
+          "an": "01_ssh_putty_winscp Step 4 · 트러블슈팅",
+          "src": "| 3 | 좌측 **Connection → Data** → **Auto-login username** : 서버 계정명 (예: `worker`) |\n| 4 | 좌측 **Connection → SSH → Auth → Credentials** → **Private key file for authentication** → **Browse…** → `build-server.ppk` 선택 |\n| 5 | 좌측 **Window → Translation** → **Remote character set** : `UTF-8` (한글 깨짐 방지) |"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "PuTTY 접속 시 <code>Server refused our key</code>가 나오면 먼저 확인할 것은?",
+          "o": [
+            "authorized_keys 줄·권한",
+            "Remote character set",
+            "WinSCP 인터페이스 모드",
+            "PuTTY 설치 경로"
+          ],
+          "a": 0,
+          "h": "트러블슈팅 표에서 'Server refused our key'의 원인은 서버에 등록한 공개키 줄이 잘렸거나 권한이 잘못된 경우입니다. 다시 붙여 넣고 <code>chmod 600</code>으로 권한을 맞추는 것이 해결책입니다.",
+          "w": "<code>authorized_keys</code>의 한 줄이 잘렸거나 권한이 틀린 경우입니다. 다시 붙여 넣고 <code>chmod 600</code>을 적용합니다. 문자셋은 한글 깨짐과 관련된 설정입니다.",
+          "an": "01_ssh_putty_winscp 트러블슈팅",
+          "src": "## 트러블슈팅\n\n| 증상 | 원인 / 해결 |\n|---|---|\n| `Server refused our key` | `authorized_keys` 한 줄이 잘렸거나 권한 오류 → 다시 붙여넣고 `chmod 600` |\n| 비밀번호를 계속 물어봄 | Auth → Credentials 에 `.ppk` 미지정, 또는 PuTTYgen에서 만든 키와 다른 키 |\n| `Auto-login username` 이 안 보임 | Connection → Data 항목 (SSH 하위가 아님) |"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "PuTTYgen의 <b>Save public key</b> 버튼으로 저장한 파일은 OpenSSH 서버의 <code>authorized_keys</code>에 그대로 쓸 수 있다.",
+          "a": false,
+          "h": "PuTTYgen의 Save public key 버튼으로 저장한 파일은 PuTTY 전용 형식이라 OpenSSH 서버에 그대로 쓸 수 없다고 자료가 경고합니다. 서버에는 상단 박스에 표시된 한 줄 텍스트를 등록해야 합니다.",
+          "w": "틀립니다. 그 파일은 PuTTY 전용 형식이므로, 상단 박스에 표시된 OpenSSH 형식 한 줄을 복사해 등록해야 합니다.",
+          "an": "01_ssh_putty_winscp Step 2 ⚠",
+          "src": "| 8 | 상단 **Public key for pasting into OpenSSH authorized_keys file** 박스의 **한 줄 전체**를 복사해 메모장에 붙여 둔다 |\n\n복사한 한 줄은 다음 형태다.\n\n```text\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... 홍길동@build-server\n```\n\n> ⚠ **Save public key** 버튼으로 저장한 파일은 PuTTY 전용 형식이라 OpenSSH 서버에 그대로 쓸 수 없다. 반드시 8번의 한 줄 텍스트를 사용한다."
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Ed25519 키는 RSA 4096보다 키가 짧고 빠르며 현재 권장되는 방식이다.",
+          "a": true,
+          "h": "실습 1의 핵심 원칙은 개인키는 Windows에만 두고 서버에는 공개키 한 줄만 등록하라는 것입니다. 같은 문장에서 Ed25519를 RSA 4096과 비교하며 키 길이·속도·권장 여부를 함께 설명합니다.",
+          "w": "맞습니다. 커리큘럼은 Ed25519가 RSA 4096보다 짧고 빠르며 현재 권장 방식이라고 정리합니다.",
+          "an": "Day1_커리큘럼 실습 1 핵심 원칙",
+          "src": "**핵심 원칙:** 개인키(`.ppk`)는 Windows에만 보관, 서버 `authorized_keys`에는 공개키 한 줄만 등록. Ed25519는 RSA 4096보다 키가 짧고 빠르며 현재 권장 방식"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "빌드 서버 접속 설정 항목과 값을 연결하세요.",
+          "pairs": [
+            [
+              "~/.ssh 폴더 권한",
+              "700"
+            ],
+            [
+              "~/.ssh/authorized_keys 권한",
+              "600"
+            ],
+            [
+              "PuTTY·WinSCP 포트",
+              "22"
+            ],
+            [
+              "WinSCP File protocol",
+              "SFTP"
+            ]
+          ],
+          "h": "확인 포인트는 서버의 ~/.ssh 폴더는 소유자만 들어갈 수 있는 700, authorized_keys 파일은 소유자만 읽고 쓰는 600 권한이어야 한다고 적습니다. SSH 기본 포트는 22이고, WinSCP의 File protocol은 SSH 위에서 동작하는 파일 전송 방식으로 둡니다.",
+          "w": "<code>chmod 700 ~/.ssh</code>, <code>chmod 600 ~/.ssh/authorized_keys</code>로 권한을 맞춥니다. PuTTY와 WinSCP는 모두 SSH 포트 22를 쓰고, WinSCP는 SFTP 프로토콜로 접속합니다.",
+          "an": "01_ssh_putty_winscp Step 3–5 · 확인 포인트",
+          "src": "## 확인 포인트\n\n- [ ] PuTTY `build-server` 더블클릭 → ID·비밀번호 없이 프롬프트 표시\n- [ ] WinSCP 로그인 → `~/aosp` 폴더 탐색, 파일 드래그 앤 드롭 전송 성공\n- [ ] 서버 `~/.ssh/authorized_keys` 권한 `600`, `~/.ssh` 권한 `700`"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "ID·비밀번호 없이 자동 로그인하기까지의 순서로 나열하세요.",
+          "steps": [
+            "PuTTYgen에서 EdDSA·Ed25519로 키 생성",
+            "Save private key로 .ppk 저장",
+            "공개키 한 줄을 서버 authorized_keys에 등록",
+            "PuTTY에 Auto-login username과 .ppk 지정 후 세션 저장",
+            "저장한 build-server 세션으로 접속"
+          ],
+          "h": "먼저 PuTTYgen에서 EdDSA/Ed25519 키를 만들어 개인키(.ppk)를 저장하고, 공개키 한 줄을 서버에 등록합니다. 그다음 PuTTY에 계정명과 .ppk를 지정해 세션으로 저장한 뒤, 그 세션으로 접속합니다.",
+          "w": "키 쌍을 만들고 개인키를 저장한 뒤 공개키를 서버에 등록합니다. 그다음 PuTTY 세션에 사용자명과 개인키를 지정해 저장하면 더블클릭만으로 접속됩니다.",
+          "an": "01_ssh_putty_winscp Step 2–4",
+          "src": "| 2 | 하단 **Parameters** → **Type of key to generate** → **EdDSA** 선택 |\n| 3 | 바로 아래 **Curve to use for generating this key** → **Ed25519 (255 bits)** 선택 |\n| 4 | **Generate** 클릭 → 빈 영역 위에서 마우스를 움직여 키 생성 |\n| 5 | **Key comment** : `홍길동@build-server` 처럼 식별 가능한 이름 입력 |"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "WinSCP 설정에 대한 설명으로 옳은 것을 <b>모두</b> 고르세요.",
+          "o": [
+            "File protocol은 SFTP로 둔다",
+            "Password 칸에 서버 비밀번호를 저장한다",
+            "SSH → Authentication에 .ppk를 지정한다",
+            "Import Sites로 PuTTY 세션을 가져올 수 있다",
+            "개인키를 서버로 업로드한다"
+          ],
+          "a": [
+            0,
+            2,
+            3
+          ],
+          "h": "WinSCP는 File protocol을 SFTP, 포트 22로 두고 Password는 비운 채 Advanced → SSH → Authentication에서 PuTTY와 같은 .ppk를 지정합니다. PuTTY 세션을 먼저 저장했다면 Tools → Import Sites로 키 설정까지 가져올 수 있습니다.",
+          "w": "WinSCP는 SFTP로 접속하고 Advanced → SSH → Authentication에 같은 <code>.ppk</code>를 지정하며 Password는 비워 둡니다. Tools → Import Sites로 PuTTY 세션을 가져올 수도 있습니다. 개인키는 서버로 보내지 않습니다.",
+          "an": "01_ssh_putty_winscp Step 5",
+          "src": "| 2 | **File protocol** : SFTP / **Host name** : 빌드 서버 IP / **Port number** : `22` |\n| 3 | **User name** : 서버 계정명 / **Password** : 비워 둠 |\n| 4 | **Advanced…** → 좌측 **SSH → Authentication** → **Private key file** → `build-server.ppk` 선택 → **OK** |"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "Emulator · adb 기본",
+      "ref": "실습 2·3 · 02_android_studio_emulator · 03_adb_basics",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>adb root</code>가 'cannot run as root in production builds'로 실패하는 가장 흔한 원인은?",
+          "o": [
+            "adb 버전이 오래됨",
+            "Google Play 이미지 사용",
+            "USB 디버깅이 꺼짐",
+            "Emulator RAM 부족"
+          ],
+          "a": 1,
+          "h": "<code>adbd cannot run as root in production builds</code>는 adbd를 root로 재시작할 수 없는 user 빌드 이미지에서 나옵니다. 자료는 이름에 Google Play가 붙은 시스템 이미지가 user 빌드라 adb root가 막혀 있다고 설명합니다.",
+          "w": "Google Play 이미지는 user 빌드라 adbd를 root로 재시작할 수 없습니다. Google APIs 이미지나 직접 빌드한 userdebug 이미지를 씁니다.",
+          "an": "14_worksheet Q6 · 02_android_studio_emulator Step 2",
+          "src": "**6. ②**\nGoogle Play 이미지는 user 빌드라 adbd 를 root 로 재시작할 수 없다. Google APIs 또는 직접 빌드한 userdebug 이미지를 쓴다.\n**7. ②**"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Automotive AVD를 만들 때 기본으로 쓰는 시스템 이미지의 API 레벨은?",
+          "o": [
+            "API 28",
+            "API 34",
+            "API 35",
+            "API 36"
+          ],
+          "a": 2,
+          "h": "자료의 ⚠ 문구에 따르면 Automotive 카테고리에는 API 36 이미지가 아직 제공되지 않습니다. 그래서 기본 선택된 한 단계 아래 API 이미지를 쓰고, 실습 앱은 minSdk 28 이상이면 그대로 동작합니다.",
+          "w": "Automotive 카테고리는 API 36 이미지를 제공하지 않으므로 기본 선택인 API 35 Google APIs 이미지를 씁니다. 실습 앱은 minSdk 28 이상이면 그대로 동작합니다.",
+          "an": "02_android_studio_emulator Step 2 ⚠",
+          "src": "> ⚠ Automotive 카테고리에는 API 36 이미지가 아직 제공되지 않는다. 기본 선택인 **API 35** 를 사용한다. 실습 앱은 `minSdk 28` 이상이면 그대로 동작한다."
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "어느 cmd 창에서든 <code>adb</code>를 실행하려면 PATH에 추가할 SDK 폴더는?",
+          "o": [
+            "Sdk\\emulator",
+            "Sdk\\build-tools",
+            "Sdk\\system-images",
+            "Sdk\\platform-tools"
+          ],
+          "a": 3,
+          "h": "PATH 등록 단계에서는 %LOCALAPPDATA%\\Android\\Sdk 아래의 두 폴더를 추가합니다. adb는 '플랫폼 도구' 폴더에, emulator 실행 파일은 emulator 폴더에 들어 있습니다.",
+          "w": "<code>%LOCALAPPDATA%\\Android\\Sdk\\platform-tools</code>에 adb가 있습니다. emulator 폴더도 함께 등록하지만 그것은 <code>emulator</code> 명령용입니다.",
+          "an": "02_android_studio_emulator Step 4",
+          "src": "## Step 4. PATH 등록\n\n1. Windows 검색 → **시스템 환경 변수 편집** → **환경 변수**\n2. 사용자 변수 **Path** → **편집** → **새로 만들기**\n3. `%LOCALAPPDATA%\\Android\\Sdk\\platform-tools` 추가\n4. `%LOCALAPPDATA%\\Android\\Sdk\\emulator` 추가\n5. 확인 후 **새 cmd 창**을 열어 확인\n\n```bat\nadb version\nemulator -list-avds\n```"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>/system</code>을 쓰기 가능하게 만드는 adb 명령은?",
+          "o": [
+            "adb root",
+            "adb remount",
+            "adb push",
+            "adb unroot"
+          ],
+          "a": 1,
+          "h": "/system 파티션은 기본적으로 읽기 전용으로 마운트되어 있어 쓰려면 다시 마운트해야 합니다. 자료의 명령 요약은 이 명령이 /system을 쓰기 가능하게 하며, 최초 1회는 adb reboot가 필요하다고 적습니다.",
+          "w": "<code>adb remount</code>가 /system을 쓰기 가능하게 합니다. root는 adbd 권한 전환, push는 파일 전송입니다.",
+          "an": "03_adb_basics Step 5 · 명령 요약",
+          "src": "| `adb shell` | Emulator 쉘 진입, `exit`로 복귀 |\n| `adb push <file> /data` / `adb pull` | 파일 전송, `chmod 755` 후 실행 |\n| `adb remount` | `/system` 쓰기 가능하게 (최초 1회 `adb reboot` 필요) |\n| `adb logcat -s <TAG>` | 태그 필터 로그 |\n| `adb shell dumpsys <service>` | System Service 상태 덤프 |"
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>adb devices</code> 목록이 비어 있거나 offline일 때 먼저 할 조치는?",
+          "o": [
+            "kill-server 후 start-server",
+            "remount 후 reboot",
+            "logcat -c 실행",
+            "앱 uninstall"
+          ],
+          "a": 0,
+          "h": "adb devices가 비어 있거나 offline이면 PC 쪽 adb 서버(데몬)를 재시작하는 것이 첫 조치입니다. 자료의 Step 1은 서버를 종료(kill)하고 다시 시작(start)한 뒤 adb devices로 확인하는 세 줄을 보여 줍니다.",
+          "w": "<code>adb kill-server</code> → <code>adb start-server</code> → <code>adb devices</code> 순으로 데몬을 재시작합니다. remount·logcat·uninstall은 연결 문제와 관계가 없습니다.",
+          "an": "03_adb_basics Step 1",
+          "src": "adb kill-server\nadb start-server\nadb devices\n```"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>adb remount</code>는 최초 1회 'reboot required'가 표시되어 <code>adb reboot</code> 뒤 다시 실행해야 한다.",
+          "a": true,
+          "h": "Step 5 스크립트에서 첫 adb remount 줄 옆에는 '최초 1회: reboot required 표시'라는 REM 주석이 있습니다. 이어서 adb reboot → adb root → adb remount를 다시 실행해 'remount succeeded'를 확인합니다.",
+          "w": "맞습니다. 처음엔 reboot required가 나오고, 재부팅 후 다시 root·remount를 하면 remount succeeded가 표시됩니다.",
+          "an": "03_adb_basics Step 5",
+          "src": "## Step 5. /system 쓰기 (필요 시)\n\n```bat\nadb root\nadb remount REM 최초 1회: \"reboot required\" 표시\nadb reboot\nadb root\nadb remount REM \"remount succeeded\" 확인\n```"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>adb root</code> 후 <code>adb shell id</code>가 <code>uid=2000</code>을 보이면 root 전환에 성공한 것이다.",
+          "a": false,
+          "h": "adb root 성공 후 <code>adb shell id</code>는 uid=0(root) gid=0(root)를 출력해야 합니다. uid=2000은 일반 shell 사용자 번호이므로 root 전환이 되지 않은 상태입니다.",
+          "w": "틀립니다. 성공하면 <code>uid=0(root)</code>가 출력됩니다. 2000은 root가 아닌 일반 shell 사용자의 uid입니다.",
+          "an": "03_adb_basics Step 2 · Day1_커리큘럼 실습 3",
+          "src": "uid=0(root) gid=0(root) ...\n```\n\n> Google APIs / userdebug 이미지에서만 동작한다. `adbd cannot run as root in production builds` 가 나오면 이미지가 잘못됐다."
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "adb 명령과 용도를 연결하세요.",
+          "pairs": [
+            [
+              "adb logcat -s TAG",
+              "태그로 걸러 로그 보기"
+            ],
+            [
+              "adb shell dumpsys",
+              "System Service 상태 덤프"
+            ],
+            [
+              "adb push",
+              "PC의 파일을 기기로 전송"
+            ],
+            [
+              "adb devices",
+              "연결된 기기 확인"
+            ]
+          ],
+          "h": "logcat -s는 지정한 태그만 걸러 로그를 보여 주고, dumpsys는 System Service의 상태를 덤프합니다. push는 PC의 파일을 기기로 보내고, devices는 현재 연결된 기기 목록을 확인합니다.",
+          "w": "logcat -s는 태그 필터, dumpsys는 Service 상태 덤프, push는 파일 전송, devices는 연결 확인입니다. 이후 실습 내내 쓰는 공통 명령입니다.",
+          "an": "03_adb_basics 명령 요약",
+          "src": "| `adb push <file> /data` / `adb pull` | 파일 전송, `chmod 755` 후 실행 |\n| `adb remount` | `/system` 쓰기 가능하게 (최초 1회 `adb reboot` 필요) |\n| `adb logcat -s <TAG>` | 태그 필터 로그 |\n| `adb shell dumpsys <service>` | System Service 상태 덤프 |\n| `adb kill-server` / `adb start-server` | 연결 이상 시 재시작 |"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "<code>/system</code>을 쓰기 가능하게 만드는 전체 순서로 나열하세요.",
+          "steps": [
+            "adb root로 root 전환",
+            "adb remount 첫 실행 (reboot required)",
+            "adb reboot",
+            "재부팅 후 다시 adb root",
+            "adb remount 재실행 (remount succeeded)"
+          ],
+          "h": "Step 5는 adb root로 root 전환 후 adb remount를 실행하면 처음에는 'reboot required'가 표시된다고 적습니다. adb reboot로 재부팅한 뒤 다시 adb root와 adb remount를 실행해 'remount succeeded'를 확인합니다.",
+          "w": "root → remount(재부팅 필요 표시) → reboot → root → remount 순입니다. 재부팅하면 adbd가 다시 일반 권한이 되므로 root를 다시 실행합니다.",
+          "an": "03_adb_basics Step 5",
+          "src": "## Step 5. /system 쓰기 (필요 시)\n\n```bat\nadb root\nadb remount REM 최초 1회: \"reboot required\" 표시\nadb reboot\nadb root\nadb remount REM \"remount succeeded\" 확인\n```"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "<code>adb root</code>가 가능한 시스템 이미지를 <b>모두</b> 고르세요.",
+          "o": [
+            "Google APIs 이미지",
+            "Google Play 이미지",
+            "userdebug 빌드 이미지",
+            "user 빌드 이미지",
+            "production 빌드 이미지"
+          ],
+          "a": [
+            0,
+            2
+          ],
+          "h": "Worksheet Q6 해설은 Google Play 이미지가 user 빌드라 adbd를 root로 재시작할 수 없다고 설명합니다. 대신 Google APIs 이미지나 직접 빌드한 userdebug 이미지를 쓰라고 안내합니다.",
+          "w": "Google APIs 이미지와 userdebug 빌드에서만 adb root가 동작합니다. Google Play 이미지는 user(production) 빌드라 root로 재시작할 수 없습니다.",
+          "an": "03_adb_basics Step 2 · 14_worksheet Q6",
+          "src": "**6. ②**\nGoogle Play 이미지는 user 빌드라 adbd 를 root 로 재시작할 수 없다. Google APIs 또는 직접 빌드한 userdebug 이미지를 쓴다.\n**7. ②**"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "AOSP 빌드 · 배포 파이프라인",
+      "ref": "실습 4 · 04_aosp_build · Day1 p.30",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "AOSP 소스 루트에서 <code>m</code>, <code>mm</code>, <code>lunch</code> 같은 빌드 함수를 쉘에 로드하는 명령은?",
+          "o": [
+            "lunch --print-all-targets",
+            "source build/envsetup.sh",
+            "repo sync",
+            "m emu_img_zip"
+          ],
+          "a": 1,
+          "h": "AOSP 빌드 함수(m, mm, lunch 등)는 build 폴더의 환경 설정 스크립트를 현재 쉘에 source해야 쓸 수 있습니다. 해설은 터미널 세션마다 이 스크립트를 실행한 뒤 lunch로 타겟을 고른다고 적습니다.",
+          "w": "<code>source build/envsetup.sh</code>를 실행해야 빌드 함수가 생깁니다. <code>mm: command not found</code>가 나오면 이 명령을 다시 실행합니다.",
+          "an": "14_worksheet Q10 · 04_aosp_build Step 2",
+          "src": "**10. source build/envsetup.sh**\n터미널 세션마다 source build/envsetup.sh 를 실행한 뒤 lunch 로 타겟을 선택해야 한다.\n**11. mm**"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "현재 디렉토리의 모듈(Android.bp)만 빌드하는 AOSP 명령은?",
+          "o": [
+            "m",
+            "m emu_img_zip",
+            "lunch",
+            "mm"
+          ],
+          "a": 3,
+          "h": "해설에 따르면 m은 전체 빌드, m에 한 글자를 더 붙인 명령은 현재 디렉토리의 모듈만 빌드합니다. 실습에서 my_sp, led_auth_service 같은 모듈을 이 명령으로 빌드합니다.",
+          "w": "<code>m</code>은 전체 빌드, <code>mm</code>은 현재 디렉토리 모듈만 빌드합니다. 이후 실습의 my_sp·hello_server 등은 mm으로 빌드합니다.",
+          "an": "14_worksheet Q11 · 04_aosp_build 명령 요약",
+          "src": "**11. mm**\nm 은 전체 빌드, mm 은 현재 디렉토리 모듈만 빌드한다. 실습에서 my_sp, led_auth_service 등을 이 명령으로 빌드한다.\n**12. Binder Thread**"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Android 16의 <code>lunch</code> 타겟 형식은?",
+          "o": [
+            "product-release-variant",
+            "product-variant",
+            "release-product-variant",
+            "variant-product-release"
+          ],
+          "a": 0,
+          "h": "Android 14의 lunch 타겟은 sdk_car_x86_64-userdebug처럼 2-파트였지만, Android 16에서는 가운데에 release 부분이 추가되었습니다. 예를 들어 sdk_car_x86_64-aosp_current-userdebug는 세 부분으로 나뉩니다.",
+          "w": "Android 16은 product-release-variant 3-파트입니다. Android 14의 <code>sdk_car_x86_64-userdebug</code>에 release(<code>aosp_current</code>)가 추가되었습니다.",
+          "an": "14_worksheet Q17 · 04_aosp_build Step 2",
+          "src": "```bash\nsource build/envsetup.sh\nlunch sdk_car_x86_64-aosp_current-userdebug\n```\n\nAndroid 16의 `lunch` 형식은 **product-release-variant** 3-파트다.\n\n| 버전 | lunch 예 |\n|---|---|\n| Android 14 | `lunch sdk_car_x86_64-userdebug` |\n| Android 16 | `lunch sdk_car_x86_64-aosp_current-userdebug` |\n\n```bash"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "실습 타겟 <code>sdk_car_x86_64-aosp_current-userdebug</code>에서 variant를 userdebug로 두는 이유는?",
+          "o": [
+            "빌드가 더 빨라서",
+            "Google Play가 포함돼서",
+            "adb root가 가능해서",
+            "SELinux가 꺼져서"
+          ],
+          "a": 2,
+          "h": "lunch 타겟의 마지막 부분인 variant는 user, userdebug, eng 중 하나입니다. Worksheet Q17 해설은 userdebug여야 adb root가 가능하다고 설명합니다.",
+          "w": "userdebug 빌드여야 adb root가 가능합니다. SELinux permissive는 Emulator 실행 옵션(<code>androidboot.selinux=permissive</code>)으로 따로 지정합니다.",
+          "an": "14_worksheet Q17 해설",
+          "src": "**17. (1) product / (2) userdebug**\nAndroid 14 의 2-파트(sdk_car_x86_64-userdebug) 와 달리 release 가 추가되었다. userdebug 여야 adb root 가 가능하다.\n**18. Bootloader 가 Kernel 을 로드 → Linux Kernel 부팅 (Binder Driver 로드) → init 실행 (PID 1, init.rc 해석) → Zygote 시작 (Framework preload) → system_server fork**"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "커널·APEX·RRO처럼 시스템 이미지를 바꿨을 때 반영 절차는?",
+          "o": [
+            "mm 후 adb push만 한다",
+            "emu_img_zip→WinSCP→재시작",
+            "adb remount 후 logcat",
+            "lunch만 다시 실행"
+          ],
+          "a": 1,
+          "h": "Day1 p.30은 Native 바이너리·라이브러리 변경은 mm → adb push로 충분하지만, 커널·APEX·RRO 같은 시스템 이미지 변경은 이미지를 다시 만들어야 한다고 구분합니다. 이때는 이미지 zip을 새로 만들어 WinSCP로 가져온 뒤 Emulator를 재시작합니다.",
+          "w": "시스템 이미지 변경은 <code>m emu_img_zip</code> → WinSCP 다운로드 → Emulator 재시작이 필요합니다. Native 바이너리·라이브러리 변경만 mm → adb push로 재시작 없이 반영합니다.",
+          "an": "Day1 p.30",
+          "src": "adb root\nadb push /data\nchmod 755\nEmulator\n실행 · logcat\n(커스텀 이미지)\n• lunch 는 터미널 세션마다 다시 실행\n• Native 바이너리·라이브러리 변경 → mm → adb push (Emulator 재시작 불필요)\n• 커널 · APEX · RRO 등 시스템 이미지 변경 → m emu_img_zip → WinSCP → Emulator 재시작\n• Soong 분석은 RAM 20 GB+ — 동시 빌드는 조 단위로, swap 32 GB 권장\n애니메이션 8 · AOSP 빌드·배포 파이프라인"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>lunch</code>는 한 번 실행하면 새 터미널 세션에서도 그대로 유지된다.",
+          "a": false,
+          "h": "lunch는 현재 쉘의 환경 변수로 타겟을 설정하므로 쉘이 바뀌면 사라집니다. 자료는 'lunch는 터미널 세션마다 다시 실행'이라고 적고 있습니다.",
+          "w": "틀립니다. <code>lunch</code>는 터미널 세션마다 다시 실행해야 합니다. envsetup.sh도 마찬가지입니다.",
+          "an": "Day1 p.30 · 04_aosp_build Step 2",
+          "src": "adb root\nadb push /data\nchmod 755\nEmulator\n실행 · logcat\n(커스텀 이미지)\n• lunch 는 터미널 세션마다 다시 실행\n• Native 바이너리·라이브러리 변경 → mm → adb push (Emulator 재시작 불필요)\n• 커널 · APEX · RRO 등 시스템 이미지 변경 → m emu_img_zip → WinSCP → Emulator 재시작\n• Soong 분석은 RAM 20 GB+ — 동시 빌드는 조 단위로, swap 32 GB 권장\n애니메이션 8 · AOSP 빌드·배포 파이프라인"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Native 바이너리만 바꿨다면 mm → adb push로 반영하며 Emulator 재시작은 필요 없다.",
+          "a": true,
+          "h": "Day1 p.30은 Native 바이너리·라이브러리 변경은 mm으로 빌드해 adb push하면 되고 Emulator 재시작 여부도 함께 적어 둡니다. 반면 커널·APEX·RRO 같은 이미지 변경은 emu_img_zip 생성 후 Emulator를 재시작해야 합니다.",
+          "w": "맞습니다. Native 바이너리·라이브러리는 mm으로 빌드해 adb push만 하면 됩니다. 커널·APEX·RRO 같은 이미지 변경일 때만 재시작이 필요합니다.",
+          "an": "Day1 p.30",
+          "src": "adb root\nadb push /data\nchmod 755\nEmulator\n실행 · logcat\n(커스텀 이미지)\n• lunch 는 터미널 세션마다 다시 실행\n• Native 바이너리·라이브러리 변경 → mm → adb push (Emulator 재시작 불필요)\n• 커널 · APEX · RRO 등 시스템 이미지 변경 → m emu_img_zip → WinSCP → Emulator 재시작\n• Soong 분석은 RAM 20 GB+ — 동시 빌드는 조 단위로, swap 32 GB 권장\n애니메이션 8 · AOSP 빌드·배포 파이프라인"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "빌드 명령과 용도를 연결하세요.",
+          "pairs": [
+            [
+              "m -j$(nproc)",
+              "전체 빌드"
+            ],
+            [
+              "m emu_img_zip",
+              "Emulator 이미지 zip 생성"
+            ],
+            [
+              "echo $OUT",
+              "출력 디렉토리 확인"
+            ],
+            [
+              "m <module>",
+              "모듈 이름으로 빌드"
+            ]
+          ],
+          "h": "명령 요약 표에서 <code>m -j$(nproc)</code>는 전체 빌드, <code>m &lt;module&gt;</code>은 모듈 이름으로 빌드하는 명령입니다. emu_img_zip은 Emulator 이미지 zip을 만들고, <code>echo $OUT</code>은 빌드 결과물이 놓이는 출력 디렉토리를 보여 줍니다.",
+          "w": "<code>m</code>은 전체 빌드, <code>m emu_img_zip</code>은 sdk-repo-linux-system-images.zip 생성, <code>$OUT</code>은 결과물 경로, <code>m &lt;module&gt;</code>은 모듈명으로 빌드합니다.",
+          "an": "04_aosp_build 명령 요약",
+          "src": "| `m -j$(nproc)` | 전체 빌드 |\n| `mm -j$(nproc)` | 현재 디렉토리 모듈만 빌드 |\n| `m <module>` | 모듈명으로 빌드 |\n| `m emu_img_zip` | Emulator 이미지 zip 생성 |\n| `echo $OUT` | 출력 디렉토리 |"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "빌드 서버에서 만든 Native 바이너리를 Emulator에서 실행하는 순서로 나열하세요.",
+          "steps": [
+            "lunch sdk_car_x86_64-aosp_current-userdebug",
+            "mm -j$(nproc)",
+            "$OUT/system/bin/my_sp를 Windows로 다운로드",
+            "adb push my_sp /data",
+            "adb shell chmod 755 /data/my_sp",
+            "adb shell /data/my_sp"
+          ],
+          "h": "Worksheet Q19 해설은 lunch로 타겟을 고르고 mm으로 빌드한 뒤, $OUT/system/bin의 결과물을 Windows로 내려받는 흐름입니다. 이어서 adb push로 /data에 올리고 chmod 755로 실행 권한을 준 뒤 adb shell로 실행합니다.",
+          "w": "lunch → mm → WinSCP 다운로드 → adb push → chmod 755 → 실행입니다. Day 2~4 Native 실습의 공통 배포 절차입니다.",
+          "an": "14_worksheet Q19 · 04_aosp_build Step 5–6",
+          "src": "**19. lunch sdk_car_x86_64-aosp_current-userdebug → mm -j$(nproc) → $OUT/system/bin/my_sp 를 Windows 로 다운로드 → adb push my_sp /data → adb shell chmod 755 /data/my_sp → adb shell /data/my_sp**\nlunch → mm → 결과물 다운로드 → adb push → chmod 755 → 실행. Day 2~4 Native 실습의 공통 배포 절차다."
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "빌드 문제와 해결이 올바르게 짝지어진 것을 <b>모두</b> 고르세요.",
+          "o": [
+            "-Werror 실패 → adb remount",
+            "mm: command not found → envsetup.sh 재실행",
+            "lunch 타겟 없음 → --print-all-targets 확인",
+            "mm 실패 → Emulator 재시작",
+            "기본 이미지로 부팅 → -sysdir 경로 확인"
+          ],
+          "a": [
+            1,
+            2,
+            4
+          ],
+          "h": "트러블슈팅 표는 'mm: command not found'면 envsetup.sh를 다시 source하고, lunch 타겟이 없으면 <code>lunch --print-all-targets | grep car</code>로 확인하라고 합니다. Emulator가 커스텀이 아닌 기본 이미지로 부팅되면 -sysdir 경로를 점검합니다.",
+          "w": "mm이 없으면 envsetup.sh를 다시 실행하고, 타겟이 없으면 <code>lunch --print-all-targets | grep car</code>로 확인하며, 기본 이미지로 부팅되면 <code>-sysdir</code>에 system.img·ramdisk.img가 있는지 봅니다. -Werror 실패는 경고를 고치거나 cflags에서 빼야 합니다.",
+          "an": "04_aosp_build 트러블슈팅",
+          "src": "## 트러블슈팅\n\n| 증상 | 해결 |\n|---|---|\n| `mm: command not found` | `source build/envsetup.sh` 를 다시 실행 |\n| `lunch` 타겟 없음 | `lunch --print-all-targets \\| grep car` 로 확인 |\n| `-Werror` 로 빌드 실패 | 경고를 수정하거나 `cflags` 에서 제거 |\n| Emulator가 기본 이미지로 부팅 | `-sysdir` 경로에 `system.img`, `ramdisk.img` 가 있는지 확인 |"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "Architecture · Boot",
+      "ref": "Ch 0 · Day1 p.5–10 · 05_system_explorer",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Android에서 PID 1인 Process는?",
+          "o": [
+            "Zygote",
+            "system_server",
+            "init",
+            "ServiceManager"
+          ],
+          "a": 2,
+          "h": "Worksheet Q1 해설은 커널이 실행하는 첫 User Process가 init.rc를 해석해 Zygote 등 Service를 띄운다고 설명합니다. 이 Process는 Linux 전통에 따라 PID 1을 받습니다.",
+          "w": "init은 커널이 실행하는 첫 User Process로 init.rc를 해석해 Zygote 등 Service를 띄웁니다. Zygote의 PPID가 1인 이유입니다.",
+          "an": "14_worksheet Q1 · Day1 p.7",
+          "src": "**1. ③**\ninit 은 커널이 실행하는 첫 User Process 로 init.rc 를 해석해 Zygote 등 Service 를 띄운다.\n**2. ②**"
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Framework 클래스를 preload한 뒤 <code>fork()</code>로 모든 App Process와 system_server를 만드는 Process는?",
+          "o": [
+            "Zygote",
+            "init",
+            "servicemanager",
+            "adbd"
+          ],
+          "a": 0,
+          "h": "Worksheet Q13 해설은 init.rc의 service 정의로 시작되는 이 Process가 Framework를 preload한 뒤 fork로 App과 system_server를 만든다고 설명합니다. 이름은 '수정란'이라는 생물학 용어에서 왔습니다.",
+          "w": "Zygote는 init.rc의 service zygote 정의로 시작해 Framework를 한 번만 preload하고 fork로 App을 만듭니다. --start-system-server 옵션으로 system_server도 fork합니다.",
+          "an": "14_worksheet Q13 · Day1 p.8",
+          "src": "**13. Zygote**\ninit.rc 의 service zygote 정의로 시작되며, --start-system-server 옵션으로 system_server 도 fork 한다.\n**14. (1) Stub / (2) Proxy**"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>init.zygote64_32.rc</code>에서 Zygote가 system_server를 fork하도록 지정하는 옵션은?",
+          "o": [
+            "--zygote",
+            "--socket-name=zygote",
+            "-Xzygote",
+            "--start-system-server"
+          ],
+          "a": 3,
+          "h": "init.zygote64_32.rc의 service zygote 줄은 app_process64에 --zygote 등 옵션을 넘깁니다. 해설은 그중 system_server 시작을 뜻하는 옵션 때문에 Zygote가 preload 직후 system_server를 fork한다고 설명합니다.",
+          "w": "<code>--start-system-server</code> 때문에 Zygote가 preload 직후 system_server를 fork합니다. --socket-name=zygote는 AMS가 App 실행을 요청하는 소켓 이름입니다.",
+          "an": "14_worksheet Q9 · Day1 p.7",
+          "src": "**9. --start-system-server**\nservice zygote /system/bin/app_process64 … --zygote --start-system-server. 이 옵션 때문에 Zygote 가 preload 직후 system_server 를 fork 한다."
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "일반 Linux의 glibc 대신 Android가 쓰는 경량 libc는?",
+          "o": [
+            "glibc",
+            "Bionic",
+            "ART",
+            "libbinder"
+          ],
+          "a": 1,
+          "h": "Day1 p.6의 Linux vs Android 비교표에서 libc 행은 일반 Linux가 glibc를 쓰는 반면 Android는 BSD 라이선스의 경량 C 라이브러리를 쓴다고 적습니다. Native 계층 설명에도 'libc'라는 이름과 함께 나옵니다.",
+          "w": "Android는 BSD 라이선스의 경량 libc인 Bionic을 씁니다. ART는 런타임, libbinder는 Binder 라이브러리입니다.",
+          "an": "Day1 p.6 Linux vs Android",
+          "src": "libc glibc Bionic (경량, BSD 라이선스)"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "실습 5에서 <code>ps -A -o pid,ppid,name</code>으로 본 system_server의 PPID는?",
+          "o": [
+            "1 (init)",
+            "zygote64의 PID",
+            "servicemanager의 PID",
+            "0"
+          ],
+          "a": 1,
+          "h": "Day1 p.10은 '모든 App의 PPID = zygote64 PID'라고 정리하고, system_server도 Zygote가 --start-system-server로 fork한 첫 자식이라고 설명합니다. PPID는 부모 Process의 PID를 뜻합니다.",
+          "w": "system_server는 Zygote가 --start-system-server로 fork한 첫 자식이므로 PPID가 zygote64 PID입니다. PPID가 1인 것은 Zygote 자신입니다.",
+          "an": "05_system_explorer Step 1 · Day1 p.10",
+          "src": "• 실습 5 확인: 모든 App 의 PPID = zygote64 PID\nsystem_server\n• Zygote 가 --start-system-server 로 fork 한 첫 자식"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "servicemanager는 Binder handle 0을 가진 Native Process다.",
+          "a": true,
+          "h": "Day1 p.9는 Binder Service의 이름을 등록·조회하는 servicemanager가 고정된 Binder handle 번호를 가진다고 적습니다. 클라이언트는 이름 → IBinder → asInterface() → Proxy 순으로 Service를 얻습니다.",
+          "w": "맞습니다. servicemanager는 handle 0이며, 이름 → IBinder → asInterface() → Proxy 순으로 Service를 얻게 해 줍니다.",
+          "an": "Day1 p.9",
+          "src": "• servicemanager = Binder handle 0"
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Android에서 메모리가 부족하면 일반 Linux처럼 kernel OOM killer만으로 App을 정리한다.",
+          "a": false,
+          "h": "Linux vs Android 표의 메모리 부족 행에서 일반 Linux는 kernel OOM killer를 씁니다. Android는 LMKD와 oom_adj 점수를 이용해 App 우선순위에 따라 정리한다고 적혀 있습니다.",
+          "w": "틀립니다. Android는 LMKD와 oom_adj 점수(App 우선순위 기반)를 씁니다. kernel OOM killer는 일반 Linux의 방식입니다.",
+          "an": "Day1 p.6",
+          "src": "메모리 부족 kernel OOM killer LMKD + oom_adj 점수 (App 우선순위 기반)"
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "Android 구성 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "init",
+              "PID 1, init.rc 해석 후 Service 실행"
+            ],
+            [
+              "Zygote",
+              "Framework preload 후 fork로 App 생성"
+            ],
+            [
+              "system_server",
+              "AMS·WMS·PMS 등 System Service 실행"
+            ],
+            [
+              "ServiceManager",
+              "Binder Service 이름 등록·조회"
+            ],
+            [
+              "Binder Driver",
+              "Process 간 1-copy 전달"
+            ]
+          ],
+          "h": "init은 PID 1로 init.rc를 해석하고, Zygote는 Framework를 preload한 뒤 fork로 App을 만들며, system_server는 AMS·WMS·PMS 같은 System Service를 실행합니다. ServiceManager는 Binder Service 이름 등록·조회를, Binder Driver는 Process 간 1-copy 전달을 맡습니다.",
+          "w": "init(PID 1) → Zygote(preload·fork) → system_server(System Service 실행)입니다. ServiceManager는 이름↔Binder 테이블, Binder Driver는 커널에서 실제 데이터를 전달합니다.",
+          "an": "14_worksheet Q20 · 05_system_explorer 핵심 정리",
+          "src": "**20. init ↔ PID 1, init.rc 해석 후 Service 실행, Zygote ↔ Framework preload 후 fork 로 App 생성, system_server ↔ AMS·WMS·PMS 등 System Service 실행, ServiceManager ↔ Binder Service 이름 등록·조회 (service list), Binder Driver ↔ /dev/binder, Process 간 1-copy 전달**"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "Android Boot Sequence를 순서대로 나열하세요.",
+          "steps": [
+            "Bootloader가 Kernel을 로드",
+            "Linux Kernel 부팅 (Binder Driver 로드)",
+            "init 실행 (PID 1, init.rc 해석)",
+            "Zygote 시작 (Framework preload)",
+            "system_server fork"
+          ],
+          "h": "Worksheet Q18 해설은 Bootloader가 커널을 올리고, 커널이 부팅하며 Binder Driver를 로드한다고 설명합니다. 이어서 init(PID 1)이 init.rc를 해석해 Zygote를 시작하고, Zygote가 preload 후 system_server를 fork합니다.",
+          "w": "Bootloader → Linux Kernel → init → Zygote → system_server 순입니다. Zygote가 --start-system-server 옵션으로 system_server를 fork합니다.",
+          "an": "14_worksheet Q18 · Day1 p.7",
+          "src": "**18. Bootloader 가 Kernel 을 로드 → Linux Kernel 부팅 (Binder Driver 로드) → init 실행 (PID 1, init.rc 해석) → Zygote 시작 (Framework preload) → system_server fork**\nBootloader → Linux Kernel → init → Zygote → system_server. Zygote 가 --start-system-server 옵션으로 system_server 를 fork 한다."
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "Zygote가 fork로 App을 만드는 방식에 대한 설명으로 옳은 것을 <b>모두</b> 고르세요.",
+          "o": [
+            "preload 페이지를 COW로 공유",
+            "AMS가 socket으로 fork 요청",
+            "App마다 Framework를 새로 로드",
+            "App 시작이 빠르고 메모리 절약",
+            "App은 init이 직접 fork"
+          ],
+          "a": [
+            0,
+            1,
+            3
+          ],
+          "h": "Day1 p.8에 따르면 Zygote는 Framework 클래스·리소스·ART를 한 번만 preload하고, AMS가 socket으로 요청하면 fork()로 App Process를 만듭니다. preload된 페이지는 Copy-on-Write로 모든 App이 공유하므로 App 시작이 빠르고 메모리가 절약됩니다.",
+          "w": "Zygote는 Framework를 한 번만 preload하고, AMS가 socket으로 요청하면 fork합니다. preload된 페이지를 Copy-on-Write로 공유해 App 시작이 빠르고 메모리를 아낍니다. 모든 App의 PPID는 zygote64입니다.",
+          "an": "Day1 p.8",
+          "src": "Ch 0\nZygote와 system_server — 왜 fork인가\nAndroid Framework 16 심화 · Day 1 8\nZygote\n• Framework 클래스 · 리소스 · ART 를 한 번만 preload\n• AMS 가 socket 으로 요청 → fork() → App Process\n• Copy-on-Write: preload 된 페이지를 모든 App 이 공유\n• App 시작이 빠르고 메모리 절약\n• 실습 5 확인: 모든 App 의 PPID = zygote64 PID\nsystem_server"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "Binder 원리 · 관찰",
+      "ref": "Ch 1 · Day1 p.12–14, 16 · 06_binder_detective",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Binder의 주요 목적은?",
+          "o": [
+            "파일 압축",
+            "Process 간 통신 (IPC)",
+            "화면 Rendering",
+            "메모리 할당"
+          ],
+          "a": 1,
+          "h": "Worksheet Q2 해설은 Binder를 Android 표준 IPC라고 부르며, App과 system_server의 통신이 모두 Binder Driver를 거친다고 설명합니다. 파일 압축·Rendering·메모리 할당은 각각 무관한 영역이라고 짚어 줍니다.",
+          "w": "Binder는 Android의 표준 IPC입니다. 화면 Rendering은 SurfaceFlinger, 메모리 할당은 커널의 일입니다.",
+          "an": "14_worksheet Q2 · Day1 p.11",
+          "src": "**2. ②**\nBinder 는 Android 표준 IPC 이다. App 과 system_server 의 통신은 모두 Binder Driver 를 거친다.\n① 파일 압축 — Binder 와 무관 ③ Rendering — SurfaceFlinger ④ 메모리 할당 — 커널\n**3. ②**"
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Binder에서 송신 Process의 데이터를 커널이 수신 Buffer로 복사하는 횟수는?",
+          "o": [
+            "2회",
+            "3회",
+            "1회",
+            "0회"
+          ],
+          "a": 2,
+          "h": "Day1 p.12의 첫 번째 이유는 송신 Process의 데이터를 수신 Process의 mmap된 Buffer로 커널이 직접 넣어 준다는 점입니다. Socket은 user→kernel→user로 2회 복사한다고 비교합니다.",
+          "w": "Binder는 수신 Process의 mmap된 Buffer로 커널이 한 번만 복사하는 1-copy 전달입니다. Socket은 2회 복사합니다.",
+          "an": "Day1 p.12 ①",
+          "src": "Ch 1\n왜 Socket이 아니라 Binder인가\nAndroid Framework 16 심화 · Day 1 12\n1 1-copy 전달\n송신 Process → 수신 Process 의 mmap 된 Buffer 로 커\n널이 한 번만 복사. Socket 은 user→kernel→user 2회.\n2 호출자 신원 보증\nDriver 가 getCallingUid()/Pid() 를 전달 — Socket 은 상\n대가 누구인지 믿을 수 없다. Android 권한 검사의 기반.\n3 객체 참조 · 사망 통지"
+        },
+        {
+          "id": "t5-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "커널이 보증하는 호출자 UID를 얻어 권한 검사에 쓰는 메서드는?",
+          "o": [
+            "Binder.getCallingUid()",
+            "Process.myPid()",
+            "clearCallingIdentity()",
+            "queryLocalInterface()"
+          ],
+          "a": 0,
+          "h": "Day1 p.14의 코드에는 Binder 클래스의 정적 메서드로 호출자 UID와 PID를 얻는 두 줄이 있고, UID 쪽에 '커널이 보증'이라는 주석이 붙어 있습니다. 이 값이 Process.SYSTEM_UID가 아니면 예외를 던져 권한을 검사합니다.",
+          "w": "<code>Binder.getCallingUid()</code>는 Driver가 전달한 호출자 UID를 돌려줍니다. clearCallingIdentity()는 반대로 이후 내부 호출을 Service 자신의 UID로 수행하게 합니다.",
+          "an": "Day1 p.14",
+          "src": "• → UI 접근은 runOnUiThread() / Handler.post()\n• Messenger 는 Handler 큐로 단일 Thread 순차 처리 (Ch 3)\n호출자 확인 · 권한 검사\nint uid = Binder.getCallingUid(); // 커널이 보증\nint pid = Binder.getCallingPid();\nif (uid != Process.SYSTEM_UID)\nthrow new SecurityException();\nlong token = Binder.clearCallingIdentity();"
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Service Process마다 Driver가 관리하는 Binder Thread Pool의 기본 최대 Thread 수는?",
+          "o": [
+            "1",
+            "4",
+            "8",
+            "16"
+          ],
+          "a": 3,
+          "h": "Day1 p.14는 Service Process마다 Driver가 관리하는 Binder Thread 풀이 있고 기본 최대 개수가 정해져 있다고 적습니다. 요청이 동시에 오면 각각 다른 Binder Thread에서 병렬로 실행됩니다.",
+          "w": "Binder Thread Pool은 기본 최대 16개입니다. 요청이 동시에 오면 각각 다른 Binder Thread에서 병렬로 실행됩니다.",
+          "an": "Day1 p.14",
+          "src": "Ch 1\nBinder Thread Pool과 호출자 확인\nAndroid Framework 16 심화 · Day 1 14\nBinder Thread Pool\n• Service Process 마다 Driver 가 관리하는 Thread 풀 (기본 최대 16)\n• 요청이 동시에 오면 각각 다른 Binder Thread 에서 병렬 실행\n• → Stub Method 는 Thread-safe 하게: synchronized / ConcurrentHa\nshMap\n• 콜백 · DeathRecipient 도 Binder Thread 에서 호출"
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "ftrace 필터에서 수신 Process 조건을 걸 때 실제로 쓰는 필드명은?",
+          "o": [
+            "dest_proc",
+            "to_proc",
+            "dest_thread",
+            "debug_id"
+          ],
+          "a": 1,
+          "h": "§4-4 '필드 이름 주의'는 trace 출력에는 dest_proc, dest_thread로 찍히지만 필터에 쓰는 실제 필드명은 다르다고 경고합니다. 정확한 이름은 events/binder/binder_transaction/format 파일에서 확인할 수 있으며 'to_' 접두사를 씁니다.",
+          "w": "trace 출력에는 dest_proc로 보이지만 필터 필드명은 <code>to_proc</code>입니다. dest_proc를 쓰면 <code>parse_error: Field not found</code>가 납니다.",
+          "an": "06_binder_detective §4-4 필드 이름 주의",
+          "src": "echo 1 > /sys/kernel/tracing/tracing_on\ncat /sys/kernel/tracing/trace_pipe\n```\n**필드 이름 주의** — trace 출력에는 `dest_proc`, `dest_thread` 로 찍히지만 필터에 쓰는 실제 필드명은 `to_proc`, `to_thread` 다. `cat /sys/kernel/tracing/events/binder/binder_transaction/format` 의 `print fmt` 줄에서 대응 관계를 확인할 수 있다.\n```text"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>service call clipboard 1</code>은 Proxy 없이 Binder Driver를 통해 Service를 직접 호출한다.",
+          "a": true,
+          "h": "Day1 p.9는 <code>service call clipboard 1</code>처럼 Transaction code를 직접 지정하는 명령이 Proxy 없이 Driver를 직접 호출한다고 설명합니다. 일반 App은 이름 → IBinder → asInterface() → Proxy를 거칩니다.",
+          "w": "맞습니다. <code>service call &lt;name&gt; &lt;code&gt;</code>는 Proxy 없이 Driver로 바로 Transaction을 보냅니다.",
+          "an": "06_binder_detective Step 1 · Day1 p.9",
+          "src": "• service call: Proxy 없이 Driver 직접 (실습\n6)"
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Stub Method는 Binder Thread 하나에서만 순차 실행되므로 동기화(lock)가 필요 없다.",
+          "a": false,
+          "h": "Binder Thread Pool은 요청이 동시에 오면 각각 다른 Binder Thread에서 병렬 실행합니다. 그래서 자료는 Stub Method를 Thread-safe하게(synchronized 등) 작성하라고 하며, 비교표에도 AIDL은 'Binder Thread 병렬 → lock 필요'로 적혀 있습니다.",
+          "w": "틀립니다. 동시 요청은 서로 다른 Binder Thread에서 병렬 실행되므로 synchronized나 ConcurrentHashMap으로 Thread-safe하게 짜야 합니다. 단일 Thread 순차 처리는 Messenger의 특징입니다.",
+          "an": "Day1 p.14",
+          "src": "• 요청이 동시에 오면 각각 다른 Binder Thread 에서 병렬 실행\n• → Stub Method 는 Thread-safe 하게: synchronized / ConcurrentHa\nshMap"
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "ftrace <code>binder_transaction</code> 출력 필드와 의미를 연결하세요.",
+          "pairs": [
+            [
+              "dest_proc",
+              "수신 Process PID"
+            ],
+            [
+              "reply",
+              "0 = 요청, 1 = 응답"
+            ],
+            [
+              "flags & 0x1",
+              "oneway 호출"
+            ],
+            [
+              "code",
+              "Transaction code"
+            ]
+          ],
+          "h": "ftrace의 binder_transaction 줄에서 dest_proc은 수신 Process의 PID, reply는 0이면 요청·1이면 응답입니다. flags의 0x1 비트는 응답을 기다리지 않는 oneway 호출을, code는 호출된 Transaction code를 뜻합니다.",
+          "w": "dest_proc는 수신 Process PID, reply는 요청(0)/응답(1), flags의 0x1 비트는 oneway, code는 AIDL Method 번호에 해당하는 Transaction code입니다.",
+          "an": "06_binder_detective Step 2 표 · Day1 p.16",
+          "src": "```text\n hello_client-5210 [000] .... binder_transaction: transaction=48213 dest_node=17 dest_proc=5123 dest_thread=0 reply=0 flags=0x10 code=0x1\n binder:5123_1-5125 [001] .... binder_transaction: transaction=48214 dest_node=0 dest_proc=5210 dest_thread=5210 reply=1 flags=0x0 code=0x0\n```"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "<code>service.add(42, 7)</code> 호출이 처리되는 Binder IPC 흐름을 순서대로 나열하세요.",
+          "steps": [
+            "Proxy.add() 진입",
+            "인자를 Parcel에 쓰고 transact() 호출",
+            "ioctl로 Driver가 수신 Buffer에 1-copy",
+            "Driver가 Binder Thread를 깨워 onTransact() 실행",
+            "reply Parcel이 같은 경로로 돌아와 49 반환"
+          ],
+          "h": "Day1 p.13의 표는 Client가 Proxy.add()에 들어가 인자를 Parcel에 쓰고 transact()를 호출하는 것으로 시작합니다. 이어서 ioctl로 Driver가 수신 Buffer에 1-copy하고, Binder Thread가 onTransact()를 실행하며, reply Parcel이 같은 경로로 돌아옵니다.",
+          "w": "Proxy가 Parcel 직렬화 후 transact()를 호출하면 ioctl(BINDER_WRITE_READ)로 Driver가 1-copy하고, Service의 Binder Thread에서 Stub.onTransact()가 실행됩니다. 동기 호출이면 reply가 돌아올 때까지 Client Thread는 블로킹됩니다.",
+          "an": "Day1 p.13",
+          "src": "Service Process\nBinder Thread → Stub (Bn)\nonTransact(code) → 실제 Method\nreply Parcel 은 같은 경로로 되돌아온다 — 동기 호출이면 Client Thread 는 그때까지 블로킹\n단계 Client 코드에서 보이는 것 실제로 일어나는 일\n1 service.add(42, 7) Proxy.add() 진입 — 그냥 Method 호출처럼 보인다\n2 (없음) 인자를 Parcel 에 쓰고 TRANSACTION_add(=1) 과 함께mRemote.transact()"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "Binder를 Socket 대신 쓰는 이유로 자료에 나온 것을 <b>모두</b> 고르세요.",
+          "o": [
+            "데이터 자동 압축",
+            "1-copy 전달",
+            "호출자 신원 보증",
+            "개발자가 accept 루프 작성",
+            "객체 참조·사망 통지"
+          ],
+          "a": [
+            1,
+            2,
+            4
+          ],
+          "h": "Day1 p.12는 Binder를 쓰는 이유로 1-copy 전달, getCallingUid()/Pid()를 통한 호출자 신원 보증, 참조 카운팅·DeathRecipient 사망 통지를 듭니다. 네 번째 이유는 Thread Pool 관리로, Socket처럼 accept 루프를 직접 짜지 않는다는 점입니다.",
+          "w": "1-copy 전달, getCallingUid()로 호출자 신원 보증, 참조 카운팅·DeathRecipient 사망 통지, Driver의 Thread 관리가 이유입니다. Driver가 Thread를 깨우므로 개발자는 accept 루프를 쓰지 않습니다.",
+          "an": "Day1 p.12",
+          "src": "널이 한 번만 복사. Socket 은 user→kernel→user 2회.\n2 호출자 신원 보증\nDriver 가 getCallingUid()/Pid() 를 전달 — Socket 은 상\n대가 누구인지 믿을 수 없다. Android 권한 검사의 기반.\n3 객체 참조 · 사망 통지\nIBinder 는 참조 카운팅되는 객체. 상대 Process 가 죽으\n면 DeathRecipient 로 즉시 통지.\n4 Thread 관리\nDriver 가 수신 Process 의 Binder Thread Pool 을 직접"
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "AIDL · DeathRecipient",
+      "ref": "Ch 2 · Day1 p.19, 21–23 · 07_aidl_calculator · 08_death_recipient",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "AIDL을 빌드하면 Server가 상속해 <code>onTransact()</code>를 받는 클래스는?",
+          "o": [
+            "Proxy",
+            "Stub",
+            "Parcel",
+            "Messenger"
+          ],
+          "a": 1,
+          "h": "Day1 p.19 표에서 Server가 상속하는 클래스는 onTransact(code)로 요청을 받아 실제 Method를 Binder Thread에서 실행합니다. Client 쪽은 asInterface()로 얻는 Proxy이며, C++에서는 각각 Bn·Bp에 해당합니다.",
+          "w": "Server는 Stub을 상속해 onTransact(code)에서 실제 Method를 호출합니다. Client가 받는 대리 객체는 Proxy(Stub.Proxy)입니다.",
+          "an": "14_worksheet Q14 · Day1 p.19",
+          "src": "방향 태그 in (기본) / out / inout — 배열·Parcelable 에 필요\nStub Server 가 상속. onTransact(code) → 실제 Method. Binder Thread 에서 실행\nProxy Client 가 asInterface() 로 획득. Parcel 직렬화 + transact()\nandroid:process \":name\" 으로 Service 를 별도 Process 에 → 실제 IPC 발생\nbindService 명시적 Intent (setPackage 필수) + BIND_AUTO_CREATE"
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>Stub.asInterface(binder)</code>가 Proxy가 아닌 Stub 객체 자체를 반환하는 경우는?",
+          "o": [
+            "Service가 oneway 선언",
+            "BIND_AUTO_CREATE 사용",
+            "Client·Service가 같은 Process",
+            "Service가 system_server"
+          ],
+          "a": 2,
+          "h": "Worksheet Q7 해설은 queryLocalInterface()로 같은 Process임을 확인하면 Binder를 거치지 않고 객체를 그대로 반환한다고 설명합니다. 그래서 android:process를 지우면 화면에 'Same process: YES'가 표시됩니다.",
+          "w": "queryLocalInterface()로 같은 Process임을 확인하면 Stub을 그대로 반환해 Binder를 거치지 않습니다. 그래서 android:process를 제거하면 'Same process: YES'가 됩니다.",
+          "an": "14_worksheet Q7 · 07_aidl_calculator 핵심 학습 포인트 2",
+          "src": "**7. ②**\nqueryLocalInterface() 로 같은 Process 임을 확인하면 Stub 을 그대로 반환해 Binder 를 거치지 않는다. android:process 를 제거하면 \"Same process: YES\" 가 나오는 이유다.\n**8. ③**"
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Service를 별도 Process에서 실행해 실제 IPC가 일어나게 하는 Manifest 속성은?",
+          "o": [
+            "android:process",
+            "android:exported",
+            "android:name",
+            "intent-filter action"
+          ],
+          "a": 0,
+          "h": "실습 7의 Manifest에서 &lt;service&gt; 태그에 ':calc_remote' 값을 준 속성이 핵심입니다. 이 속성으로 Service를 별도 Process에서 실행해 실제 Binder IPC를 강제합니다.",
+          "w": "<code>android:process=':calc_remote'</code>로 Service를 분리하면 Proxy 경로로 Binder IPC가 발생합니다. exported는 외부 노출 여부입니다.",
+          "an": "14_worksheet Q16 · 07_aidl_calculator Step 5",
+          "src": "> **핵심:** `android:process=\":calc_remote\"` — Service를 **별도 Process**에서 실행해 실제 Binder IPC를 강제한다."
+        },
+        {
+          "id": "t6-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Service Process가 죽었을 때 <code>binderDied()</code>가 호출되는 Client 측 Thread는?",
+          "o": [
+            "Main Thread",
+            "AMS 내부 Thread",
+            "Zygote Thread",
+            "Binder Thread"
+          ],
+          "a": 3,
+          "h": "Worksheet Q12 해설은 Driver가 BR_DEAD_BINDER를 보내면 binderDied()가 Client의 특정 Thread에서 호출된다고 설명합니다. Main Thread가 아니므로 UI 갱신에는 runOnUiThread()가 필요합니다.",
+          "w": "Driver가 BR_DEAD_BINDER를 보내면 Client의 Binder Thread에서 binderDied()가 호출됩니다. 그래서 UI 갱신은 runOnUiThread()로 넘겨야 합니다.",
+          "an": "14_worksheet Q12 · 08_death_recipient Step 3",
+          "src": "**12. Binder Thread**\nDriver 가 BR_DEAD_BINDER 를 보내면 Client 의 Binder Thread 에서 호출된다. UI 갱신은 runOnUiThread() 가 필요하다.\n**13. Zygote**"
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Service Process의 사망 통지를 등록하는 IBinder 메서드는?",
+          "o": [
+            "unlinkToDeath()",
+            "linkToDeath()",
+            "bindService()",
+            "transact()"
+          ],
+          "a": 1,
+          "h": "Worksheet Q16의 빈칸 (2)는 Service Process 사망 통지를 등록하는 IBinder 메서드입니다. 실습 8에서는 onServiceConnected에서 <code>binder.xxx(recipient, 0)</code> 형태로 호출하고, onDestroy에서는 짝이 되는 unlink 메서드로 해제합니다.",
+          "w": "onServiceConnected에서 <code>binder.linkToDeath(deathRecipient, 0)</code>로 등록합니다. unlinkToDeath()는 onDestroy에서 해제할 때 씁니다.",
+          "an": "14_worksheet Q16 · 08_death_recipient Step 1",
+          "src": "**16. (1) android:process / (2) linkToDeath()**"
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>divide(1, 0)</code>에서 Service가 던진 예외는 Client로 전달된다.",
+          "a": true,
+          "h": "실습 7 확인 포인트의 마지막 항목은 divide(1, 0)를 호출했을 때의 동작입니다. Service에서 발생한 예외가 Binder를 통해 호출한 쪽까지 어떻게 되는지 적혀 있습니다.",
+          "w": "맞습니다. Service의 IllegalArgumentException('divide by zero')이 Client에 그대로 전달되는 것을 확인합니다.",
+          "an": "07_aidl_calculator 핵심 학습 포인트 4 · Day1 p.22",
+          "src": "• divide(1, 0) → 예외가 Client 로 전달"
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>kill -9</code> 뒤 Logcat에는 <code>onServiceDisconnected()</code>가 <code>binderDied()</code>보다 먼저 찍힌다.",
+          "a": false,
+          "h": "핵심 학습 포인트 표는 binderDied()와 onServiceDisconnected()의 호출 순서를 정리합니다. binderDied()는 Driver가 직접 감지해 Binder Thread로 알리고, onServiceDisconnected()는 AMS를 거쳐 Main Thread로 전달됩니다.",
+          "w": "틀립니다. Driver가 직접 감지한 binderDied()가 먼저이고, AMS를 경유하는 onServiceDisconnected()가 Main Thread에서 뒤따릅니다.",
+          "an": "08_death_recipient 핵심 학습 포인트 · Day1 p.21",
+          "src": "|---|---|\n| `binderDied()` 가 Binder Thread 에서 호출 | UI 접근은 `runOnUiThread()` 필수 |\n| `binderDied()` 가 `onServiceDisconnected()` 보다 먼저 | Driver 가 직접 감지 vs AMS 경유 (Main Thread) |\n| `BIND_AUTO_CREATE` | Service Process 가 죽으면 시스템이 자동 재생성 |\n| Service PID 변경 | 새 Process 이므로 Service 내부 상태(history)는 초기화됨 |"
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "AIDL 구성 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "Stub",
+              "Server가 상속, onTransact() 수신"
+            ],
+            [
+              "Proxy",
+              "Client가 asInterface()로 얻어 transact() 호출"
+            ],
+            [
+              "android:process",
+              "Service를 별도 Process로 분리"
+            ],
+            [
+              "bindService",
+              "setPackage 명시적 Intent + BIND_AUTO_CREATE"
+            ]
+          ],
+          "h": "Day1 p.19 표에서 Stub은 Server가 상속해 onTransact()를 받고, Proxy는 Client가 asInterface()로 얻어 Parcel 직렬화 후 transact()를 호출합니다. android:process는 Service를 별도 Process로 분리하고, bindService는 setPackage가 필수인 명시적 Intent와 BIND_AUTO_CREATE로 연결합니다.",
+          "w": "Stub은 Server 측 Binder 객체, Proxy는 Parcel 직렬화와 transact()를 하는 Client 측 대리 객체입니다. android:process는 실제 IPC를 만들고, bindService는 setPackage가 필수인 명시적 Intent로 호출합니다.",
+          "an": "Day1 p.19 표",
+          "src": "act()\nandroid:process \":name\" 으로 Service 를 별도 Process 에 → 실제 IPC 발생\nbindService 명시적 Intent (setPackage 필수) + BIND_AUTO_CREATE\n애니메이션 5 · AIDL → Stub / Proxy"
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "Service를 <code>kill -9</code>한 뒤 Client에서 일어나는 일을 순서대로 나열하세요.",
+          "steps": [
+            "Driver가 BR_DEAD_BINDER로 사망 감지",
+            "binderDied() 호출 (Binder Thread)",
+            "onServiceDisconnected() 호출 (Main, AMS 경유)",
+            "onServiceConnected() 호출 (새 PID)"
+          ],
+          "h": "kill -9 뒤에는 Driver가 BR_DEAD_BINDER로 사망을 즉시 감지해 Binder Thread에서 binderDied()를 부릅니다. 이어 AMS를 거친 onServiceDisconnected()가 Main Thread에서 호출되고, BIND_AUTO_CREATE로 재생성된 Service의 새 PID로 onServiceConnected()가 다시 호출됩니다.",
+          "w": "Driver가 즉시 감지해 binderDied()를 부르고, AMS를 거친 onServiceDisconnected()가 뒤따릅니다. BIND_AUTO_CREATE로 재생성되면 새 PID로 onServiceConnected()가 호출됩니다.",
+          "an": "Day1 p.21 Logcat 순서 · 08_death_recipient Step 3",
+          "src": "|---|---|\n| `binderDied()` 가 Binder Thread 에서 호출 | UI 접근은 `runOnUiThread()` 필수 |\n| `binderDied()` 가 `onServiceDisconnected()` 보다 먼저 | Driver 가 직접 감지 vs AMS 경유 (Main Thread) |\n| `BIND_AUTO_CREATE` | Service Process 가 죽으면 시스템이 자동 재생성 |\n| Service PID 변경 | 새 Process 이므로 Service 내부 상태(history)는 초기화됨 |"
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "DeathRecipient 자동 복구 구현으로 옳은 것을 <b>모두</b> 고르세요.",
+          "o": [
+            "onServiceConnected에서 linkToDeath",
+            "재바인딩 후에도 옛 Proxy 재사용",
+            "binderDied의 UI 갱신은 runOnUiThread",
+            "새 Service가 이전 history 유지",
+            "onDestroy에서 unlinkToDeath"
+          ],
+          "a": [
+            0,
+            2,
+            4
+          ],
+          "h": "실습 8은 onServiceConnected에서 binder.linkToDeath(recipient, 0)로 등록하고, binderDied()는 Binder Thread에서 오므로 UI는 runOnUiThread로 갱신합니다. 재생성된 Service는 새 Process이므로 다시 등록해야 하며, 액티비티 종료 시에는 unlinkToDeath로 해제합니다.",
+          "w": "linkToDeath는 onServiceConnected에서 등록하고, UI는 runOnUiThread로 갱신하며, onDestroy에서 unlinkToDeath로 해제합니다. 옛 Proxy를 쓰면 DeadObjectException이 나고, 새 Process이므로 history는 초기화됩니다.",
+          "an": "08_death_recipient Step 1 · 트러블슈팅",
+          "src": "onServiceConnected 에서\nbinder.linkToDeath(recipient, 0)\nkill -9\nService Process 강제 종료\n(실습 8)\nBR_DEAD_BINDER\nDriver 가 즉시 감지\n→ 참조 보유 Client 에 통지\nbinderDied()\nClient Binder Thread 에서 호출\n→ runOnUiThread\n재바인딩\nBIND_AUTO_CREATE 로\n재생성 → 새 PID · Proxy"
+        }
+      ]
+    },
+    {
+      "id": "t7",
+      "title": "oneway · Messenger · Provider",
+      "ref": "Ch 2–3 · Day1 p.20, 26–28 · 09_stock_service · 10_messenger_chat · 12_content_provider",
+      "qs": [
+        {
+          "id": "t7-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "AIDL Method를 <code>oneway</code>로 선언했을 때의 동작으로 옳은 것은?",
+          "o": [
+            "reply까지 블로킹된다",
+            "Driver에 넣자마자 즉시 반환",
+            "반환값을 가질 수 있다",
+            "같은 Process에서만 호출"
+          ],
+          "a": 1,
+          "h": "Worksheet Q3 해설은 oneway에는 reply가 없어 호출이 기다리지 않는다고 설명합니다. 반환값을 가질 수 없고 결과는 Callback 인터페이스로 받으며, 실습 9에서 측정한 반환 시간도 0 ms였습니다.",
+          "w": "oneway는 reply가 없어 즉시 반환됩니다. 반환값을 가질 수 없으며 결과는 Callback 인터페이스로 받습니다.",
+          "an": "14_worksheet Q3 · Day1 p.20",
+          "src": "**3. ②**\noneway 는 reply 가 없어 즉시 반환된다. 반환값은 가질 수 없고 결과는 Callback 인터페이스로 받는다.\n**4. ②**"
+        },
+        {
+          "id": "t7-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "Messenger IPC와 AIDL의 차이로 옳은 것은?",
+          "o": [
+            "Messenger는 Binder를 쓰지 않는다",
+            "AIDL은 별도 Process에서 못 쓴다",
+            "Messenger는 .aidl 파일이 필요하다",
+            "Messenger는 Handler 큐로 단일 Thread 순차 처리"
+          ],
+          "a": 3,
+          "h": "Worksheet Q5 해설은 Messenger도 내부는 Binder이지만 Handler로 감싸서 처리 방식이 달라진다고 설명합니다. AIDL은 여러 Binder Thread에서 병렬 처리되는 반면, Messenger는 Handler 큐를 통해 처리됩니다.",
+          "w": "Messenger도 내부는 Binder지만 Handler로 감싸 단일 Thread에서 순차 처리합니다. AIDL은 여러 Binder Thread에서 병렬로 처리됩니다.",
+          "an": "14_worksheet Q5 · Day1 p.26",
+          "src": "**5. ②**\nMessenger 도 내부는 Binder 지만 Handler 로 감싸 단일 Thread 순차 처리한다. AIDL 은 여러 Binder Thread 에서 병렬 처리된다.\n**6. ②**"
+        },
+        {
+          "id": "t7-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Client가 죽으면 등록된 콜백을 자동으로 제거해 주는 클래스는?",
+          "o": [
+            "RemoteCallbackList",
+            "ArrayList",
+            "ContentObserver",
+            "UriMatcher"
+          ],
+          "a": 0,
+          "h": "Day1 p.20은 콜백 목록 관리용 클래스를 쓰면 Client가 죽었을 때 등록된 콜백이 자동으로 제거된다고 정리합니다. 클래스 이름은 '원격 콜백 목록'이라는 뜻이며 register()와 broadcast로 사용합니다.",
+          "w": "RemoteCallbackList는 내부적으로 DeathRecipient를 써서 죽은 Client의 콜백을 자동 제거합니다. 일반 ArrayList는 이를 하지 않습니다.",
+          "an": "09_stock_service · Day1 p.20",
+          "src": "• RemoteCallbackList: Client 사망 시 자동 제거\n• 콜백은 Binder Thread → runOnUiThread()\n• Main Thread 동기 IPC 는 ANR 의 원인"
+        },
+        {
+          "id": "t7-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "실습 9에서 Main Thread가 2초 걸리는 동기 <code>getPrice()</code>를 호출할 때의 위험은?",
+          "o": [
+            "TransactionTooLarge",
+            "DeadObjectException",
+            "ANR",
+            "SecurityException"
+          ],
+          "a": 2,
+          "h": "실습 9에서 동기 getPrice()는 2초 sleep하므로 Client의 Main Thread가 2000 ms 동안 블로킹되어 UI가 멈춥니다. 자료는 Main Thread의 동기 IPC가 '응답 없음' 오류의 원인이라고 설명합니다.",
+          "w": "동기 호출은 reply까지 Client Main Thread를 블로킹해 UI가 멈추므로 ANR(App Not Responding) 위험이 있습니다. 실무에서는 Main Thread 동기 IPC를 금지합니다.",
+          "an": "Day1 p.20 · 09_stock_service Step 6",
+          "src": "Client Main Thread 블로킹 2000 ms — UI 정지 → ANR 위험\noneway subscribe(\"AAPL\", callback)"
+        },
+        {
+          "id": "t7-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "Content Provider가 큰 query 결과를 Buffer 한계에 걸리지 않고 전달하는 수단은?",
+          "o": [
+            "Message.what",
+            "CursorWindow (ashmem FD)",
+            "replyTo Messenger",
+            "oneway Callback"
+          ],
+          "a": 1,
+          "h": "핵심 학습 정리 표는 Content Provider가 큰 query 결과도 Transaction 한계를 피해 전달할 수 있다고 적습니다. Cursor 데이터를 ashmem 공유 메모리에 담고 그 FD만 Binder로 넘기는 방식입니다.",
+          "w": "Cursor는 CursorWindow, 즉 ashmem FD 공유 메모리로 전달되어 Transaction 한계를 피합니다. Message.what·replyTo는 Messenger의 요소입니다.",
+          "an": "12_content_provider 핵심 학습 정리 · Day1 p.26",
+          "src": "| ContentResolver → Binder | Provider 로그의 caller uid/pid 가 Activity Process 와 다름 |\n| CursorWindow | 큰 결과도 FD(ashmem) 공유 메모리로 전달 — Transaction 한계 회피 |\n| ContentObserver | `notifyChange()` → Binder 콜백 → Handler 로 Main Thread 전달 |\n| `adb shell content` | 쉘 Process(uid 2000 또는 0) 에서의 Binder 호출 |"
+        },
+        {
+          "id": "t7-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Messenger 채팅 실습은 <code>.aidl</code> 파일도 <code>buildFeatures.aidl</code> 설정도 필요 없다.",
+          "a": true,
+          "h": "실습 10 Step 1의 ⚠ 문구는 이 실습에서 AIDL 파일을 만들지 않으며 buildFeatures.aidl 설정이 필요한지도 함께 적습니다. Messenger는 Framework에 내장된 Handler 기반 IPC입니다.",
+          "w": "맞습니다. Messenger는 Framework 내장 IPC라 AIDL 파일과 aidl 설정이 필요 없습니다. Content Provider도 마찬가지입니다.",
+          "an": "10_messenger_chat Step 1 ⚠",
+          "src": "## Step 1. 프로젝트 생성\n\n| 항목 | 값 |\n|---|---|\n| Name | `MessengerChat` |\n| Package | `com.example.messengerchat` |\n| Language | **Java** |\n| Minimum SDK | API 28 이상 |\n\n> ⚠ 이 실습은 **AIDL 파일을 만들지 않는다.** `buildFeatures.aidl` 도 불필요하다. Messenger는 Framework 내장 IPC다."
+        },
+        {
+          "id": "t7-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "AIDL·Messenger·Content Provider 중에는 Binder Driver를 거치지 않는 방식도 있다.",
+          "a": false,
+          "h": "Day1 p.26 비교표 아래에는 세 방식이 어떤 Driver 위에서 동작하는지 정리한 문장이 있습니다. Message도 Cursor도 결국 Parcel로 직렬화되어 transact()를 탄다고 설명합니다.",
+          "w": "틀립니다. 셋 다 같은 Binder Driver 위에서 동작하며, Message도 Cursor도 Parcel로 직렬화되어 transact()를 탑니다.",
+          "an": "Day1 p.26",
+          "src": "셋 다 같은 Binder Driver 위에서 동작한다. Message 도 Cursor 도 결국 Parcel 로 직렬화되어 transact() \n를 탄다."
+        },
+        {
+          "id": "t7-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "IPC 방식과 적합한 곳을 연결하세요.",
+          "pairs": [
+            [
+              "AIDL",
+              "성능·타입이 중요한 복잡한 API"
+            ],
+            [
+              "Messenger",
+              "간단한 명령·알림, 순서 보장"
+            ],
+            [
+              "Content Provider",
+              "구조화 데이터 공유, 다른 App에 개방"
+            ],
+            [
+              "ContentObserver",
+              "notifyChange() 변경 알림 수신"
+            ]
+          ],
+          "h": "비교표의 '적합한 곳' 행은 AIDL을 성능·타입이 중요한 복잡한 API에, Messenger를 간단한 명령·알림과 순서 보장에 둡니다. Content Provider는 구조화 데이터를 다른 App에 개방할 때, 변경 알림은 notifyChange()로 받는 ContentObserver를 씁니다.",
+          "w": "AIDL은 타입 안전한 Method로 복잡한 API에, Messenger는 Handler 순차 처리로 간단한 명령에, Content Provider는 URI·CRUD로 구조화 데이터 공유에 맞습니다. 변경 알림은 ContentObserver가 notifyChange()로 받습니다.",
+          "an": "Day1 p.26 비교표",
+          "src": "변경 알림 Callback 직접 구현 브로드캐스트 직접 구현 ContentObserver · notifyChange()\n외부 접근 bindService bindService adb shell content query/insert\n적합한 곳 성능·타입 중요, 복잡한 API 간단한 명령·알림, 순서 보장 구조화 데이터 공유, 다른 App 에 개방\n셋 다 같은 Binder Driver 위에서 동작한다. Message 도 Cursor 도 결국 Parcel 로 직렬화되어 transact() \n를 탄다."
+        },
+        {
+          "id": "t7-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "실습 9의 oneway + Callback 흐름을 순서대로 나열하세요.",
+          "steps": [
+            "Client가 IStockCallback.Stub 구현",
+            "subscribe(symbol, callback)을 oneway로 호출",
+            "Service가 RemoteCallbackList.register로 등록",
+            "1초 주기 broadcast로 onPriceUpdate 호출",
+            "콜백 안에서 runOnUiThread로 UI 갱신"
+          ],
+          "h": "Client가 IStockCallback.Stub을 구현해 콜백 객체를 만든 뒤 subscribe를 oneway로 호출합니다. Service는 RemoteCallbackList.register로 등록하고 1초마다 broadcast로 onPriceUpdate를 호출하며, 콜백은 Binder Thread에서 오므로 runOnUiThread로 UI를 갱신합니다.",
+          "w": "Client가 넘긴 콜백은 Binder 객체(역방향 IPC)이며, Service는 RemoteCallbackList에 등록해 1초마다 onPriceUpdate를 부릅니다. 콜백은 Binder Thread에서 오므로 runOnUiThread가 필요합니다.",
+          "an": "Day1 p.24 · 09_stock_service",
+          "src": "2. StockService: getPrice 2초 sleep, subscribe → RemoteCallbackList.register, 1초 주\n기 broadcast\n3. MainActivity: IStockCallback.Stub 구현, 콜백 안 runOnUiThread\n4. android:process=\":stock_remote\"\n5. 동기 버튼 → UI 정지 관찰 / 비동기 버튼 → 즉시 반환 + 1초마다 시세\n확인 포인트\n• 동기: 소요 2000 ms, 화면 멈춤\n• oneway: 반환 0 ms"
+        },
+        {
+          "id": "t7-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "Messenger 채팅 실습의 테스트 결과로 옳은 것을 <b>모두</b> 고르세요.",
+          "o": [
+            "여러 Binder Thread에서 병렬 처리",
+            "연속 5개가 전송 순서대로 처리",
+            "앱과 :chat_remote 두 Process",
+            "응답을 동기 반환값으로 받음",
+            "kill 후 BIND_AUTO_CREATE로 재시작"
+          ],
+          "a": [
+            1,
+            2,
+            4
+          ],
+          "h": "실습 10 확인 포인트는 연속 5개 메시지가 전송 순서 그대로 처리되고, ps로 앱과 :chat_remote 두 Process가 보인다고 적습니다. kill 뒤에는 BIND_AUTO_CREATE 덕분에 Service가 자동으로 재시작됩니다.",
+          "w": "Handler 단일 Thread라 연속 5개가 순서대로 처리되고, ps에서 앱과 :chat_remote 두 Process가 보이며, kill 후 자동 재시작됩니다. 응답은 replyTo Messenger로 비동기로 받습니다.",
+          "an": "10_messenger_chat Step 7 · Day1 p.27",
+          "src": "• 연속 5개가 전송 순서 그대로 처리\n• ps: 앱 / :chat_remote 2개 Process\n• kill 후 BIND_AUTO_CREATE 로 자동 재시작"
+        }
+      ]
+    },
+    {
+      "id": "t8",
+      "title": "Transaction 한계 · Kernel Module",
+      "ref": "Day1 p.15, 17, 29 · 11_transaction_too_large · 13_demo_kernel_module · android_kernel_source_download_auth",
+      "qs": [
+        {
+          "id": "t8-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "<code>TransactionTooLargeException</code>이 발생하는 이유는?",
+          "o": [
+            "AIDL이 byte[]를 지원하지 않아서",
+            "Binder Thread가 부족해서",
+            "SELinux가 차단해서",
+            "Process당 Buffer가 약 1 MB로 제한돼서"
+          ],
+          "a": 3,
+          "h": "Day1 p.15는 Binder Buffer의 크기가 Process당 정해져 있고 진행 중인 모든 Transaction이 이를 공유한다고 설명합니다. 그래서 실질 한계는 그 절반 정도이며, byte[]를 reply에 통째로 쓰면 Driver가 거부합니다.",
+          "w": "Buffer는 Process당 1 MB이고 진행 중인 모든 Transaction이 공유합니다. 대용량은 ParcelFileDescriptor로 FD만 전달합니다.",
+          "an": "14_worksheet Q4 · Day1 p.15",
+          "src": "Android Framework 16 심화 · Day 1 15\n다른 Transaction 점유 +640 KB 요청 → 초과 Process 당 1 MB\n• Buffer 는 Process 당 1 MB, 모든 진행 중 Transaction 이 공유\n→ 실질 한계는 그 절반\n• byte[] 를 reply 에 통째로 쓰면 Driver 가 거부\n• Intent extras · Bundle · savedInstanceState 도 같은 Buffer → \n큰 Bitmap 은 크래시 원인\n해결: FD 만 Parcel 에 싣는다"
+        },
+        {
+          "id": "t8-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "대용량 데이터를 Pipe로 보내고 Parcel에는 FD만 싣게 해 주는 클래스는?",
+          "o": [
+            "ParcelFileDescriptor",
+            "Bundle",
+            "Intent extras",
+            "savedInstanceState"
+          ],
+          "a": 0,
+          "h": "Worksheet Q15 해설은 createPipe()를 쓰면 Parcel에는 데이터 대신 파일 디스크립터(FD)만 실린다고 설명합니다. 이 클래스는 Parcel로 전달할 수 있는 FD를 감싼 것입니다.",
+          "w": "<code>ParcelFileDescriptor.createPipe()</code>를 쓰면 Parcel에는 FD(4 byte)만 실리고 데이터는 Pipe로 흐릅니다. Bundle·Intent extras·savedInstanceState는 오히려 같은 Buffer 제한을 받습니다.",
+          "an": "14_worksheet Q15 · Day1 p.15",
+          "src": "- Binder Transaction Buffer는 Process당 **1 MB**를 모든 진행 중 Transaction이 **공유**한다. 단일 Transaction도 그 절반 정도가 실질 한계다.\n- `Intent`, `Bundle`, `savedInstanceState` 도 같은 제한을 받는다 → 큰 Bitmap/List 전달 시 크래시의 주범.\n- 대용량은 `ParcelFileDescriptor`(Pipe, ashmem/`SharedMemory`, 파일)로 **FD만 Parcel에 실어** 전달한다."
+        },
+        {
+          "id": "t8-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Android 16 GKI 커널 모듈을 빌드할 때 <code>BUILD.bazel</code>에 쓰는 규칙은?",
+          "o": [
+            "kernel_module()",
+            "cc_binary()",
+            "ddk_module()",
+            "apex()"
+          ],
+          "a": 2,
+          "h": "실습 13 목표는 Android 16에서 kernel_module()이 deprecated되어 빌드가 실패한다고 경고합니다. 대신 Kleaf DDK(Driver Development Kit)의 규칙으로 .ko를 빌드합니다.",
+          "w": "Android 16 Kleaf에서 kernel_module()은 deprecated이며 ddk_module()을 씁니다. Kbuild/Makefile은 자동 생성됩니다.",
+          "an": "14_worksheet Q8 · 13_demo_kernel_module",
+          "src": "## 목표\n\n- Android 16 GKI 커널이 어떻게 빌드되고 Emulator 이미지에 들어가는지 흐름을 본다.\n- Kleaf `ddk_module` 로 커널 모듈(`.ko`)을 빌드해 Emulator에 `insmod` 한다.\n\n> Android 16 에서 `kernel_module()` 은 **deprecated** 되어 빌드가 실패한다. `ddk_module()` 을 사용한다."
+        },
+        {
+          "id": "t8-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Pipe 방식에서 Service가 큰 데이터를 Pipe에 쓰는 곳은?",
+          "o": [
+            "요청받은 Binder Thread",
+            "별도 Writer Thread",
+            "Client Main Thread",
+            "Driver 내부"
+          ],
+          "a": 1,
+          "h": "Pipe 방식 코드에서 Service는 createPipe()로 읽기 끝·쓰기 끝을 만들고 읽기 끝만 반환합니다. 쓰기는 '★ Binder Thread를 막지 않도록' 주석과 함께 new Thread(...) 안에서 수행합니다.",
+          "w": "Service는 createPipe() 후 별도 Thread에서 write하고 읽기 쪽 FD만 반환합니다. Binder Thread에서 직접 쓰면 그 Thread가 막힙니다.",
+          "an": "11_transaction_too_large Step 3 · Day1 p.15 코드",
+          "src": "ParcelFileDescriptor readEnd = pipe[0];\n ParcelFileDescriptor writeEnd = pipe[1];\n // ★ Binder Thread 를 막지 않도록 별도 Thread 에서 write\n new Thread(() -> {\n try (FileOutputStream out = new FileOutputStream(writeEnd.getFileDescriptor())) {\n byte[] chunk = new byte[64 * 1024];"
+        },
+        {
+          "id": "t8-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "실습실에서 여러 명이 동시에 커널 소스를 받을 때 IP quota 차단을 피하는 방법은?",
+          "o": [
+            "/a/가 붙은 인증 URL 사용",
+            "/a/ 없는 익명 URL 사용",
+            "--depth=1 제거",
+            "--no-tags 제거"
+          ],
+          "a": 0,
+          "h": "자료는 /a/가 없는 익명 URL이 IP당 quota 제한을 받아, 실습실처럼 같은 네트워크에서 여럿이 동시에 sync하면 차단될 수 있다고 설명합니다. Google 계정 인증 방식은 quota가 계정별로 적용됩니다.",
+          "w": "익명 URL은 IP당 quota가 있어 같은 네트워크에서 동시에 sync하면 차단될 수 있습니다. git-cookies 인증 후 /a/ URL을 쓰면 계정별 quota가 적용됩니다.",
+          "an": "android_kernel_source_download_auth 개요·4",
+          "src": "# Android Kernel Source 다운로드 (인증 방식)\n\nAndroid Common Kernel `common-android16-6.12` branch를 Google 계정 인증 후 다운로드하는 절차이다.\n\n익명 접속(`/a/` 없는 URL)은 IP당 quota 제한이 있어 실습실처럼 동일 네트워크에서 다수가 동시에 sync하면 차단될 수 있다. 인증 방식은 계정별로 quota가 적용되므로 이 문제를 피할 수 있다."
+        },
+        {
+          "id": "t8-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>ddk_module</code>을 쓸 때는 모듈 디렉토리에 Kbuild·Makefile을 직접 작성해야 한다.",
+          "a": false,
+          "h": "Day1 p.29는 ddk_module을 쓸 때 Kbuild·Makefile을 어떻게 다뤄야 하는지 적습니다. 이 파일들은 자동 생성되므로, 직접 만들어 두면 오히려 충돌한다는 경고입니다.",
+          "w": "틀립니다. ddk_module이 Kbuild/Makefile을 자동 생성하므로 직접 만들지 않으며, 있으면 충돌합니다.",
+          "an": "13_demo_kernel_module Step 3 ⚠ · Day1 p.29",
+          "src": "• Kbuild / Makefile 을 만들지 않는다 — 자동 생성, 있으면 충돌"
+        },
+        {
+          "id": "t8-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "256 KB 같은 소용량 전송에서는 Binder 직접 전달이 Pipe보다 약간 빠르거나 비슷하다.",
+          "a": true,
+          "h": "실습 11의 버튼 3은 256 KB를 Binder 직접 전달과 Pipe로 각각 보내 속도를 비교합니다. 확인 포인트는 소용량에서의 비교 결과를 적고, 대용량은 항상 FD를 쓰는 것이 결론이라고 정리합니다.",
+          "w": "맞습니다. 소용량은 직접 전달이 약간 빠르거나 비슷합니다. 그래도 결론은 '대용량은 항상 FD'입니다.",
+          "an": "11_transaction_too_large Step 7 · Day1 p.17",
+          "src": "• 소용량은 직접 전달이 약간 빠르거나 비슷\n• 결론: 대용량은 항상 FD"
+        },
+        {
+          "id": "t8-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "커널 모듈 오류와 해결을 연결하세요.",
+          "pairs": [
+            [
+              "kernel_module is deprecated",
+              "ddk_module로 교체"
+            ],
+            [
+              "insmod: Invalid module format",
+              "커널과 모듈을 같은 소스에서 빌드"
+            ],
+            [
+              "target ... is not visible",
+              "--check_visibility=false"
+            ],
+            [
+              "insmod: Operation not permitted",
+              "adb root 후 재시도"
+            ]
+          ],
+          "h": "트러블슈팅 표는 vermagic이 맞지 않는 'Invalid module format'은 커널과 모듈을 같은 소스에서 빌드해 해결하라고 합니다. visibility 오류는 --check_visibility=false로, 권한 거부는 adb root 후 재시도로, deprecated 규칙 오류는 DDK 규칙으로 바꿔 해결합니다.",
+          "w": "deprecated 규칙은 ddk_module로 바꾸고, Invalid module format은 vermagic 불일치이므로 같은 소스에서 빌드합니다. not visible은 --check_visibility=false, Operation not permitted는 adb root와 SELinux permissive를 확인합니다.",
+          "an": "13_demo_kernel_module 트러블슈팅",
+          "src": "| `Kbuild already exists` / 이상한 빌드 오류 | 모듈 디렉토리의 Kbuild, Makefile 삭제 |\n| `insmod: Invalid module format` | `vermagic` 불일치 — 커널과 모듈을 같은 소스에서 빌드 |\n| `target ... is not visible` | `--check_visibility=false` |\n| `insmod: Operation not permitted` | `adb root` 후 재시도, SELinux permissive 확인 |"
+        },
+        {
+          "id": "t8-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "커널 모듈 데모의 흐름을 순서대로 나열하세요.",
+          "steps": [
+            "hello_android.c와 BUILD.bazel 작성",
+            "tools/bazel build로 .ko 빌드",
+            "adb push로 Emulator에 복사",
+            "insmod로 모듈 로드",
+            "cat /proc/hello_android로 확인",
+            "rmmod로 모듈 제거"
+          ],
+          "h": "실습 13은 hello_android.c와 BUILD.bazel 두 파일만 작성해 tools/bazel build로 .ko를 만듭니다. 그다음 adb push로 Emulator에 올려 insmod로 로드하고, cat /proc/hello_android로 확인한 뒤 rmmod로 제거합니다.",
+          "w": ".c와 BUILD.bazel 두 파일로 bazel build를 하고, adb push → insmod → cat /proc/hello_android → rmmod 순으로 확인합니다. vermagic이 Emulator 커널과 같아야 insmod가 성공합니다.",
+          "an": "Day1 p.29 · 13_demo_kernel_module Step 3–5",
+          "src": "- `kernel_module()` deprecated → `ddk_module()` (Kleaf DDK)\n- `hello_android.c` + `BUILD.bazel` 2개 파일만으로 `.ko` 빌드 (Kbuild/Makefile 없음)\n- `adb push` → `insmod` → `cat /proc/hello_android` → `rmmod`\n- **핵심:** `kernel_build`는 `virtual_device_x86_64`, `vermagic` 일치 필수, `--check_visibility=false`"
+        },
+        {
+          "id": "t8-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "Binder Transaction 한계에 대한 설명으로 옳은 것을 <b>모두</b> 고르세요.",
+          "o": [
+            "진행 중 Transaction이 Buffer 공유",
+            "단일 Transaction은 2 MB까지 안전",
+            "Intent·Bundle도 같은 제한",
+            "FD 전달도 데이터 전체를 복사",
+            "Pipe로 4 MB 정상 수신"
+          ],
+          "a": [
+            0,
+            2,
+            4
+          ],
+          "h": "Binder Transaction Buffer는 Process당 1 MB를 진행 중인 모든 Transaction이 공유하며, Intent·Bundle·savedInstanceState도 같은 제한을 받습니다. 실습 11에서 Pipe(ParcelFileDescriptor)로 보내면 4096 KB도 정상 수신됩니다.",
+          "w": "1 MB Buffer를 진행 중 Transaction이 공유해 실질 한계는 절반 정도이며, Intent extras·Bundle·savedInstanceState도 같은 제한을 받습니다. FD 방식은 Parcel에 FD만 실어 4 MB도 정상 수신합니다.",
+          "an": "11_transaction_too_large 핵심 학습 정리 · Day1 p.15, 17",
+          "src": "- Binder Transaction Buffer는 Process당 **1 MB**를 모든 진행 중 Transaction이 **공유**한다. 단일 Transaction도 그 절반 정도가 실질 한계다.\n- `Intent`, `Bundle`, `savedInstanceState` 도 같은 제한을 받는다 → 큰 Bitmap/List 전달 시 크래시의 주범.\n- 대용량은 `ParcelFileDescriptor`(Pipe, ashmem/`SharedMemory`, 파일)로 **FD만 Parcel에 실어** 전달한다."
+        }
+      ]
+    }
+  ]
+}

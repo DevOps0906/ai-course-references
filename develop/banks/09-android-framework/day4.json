@@ -1,0 +1,1730 @@
+{
+  "id": "aosp-d4",
+  "code": "AF4",
+  "title": "Android 프레임워크 4일차 · APEX · RRO · SystemUI · WindowManager · Automotive",
+  "subtitle": "APEX·RRO 델타 배포 · SystemUI·WindowManager · CarService·VHAL",
+  "course": "09 · Android 프레임워크",
+  "source": "09-android_framework-main/Day4/Day4.pdf + md/*.md",
+  "salt": "aosp-d4",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "델타 배포 · 2단계 remount",
+      "ref": "Day4 p.3·p.5·p.8 · 01_env_check",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "델타 배포 판단표에서 <b>이미지를 다시 구워야</b>(<code>m emu_img_zip</code> + Emulator 재시작) 하는 변경은?",
+          "o": [
+            "RRO로 바꾸는 색·문자열",
+            "커널·VHAL 속성 추가",
+            "SystemUI QS 타일 코드",
+            "Native .so 교체"
+          ],
+          "a": 1,
+          "h": "Day4 p.5 델타 배포 판단표는 Native·RRO·SystemUI 코드·APEX·init.rc까지는 push · install · enable로 끝난다고 정리합니다. 수십 분이 걸리며 m emu_img_zip + Emulator 재시작이 필요한 것은 판단표 마지막 줄의 항목들입니다.",
+          "w": "커널·기본 탑재 RRO·VHAL 속성은 <code>m emu_img_zip</code> + Emulator 재시작이 필요합니다. 색·문자열은 RRO, QS 타일 코드는 <code>m SystemUI</code> + push + killall, .so는 <code>m</code> + push로 끝납니다.",
+          "an": "Day4 p.5 델타 배포 판단표",
+          "src": "커널 · 기본 탑재 RRO · VHAL 속성 m emu_img_zip + Emulator 재시작 수십 분 Day 1 실습 13"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "2단계 remount 중 <b>1차</b> <code>adb remount</code>가 하는 일은?",
+          "o": [
+            "dm-verity 해제·overlayfs 설정",
+            "/system 쓰기 마운트 완료",
+            "SELinux를 permissive로 전환",
+            "aapt를 PATH에 등록"
+          ],
+          "a": 0,
+          "h": "실습 1 Step 2 표에서 1차 adb remount는 바로 쓰기 마운트를 하지 않고 재부팅이 필요한 준비 작업을 합니다. 부팅 검증 장치를 끄고 /system 위에 쓰기 계층을 얹을 설정을 해 두는 단계입니다.",
+          "w": "1차 remount는 dm-verity를 끄고 overlayfs를 설정하며 재부팅이 필요합니다. 실제로 /system을 쓰기 가능으로 마운트하는 것은 재부팅 후 2차 remount입니다.",
+          "an": "01_env_check Step 2 표",
+          "src": "exit\n```\n\n| 단계 | 역할 |\n|---|---|\n| 1차 `adb remount` | dm-verity 비활성화 + overlayfs 설정 (재부팅 필요) |\n| `adb reboot` | 설정 적용 |\n| 2차 `adb remount` | **실제로 /system 을 쓰기 가능으로 마운트** — 이후 재부팅해도 유지 |\n\n2차 remount 를 빼먹으면 이후 모든 `adb push /system/...` 이 `Read-only file system` 이다."
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "2차 <code>adb root; adb remount</code>를 빼먹고 <code>adb push … /system/…</code>를 하면 나오는 오류는?",
+          "o": [
+            "INSTALL_FAILED_OLDER_SDK",
+            "BadTokenException",
+            "Read-only file system",
+            "STATE_NO_IDMAP"
+          ],
+          "a": 2,
+          "h": "2차 remount가 실제로 /system을 쓰기 가능하게 마운트하는 단계입니다. 이를 빼먹으면 /system이 여전히 읽기 전용이므로, 트러블슈팅 표대로 push 시 '읽기 전용 파일 시스템' 오류가 납니다.",
+          "w": "2차 remount를 빼먹으면 이후 모든 /system push가 <code>Read-only file system</code>으로 실패합니다. OLDER_SDK는 minSdk, BadTokenException은 창 권한, STATE_NO_IDMAP은 RRO 매칭 문제입니다.",
+          "an": "01_env_check Step 2 · 트러블슈팅",
+          "src": "## 트러블슈팅\n\n| 증상 | 해결 |\n|---|---|\n| `remount` 가 계속 `reboot required` | `-writable-system` 없이 부팅됨 → bat 확인 후 재실행 |\n| `Read-only file system` | 2차 `adb root; adb remount` 누락 |\n| `aapt` 없음 | SDK Manager → SDK Tools → Android SDK Build-Tools 설치 |"
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>adb remount</code>가 계속 'reboot required'만 출력합니다. 가장 유력한 원인은?",
+          "o": [
+            "adb root를 두 번 실행함",
+            "aapt가 PATH에 없음",
+            "userdebug 빌드로 부팅함",
+            "-writable-system 없이 부팅함"
+          ],
+          "a": 3,
+          "h": "실습 1 트러블슈팅은 remount가 계속 'reboot required'만 내면 Emulator가 특정 옵션 없이 부팅된 것이라고 설명합니다. Emulator를 띄우는 bat 파일에 시스템 쓰기 허용 옵션이 있는지 확인한 뒤 다시 실행합니다.",
+          "w": "Emulator가 <code>-writable-system</code> 없이 부팅되면 remount가 계속 재부팅을 요구합니다. bat 파일을 확인하고 다시 실행해야 합니다.",
+          "an": "01_env_check 트러블슈팅 · Day4 p.3",
+          "src": "## 트러블슈팅\n\n| 증상 | 해결 |\n|---|---|\n| `remount` 가 계속 `reboot required` | `-writable-system` 없이 부팅됨 → bat 확인 후 재실행 |\n| `Read-only file system` | 2차 `adb root; adb remount` 누락 |\n| `aapt` 없음 | SDK Manager → SDK Tools → Android SDK Build-Tools 설치 |"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "학생A가 Car SystemUI의 시계 색만 바꾸려 합니다. 판단표에 따른 가장 가벼운 방법은?",
+          "o": [
+            "m emu_img_zip 후 재시작",
+            "RRO APK 설치 + enable",
+            ".apex push + reboot",
+            "m SystemUI + killall"
+          ],
+          "a": 1,
+          "h": "판단표에서 Java 리소스(색·문자열·drawable·config) 변경은 APK 설치 + cmd overlay enable로 몇 분이면 끝납니다. 시계 색은 코드가 아니라 리소스이므로 SystemUI를 다시 빌드할 필요가 없습니다.",
+          "w": "색·문자열·drawable 같은 Java 리소스는 RRO(APK 설치 + <code>cmd overlay enable</code>)로 분 단위에 바꿀 수 있습니다. 소스 수정이나 이미지 리빌드는 필요 없습니다.",
+          "an": "Day4 p.5 · 실습 6",
+          "src": "Android Framework 16 심화 · Day 4 5\n바꾸는 것 필요한 절차 시간 오늘\nNative 바이너리 · .so m <모듈> + adb push /data 수십 초 Day 2·3\nJava 리소스 (색·문자열\n·drawable·config) RRO — APK 설치 + cmd overlay enable 분 실습 3·6\n시스템 앱 코드 (SystemUI) m SystemUI + APK push(remount) + killall 수 분 실습 7\n독립 배포 모듈 APEX — .apex push + reboot 수 분 실습 2"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "델타 배포 판단표에서 이미지를 다시 굽는 것은 마지막 줄뿐이고, 나머지는 push · install · enable로 끝난다.",
+          "a": true,
+          "h": "Day4 p.5 판단표 아래에는 '이미지를 다시 굽는 것은 마지막 줄뿐이다'라는 요약 문장이 있습니다. 나머지 변경은 push · install · enable로 끝난다고 이어집니다.",
+          "w": "맞습니다. 커널·기본 탑재 RRO·VHAL 속성만 이미지를 다시 굽고, 나머지 변경은 push·install·enable로 반영됩니다.",
+          "an": "Day4 p.5",
+          "src": "커널 · 기본 탑재 RRO · VHAL 속성 m emu_img_zip + Emulator 재시작 수십 분 Day 1 실습 13"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "2차 remount로 쓰기 가능해진 /system은 재부팅하면 다시 읽기 전용이 되므로 매번 2단계를 반복해야 한다.",
+          "a": false,
+          "h": "실습 1 Step 2 표에서 2차 adb remount는 실제로 /system을 쓰기 가능으로 마운트하며, 설명 끝에 재부팅 후의 상태가 함께 적혀 있습니다. 실습 6에서도 '실습 1에서 완료'라는 주석과 함께 이를 다시 하지 않습니다.",
+          "w": "틀립니다. 2차 remount는 /system을 쓰기 가능으로 마운트하며 이후 재부팅해도 유지됩니다. 그래서 실습 2·6·7·11에서 push 후 reboot를 해도 쓰기 상태가 남습니다.",
+          "an": "01_env_check Step 2 표",
+          "src": "exit\n```\n\n| 단계 | 역할 |\n|---|---|\n| 1차 `adb remount` | dm-verity 비활성화 + overlayfs 설정 (재부팅 필요) |\n| `adb reboot` | 설정 적용 |\n| 2차 `adb remount` | **실제로 /system 을 쓰기 가능으로 마운트** — 이후 재부팅해도 유지 |\n\n2차 remount 를 빼먹으면 이후 모든 `adb push /system/...` 이 `Read-only file system` 이다."
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "바꾸려는 것과 필요한 배포 절차를 연결하세요.",
+          "pairs": [
+            [
+              "Native 바이너리 / .so",
+              "m + adb push /data"
+            ],
+            [
+              "SystemUI 색·문자열",
+              "RRO (APK + cmd overlay enable)"
+            ],
+            [
+              "SystemUI 코드 (QS 타일)",
+              "m SystemUI + APK push + killall"
+            ],
+            [
+              "독립 배포 모듈",
+              "APEX (.apex push + reboot)"
+            ],
+            [
+              "커널 · VHAL 속성 추가",
+              "m emu_img_zip + Emulator 재시작"
+            ]
+          ],
+          "h": "Worksheet Q20 해설은 Native 바이너리는 m + adb push /data, SystemUI 색·문자열은 RRO, SystemUI 코드(QS 타일)는 m SystemUI + APK push + killall로 짝짓습니다. 독립 배포 모듈은 APEX(.apex push + reboot), 커널·VHAL 속성은 m emu_img_zip + Emulator 재시작입니다.",
+          "w": "델타 배포 판단표 그대로입니다. 이미지를 다시 굽는 것은 커널·기본 탑재 RRO·VHAL 속성 추가뿐입니다.",
+          "an": "Day4_Worksheet Q20 · Day4 p.5",
+          "src": "**20. Native 바이너리 / .so ↔ m + adb push /data, SystemUI 색·문자열 ↔ RRO (APK + cmd overlay enable), SystemUI 코드 (QS 타일) ↔ m SystemUI + APK push + killall, 독립 배포 모듈 ↔ APEX (.apex push + reboot), 커널 · VHAL 속성 추가 ↔ m emu_img_zip + Emulator 재시작**\n델타 배포 판단표. 이미지를 다시 굽는 것은 커널·기본 탑재 RRO·VHAL 속성 추가뿐이다."
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "/system에 쓰기 위한 2단계 remount 순서를 맞추세요.",
+          "steps": [
+            "1차 adb root",
+            "1차 adb remount — verity 해제",
+            "adb reboot",
+            "2차 adb root",
+            "2차 adb remount — remount succeeded"
+          ],
+          "h": "Day4 p.3 체크리스트의 2단계 remount는 adb root → remount(verity 해제) → reboot → root → remount → remount succeeded입니다. root와 remount를 두 번 하고 그 사이에 재부팅으로 설정을 적용합니다.",
+          "w": "root → remount(verity 해제·overlayfs) → reboot → root → remount 순서입니다. 마지막에 <code>remount succeeded</code>가 나와야 /system에 쓸 수 있습니다.",
+          "an": "Day4_Worksheet Q5 · 01_env_check Step 2",
+          "src": "adb root → remount(verity 해제) → reboot → root → remount → remount succeeded\n3"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "'변경이 안 먹을 때 7가지' 체크리스트에 들어 있는 항목을 모두 고르세요.",
+          "o": [
+            "remount succeeded였나",
+            "cmd overlay list가 ---인가",
+            "killall·reboot를 했나",
+            "APK 파일 크기가 작은가",
+            "Gradle 버전이 최신인가"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Day4 p.8 체크리스트는 ① remount가 succeeded였나 ② cmd overlay list에서 ---인가 ③ [ ]인데 enable을 안 했나 ④ killall/reboot를 했나 ⑤ 리소스 이름이 aapt dump 결과와 같은가를 차례로 묻습니다. 이어서 ⑥ 더 높은 priority, ⑦ AndroidRuntime 크래시를 확인합니다.",
+          "w": "체크리스트는 ① remount succeeded ② --- 여부 ③ enable ④ killall ⑤ aapt 이름 ⑥ 높은 priority ⑦ AndroidRuntime 크래시입니다. APK 크기나 Gradle 버전은 들어 있지 않습니다.",
+          "an": "Day4 p.8 변경이 안 먹을 때 7가지",
+          "src": "| **변경이 안 먹을 때 체크리스트** | ① `adb remount` 가 `succeeded` 였나 (2단계) ② `cmd overlay list` 에서 `---` 인가 (overlayable/targetName) ③ `[ ]` 인데 `enable` 을 안 했나 ④ `killall com.android.systemui` / reboot 를 했나 ⑤ 리소스 이름이 `aapt dump` 결과와 같은가 ⑥ 우선순위가 더 높은 다른 RRO 가 덮고 있나 (`cmd overlay dump` 의 priority) ⑦ `logcat -s AndroidRuntime` 에 크래시가 있나 |"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "APEX 모듈",
+      "ref": "Day4 p.6·p.9 · 02_apex",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "APEX 모듈의 <code>file_contexts</code> 파일이 있어야 하는 위치는?",
+          "o": [
+            "APEX 모듈 디렉토리 안",
+            "system/sepolicy/apex/<name>-file_contexts",
+            "/system/etc/selinux/",
+            "apex_manifest.json과 같은 폴더"
+          ],
+          "a": 1,
+          "h": "Worksheet Q1 해설은 Soong이 APEX file_contexts를 system/sepolicy/apex/{APEX 이름}-file_contexts에서만 찾는다고 설명합니다. 모듈 안에 두면 'should be under system/sepolicy' 오류가 납니다.",
+          "w": "Soong은 file_contexts를 <code>system/sepolicy/apex/{이름}-file_contexts</code>에서만 찾습니다. 모듈 안에 두면 'should be under system/sepolicy' 오류가 납니다.",
+          "an": "Day4_Worksheet Q1 · 02_apex Step 4",
+          "src": "**1. ②**\nSoong 은 file_contexts 를 system/sepolicy/apex/{APEX 이름}-file_contexts 에서만 찾는다. 모듈 안에 두면 \"should be under system/sepolicy\" 오류."
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "이름 com.example.simple, 버전 1인 APEX가 부팅 시 마운트되는 경로는?",
+          "o": [
+            "/system/apex/com.example.simple",
+            "/data/apex/simple-1",
+            "/vendor/apex/simple@1",
+            "/apex/com.example.simple@1"
+          ],
+          "a": 3,
+          "h": "Worksheet Q9 해설은 apexd가 /apex/&lt;name&gt;@&lt;version&gt;에 loop mount하고 /apex/&lt;name&gt; 심볼릭 링크를 만든다고 설명합니다. 이름과 버전을 '@'로 이어 붙인 경로입니다.",
+          "w": "apexd가 <code>/apex/&lt;name&gt;@&lt;version&gt;</code>에 loop mount하고 <code>/apex/&lt;name&gt;</code> 심볼릭 링크를 만듭니다. /system/apex는 .apex 파일을 push하는 위치입니다.",
+          "an": "Day4_Worksheet Q9 · 02_apex Step 6",
+          "src": "**9. /apex/com.example.simple@1**\napexd 가 /apex/<name>@<version> 에 loop mount 하고 /apex/<name> 심볼릭 링크를 만든다.\n**10. android:hasCode=\"false\"**"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>updatable: false</code>인 APEX에 <code>compressible: true</code>를 추가하면?",
+          "o": [
+            "non-updatable 압축 불가 빌드 오류",
+            "부팅 시 apexd가 압축 해제",
+            "Play로 업데이트 가능해짐",
+            "file_contexts가 자동 생성됨"
+          ],
+          "a": 0,
+          "h": "실습 2의 Android.bp는 updatable: false 아래에 'compressible은 쓰지 않는다'는 주석을 달아 둡니다. 이유는 updatable: false와 함께 compressible: true를 쓰면 빌드 단계에서 실패하기 때문입니다.",
+          "w": "<code>error: compressible: do not compress non-updatable APEX</code> 빌드 오류가 납니다. updatable:false는 이미지에 내장되는 비-Mainline 모듈이라 compressible을 쓸 수 없습니다.",
+          "an": "02_apex Step 7 ② · 핵심 정리",
+          "src": "key: \"com.example.simple.key\",\n certificate: \":com.example.simple.certificate\",\n min_sdk_version: \"36\",\n updatable: false, // 커스텀 APEX — Mainline 업데이트 대상 아님\n // compressible 은 쓰지 않는다 (updatable: false 와 함께 true 면 빌드 오류)\n}\n\napex_key {\n name: \"com.example.simple.key\","
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "재부팅 시 .apex를 검증하고 loop mount하는 데몬은?",
+          "o": [
+            "servicemanager",
+            "zygote",
+            "apexd",
+            "surfaceflinger"
+          ],
+          "a": 2,
+          "h": "실습 2 핵심 정리 표는 부팅 시 특정 데몬이 .apex를 검증해 loop mount하고 /apex/&lt;name&gt;@&lt;ver&gt;로 보이게 한다고 적습니다. 데몬 이름은 'apex'에 데몬을 뜻하는 d를 붙인 것입니다.",
+          "w": "부팅 시 apexd가 서명을 검증하고 이미지를 loop mount해 /apex 아래에 붙입니다. zygote는 앱 프로세스, surfaceflinger는 화면 합성을 담당합니다.",
+          "an": "02_apex 핵심 정리 · Day4 p.6",
+          "src": "| APEX | 파일시스템 이미지(ext4)+manifest+서명 을 `.apex` 로 묶은 모듈. 부팅 시 `apexd` 가 loop mount → `/apex/<name>@<ver>` |"
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "push·reboot 후 <code>/apex/com.example.simple</code>이 없습니다. 먼저 확인할 것은?",
+          "o": [
+            "logcat -s apexd의 verify 실패",
+            "cmd overlay list의 ---",
+            "dumpsys statusbar 출력",
+            "pm grant 권한 부여"
+          ],
+          "a": 0,
+          "h": "실습 2 트러블슈팅에서 /apex/com.example.simple이 없으면 APEX를 마운트하는 데몬의 로그를 보라고 합니다. <code>logcat -s</code>에 그 데몬 이름을 넣어 verify(검증) 실패 여부를 확인합니다.",
+          "w": "<code>logcat -s apexd</code>에서 verify 실패를 확인하고 키 불일치, push 경로, reboot 여부를 점검합니다. overlay·statusbar·pm grant는 APEX 마운트와 관계가 없습니다.",
+          "an": "02_apex 트러블슈팅",
+          "src": "## 트러블슈팅\n\n| 증상 | 해결 |\n|---|---|\n| `avbtool: not found` | `lunch` 후 PATH 에 들어온다. 또는 `external/avb/avbtool.py` |\n| `Private-Key: (2048 bit)` | 4096 비트 필수 — 키 재생성 |\n| `/apex/com.example.simple` 없음 | `logcat -s apexd` 에서 verify 실패 확인 — 키 불일치, `adb push` 경로 확인, reboot 여부 |"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "ART·Media·Wi-Fi 같은 Mainline 모듈은 APEX 형식으로 Play를 통해 업데이트된다.",
+          "a": true,
+          "h": "Day4 p.6 APEX 슬라이드의 마지막 글머리표는 ART·Media·Wi-Fi 같은 Mainline 모듈이 이 형식으로 Play를 통해 업데이트된다고 적습니다. APEX는 파일시스템 이미지 + manifest + 서명을 묶은 독립 배포 모듈입니다.",
+          "w": "맞습니다. Mainline(ART·Media·Wi-Fi)이 APEX 형식으로 Play 업데이트됩니다. 실습의 커스텀 APEX는 updatable:false라 Mainline 대상이 아닙니다.",
+          "an": "Day4 p.6",
+          "src": "• Mainline(ART·Media·Wi-Fi)이 이 형식으로 Play 업데이트\n애니메이션 2 · APEX"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": false,
+          "p": "file_contexts는 APEX 모듈 폴더에 두고 Android.bp의 apex {}에 <code>file_contexts: 'file_contexts'</code>로 지정하는 것이 권장 방식이다.",
+          "a": false,
+          "h": "Day4 p.6은 file_contexts 위치가 틀리면 'should be under system/sepolicy' 오류가 난다고 적습니다. 실습 2 Step 7 ①은 file_contexts를 모듈 폴더에 두고 지정했을 때 이 오류를 일부러 재현합니다.",
+          "w": "틀립니다. 이렇게 하면 'should be under system/sepolicy' 오류가 납니다. apex {}에는 file_contexts를 명시하지 않고 system/sepolicy/apex/에서 자동 탐색되게 둡니다.",
+          "an": "02_apex Step 2 주석 · Step 7 ①",
+          "src": "• file_contexts 위치가 틀리면 should be under system/sepolicy"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "APEX 빌드 구성 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "apex_key (.pem / .avbpubkey)",
+              "AVB 서명 — 부팅 시 이미지 검증"
+            ],
+            [
+              "android_app_certificate (.pk8 / .x509.pem)",
+              "APK 서명 — 패키지 검증"
+            ],
+            [
+              "apex_manifest.json",
+              "name · version 기록"
+            ],
+            [
+              "apex_available",
+              "바이너리를 해당 APEX에 포함 허용"
+            ]
+          ],
+          "h": "실습 2 핵심 정리는 apex_key가 AVB 서명(부팅 시 이미지 검증), android_app_certificate가 APK 서명(패키지 검증)으로 서명이 두 벌이라고 설명합니다. apex_manifest.json은 name·version을, apex_available은 바이너리가 해당 APEX에 들어가도록 허용합니다.",
+          "w": "apex_key는 AVB(부팅 검증), android_app_certificate는 APK 서명입니다. 두 벌이 모두 필요합니다. manifest는 이름·버전, apex_available은 cc_binary를 APEX에 넣도록 허용합니다.",
+          "an": "Day4_Worksheet Q14 · 02_apex 핵심 정리",
+          "src": "**14. (1) AVB / (2) APK**\napex_key 가 AVB(부팅 검증), android_app_certificate 가 APK 서명이다."
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "simple_apex를 빌드해 설치하고 확인하는 순서를 맞추세요.",
+          "steps": [
+            "m com.example.simple 빌드",
+            "deapexer list로 내용 확인",
+            "remount 상태에서 /system/apex에 push",
+            "reboot — apexd 검증·loop mount",
+            "/apex/…/bin 바이너리 실행"
+          ],
+          "h": "Day4 p.9 진행 순서는 m com.example.simple로 빌드한 뒤 deapexer list로 내용을 확인하고, WinSCP로 받아 /system/apex에 push한 다음 reboot합니다. 재부팅 때 apexd가 검증·loop mount하고, 이후 /apex/…/bin의 바이너리를 실행합니다.",
+          "w": "빌드 후 deapexer로 바이너리가 들어갔는지 보고, /system/apex에 push한 뒤 재부팅하면 apexd가 마운트합니다. 그다음 /apex/com.example.simple/bin에서 실행합니다.",
+          "an": "Day4 p.9 진행 순서 · 02_apex Step 5–6",
+          "src": "2. apex_manifest.json · Android.bp (apex · apex_key · android_app_certificate)\n3. 키 4종 확인 · system/sepolicy/apex/com.example.simple-file_contexts\n4. m com.example.simple → deapexer list → WinSCP → push /system/apex → rebo\not\n5. ls /apex/com.example.simple/ → 실행 → dumpsys apexservice · Step 7 오류 2종"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "APEX가 정상 설치되었음을 보여 주는 확인 포인트를 모두 고르세요.",
+          "o": [
+            "/apex/…simple@1 마운트",
+            "Hello from Simple APEX 출력",
+            "dumpsys apexservice 항목",
+            "cmd overlay list의 [x]",
+            "STATE_NO_IDMAP 표시"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Day4 p.9 확인 포인트는 /apex/com.example.simple@1 마운트와 'Hello from Simple APEX' 출력을 듭니다. 진행 순서 5번에서는 실행 후 dumpsys apexservice로 APEX 항목도 확인합니다.",
+          "w": "/apex/com.example.simple@1 마운트, 바이너리 실행 출력, <code>dumpsys apexservice</code>가 확인 포인트입니다. [x]와 STATE_NO_IDMAP은 RRO 상태 표시입니다.",
+          "an": "Day4 p.9 확인 포인트 · 02_apex Step 6",
+          "src": "ot\n5. ls /apex/com.example.simple/ → 실행 → dumpsys apexservice · Step 7 오류 2종\n재현\n확인 포인트\n• $OUT/system/apex/com.example.simple.apex\n• /apex/com.example.simple@1 마운트\n• Hello from Simple APEX 출력\n• should be under system/sepolicy · do not compress 메시지\n애니메이션 2 · APEX"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "RRO 계약 · cmd overlay",
+      "ref": "Day4 p.7·p.10 · 03_rro",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "사용자 설치 RRO가 타겟 앱 리소스를 덮으려면 타겟 앱이 반드시 해야 하는 일은? (Android 11+)",
+          "o": [
+            "hasCode=false 선언",
+            "overlayable로 허용 리소스 선언",
+            "priority를 0으로 설정",
+            "APK를 /system/app에 설치"
+          ],
+          "a": 1,
+          "h": "실습 3 목표는 타겟 앱이 &lt;overlayable&gt;로 허용한 리소스만 RRO가 덮어쓸 수 있다는 '계약'을 확인한다고 적습니다. Android 11+에서 사용자 설치 RRO는 타겟의 overlayable.xml에 들어 있는 리소스만 바꿀 수 있습니다.",
+          "w": "타겟이 <code>overlayable.xml</code>의 <code>&lt;policy type='public'&gt;</code>에 넣은 리소스만 사용자 설치 RRO가 덮을 수 있습니다. hasCode=false는 오버레이 APK 쪽 속성입니다.",
+          "an": "Day4_Worksheet Q2 · 03_rro 핵심 정리",
+          "src": "- 타겟 앱이 `<overlayable>` 로 허용한 리소스만 RRO 가 덮어쓸 수 있다는 **계약**을 확인한다."
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>cmd overlay list</code>에서 <code>---</code> 표시의 의미는?",
+          "o": [
+            "활성화됨",
+            "비활성 · 활성화 가능",
+            "설치 진행 중",
+            "매칭 실패(idmap 없음)"
+          ],
+          "a": 3,
+          "h": "Worksheet Q3 해설은 [x]는 활성, [ ]는 매칭 성공·비활성, ---는 STATE_NO_IDMAP 상태라고 설명합니다. 원인은 targetName 불일치나 overlayable 미선언이며, 이 상태에서는 enable할 수 없습니다.",
+          "w": "[x]는 활성, [ ]는 매칭 성공·비활성, ---는 매칭 실패(STATE_NO_IDMAP)입니다. targetName 불일치나 overlayable 미선언이 원인입니다.",
+          "an": "Day4_Worksheet Q3 · Day4 p.7",
+          "src": "[x] 활성, [ ] 매칭 성공·비활성, --- 매칭 실패(STATE_NO_IDMAP). targetName 불일치나 overlayable 미선언이 원인이다.\n**4. ②**"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "RRO APK가 '코드 없는 패키지'임을 나타내는 application 속성은?",
+          "o": [
+            "android:isStatic=true",
+            "android:priority=1",
+            "android:hasCode=false",
+            "android:exported=false"
+          ],
+          "a": 2,
+          "h": "Worksheet Q10 해설은 RRO가 리소스만 담으므로 &lt;application&gt;의 한 속성을 false로 두어 Activity·코드 없이 설치된다고 설명합니다. 속성 이름은 '코드를 가지고 있는가'를 뜻합니다.",
+          "w": "<code>android:hasCode='false'</code>로 Activity·코드 없이 리소스만 담은 APK로 설치됩니다. isStatic·priority는 &lt;overlay&gt; 태그의 속성입니다.",
+          "an": "Day4_Worksheet Q10 · 03_rro Step 2",
+          "src": "**10. android:hasCode=\"false\"**\nRRO 는 리소스만 담는다. hasCode=\"false\" 로 Activity·코드 없이 설치된다.\n**11. aapt dump resources**"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "계약 실험: 타겟 overlayable.xml에서 hello_world 항목만 지우고 재설치·enable하면?",
+          "o": [
+            "문자열만 원래대로, 나머지는 변경",
+            "모든 리소스가 원래대로",
+            "오버레이가 ---로 바뀜",
+            "문자열만 바뀌고 나머지는 원래대로"
+          ],
+          "a": 0,
+          "h": "실습 3의 계약 실험은 overlayable.xml에서 hello_world 항목만 빼고 재설치·enable합니다. 타겟이 허용하지 않은 리소스는 무시되고, 계약에 남아 있는 색·drawable은 그대로 덮어집니다.",
+          "w": "허용 목록에서 빠진 문자열만 'how are you'로 남고 색·drawable은 바뀝니다. 계약 자체(overlayable 이름)는 그대로라 ---가 되지는 않습니다.",
+          "an": "03_rro Step 4 계약 실험",
+          "src": "- 실험: `overlayable.xml` 에서 `hello_world` 를 빼면 활성화돼도 변경 없음 (계약)"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "enable 후 <code>[x]</code>인데 앱 화면이 그대로입니다(리소스 이름은 맞음). 먼저 할 일은?",
+          "o": [
+            "priority를 0으로 낮춘다",
+            "targetName을 지운다",
+            "앱을 force-stop 후 재시작",
+            "overlay APK에 코드 추가"
+          ],
+          "a": 2,
+          "h": "트러블슈팅 표에서 'enable 해도 안 바뀜'의 첫 번째 해결은 앱을 다시 띄우는 것입니다. 실행 중인 앱은 이미 읽어 둔 리소스를 쓰므로 force-stop 후 재시작해야 오버레이가 반영됩니다.",
+          "w": "트러블슈팅대로 <code>am force-stop</code> 후 재시작해야 반영됩니다. targetName을 지우면 오히려 매칭이 깨지고, priority를 낮추면 다른 오버레이에 밀릴 수 있습니다.",
+          "an": "03_rro 트러블슈팅 · Step 3",
+          "src": "## 트러블슈팅\n\n| 증상 | 해결 |\n|---|---|\n| `INSTALL_FAILED_OLDER_SDK` | minSdk 34 |\n| `---` 로 표시 | `targetName` 과 `overlayable name` 불일치 |\n| enable 해도 안 바뀜 | 앱을 `force-stop` 후 재시작 · 리소스 이름 오타 · `overlayable` 누락 |\n| `SecurityException` on enable | `adb shell` 이 root/shell 인지 (`adb root`) |"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "RRO의 덮어쓰기는 파일명이 아니라 같은 이름·타입의 리소스로 매칭된다.",
+          "a": true,
+          "h": "Day4 p.7은 RRO가 '같은 이름·타입만 덮는다 — 파일명이 아니라 리소스 이름'이라고 정리합니다. 여러 오버레이가 같은 리소스를 덮으면 priority가 높은 활성 오버레이가 이깁니다.",
+          "w": "맞습니다. 같은 이름·타입의 리소스만 덮습니다. 파일명이나 타입이 다르면 무시됩니다.",
+          "an": "Day4 p.7 · 03_rro 핵심 정리",
+          "src": "• 같은 이름·타입만 덮는다 — 파일명이 아니라 리소스 이름\n• priority 높은 활성 오버레이가 이긴다 (실습 4 충돌 실험)\n• SRO(Product Flavors)는 같은 매칭이 빌드 시 Gradle 에서"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>cmd overlay list</code>의 <code>[ ]</code>는 매칭에 실패해 enable할 수 없다는 뜻이다.",
+          "a": false,
+          "h": "Day4 p.7의 cmd overlay list 표는 [x]는 활성, [ ]는 '매칭 OK · 비활성'이며 다음 할 일이 enable이라고 적습니다. 매칭 실패(NO_IDMAP)는 ---로 표시됩니다.",
+          "w": "틀립니다. [ ]는 매칭 성공·비활성 상태로, <code>cmd overlay enable</code>을 하면 [x]가 됩니다. 매칭 실패는 ---입니다.",
+          "an": "Day4 p.7 cmd overlay list 표",
+          "src": "cmd overlay list 의미 다음\n[x] 활성 확인\n[ ] 매칭 OK · 비활성 enable\n--- 매칭 실패 (NO_IDMAP) targetName / overlayable 확인"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "RRO의 &lt;overlay&gt; 속성과 의미를 연결하세요.",
+          "pairs": [
+            [
+              "targetPackage",
+              "덮을 앱의 패키지 이름"
+            ],
+            [
+              "targetName",
+              "타겟 overlayable 이름과 일치"
+            ],
+            [
+              "priority",
+              "높을수록 우선 적용"
+            ],
+            [
+              "isStatic",
+              "true면 항상 켜짐"
+            ]
+          ],
+          "h": "Worksheet Q15는 &lt;overlay&gt;의 한 속성이 덮을 앱 패키지, 다른 속성이 그 앱의 overlayable 이름과 일치해야 한다고 적습니다. 같은 리소스를 두 RRO가 덮으면 priority가 높은 것이 이기고, isStatic=true면 항상 켜집니다.",
+          "w": "targetPackage는 덮을 앱, targetName은 그 앱의 overlayable 이름과 일치해야 합니다. 같은 리소스를 두 RRO가 덮으면 priority가 높은 것이 이깁니다.",
+          "an": "Day4_Worksheet Q15 · 03_rro 핵심 정리",
+          "src": "**15. (1) targetPackage / (2) targetName**"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "실습 3에서 RRO를 설치해 적용하는 순서를 맞추세요.",
+          "steps": [
+            "타겟·오버레이 APK adb install",
+            "cmd overlay list에서 [ ] 확인",
+            "cmd overlay enable",
+            "am force-stop 후 앱 재시작",
+            "cmd overlay dump로 상태 확인"
+          ],
+          "h": "실습 3 Step 3은 타겟과 오버레이 APK를 설치한 뒤 cmd overlay list로 [ ] 상태를 확인하고 enable합니다. 이어서 앱을 force-stop 후 다시 실행해 변화를 보고, cmd overlay dump로 상세 상태를 확인합니다.",
+          "w": "두 APK를 설치하면 [ ](매칭 성공·비활성)가 보이고, enable 후 앱을 재시작해야 화면에 반영됩니다. dump에서 mState·mPriority를 확인합니다.",
+          "an": "03_rro Step 3",
+          "src": "## 트러블슈팅\n\n| 증상 | 해결 |\n|---|---|\n| `INSTALL_FAILED_OLDER_SDK` | minSdk 34 |\n| `---` 로 표시 | `targetName` 과 `overlayable name` 불일치 |\n| enable 해도 안 바뀜 | 앱을 `force-stop` 후 재시작 · 리소스 이름 오타 · `overlayable` 누락 |\n| `SecurityException` on enable | `adb shell` 이 root/shell 인지 (`adb root`) |"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "<code>cmd overlay list</code>가 <code>---</code>로 나올 수 있는 원인을 모두 고르세요.",
+          "o": [
+            "targetName과 overlayable 이름 불일치",
+            "타겟이 overlayable 미선언",
+            "enable을 하지 않음",
+            "앱을 force-stop하지 않음",
+            "priority를 1로 지정함"
+          ],
+          "a": [
+            0,
+            1
+          ],
+          "h": "트러블슈팅 표에서 ---로 표시되는 원인은 targetName과 overlayable name 불일치입니다. Worksheet Q3 해설은 타겟이 overlayable을 선언하지 않은 경우도 원인으로 듭니다.",
+          "w": "---(NO_IDMAP)는 targetName 불일치나 overlayable 미선언 때문입니다. enable을 안 하면 [ ], 재시작을 안 하면 화면만 그대로입니다.",
+          "an": "Day4 p.7 · 03_rro 트러블슈팅",
+          "src": "[x] 활성, [ ] 매칭 성공·비활성, --- 매칭 실패(STATE_NO_IDMAP). targetName 불일치나 overlayable 미선언이 원인이다.\n**4. ②**"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "ListOverlays · priority · SRO",
+      "ref": "Day4 p.7·p.10 · 04_listoverlays_priority",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "ListOverlays 도구가 오버레이 상태를 얻기 위해 호출하는 hidden API 인터페이스는?",
+          "o": [
+            "IOverlayManager",
+            "ICarProperty",
+            "IVehicle",
+            "ICar"
+          ],
+          "a": 0,
+          "h": "실습 4 목표는 cmd overlay의 실체인 hidden API를 app_process로 직접 호출하는 도구를 만든다고 적습니다. 코드에서는 <code>ServiceManager.getService(\"overlay\")</code>를 Stub.asInterface로 감싸 그 Proxy를 얻습니다.",
+          "w": "<code>IOverlayManager.getOverlayInfosForTarget()</code>를 부릅니다. cmd overlay의 실체가 이 hidden API입니다. 나머지는 Automotive 쪽 인터페이스입니다.",
+          "an": "04_listoverlays_priority Step 1 · Day4 p.7",
+          "src": "## 목표\n\n- `IOverlayManager` hidden API 를 `app_process` 로 직접 호출하는 도구를 빌드해 오버레이 상태를 출력한다 (Day 3 실습 8 의 app_process + Day 2 의 hidden API).\n- RRO 두 개가 같은 리소스를 덮을 때 **priority** 가 어떻게 작용하는지 본다.\n- SRO(Product Flavors)를 5분에 한 번 돌려 \"빌드 시 vs 런타임\" 을 정리한다."
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>CLASSPATH=/data/list_overlays.jar ____ /system/bin ListOverlays</code>의 빈칸은?",
+          "o": [
+            "am start",
+            "cmd overlay",
+            "app_process",
+            "pm path"
+          ],
+          "a": 2,
+          "h": "Day 3 실습 8에서 VM을 직접 띄워 Java main을 실행하던 명령을 그대로 씁니다. CLASSPATH로 jar를 지정하고, 이 명령에 /system/bin과 클래스 이름 ListOverlays를 넘깁니다.",
+          "w": "<code>app_process</code>가 VM을 띄우고 ListOverlays의 main을 실행합니다. 그래서 SDK에 없는 hidden API를 Framework 안에서 부를 수 있습니다.",
+          "an": "04_listoverlays_priority Step 2",
+          "src": "# com.android.car.ui.overlay.sdk.carsystemui : disabled state=STATE_NO_IDMAP ← cmd overlay 의 ---\nCLASSPATH=/data/list_overlays.jar app_process /system/bin ListOverlays com.example.rrotarget\nexit\n```"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "ListOverlays 출력의 <code>state=STATE_NO_IDMAP</code>은 <code>cmd overlay list</code>의 어느 표시와 같습니까?",
+          "o": [
+            "[x]",
+            "---",
+            "[ ]",
+            "(빈 줄)"
+          ],
+          "a": 1,
+          "h": "ListOverlays 출력 예시에는 state=STATE_NO_IDMAP 옆에 'cmd overlay의 ___'라는 주석이 붙어 있습니다. idmap이 없다는 것은 매칭에 실패해 enable할 수 없는 상태라는 뜻입니다.",
+          "w": "STATE_NO_IDMAP은 cmd overlay list의 ---(매칭 실패)와 같습니다. [x]는 STATE_ENABLED, [ ]는 매칭 성공·비활성입니다.",
+          "an": "04_listoverlays_priority Step 2 · 확인 포인트",
+          "src": "# com.android.car.ui.overlay.sdk.carsystemui : disabled state=STATE_NO_IDMAP ← cmd overlay 의 ---"
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "priority 1(문자열·배경·아이콘)과 priority 2(문자열만) 오버레이를 둘 다 켰을 때 화면은?",
+          "o": [
+            "문자열·배경 모두 overlay1",
+            "배경은 원래 타겟 것",
+            "문자열 overlay1 · 배경 overlay2",
+            "문자열 overlay2 · 배경 overlay1"
+          ],
+          "a": 3,
+          "h": "priority 2 오버레이에는 문자열만 있고, priority 1 오버레이에는 문자열·배경·아이콘이 있습니다. 리소스마다 그 리소스를 가진 가장 높은 priority 활성 오버레이가 이기므로, 실습 출력 주석은 overlay2에 없는 배경·아이콘은 아래 것이 보인다고 적습니다.",
+          "w": "문자열은 priority 2의 'Priority 2 wins'가 이기고, overlay2에 없는 배경·아이콘은 overlay1의 것이 보입니다.",
+          "an": "04_listoverlays_priority Step 3",
+          "src": "# 화면: \"Priority 2 wins\" (배경·아이콘은 overlay1 의 것 — overlay2 에는 없으니 아래 것이 보인다)\n\nCLASSPATH=/data/list_overlays.jar app_process /system/bin ListOverlays com.example.rrotarget"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "White Label처럼 고객사별 APK를 빌드할 때 리소스를 바꾸는 방식은?",
+          "o": [
+            "RRO + cmd overlay enable",
+            "SRO (Product Flavors)",
+            "APEX 모듈",
+            "Car SystemUI RRO"
+          ],
+          "a": 1,
+          "h": "Day4 커리큘럼은 Gradle Product Flavors로 src/&lt;flavor&gt;/res를 병합하는 방식을 '빌드 시, White Label' 방식으로 소개합니다. 반면 RRO는 설치 후 런타임에 켜고 끄는 방식입니다.",
+          "w": "SRO(Product Flavors)는 APK 빌드 시 리소스를 결정해 White Label·고객사별 APK에 씁니다. RRO는 설치 후 런타임에 테마·SystemUI를 바꿀 때 씁니다.",
+          "an": "04_listoverlays_priority Step 4 표",
+          "src": "| SRO | Gradle Product Flavors `productFlavors { original; themed }` · `src/<flavor>/res` · 병합 우선순위 (라이브러리 < main < flavor < buildType) · Build Variant 전환 · `Analyze APK` 의 `resources.arsc` · SRO(빌드 시, White Label) vs RRO(런타임, 테마) 표 |"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "RRO의 priority는 값이 낮을수록 우선 적용되어 이긴다.",
+          "a": false,
+          "h": "실습 4 핵심 정리는 priority가 '높을수록 우선'이라고 적습니다. 실험에서도 priority 2 오버레이의 문자열이 화면에 나왔습니다.",
+          "w": "틀립니다. priority는 높을수록 우선이며 나중에 적용되어 이깁니다. 'RRO를 넣었는데 안 바뀐다'의 흔한 원인입니다.",
+          "an": "04_listoverlays_priority Step 3 · 핵심 정리",
+          "src": "- priority 는 **높을수록 우선**. 같은 리소스를 두 RRO 가 덮으면 `cmd overlay dump` 의 priority 로 확인."
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "hidden API는 SDK에서 막혀 있지만 app_process와 <code>libs: ['framework']</code>로 빌드하면 쓸 수 있다.",
+          "a": true,
+          "h": "실습 4 핵심 정리 첫 줄은 hidden API가 SDK에서 막혀 있지만 app_process + libs: [\"framework\"]로 빌드하면 쓸 수 있으며, 진단 도구는 이렇게 만든다고 적습니다.",
+          "w": "맞습니다. java_binary에 framework 라이브러리를 연결해 빌드하고 app_process로 실행하면 IOverlayManager 같은 hidden API를 호출할 수 있습니다.",
+          "an": "04_listoverlays_priority 핵심 정리",
+          "src": "## 핵심 정리\n\n- hidden API 는 SDK 에서 막혀 있지만 `app_process` + `libs: [\"framework\"]` 로 빌드하면 쓸 수 있다 — 진단 도구는 이렇게 만든다.\n- priority 는 **높을수록 우선**. 같은 리소스를 두 RRO 가 덮으면 `cmd overlay dump` 의 priority 로 확인.\n- SRO 는 App 개발 영역, RRO 는 Framework/제품 영역."
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "SRO와 RRO의 특징을 연결하세요.",
+          "pairs": [
+            [
+              "SRO 결정 시점",
+              "APK 빌드"
+            ],
+            [
+              "RRO 결정 시점",
+              "설치 후 cmd overlay enable"
+            ],
+            [
+              "SRO 되돌리기",
+              "재빌드"
+            ],
+            [
+              "RRO 되돌리기",
+              "disable 즉시"
+            ]
+          ],
+          "h": "실습 4 Step 4 표는 SRO(빌드 시)와 RRO(런타임)를 비교합니다. SRO는 APK 빌드 때 결정되어 되돌리려면 재빌드해야 하고, RRO는 설치 후 cmd overlay enable로 결정되어 disable로 즉시 되돌립니다.",
+          "w": "SRO는 빌드할 때 정해지고 되돌리려면 재빌드해야 합니다. RRO는 설치 후 enable로 켜고 disable로 즉시 되돌립니다.",
+          "an": "04_listoverlays_priority Step 4 표",
+          "src": "</resources>\n```\n\nBuild > Select Build Variant > `themedDebug` → Run → 초록 배경. `originalDebug` 로 되돌리면 원래대로.\n\n| | SRO (빌드 시) | RRO (런타임) |\n|---|---|---|\n| 결정 시점 | APK 빌드 | 설치 후 `cmd overlay enable` |\n| 되돌리기 | 재빌드 | `disable` 즉시 |\n| 용도 | White Label · 고객사별 APK | 테마 · SystemUI 커스터마이징 |"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "ListOverlays 도구를 만들어 실행하는 순서를 맞추세요.",
+          "steps": [
+            "ListOverlays.java·Android.bp 작성",
+            "mm으로 list_overlays.jar 빌드",
+            "WinSCP로 받아 adb push /data",
+            "CLASSPATH 지정 후 app_process 실행"
+          ],
+          "h": "실습 4는 ListOverlays.java와 Android.bp(java_binary, libs framework)를 작성해 mm으로 jar를 빌드합니다. 결과물을 WinSCP로 받아 adb push /data로 올린 뒤, CLASSPATH를 지정하고 app_process로 실행합니다.",
+          "w": "java_binary로 jar를 빌드하고 WinSCP로 받아 /data에 push한 뒤, CLASSPATH를 지정해 app_process로 실행합니다.",
+          "an": "04_listoverlays_priority Step 1–2",
+          "src": "3. 실습 4: ListOverlays.java + Android.bp(java_binary, libs framework) → mm → .jar \nWinSCP → app_process /system/bin ListOverlays"
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "ListOverlays가 오버레이 정보를 얻는 과정에 해당하는 것을 모두 고르세요.",
+          "o": [
+            "app_process가 VM을 띄움",
+            "getService('overlay')로 Proxy",
+            "getOverlayInfosForTarget 호출",
+            "VHAL IVehicle 직접 호출",
+            "Gradle productFlavors 적용"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "실습 4 Step 2 설명은 app_process가 VM을 띄우고(Day 3 실습 8), ServiceManager.getService(\"overlay\")로 Binder Proxy를 얻어(Day 1·2) IOverlayManager AIDL을 호출한다고 정리합니다. 호출하는 메서드는 getOverlayInfosForTarget(pkg, userId)입니다.",
+          "w": "app_process가 VM을 띄우고 ServiceManager로 overlay 서비스의 Binder Proxy를 얻어 IOverlayManager AIDL을 호출합니다. VHAL·Gradle은 관계없습니다.",
+          "an": "04_listoverlays_priority Step 2 설명",
+          "src": "exit\n```\n\n`cmd overlay list` 와 같은 정보지만, **우리 코드가 Framework 서비스를 직접 부른** 것이다. `app_process` 가 VM 을 띄우고(Day 3 실습 8) `ServiceManager.getService(\"overlay\")` 로 Binder Proxy 를 얻어(Day 1·2) `IOverlayManager` AIDL 을 호출한다."
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "SystemUI 분석 · Car SystemUI RRO",
+      "ref": "Day4 p.8·p.14 · 05_systemui_dumpsys · 06_car_systemui_rro",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "StatusBarService의 disabled 플래그·아이콘·QS 타일 상태를 보는 명령은?",
+          "o": [
+            "dumpsys notification",
+            "dumpsys statusbar",
+            "dumpsys gfxinfo",
+            "dumpsys window"
+          ],
+          "a": 1,
+          "h": "실습 5 핵심 정리 표의 첫 행은 StatusBarService 상태(disabled 플래그·아이콘·QS 타일)를 보는 명령입니다. dumpsys 뒤에 '상태바'라는 서비스 이름을 붙입니다.",
+          "w": "<code>dumpsys statusbar</code>에서 mDisabled1/2, Tiles, Icons 섹션을 봅니다. notification은 알림 레코드, gfxinfo는 프레임 통계입니다.",
+          "an": "05_systemui_dumpsys 핵심 정리",
+          "src": "## 핵심 정리\n\n| 명령 | 보는 것 |\n|---|---|\n| `dumpsys statusbar` | StatusBarService 상태 — disabled 플래그 · 아이콘 · QS 타일 |\n| `dumpsys notification` | NotificationManagerService — 활성 알림 레코드 |"
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Car SystemUI APK에서 system_bar_clock_text_color 같은 실제 리소스 이름을 뽑는 명령은?",
+          "o": [
+            "pm path",
+            "cmd overlay dump",
+            "aapt version",
+            "aapt dump resources"
+          ],
+          "a": 3,
+          "h": "Worksheet Q11 해설은 CarSystemUI.apk에 이 명령을 실행하고 findstr color로 걸러 Car 전용 리소스 이름을 뽑는다고 설명합니다. Phone SystemUI와 이름이 달라 추측하면 안 바뀝니다.",
+          "w": "<code>aapt dump resources CarSystemUI.apk | findstr color</code>로 Car 전용 이름을 뽑습니다. Phone SystemUI와 이름이 달라 추측하면 안 바뀝니다. pm path는 APK 경로를 찾을 때 씁니다.",
+          "an": "Day4_Worksheet Q11 · 06_car_systemui_rro Step 2",
+          "src": "**11. aapt dump resources**\naapt dump resources CarSystemUI.apk | findstr color 로 Car 전용 이름을 뽑는다. Phone SystemUI 와 이름이 달라 추측하면 안 바뀐다."
+        },
+        {
+          "id": "t5-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "Car SystemUI 오버레이를 <code>adb install</code>로 설치하면 ---가 되는 이유는?",
+          "o": [
+            "minSdk가 높아서",
+            "overlayable 미선언 + public 정책",
+            "APK 서명이 달라서",
+            "SystemUI가 실행 중이라서"
+          ],
+          "a": 1,
+          "h": "Worksheet Q4 해설은 사용자 설치 오버레이가 policy public이라 overlayable이 필수라고 설명합니다. Car SystemUI는 overlayable을 선언하지 않았으므로 매칭되지 않고, /system/app에 설치해 policy system이 되어야 합니다.",
+          "w": "사용자 설치 오버레이는 policy public이라 overlayable이 필수인데 Car SystemUI는 이를 선언하지 않았습니다. /system/app에 설치하면 policy system이 되어 매칭됩니다.",
+          "an": "Day4_Worksheet Q4 · 06_car_systemui_rro Step 1 표",
+          "src": "사용자 설치 오버레이는 policy public 이라 overlayable 이 필수다. /system/app 에 설치하면 policy system 이 되어 overlayable 없이도 매칭된다."
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Car SystemUI용 오버레이 manifest에서 실습 3의 RRO와 달리 <b>빼야</b> 하는 속성은?",
+          "o": [
+            "targetName",
+            "targetPackage",
+            "priority",
+            "hasCode"
+          ],
+          "a": 0,
+          "h": "Car SystemUI에는 이름을 맞출 overlayable 계약 자체가 없습니다. Worksheet 해설은 이런 경우 실습 3에서 overlayable 이름과 맞추던 속성을 제거하고 /system/app에 설치한다고 설명합니다.",
+          "w": "overlayable이 없으므로 <code>targetName</code>을 제거하고 /system/app에 설치합니다. targetPackage(com.android.systemui)는 그대로 필요합니다.",
+          "an": "06_car_systemui_rro Step 3 · Day4 p.8",
+          "src": "Car SystemUI 처럼 overlayable 이 없으면 targetName 을 제거하고 /system/app 에 설치한다."
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "오버레이 적용 후 시계·아이콘 색은 바뀌었는데 바 배경은 그대로입니다. 해결책은?",
+          "o": [
+            "priority를 2로 올린다",
+            "targetName을 다시 넣는다",
+            "*_transparent 리소스도 덮는다",
+            "adb install로 재설치한다"
+          ],
+          "a": 2,
+          "h": "Day4 p.8은 Car SystemUI 바 배경이 Phone SystemUI와 이름·구조가 다르다고 설명합니다. 바 배경을 바꾸려면 *_transparent 같은 투명 리소스까지 함께 덮어야 합니다.",
+          "w": "바 배경은 투명 구조라 <code>system_bar_background_transparent</code> 같은 *_transparent 리소스를 함께 덮어야 바뀝니다. targetName을 넣거나 adb install하면 오히려 ---가 됩니다.",
+          "an": "06_car_systemui_rro 트러블슈팅 · Day4 p.8",
+          "src": "바 배경은 투명 리소스(*_transparent) 를 함께 덮어야 바뀐다 — Phone SystemUI 와 이름·구조가 다르다"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>adb install</code>로 설치한 오버레이도 policy system이 적용되어 overlayable 없이 매칭된다.",
+          "a": false,
+          "h": "Worksheet Q4 해설은 사용자 설치 오버레이(adb install)는 policy public이라 overlayable이 필수라고 설명합니다. /system/app에 설치했을 때만 policy system이 되어 overlayable 없이도 매칭됩니다.",
+          "w": "틀립니다. adb install은 policy public이라 overlayable이 필수입니다. /system/app 설치일 때만 policy system이 되어 overlayable이 필요 없습니다.",
+          "an": "06_car_systemui_rro Step 1 표",
+          "src": "사용자 설치 오버레이는 policy public 이라 overlayable 이 필수다. /system/app 에 설치하면 policy system 이 되어 overlayable 없이도 매칭된다."
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>dumpsys gfxinfo</code>에서 Janky 5% 미만, 90th percentile 16.67ms 미만이면 양호로 본다.",
+          "a": true,
+          "h": "실습 5 핵심 정리 표의 gfxinfo 행은 프레임 통계를 판단하는 기준으로 Janky 비율과 90th percentile을 제시합니다. 60 Hz의 프레임 예산이 16.67 ms라는 점과 함께, 예시 출력의 Janky 2.18%·90th 11ms를 기준에 대어 보세요.",
+          "w": "맞습니다. Janky 5% 미만·90th &lt; 16.67 ms면 양호입니다. 이 숫자는 실습 8 Perfetto Actual Timeline의 숫자 버전입니다.",
+          "an": "05_systemui_dumpsys 핵심 정리",
+          "src": "# Total frames rendered: 412 Janky frames: 9 (2.18%) 90th percentile: 11ms\ndumpsys meminfo com.android.systemui | grep -E \"TOTAL PSS|Graphics\" # Day 3 실습 12\ndumpsys activity activities | grep mResumedActivity\ndumpsys activity top | grep -E \"ACTIVITY|View Hierarchy\" | head\nexit\n```"
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "dumpsys 명령과 보는 내용을 연결하세요.",
+          "pairs": [
+            [
+              "dumpsys statusbar",
+              "disabled 플래그 · 아이콘 · QS 타일"
+            ],
+            [
+              "dumpsys notification",
+              "활성 알림 레코드"
+            ],
+            [
+              "dumpsys gfxinfo <pkg>",
+              "프레임 통계 (Janky)"
+            ],
+            [
+              "dumpsys activity activities",
+              "포커스 Activity"
+            ]
+          ],
+          "h": "실습 5 핵심 정리 표에서 dumpsys statusbar는 disabled 플래그·아이콘·QS 타일, dumpsys notification은 활성 알림 레코드를 봅니다. gfxinfo &lt;pkg&gt;는 프레임 통계(Janky), activity activities는 포커스 Activity를 보여 줍니다.",
+          "w": "statusbar는 StatusBarService, notification은 NotificationManagerService, gfxinfo는 프레임 통계, activity activities는 어느 Activity가 위에 있는지를 보여 줍니다.",
+          "an": "05_systemui_dumpsys 핵심 정리",
+          "src": "## 핵심 정리\n\n| 명령 | 보는 것 |\n|---|---|\n| `dumpsys statusbar` | StatusBarService 상태 — disabled 플래그 · 아이콘 · QS 타일 |\n| `dumpsys notification` | NotificationManagerService — 활성 알림 레코드 |"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "Car SystemUI 색을 RRO로 바꾸는 순서를 맞추세요.",
+          "steps": [
+            "--- 와 mTargetOverlayableName: null 확인",
+            "aapt dump resources로 실제 이름 추출",
+            "targetName 없는 overlay + colors.xml APK 생성",
+            "2단계 remount 후 /system/app에 push → reboot",
+            "cmd overlay enable → killall SystemUI"
+          ],
+          "h": "Worksheet Q18 해설은 cmd overlay list의 ---와 mTargetOverlayableName: null 확인 → aapt dump resources로 실제 이름 추출 → targetName 없는 &lt;overlay&gt; + colors.xml로 APK 생성 순서입니다. 이어서 2단계 remount 후 /system/app에 push → reboot → cmd overlay enable → killall SystemUI로 적용합니다.",
+          "w": "--- 확인 → aapt로 이름 → targetName 없는 APK → /system/app 설치·reboot → enable·killall 순서입니다.",
+          "an": "Day4_Worksheet Q18 · 06_car_systemui_rro Step 1–5",
+          "src": "**18. cmd overlay list 에서 --- 와 mTargetOverlayableName: null 확인 → aapt dump resources 로 실제 리소스 이름 추출 → targetName 없는 <overlay> + colors.xml 로 APK 생성 → 2단계 remount 후 /system/app/<Overlay>/ 에 push → reboot → cmd overlay enable → killall com.android.systemui**"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "Car SystemUI 오버레이를 켰는데 색 변화가 없을 때 확인할 항목을 모두 고르세요.",
+          "o": [
+            "리소스 이름이 aapt 결과와 같은가",
+            "killall com.android.systemui를 했나",
+            "더 높은 priority RRO가 덮나",
+            "minSdk를 36으로 올렸나",
+            "gfxinfo Janky 비율이 높은가"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Day4 p.8의 '변경이 안 먹을 때 7가지' 중 ④ killall com.android.systemui / reboot를 했나, ⑤ 리소스 이름이 aapt dump 결과와 같은가, ⑥ 더 높은 priority 오버레이가 덮고 있나가 색 변화가 없을 때의 확인 항목입니다.",
+          "w": "이름 불일치, SystemUI 재시작 누락, 더 높은 priority 오버레이가 원인입니다. minSdk는 오히려 34로 맞춰야 하고, Janky 비율은 색 변화와 무관합니다.",
+          "an": "06_car_systemui_rro 트러블슈팅 · Day4 p.8",
+          "src": "| **변경이 안 먹을 때 체크리스트** | ① `adb remount` 가 `succeeded` 였나 (2단계) ② `cmd overlay list` 에서 `---` 인가 (overlayable/targetName) ③ `[ ]` 인데 `enable` 을 안 했나 ④ `killall com.android.systemui` / reboot 를 했나 ⑤ 리소스 이름이 `aapt dump` 결과와 같은가 ⑥ 우선순위가 더 높은 다른 RRO 가 덮고 있나 (`cmd overlay dump` 의 priority) ⑦ `logcat -s AndroidRuntime` 에 크래시가 있나 |"
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "QS 타일 · 프레임 파이프라인",
+      "ref": "Day4 p.12·p.15 · 07_systemui_qs_tile · 08_systemui_perfetto",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "SystemUI의 QS 타일 클래스(CpuInfoTile)가 상속하는 클래스는?",
+          "o": [
+            "TextView",
+            "QSTileImpl",
+            "Service",
+            "Fragment"
+          ],
+          "a": 1,
+          "h": "실습 7 핵심 정리 표의 첫 행은 타일 구현 상위 클래스가 newTileState · handleClick · handleUpdateState를 가진다고 적습니다. WifiTile 같은 기존 타일도 이 '타일 구현(Impl)' 클래스를 상속합니다.",
+          "w": "<code>QSTileImpl&lt;BooleanState&gt;</code>를 상속해 newTileState·handleClick·handleUpdateState를 구현합니다. TextView 상속은 상태바 커스텀 뷰(BatteryTemperatureView) 패턴입니다.",
+          "an": "07_systemui_qs_tile Step 1 · 핵심 정리",
+          "src": "## 핵심 정리\n\n| 항목 | 내용 |\n|---|---|\n| `QSTileImpl<State>` | `newTileState` · `handleClick` · `handleUpdateState` — 상태를 바꾸면 `refreshState()` |\n| Dagger `@Binds @IntoMap @StringKey` | spec 문자열 → 타일 클래스 맵. `QSFactoryImpl` 이 이 맵으로 생성 |\n| `config.xml` | 기본 타일 순서. RRO 로도 바꿀 수 있다 (실습 6 의 방식) |"
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "CpuInfoTile의 <code>TILE_SPEC</code>으로 config.xml과 Dagger 키에 함께 쓰는 문자열은?",
+          "o": [
+            "cpu_info",
+            "CpuInfo",
+            "cpuinfo",
+            "loadavg"
+          ],
+          "a": 2,
+          "h": "CpuInfoTile 코드의 <code>TILE_SPEC</code> 상수 옆에는 'config.xml과 Dagger 키'라는 주석이 붙어 있습니다. config.xml의 quick_settings_tiles_default 목록 끝에도 같은 소문자 문자열을 덧붙입니다.",
+          "w": "TILE_SPEC = 'cpuinfo'이고 config.xml의 타일 목록과 <code>@StringKey</code>에 같은 문자열을 씁니다. 등록이 빠지면 로그에서 cpuinfo를 찾아 진단합니다.",
+          "an": "07_systemui_qs_tile Step 1·4",
+          "src": "public static final String TILE_SPEC = \"cpuinfo\"; // ★ config.xml 과 Dagger 키\n private boolean mShowingInfo = false;\n @Inject\n public CpuInfoTile(QSHost host, QsEventLogger uiEventLogger,\n @Background Looper backgroundLooper, @Main Handler mainHandler,"
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "QS 타일 클래스를 만들었는데 패널에 안 보이고 SystemUI가 크래시합니다. 가장 먼저 의심할 것은?",
+          "o": [
+            "Dagger @IntoMap 등록 누락",
+            "아이콘 drawable 크기",
+            "APK 서명",
+            "minSdk"
+          ],
+          "a": 0,
+          "h": "Worksheet Q6 해설은 QSFactory가 Dagger 맵으로 spec → 타일을 만든다고 설명합니다. 이 등록이 빠지면 config.xml의 spec을 생성하지 못해 예외가 나며, logcat -s AndroidRuntime에서 spec 이름을 찾을 수 있습니다.",
+          "w": "QSFactory는 Dagger 맵으로 spec에서 타일을 만듭니다. <code>@Binds @IntoMap @StringKey</code> 등록이 빠지면 config.xml의 spec을 생성하지 못해 예외가 납니다. <code>logcat -s AndroidRuntime</code>에서 spec 이름을 찾습니다.",
+          "an": "Day4_Worksheet Q6 · 07_systemui_qs_tile Step 6",
+          "src": "QSFactory 는 Dagger 맵으로 spec → 타일을 만든다. 등록이 빠지면 config.xml 의 spec 을 생성하지 못해 예외가 난다. logcat -s AndroidRuntime 에서 spec 이름을 찾는다."
+        },
+        {
+          "id": "t6-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "handleClick에서 상태 변수를 바꾼 뒤 타일 표시를 다시 그리게 하는 호출은?",
+          "o": [
+            "invalidate()",
+            "runOnUiThread()",
+            "postDelayed()",
+            "refreshState()"
+          ],
+          "a": 3,
+          "h": "실습 7 핵심 정리 표는 QSTileImpl의 newTileState · handleClick · handleUpdateState를 나열하고, '상태를 바꾸면' 호출해야 하는 함수를 적어 둡니다. 이 함수가 handleUpdateState를 다시 부르게 합니다.",
+          "w": "<code>refreshState()</code>를 부르면 handleUpdateState가 다시 실행되어 label·secondaryLabel이 갱신됩니다. postDelayed는 상태바 커스텀 뷰의 주기 갱신에 썼습니다.",
+          "an": "07_systemui_qs_tile Step 1 · 핵심 정리",
+          "src": "## 핵심 정리\n\n| 항목 | 내용 |\n|---|---|\n| `QSTileImpl<State>` | `newTileState` · `handleClick` · `handleUpdateState` — 상태를 바꾸면 `refreshState()` |\n| Dagger `@Binds @IntoMap @StringKey` | spec 문자열 → 타일 클래스 맵. `QSFactoryImpl` 이 이 맵으로 생성 |\n| `config.xml` | 기본 타일 순서. RRO 로도 바꿀 수 있다 (실습 6 의 방식) |"
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "타일 등록까지 마쳤고 크래시도 없는데 Car 에뮬레이터 QS 패널에 타일이 없습니다. 확인할 곳은?",
+          "o": [
+            "apex_manifest.json",
+            "Car SystemUI의 config.xml",
+            "privapp-permissions xml",
+            "overlayable.xml"
+          ],
+          "a": 1,
+          "h": "Day4 p.12는 '타일이 안 보여요'의 원인을 두 가지로 정리합니다. 크래시가 나면 Dagger 누락이고, 크래시 없이 안 보이면 Car SystemUI가 따로 가진 기본 타일 목록 파일을 확인해야 합니다.",
+          "w": "Car SystemUI의 config.xml이 우선하므로 그 파일의 <code>quick_settings_tiles_default</code>에도 cpuinfo를 넣어야 합니다. 나머지 파일은 QS 타일 목록과 관계없습니다.",
+          "an": "07_systemui_qs_tile Step 4 · 트러블슈팅",
+          "src": "• \"타일이 안 보여요\" → Dagger 누락(logcat -s AndroidRuntim\ne) 또는 Car config.xml"
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Java App은 한 프레임을 UI Thread와 RenderThread 두 Thread로 나눠 처리한다.",
+          "a": true,
+          "h": "실습 8 핵심 정리는 Java App이 한 프레임을 UI Thread(measure/layout/draw)와 RenderThread(GPU)로 나눠 처리한다고 적습니다. Day 3의 Native 예제는 Thread가 하나였다는 점과 대비됩니다.",
+          "w": "맞습니다. UI Thread가 measure/layout/draw를, RenderThread가 DrawFrames(GPU 명령)를 맡습니다. Jank 원인을 두 트랙으로 가릅니다.",
+          "an": "08_systemui_perfetto 핵심 정리 · Day4 p.12",
+          "src": "## 핵심 정리\n\nJava App 은 한 프레임을 UI Thread(measure/layout/draw) 와 RenderThread(GPU) 로 나눠 처리하고, 결과 버퍼는 Day 3 와 같은 BufferQueue 로 SF 에 간다. Jank 의 원인이 어느 Thread 인지 이 두 트랙으로 가른다."
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "SystemUI에 QS 타일을 추가하려면 <code>m emu_img_zip</code>으로 이미지를 다시 구워야 한다.",
+          "a": false,
+          "h": "델타 배포 판단표에서 시스템 앱 코드(SystemUI) 변경은 m SystemUI + APK push + killall로 끝납니다. 이미지를 다시 굽는 것은 커널·VHAL 속성 같은 마지막 줄뿐입니다.",
+          "w": "틀립니다. <code>m SystemUI</code> → APK push → <code>killall</code>로 APK만 교체하면 됩니다. 이미지 리빌드는 필요 없습니다.",
+          "an": "07_systemui_qs_tile 핵심 정리 · Day4 p.5",
+          "src": "**20. Native 바이너리 / .so ↔ m + adb push /data, SystemUI 색·문자열 ↔ RRO (APK + cmd overlay enable), SystemUI 코드 (QS 타일) ↔ m SystemUI + APK push + killall, 독립 배포 모듈 ↔ APEX (.apex push + reboot), 커널 · VHAL 속성 추가 ↔ m emu_img_zip + Emulator 재시작**\n델타 배포 판단표. 이미지를 다시 굽는 것은 커널·기본 탑재 RRO·VHAL 속성 추가뿐이다."
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "Perfetto 슬라이스와 의미를 연결하세요.",
+          "pairs": [
+            [
+              "Choreographer#doFrame",
+              "UI Thread — measure/layout/draw"
+            ],
+            [
+              "DrawFrames",
+              "RenderThread — GPU 명령 생성"
+            ],
+            [
+              "deliverInputEvent",
+              "swipe 터치가 들어온 시점"
+            ],
+            [
+              "onMessageRefresh",
+              "SurfaceFlinger 합성"
+            ]
+          ],
+          "h": "Worksheet Q16·실습 8 표에서 Choreographer#doFrame은 UI Thread의 measure/layout/draw, DrawFrames는 RenderThread의 GPU 명령 생성입니다. deliverInputEvent는 swipe 터치가 들어온 시점, onMessageRefresh는 SurfaceFlinger 합성입니다.",
+          "w": "UI Thread의 doFrame, RenderThread의 DrawFrames를 거쳐 BufferQueue로 SurfaceFlinger에 가고 onMessageRefresh에서 합성됩니다. deliverInputEvent는 터치 입력 시점입니다.",
+          "an": "Day4_Worksheet Q16 · 08_systemui_perfetto Step 3 표",
+          "src": "- UI: `com.android.systemui` 핀 → main Thread `Choreographer#doFrame` → `measure/layout/draw` → `RenderThread` `DrawFrames` → `surfaceflinger` `onMessageRefresh` · Actual Timeline Jank · `wm` 카테고리의 `relayoutWindow` · `input` 의 터치 이벤트에서 프레임까지 · `dumpsys gfxinfo com.android.systemui framestats` 대조 · Day 3 Native(Thread 1개) 와 다른 점(UI+Render 2개)"
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "SystemUI 프레임 파이프라인의 순서를 맞추세요.",
+          "steps": [
+            "deliverInputEvent (swipe 터치)",
+            "Choreographer#doFrame (UI Thread)",
+            "RenderThread DrawFrames",
+            "GPU 명령 → BufferQueue",
+            "SF onMessageRefresh → HWC"
+          ],
+          "h": "실습 8 Step 3은 한 프레임을 확대해 deliverInputEvent → Choreographer#doFrame → RenderThread DrawFrames → SF onMessageRefresh 순서를 확인하라고 합니다. RenderThread의 GPU 명령 결과 버퍼는 BufferQueue로 SF에 가고, 합성 결과는 HWC로 나갑니다.",
+          "w": "입력 → UI Thread doFrame → RenderThread DrawFrames → BufferQueue → SurfaceFlinger 합성(HWC) 순서입니다.",
+          "an": "Day4 p.12 · 08_systemui_perfetto Step 3",
+          "src": "한 프레임을 확대해 순서를 확인: `deliverInputEvent` → `Choreographer#doFrame`(UI) → `DrawFrames`(Render) → SF `onMessageRefresh` → Actual Timeline."
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "QS 타일 소스 수정을 Emulator에 반영할 때 필요한 단계를 모두 고르세요.",
+          "o": [
+            "m SystemUI 증분 빌드",
+            "CarSystemUI.apk를 priv-app에 push",
+            "killall com.android.systemui",
+            "m emu_img_zip 실행",
+            "cmd overlay enable"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "실습 7 Step 5는 m SystemUI로 증분 빌드하고, CarSystemUI.apk를 /system_ext/priv-app/CarSystemUI/에 push한 뒤 killall com.android.systemui로 재시작합니다. 판단표의 '시스템 앱 코드' 행과 같은 세 단계입니다.",
+          "w": "<code>m SystemUI</code> 후 /system_ext/priv-app/CarSystemUI/에 APK를 push하고 killall로 재시작합니다. 이미지 리빌드나 overlay enable은 필요 없습니다.",
+          "an": "07_systemui_qs_tile Step 5",
+          "src": "frameworks/base/packages/SystemUI` · `m SystemUI` → `/system_ext/priv-app/CarSystemUI/` (또는 `/system/priv-app/SystemUI/`) 교체 · `killall com.android.systemui` · 언제 `mm`/`adb push` 로 되고 언제 `m emu_img_zip` 이 필요한가 |"
+        }
+      ]
+    },
+    {
+      "id": "t7",
+      "title": "WindowManager 창 · Layer",
+      "ref": "Day4 p.13·p.15 · 09_windowmanager_apps",
+      "qs": [
+        {
+          "id": "t7-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "다른 앱 위에 떠 있는 플로팅 창에 쓰는 창 타입은?",
+          "o": [
+            "TYPE_APPLICATION",
+            "FLAG_NOT_FOCUSABLE",
+            "TYPE_APPLICATION_OVERLAY",
+            "PixelFormat.TRANSLUCENT"
+          ],
+          "a": 2,
+          "h": "실습 9 목표는 다른 앱 위에 떠 있는 창을 만들고 그 권한이 WMS에서 검사되는 것을 본다고 적습니다. 창 타입 이름은 TYPE_APPLICATION 뒤에 '덮는다'는 뜻의 단어가 붙습니다.",
+          "w": "<code>TYPE_APPLICATION_OVERLAY</code>(2038)가 앱 위에 뜨는 창 타입입니다. TYPE_APPLICATION은 Activity 창, FLAG_NOT_FOCUSABLE·TRANSLUCENT는 플래그와 픽셀 형식입니다.",
+          "an": "09_windowmanager_apps Step 1 · Day4 p.13",
+          "src": "## 목표\n\n- 다른 앱 위에 떠 있는 창(`TYPE_APPLICATION_OVERLAY`)을 만들고, 권한(`SYSTEM_ALERT_WINDOW`)이 WMS 에서 검사되는 것을 본다.\n- WMS 가 만든 창이 Day 3 의 SurfaceFlinger Layer 로 보이는 것을 `dumpsys` 로 잇는다.\n- 앱 내 분할 화면은 Layer 가 하나임을 확인한다."
+        },
+        {
+          "id": "t7-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>TYPE_APPLICATION_OVERLAY</code>의 창 타입 번호는?",
+          "o": [
+            "1000",
+            "2038",
+            "2048",
+            "4096"
+          ],
+          "a": 1,
+          "h": "Day4 p.13 코드에서 <code>TYPE_APPLICATION_OVERLAY</code> 줄 옆 주석에 타입 번호와 '다른 앱 위'라는 설명이 적혀 있습니다. 실습 9 확인 포인트의 dumpsys window 출력에도 같은 번호가 괄호로 찍힙니다.",
+          "w": "TYPE_APPLICATION_OVERLAY는 2038입니다. 권한이 없으면 'permission denied for window type 2038'이 찍힙니다. 1000은 system uid 번호입니다.",
+          "an": "Day4 p.13 · 09_windowmanager_apps Step 4",
+          "src": "WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY, // 2038 — 다른"
+        },
+        {
+          "id": "t7-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "TYPE_APPLICATION_OVERLAY 창에 필요한 권한과 그 검사 위치는?",
+          "o": [
+            "INTERNET · 앱 내부",
+            "SYSTEM_ALERT_WINDOW · WMS",
+            "WRITE_SETTINGS · SF",
+            "CAR_SPEED · CarService"
+          ],
+          "a": 1,
+          "h": "Worksheet Q7 해설은 WMS의 addWindow가 호출자 uid의 특정 권한을 검사한다고 설명합니다. 권한이 없으면 BadTokenException이 나고, Emulator에서는 appops set … allow로 줍니다.",
+          "w": "WMS(system_server)의 addWindow가 호출자 uid의 SYSTEM_ALERT_WINDOW를 검사합니다. 없으면 BadTokenException이며 Emulator에서는 appops로 허용합니다.",
+          "an": "Day4_Worksheet Q7 · 09_windowmanager_apps Step 4",
+          "src": "**7. ②**\nWMS 의 addWindow 가 호출자 uid 의 SYSTEM_ALERT_WINDOW 를 검사한다. 없으면 BadTokenException. Emulator 는 appops set … allow 로 준다."
+        },
+        {
+          "id": "t7-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "<code>appops set … SYSTEM_ALERT_WINDOW deny</code> 후 앱을 실행하면 나오는 예외는?",
+          "o": [
+            "SecurityException",
+            "IllegalArgumentException",
+            "CalledFromWrongThreadException",
+            "BadTokenException"
+          ],
+          "a": 3,
+          "h": "Worksheet Q7 해설은 WMS의 addWindow가 SYSTEM_ALERT_WINDOW 권한이 없으면 예외를 던진다고 설명합니다. 실습 9 확인 포인트도 deny 시 WindowManager의 '토큰' 관련 예외가 난다고 적습니다.",
+          "w": "<code>WindowManager$BadTokenException: … permission denied for window type 2038</code>이 납니다. IllegalArgumentException·CalledFromWrongThread는 Automotive 실습의 오류입니다.",
+          "an": "09_windowmanager_apps Step 4",
+          "src": "**7. ②**\nWMS 의 addWindow 가 호출자 uid 의 SYSTEM_ALERT_WINDOW 를 검사한다. 없으면 BadTokenException. Emulator 는 appops set … allow 로 준다."
+        },
+        {
+          "id": "t7-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "Fragment 2분할 SplitScreenDemo를 띄우고 <code>dumpsys SurfaceFlinger --list</code>를 보면 이 앱의 Layer는?",
+          "o": [
+            "Activity Layer 1개",
+            "Fragment마다 1개씩 2개",
+            "디스플레이마다 1개씩",
+            "Layer가 생기지 않음"
+          ],
+          "a": 0,
+          "h": "Day4 p.13은 앱 안의 Fragment 분할이 WMS의 창 분할이 아니라 View 계층의 일이라고 정리합니다. 그래서 SurfaceFlinger에는 이 Activity의 Layer가 몇 개로 보이는지 확인 포인트에 적혀 있습니다.",
+          "w": "View 분할은 Layer 1개입니다. 분할은 View 계층의 일이며, 디스플레이가 다를 때(멀티 디스플레이)만 별도 Layer 스택이 생깁니다.",
+          "an": "09_windowmanager_apps Step 5 · Day4 p.13",
+          "src": "• Fragment 분할은 Layer 1개 · 디스플레이가 다르면 Layer 스택이\n다르다\n애니메이션 6 · WMS 창 → SF Layer"
+        },
+        {
+          "id": "t7-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "SYSTEM_ALERT_WINDOW 권한은 앱 설치 시 자동으로 부여된다.",
+          "a": false,
+          "h": "실습 9의 MainActivity는 Settings.canDrawOverlays()가 false면 설정 화면으로 보냅니다. Automotive 설정 화면에는 허용 UI가 없을 수 있어 appops set … SYSTEM_ALERT_WINDOW allow로 따로 권한을 줍니다.",
+          "w": "틀립니다. 설치 시 자동 부여되지 않아 사용자 허용이나 <code>appops set … allow</code>가 필요합니다. 앱은 <code>Settings.canDrawOverlays()</code>로 확인합니다.",
+          "an": "09_windowmanager_apps 핵심 정리",
+          "src": "Automotive 설정 화면에 오버레이 허용 UI 가 없을 수 있으므로 appops 로 준다.\n\n```bash\nadb shell"
+        },
+        {
+          "id": "t7-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>addView</code>를 받은 WMS가 SF에 createSurface를 요청해 Layer를 만들고, App은 Surface를 받아 그린다.",
+          "a": true,
+          "h": "실습 9 핵심 정리 표는 WindowManager.addView가 App → WMS(Binder)로 가고, WMS가 SF에 createSurface를 요청해 Layer를 만든다고 적습니다. App은 그 Surface를 받아 그립니다.",
+          "w": "맞습니다. WMS가 Day 3 실습 9의 createSurface를 대신하고 App은 Surface를 받아 그립니다. 그래서 dumpsys SurfaceFlinger --list에 오버레이 Layer가 보입니다.",
+          "an": "09_windowmanager_apps 핵심 정리 · Day4 p.13",
+          "src": "|---|---|\n| `WindowManager.addView` | App → WMS(Binder) → WMS 가 SF 에 `createSurface` → Layer. App 은 `Surface` 를 받아 그린다 |\n| 창 타입 | `TYPE_APPLICATION`(Activity) · `TYPE_APPLICATION_OVERLAY`(권한 필요) · 시스템 창(StatusBar 등, system UID) |\n| `SYSTEM_ALERT_WINDOW` | 설치 시 자동 부여 안 됨 — 사용자 허용 또는 `appops` |"
+        },
+        {
+          "id": "t7-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "창 타입과 사용 주체를 연결하세요.",
+          "pairs": [
+            [
+              "TYPE_APPLICATION",
+              "Activity 앱 창"
+            ],
+            [
+              "TYPE_APPLICATION_OVERLAY",
+              "권한 있는 앱의 플로팅 위젯"
+            ],
+            [
+              "시스템 창 (StatusBar 등)",
+              "system UID — SystemUI의 바"
+            ]
+          ],
+          "h": "Day4 p.13 창 타입 표에서 TYPE_APPLICATION은 Activity 창, TYPE_APPLICATION_OVERLAY는 권한이 필요한 플로팅 창입니다. StatusBar 같은 시스템 창은 system UID만 쓸 수 있어 SystemUI의 바가 사용합니다.",
+          "w": "Activity는 TYPE_APPLICATION, 플로팅 위젯은 SYSTEM_ALERT_WINDOW가 있는 앱의 TYPE_APPLICATION_OVERLAY, 상태바 같은 시스템 창은 system UID인 SystemUI가 씁니다.",
+          "an": "Day4 p.13 창 타입 표",
+          "src": "|---|---|\n| `WindowManager.addView` | App → WMS(Binder) → WMS 가 SF 에 `createSurface` → Layer. App 은 `Surface` 를 받아 그린다 |\n| 창 타입 | `TYPE_APPLICATION`(Activity) · `TYPE_APPLICATION_OVERLAY`(권한 필요) · 시스템 창(StatusBar 등, system UID) |\n| `SYSTEM_ALERT_WINDOW` | 설치 시 자동 부여 안 됨 — 사용자 허용 또는 `appops` |"
+        },
+        {
+          "id": "t7-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "<code>windowManager.addView()</code>가 화면에 창으로 나타나기까지의 순서를 맞추세요.",
+          "steps": [
+            "App이 addView(view, params) 호출",
+            "Binder → WMS.addWindow",
+            "WMS가 SYSTEM_ALERT_WINDOW 검사",
+            "SF createSurface → Layer 생성",
+            "App이 Surface를 받아 그림"
+          ],
+          "h": "Day4 p.13 코드 주석은 <code>windowManager.addView(floatingView, p)</code>가 Binder → WMS.addWindow → 권한 검사 → SF createSurface로 이어진다고 적습니다. 마지막에 App이 Surface를 받아 그립니다.",
+          "w": "addView는 Binder로 WMS.addWindow에 가고, 권한 검사 후 SF에 createSurface를 요청해 Layer를 만듭니다. App은 받은 Surface에 그립니다.",
+          "an": "Day4 p.13 코드 주석",
+          "src": "windowManager.addView(floatingView, p); // Binder → WMS.addWindow → 권한 검"
+        },
+        {
+          "id": "t7-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "실습 9에서 Automotive Emulator에 플로팅 창을 띄우기 위해 한 일을 모두 고르세요.",
+          "o": [
+            "Manifest에 SYSTEM_ALERT_WINDOW 선언",
+            "appops로 SYSTEM_ALERT_WINDOW allow",
+            "TYPE_APPLICATION_OVERLAY로 addView",
+            "privapp-permissions xml 작성",
+            "cmd overlay enable 실행"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "실습 9는 Manifest에 SYSTEM_ALERT_WINDOW를 선언하고, Automotive 설정 화면에 허용 UI가 없을 수 있어 appops로 allow를 줍니다. FloatingService는 TYPE_APPLICATION_OVERLAY 타입으로 addView해 창을 띄웁니다.",
+          "w": "Manifest 선언, appops 허용, OVERLAY 타입 addView가 필요합니다. privapp xml은 CONTROL_CAR_CLIMATE 같은 privileged 권한용, overlay enable은 RRO용입니다.",
+          "an": "09_windowmanager_apps Step 1–2",
+          "src": "Automotive 설정 화면에 오버레이 허용 UI 가 없을 수 있으므로 appops 로 준다.\n\n```bash\nadb shell\nappops set com.example.floatingoverlaydemo SYSTEM_ALERT_WINDOW allow\nam force-stop com.example.floatingoverlaydemo\nam start -n com.example.floatingoverlaydemo/.MainActivity\n```\n\n홈으로 나가도 왼쪽 위에 작은 창이 남아 있다."
+        }
+      ]
+    },
+    {
+      "id": "t8",
+      "title": "Automotive 계층 · cmd car_service",
+      "ref": "Day4 p.17·p.18·p.19 · 10_automotive_layers",
+      "qs": [
+        {
+          "id": "t8-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "차량 없이 CarService에 주간/야간 모드를 바꾸는 명령 <code>____ day-night-mode night</code>의 빈칸은?",
+          "o": [
+            "cmd overlay",
+            "cmd car_service",
+            "dumpsys car_service",
+            "am start"
+          ],
+          "a": 1,
+          "h": "Worksheet Q12 해설은 inject-vhal-event / day-night-mode / get-property-value / inject-key가 모두 CarService의 onShellCommand라고 설명합니다. 'cmd' 뒤에 CarService의 서비스 이름을 붙입니다.",
+          "w": "<code>cmd car_service</code>로 day-night-mode, inject-vhal-event, get-property-value, inject-key를 씁니다. dumpsys car_service는 상태 조회용입니다.",
+          "an": "Day4_Worksheet Q12 · 10_automotive_layers Step 4",
+          "src": "**12. cmd car_service**\ncmd car_service inject-vhal-event / day-night-mode / get-property-value / inject-key — CarService 의 onShellCommand 다."
+        },
+        {
+          "id": "t8-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "Emulator VHAL 값을 직접 바꾸는 dumpsys 대상 <code>android.hardware.automotive.vehicle.____/default</code>의 빈칸은?",
+          "o": [
+            "ICar",
+            "ICarProperty",
+            "IVehicle",
+            "IVehicleCallback"
+          ],
+          "a": 2,
+          "h": "Worksheet Q13 해설은 HAL 인스턴스 이름 규칙 &lt;pkg&gt;.&lt;Interface&gt;/&lt;instance&gt;를 그대로 따른다고 설명합니다. 차량(vehicle) HAL의 AIDL 인터페이스 이름은 I로 시작하며 Automotive 계층 표에도 CarService만 호출한다고 적혀 있습니다.",
+          "w": "<code>dumpsys android.hardware.automotive.vehicle.IVehicle/default --set …</code>으로 바꿉니다. ICar는 CarService, ICarProperty는 CarPropertyManager의 Proxy 인터페이스입니다.",
+          "an": "Day4_Worksheet Q13 · 10_automotive_layers Step 2",
+          "src": "| App 은 직접 못 부름 | CarService(uid 1000) 만 `IVehicle` 호출 |"
+        },
+        {
+          "id": "t8-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "Android Automotive에서 App이 차량 속성을 읽을 때 실제 경로는?",
+          "o": [
+            "App → VHAL 직접",
+            "App → Kernel 드라이버",
+            "App → SystemUI → VHAL",
+            "App → CarPropertyManager → CarService → VHAL"
+          ],
+          "a": 3,
+          "h": "실습 10 핵심 정리는 Automotive가 Day 2 구조 그대로라고 설명합니다. Java Service(CarService)가 AIDL HAL(VHAL)을 부르고, App은 CarPropertyManager를 통해 CarService만 봅니다.",
+          "w": "App은 CarService(uid system)만 봅니다. CarPropertyService가 권한을 검사하고 PropertyHalService가 AIDL HAL IVehicle을 부릅니다.",
+          "an": "Day4_Worksheet Q8 · Day4 p.17",
+          "src": "- Automotive 는 Day 2 의 구조 그대로: Java Service(CarService) 가 AIDL HAL(VHAL) 을 부르고, App 은 CarService 만 본다."
+        },
+        {
+          "id": "t8-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>HVAC_TEMPERATURE_SET = 0x15600503</code>에서 <code>0x_5______</code> 자리(Area)가 뜻하는 것은?",
+          "o": [
+            "SEAT",
+            "GLOBAL",
+            "WINDOW",
+            "FLOAT"
+          ],
+          "a": 0,
+          "h": "Day4 p.18의 Property ID 구조에서 0x1_______ 자리는 Group(SYSTEM), 0x_5______ 자리는 Area 종류입니다. 자료는 GLOBAL이 0x1이고 5가 가리키는 Area를 함께 적어 두며, 온도는 좌석 그룹마다 따로 정해집니다.",
+          "w": "Area 자리의 5는 SEAT입니다(GLOBAL 0x1, WINDOW 0x3). 그다음 6은 Type FLOAT, 맨 앞 1은 Group SYSTEM입니다.",
+          "an": "Day4 p.18 Property ID 구조",
+          "src": "0x1_______ Group SYSTEM (vendor 는 0x2)"
+        },
+        {
+          "id": "t8-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "Kitchen Sink 속도 읽기가 실패하고 로그에 'requires android.car.permission.CAR_SPEED'가 찍혔습니다. 복구 방법은?",
+          "o": [
+            "/system/priv-app에 재설치",
+            "pm grant로 CAR_SPEED 부여",
+            "privapp xml에서 권한 제거",
+            "day-night-mode 전환"
+          ],
+          "a": 1,
+          "h": "Day4 p.18은 CAR_SPEED가 dangerous 권한이라 pm grant로 줄 수 있다고 적습니다. 반면 CONTROL_CAR_CLIMATE 같은 signature|privileged 권한은 /system/priv-app + privapp-permissions xml이 필요합니다.",
+          "w": "CAR_SPEED는 dangerous라 <code>pm grant</code>로 복구됩니다. CONTROL_CAR_CLIMATE처럼 signature|privileged인 권한만 priv-app + privapp-permissions xml이 필요합니다.",
+          "an": "10_automotive_layers Step 5 · Day4 p.18",
+          "src": "CAR_SPEED: dangerous → pm grant 가능\nCONTROL_CAR_CLIMATE: signature|privileged \n→ /system/priv-app + privapp-permissions.x"
+        },
+        {
+          "id": "t8-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "App은 VHAL(IVehicle)을 직접 호출하지 못하고 CarService만 본다.",
+          "a": true,
+          "h": "실습 10 Step 3 표는 Day 2 규칙 그대로 CarService(uid system)만 IVehicle을 호출하고 App은 직접 못 부른다고 적습니다. 권한 검사는 CarPropertyService가 합니다.",
+          "w": "맞습니다. CarService(uid 1000)만 IVehicle을 호출하고 App은 CarService만 봅니다.",
+          "an": "10_automotive_layers Step 3 표 · Day4 p.17",
+          "src": "| Day 2 규칙 그대로 | VHAL = AIDL HAL (`stability: vintf`, `/vendor/etc/vintf/manifest.xml` 에 등록) · CarService(uid system) 만 `IVehicle` 호출 · App 은 직접 못 부름 — 권한은 `CarPropertyService` 가 검사 (Day 2 실습 8 의 UID 검사) |"
+        },
+        {
+          "id": "t8-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>cmd car_service inject-vhal-event</code>는 VHAL 자체의 값을 바꾸고 그 결과가 CarService로 올라온다.",
+          "a": false,
+          "h": "실습 12는 inject-vhal-event가 CarService에만 이벤트를 넣으므로 앱 값은 바뀌어도 VHAL --get은 이전 값일 수 있다고 설명합니다. VHAL 자체의 값을 바꾸고 결과를 CarService로 올려보내는 것은 dumpsys … --set입니다.",
+          "w": "틀립니다. inject-vhal-event는 VHAL을 거치지 않고 CarService에만 이벤트를 넣습니다. VHAL 값을 바꾸는 것은 <code>dumpsys …IVehicle/default --set</code>입니다.",
+          "an": "10_automotive_layers Step 4 · 12_vhal_sync_fail 핵심 정리",
+          "src": "dumpsys android.hardware.automotive.vehicle.IVehicle/default --get 0x15600503 -a 49\n```\n\n`inject-vhal-event` 는 CarService 에만 이벤트를 넣으므로 **앱은 26.0 으로 바뀌지만 VHAL `--get` 은 이전 값**일 수 있다. `--set` 은 VHAL 의 값을 바꾸고 그 결과가 CarService 로 올라온다. 테스트 시나리오에 따라 골라 쓴다."
+        },
+        {
+          "id": "t8-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "Automotive 계층 요소와 특징을 연결하세요.",
+          "pairs": [
+            [
+              "CarService",
+              "com.android.car · uid system"
+            ],
+            [
+              "VHAL",
+              "IVehicle/default · vendor AIDL HAL"
+            ],
+            [
+              "FakeVehicleHardware",
+              "Emulator의 차량 버스 대체"
+            ],
+            [
+              "VINTF manifest",
+              "/vendor/etc/vintf/manifest.xml"
+            ]
+          ],
+          "h": "실습 10의 계층 표에서 CarService는 com.android.car 프로세스(uid system)이고, VHAL은 android.hardware.automotive.vehicle.IVehicle/default로 등록된 vendor AIDL HAL입니다. Emulator에서는 FakeVehicleHardware가 차량 버스를 대신하고, VINTF manifest는 /vendor/etc/vintf/manifest.xml에 있습니다.",
+          "w": "CarService는 com.android.car 프로세스(uid system), VHAL은 vendor의 AIDL HAL IVehicle/default입니다. Emulator는 CAN/LIN 대신 FakeVehicleHardware를 쓰고 VHAL은 VINTF manifest에 등록됩니다.",
+          "an": "Day4 p.17 · 10_automotive_layers Step 1–3",
+          "src": "|---|---|\n| 계층 | App → `android.car.Car` (`car-lib`, `uses-library android.car`) → **CarService** (`com.android.car` 프로세스, `ICar`, `service list \\| grep car_service`) → **VHAL** (`android.hardware.automotive.vehicle.IVehicle/default`, vendor, AIDL HAL) → 차량 버스 (Emulator 는 `FakeVehicleHardware`) |"
+        },
+        {
+          "id": "t8-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "Automotive 권한 거부를 추적해 해결하는 순서를 맞추세요.",
+          "steps": [
+            "App에서 SecurityException·읽기 실패",
+            "logcat -s CarPropertyService 확인",
+            "속성 ID → 필요한 권한 이름 찾기",
+            "권한 종류 판단(dangerous/privileged)",
+            "pm grant 또는 priv-app + xml로 복구"
+          ],
+          "h": "실습 10 핵심 정리는 권한 문제를 logcat -s CarPropertyService로 확인해 필요한 권한 이름을 찾으라고 합니다. 그 권한이 dangerous면 pm grant, signature|privileged면 priv-app + privapp-permissions xml로 복구합니다.",
+          "w": "권한 문제는 logcat -s CarPropertyService → 속성 ID → 권한 이름 → 종류 판단 순서로 풉니다. 종류에 따라 pm grant 또는 priv-app 설치로 복구합니다.",
+          "an": "10_automotive_layers 핵심 정리 · Step 5",
+          "src": "- 권한 문제는 `logcat -s CarPropertyService` → 속성 ID → 권한 이름 → 종류 판단 순서로 푼다."
+        },
+        {
+          "id": "t8-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "<code>cmd car_service</code>로 할 수 있는 일을 모두 고르세요.",
+          "o": [
+            "day-night-mode로 주야간 전환",
+            "inject-vhal-event로 이벤트 주입",
+            "get-property-value로 값 읽기",
+            "오버레이 활성화",
+            "APEX 모듈 설치"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Worksheet Q12 해설은 cmd car_service로 inject-vhal-event, day-night-mode, get-property-value, inject-key를 할 수 있다고 적습니다. 모두 차량 없이 데스크에서 시나리오를 재현하는 CarService의 onShellCommand입니다.",
+          "w": "day-night-mode, inject-vhal-event, get-property-value, inject-key가 cmd car_service 명령입니다. 오버레이 활성화는 cmd overlay, APEX 설치는 push + reboot입니다.",
+          "an": "10_automotive_layers Step 4 · Day4 p.17",
+          "src": "**12. cmd car_service**\ncmd car_service inject-vhal-event / day-night-mode / get-property-value / inject-key — CarService 의 onShellCommand 다."
+        }
+      ]
+    },
+    {
+      "id": "t9",
+      "title": "CarPropertyManager · VHAL · 버튼 flow",
+      "ref": "Day4 p.18·p.20·p.21 · 11_hvac_carproperty · 12_vhal_sync_fail · 13_perfetto_car_flow",
+      "qs": [
+        {
+          "id": "t9-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>setProperty(Float.class, HVAC_TEMPERATURE_SET, ( ? ), 22.5f)</code>의 세 번째 인자는?",
+          "o": [
+            "propertyId",
+            "areaId",
+            "rate",
+            "Class 타입"
+          ],
+          "a": 1,
+          "h": "setProperty(Class, propId, ?, value)의 세 번째 인자는 속성을 적용할 '구역'입니다. Day4 p.18은 이 값이 1이 아니라 config가 주는 49/68이며, 호출 전 getCarPropertyConfig로 확인하라고 적습니다.",
+          "w": "세 번째 인자는 areaId로 좌석 등 구역을 뜻합니다. Emulator HVAC 온도는 좌석 그룹 49/68입니다.",
+          "an": "Day4_Worksheet Q17 · Day4 p.18",
+          "src": "• areaId 는 1 이 아니라 config 가 주는 49/68 — 호출 전 getCa\nrPropertyConfig\n• 범위 밖 값·잘못된 areaId → IllegalArgumentException"
+        },
+        {
+          "id": "t9-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "HVAC 온도의 지원 areaId와 min/max를 호출 전에 읽는 메서드는?",
+          "o": [
+            "getProperty",
+            "subscribePropertyEvents",
+            "getCarManager",
+            "getCarPropertyConfig"
+          ],
+          "a": 3,
+          "h": "실습 11 핵심 정리 표는 호출 전 확인 습관으로 areaIds · min/max · changeMode를 읽는 메서드를 듭니다. 이름은 CarProperty의 Config를 가져온다는 뜻입니다.",
+          "w": "<code>getCarPropertyConfig()</code>로 areaIds·min/max·changeMode를 먼저 확인합니다. 잘못된 areaId나 범위 밖 값은 IllegalArgumentException이 납니다.",
+          "an": "Day4_Worksheet Q17 · 11_hvac_carproperty 핵심 정리",
+          "src": "| `getCarManager(Car.PROPERTY_SERVICE)` | `CarPropertyManager` (`ICarProperty` Proxy) |\n| `getCarPropertyConfig` | areaIds · min/max · changeMode — **호출 전 확인 습관** |\n| `getProperty / setProperty(Class, propId, areaId, v)` | 동기 Binder → `CarPropertyService` → `PropertyHalService` → `IVehicle` |"
+        },
+        {
+          "id": "t9-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "<code>onChangeEvent</code> 콜백이 실행되는 Thread와 UI 처리 방법은?",
+          "o": [
+            "main Thread — 바로 UI 갱신",
+            "Binder Thread — runOnUiThread",
+            "RenderThread — DrawFrames",
+            "VHAL 프로세스 Thread"
+          ],
+          "a": 1,
+          "h": "실습 11 핵심 정리 표는 subscribePropertyEvents가 역방향 콜백이라 Binder Thread에서 호출된다고 적습니다. 따라서 UI 갱신은 runOnUiThread로 넘겨야 합니다.",
+          "w": "콜백은 Looper가 없는 Binder Thread에서 오므로 <code>runOnUiThread</code>로 UI 갱신을 넘겨야 합니다. 이를 빼면 CalledFromWrongThreadException이 납니다.",
+          "an": "11_hvac_carproperty Step 3 · 12_vhal_sync_fail Step 5",
+          "src": "| `getProperty / setProperty(Class, propId, areaId, v)` | 동기 Binder → `CarPropertyService` → `PropertyHalService` → `IVehicle` |\n| `subscribePropertyEvents` | 역방향 콜백 (Binder Thread) — UI 는 `runOnUiThread` |\n| privileged 권한 | `/system/priv-app` + `privapp-permissions-*.xml` |"
+        },
+        {
+          "id": "t9-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "앱에서 HVAC 온도를 areaId 0(GLOBAL)으로 setProperty하면 나오는 예외는?",
+          "o": [
+            "SecurityException",
+            "CalledFromWrongThreadException",
+            "IllegalArgumentException",
+            "BadTokenException"
+          ],
+          "a": 2,
+          "h": "실습 12 Step 5 표에서 잘못된 areaId로 setProperty(..., 0 /*GLOBAL*/, 22f)를 부르면 'areaId 0 is not supported' 메시지와 함께 인자 오류 예외가 납니다. Day4 p.18도 범위 밖 값·잘못된 areaId는 이 예외라고 정리합니다.",
+          "w": "'areaId 0 is not supported' IllegalArgumentException이 납니다. 범위 밖 값도 같은 예외입니다. SecurityException은 권한, BadTokenException은 창 권한 문제입니다.",
+          "an": "12_vhal_sync_fail Step 5 표",
+          "src": "| 잘못된 areaId | 앱 `setProperty(..., 0 /*GLOBAL*/, 22f)` | `IllegalArgumentException: areaId 0 is not supported` |"
+        },
+        {
+          "id": "t9-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "CONTROL_CAR_CLIMATE를 쓰는 HvacSimulator가 권한을 받으려면 어떻게 설치해야 합니까?",
+          "o": [
+            "priv-app + privapp-permissions xml",
+            "adb install 후 pm grant",
+            "appops set … allow",
+            "cmd overlay enable"
+          ],
+          "a": 0,
+          "h": "실습 11 Step 4 표는 normal/dangerous 권한은 pm grant가 가능하지만 signature|privileged 권한은 불가라고 적습니다. CONTROL_CAR_CLIMATE는 후자이므로 /system/priv-app에 넣고 privapp-permissions xml로 허용해야 합니다.",
+          "w": "signature|privileged라 pm grant가 안 됩니다. <code>/system/priv-app/HvacSimulator/</code>에 APK를, <code>/system/etc/permissions/</code>에 허용 xml을 넣고 reboot하면 granted=true가 됩니다.",
+          "an": "11_hvac_carproperty Step 4",
+          "src": "# → CAR_SPEED 권한 매핑\n```\n\n| 권한 종류 | `pm grant` | 예 |\n|---|---|---|\n| normal / dangerous | 가능 | `CAR_SPEED`(dangerous), `CAR_POWERTRAIN` |\n| signature\\|privileged | **불가** — `/system/priv-app` + `privapp-permissions` xml 또는 platform 서명 | `CONTROL_CAR_CLIMATE`, `CAR_ENGINE_DETAILED` |"
+        },
+        {
+          "id": "t9-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Emulator의 HVAC 온도 areaId는 1이 아니라 좌석 그룹 49/68이다.",
+          "a": true,
+          "h": "Worksheet Q17 해설은 Emulator의 HVAC 온도 areaId가 좌석 그룹 값이라고 설명합니다. 실습 11 로그에도 <code>temp areaIds=[49, 68] min=16.0 max=32.0</code>이 찍혔습니다.",
+          "w": "맞습니다. getCarPropertyConfig().getAreaIds()가 [49, 68]을 돌려줍니다. 1을 넣으면 IllegalArgumentException이 납니다.",
+          "an": "11_hvac_carproperty Step 3 · 트러블슈팅",
+          "src": "**17. (1) areaId / (2) getCarPropertyConfig**\nEmulator 의 HVAC 온도 areaId 는 좌석 그룹 49/68 이다. 잘못된 areaId 나 범위 밖 값은 IllegalArgumentException."
+        },
+        {
+          "id": "t9-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "priv-app으로 넣은 앱을 고친 뒤 <code>adb install</code>로 같은 패키지를 올려도 priv-app 상태가 유지된다.",
+          "a": false,
+          "h": "실습 11 Step 4 참고는 재배포 시 adb push로 덮어쓰고 am force-stop 후 재시작하라고 합니다. adb install로 같은 패키지를 올리면 priv-app이 아니게 되므로 쓰지 않는다고 경고합니다.",
+          "w": "틀립니다. adb install로 올리면 priv-app이 아니게 됩니다. 재배포는 adb push로 덮어쓰고 am force-stop 후 재시작합니다.",
+          "an": "11_hvac_carproperty Step 4 참고",
+          "src": "> 이후 코드를 고쳐 다시 배포할 때는 `adb push` 로 덮어쓰고 `am force-stop` 후 재시작하면 된다 (재부팅 불필요). `adb install` 로 같은 패키지를 올리면 priv-app 이 아니게 되므로 쓰지 않는다."
+        },
+        {
+          "id": "t9-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "Car API와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "Car.createCar",
+              "CarService(ICar)에 Binder 연결"
+            ],
+            [
+              "getCarManager(PROPERTY_SERVICE)",
+              "CarPropertyManager 획득"
+            ],
+            [
+              "setProperty",
+              "CarPropertyService → VHAL에 값 쓰기"
+            ],
+            [
+              "subscribePropertyEvents",
+              "변경 시 onChangeEvent 콜백"
+            ]
+          ],
+          "h": "실습 11 핵심 정리 표에서 Car.createCar는 CarService(ICar)에 Binder로 연결하고, getCarManager(Car.PROPERTY_SERVICE)는 CarPropertyManager를 돌려줍니다. setProperty는 CarPropertyService → VHAL로 값을 쓰고, subscribePropertyEvents는 변경 시 onChangeEvent 콜백을 받습니다.",
+          "w": "createCar로 CarService에 연결하고, PROPERTY_SERVICE로 CarPropertyManager를 얻습니다. setProperty는 Binder로 VHAL까지 가고, subscribePropertyEvents는 역방향 콜백을 받습니다.",
+          "an": "11_hvac_carproperty 핵심 정리",
+          "src": "## 핵심 정리\n\n| API | 역할 |\n|---|---|\n| `Car.createCar(ctx, handler, timeout, listener)` | CarService(`ICar`) 에 Binder 연결. 준비되면 콜백 |\n| `getCarManager(Car.PROPERTY_SERVICE)` | `CarPropertyManager` (`ICarProperty` Proxy) |\n| `getCarPropertyConfig` | areaIds · min/max · changeMode — **호출 전 확인 습관** |"
+        },
+        {
+          "id": "t9-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "HvacSimulator의 온도 버튼 한 번이 화면에 반영되기까지 순서를 맞추세요.",
+          "steps": [
+            "App이 ICarProperty.setProperty Binder 호출",
+            "CarPropertyService가 권한 검사 후 IVehicle.setValues",
+            "VHAL이 값을 바꾸고 onPropertyEvent로 통지",
+            "CarService가 subscriber(App)에 onEvent 전달",
+            "onChangeEvent → runOnUiThread → doFrame → SF"
+          ],
+          "h": "Worksheet Q19 해설은 App의 ICarProperty.setProperty Binder 호출 → CarPropertyService 권한 검사 후 IVehicle.setValues → VHAL이 onPropertyEvent로 통지하는 흐름입니다. 이어 CarService가 subscriber(App)에 onEvent를 전달하고, onChangeEvent(Binder Thread) → runOnUiThread → doFrame → SF로 화면에 그려집니다.",
+          "w": "App → CarService(권한·HAL 호출) → VHAL → 역방향 통지 → App 콜백 → UI Thread → SF 순서입니다. 실습 13의 Perfetto flow와 같습니다.",
+          "an": "Day4_Worksheet Q19 · Day4 p.21 · 13_perfetto_car_flow Step 4",
+          "src": "**19. App 이 ICarProperty.setProperty Binder 호출 → CarPropertyService 가 권한 검사 후 IVehicle.setValues 호출 → VHAL 이 값을 바꾸고 onPropertyEvent 로 CarService 에 통지 → CarService 가 subscriber(App) 에 onEvent 전달 → onChangeEvent(Binder Thread) → runOnUiThread → Choreographer#doFrame → SF**"
+        },
+        {
+          "id": "t9-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "실습 13 트레이스에서 버튼 한 번에 보이는 Binder 호출을 모두 고르세요.",
+          "o": [
+            "ICarProperty::setProperty",
+            "IVehicle::setValues",
+            "IVehicleCallback::onPropertyEvent",
+            "WMS.addWindow",
+            "IOverlayManager 조회"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "실습 13 트레이스는 ① App main에서 ICarProperty::setProperty transaction, ③ 같은 Thread 안쪽의 IVehicle::setValues transaction을 보여 줍니다. 그 뒤 VHAL이 CarService로 보내는 콜백 IVehicleCallback::onPropertyEvent가 이어집니다.",
+          "w": "set(ICarProperty), setValues(IVehicle), onPropertyEvent(IVehicleCallback), onEvent가 버튼 한 번의 Binder 왕복입니다. addWindow·IOverlayManager는 이 흐름에 없습니다.",
+          "an": "13_perfetto_car_flow Step 4·6",
+          "src": "① hvacsimulator main — deliverInputEvent → binder transaction (ICarProperty::setProperty) Day 1 AIDL Proxy\n② com.android.car binder:N — binder reply (CarPropertyService) Day 2 실습 11"
+        }
+      ]
+    }
+  ]
+}

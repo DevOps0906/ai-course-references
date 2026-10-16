@@ -42,13 +42,37 @@ STAGES = [
     ("05", "LangChain · RAG · Agent", "05-langchain-agent", [
         ("", "LangChain LCEL → RAG → Gradio → 음성 RAG → LangGraph (14일)"),
     ]),
-    ("06", "AI 비전 · OpenVINO", "06-ai-openVino", [
+    ("06", "인텔 Physical AI · AI 비전 · OpenVINO", "06-ai-openVino", [
         ("", "리눅스 → 파이썬 → OpenCV → OpenVINO 엣지 AI"),
     ]),
     ("07", "Physical AI · 자율주행", "07-physical-ai", [   # 원본 폴더: 07-NEPES_physicalAI_자율주행자동차
         ("", "Jetson → LLM·VLM → OpenCV·ROS → Pseudo-VLA → VLA (5일)"),
     ]),
+    ("08", "임베디드 · 시스템 SW", "08-embedded-sw", [   # 원본 폴더: 08-AI_CAMPUS-main
+        ("", "Python → C → 컴퓨터 구조 → 운영체제 → 리눅스 → ESP32 MCU → 라즈베리파이 입출력"),
+    ]),
+    ("09", "Android 프레임워크", "09-android-framework", [   # 원본 폴더: 09-android_framework-main
+        ("", "AOSP · Binder → Native 서비스·HAL → sp/Looper/JNI → SystemUI·Automotive (4일)"),
+    ]),
+    ("10", "Go 언어 프로그래밍", "10-go-programming", [   # 원본 폴더: 10-go_programming-main
+        ("", "Go 기초 → 모듈·CLI → 동시성 → 테스트·도구 → 웹 서버 (5일)"),
+    ]),
 ]
+STAGE_NUM = {folder: num for num, _, folder, _ in STAGES}
+
+# 허브 첫 화면 박스에 보이는 대표 키워드 (과정마다 4~6개)
+STAGE_KEYWORDS = {
+    "01": ["생성형 AI", "프롬프트", "업무 자동화", "엑셀 실무", "Claude 교육 활용"],
+    "02": ["Git", "GitHub 협업", "바이브코딩", "프롬프트 기법", "웹 앱 프로토타입"],
+    "03": ["n8n", "워크플로우", "Google Sheets·Gmail", "Webhook", "AI 노드", "블로그 자동 발행"],
+    "04": ["ASR·TTS", "STFT·MFCC", "잡음 제거·VAD", "CTC·Wav2Vec2", "Whisper"],
+    "05": ["LangChain LCEL", "RAG", "Gradio", "음성 RAG", "LangGraph"],
+    "06": ["리눅스", "파이썬", "OpenCV", "OpenVINO", "CPU·GPU·NPU 비교"],
+    "07": ["Jetson", "LLM·VLM", "OpenCV·MediaPipe", "ROS 2", "VLA"],
+    "08": ["Python", "C 언어", "컴퓨터 구조", "운영체제", "리눅스 시스템", "ESP32·GPIO"],
+    "09": ["AOSP 빌드", "Binder·AIDL", "Native 서비스·HAL", "Looper·JNI", "SystemUI·Automotive"],
+    "10": ["Go 기초", "모듈·Cobra CLI", "고루틴·채널", "Context·Worker Pool", "웹 서버·테스트"],
+}
 
 sys.path.insert(0, HERE)
 from validate import validate  # noqa: E402
@@ -84,10 +108,13 @@ def build(bank_path):
     bank = json.load(open(bank_path, encoding="utf-8"))
     out = out_path(bank_path)
     hub_rel = os.path.relpath(HUB_OUT, os.path.dirname(out)).replace(os.sep, "/")
+    stage = os.path.relpath(bank_path, BANKS).replace(os.sep, "/").split("/")[0]
+    hub_stage = f"{hub_rel}#{STAGE_NUM.get(stage, stage[:2])}"   # 문제은행 → 허브의 그 과정 페이지
     html = fill(open(ENGINE, encoding="utf-8").read(), (
         ("/*__TOKENS__*/", open(TOKENS, encoding="utf-8").read()),
         ("/*__BANK__*/null", js_data(bank)),
         ("__TITLE__", esc_title(bank["title"])),
+        ("__HUBSTAGE__", hub_stage),
         ("__HUB__", hub_rel),
     ), "엔진")
     os.makedirs(os.path.dirname(out), exist_ok=True)
@@ -113,7 +140,7 @@ def build_hub():
         })
     stages = []
     for num, title, folder, courses in STAGES:
-        stages.append({"num": num, "title": title, "courses": [
+        stages.append({"num": num, "title": title, "keys": STAGE_KEYWORDS.get(num, []), "courses": [
             {"title": ctitle, "banks": found.pop((folder, cfolder), [])} for cfolder, ctitle in courses]})
     for (stage, course), banks in found.items():  # STAGES에 없는 새 폴더도 빠뜨리지 않음
         stages.append({"num": stage[:2], "title": stage, "courses": [{"title": course or stage, "banks": banks}]})

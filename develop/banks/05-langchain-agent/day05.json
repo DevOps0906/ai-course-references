@@ -1,0 +1,581 @@
+{
+  "id": "lc-d05",
+  "code": "LC5",
+  "title": "LangChain 5일차 · 출력 파서 (CSV·JSON 파서·Pydantic 스키마)",
+  "subtitle": "CommaSeparatedListOutputParser · JsonOutputParser · Pydantic BaseModel",
+  "course": "05 · LangChain · RAG · Agent",
+  "source": "05-langchain-agent/day05/5일차_LCEL_JSON 파서 문제 풀이_new_배포.ipynb",
+  "salt": "lc-d05",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "출력 파서 · CSV 파서",
+      "ref": "5일차 출력 파서 · CSV Parser",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "LangChain 출력 파서(Output Parser)의 역할로 가장 알맞은 것은?",
+          "o": [
+            "모델 출력을 원하는 형식으로 변환",
+            "프롬프트에 예시를 자동 삽입",
+            "문서를 페이지 단위로 분할",
+            "모델의 응답 속도를 높임"
+          ],
+          "a": 0,
+          "h": "자료는 출력 파서를 '모델의 출력을 처리해 원하는 형식으로 변환하는 역할'로 정의합니다. 모델이 만든 원시 텍스트를 분석해 특정 정보를 뽑거나 형식을 재구성하는 단계이므로, 프롬프트 작성이나 문서 분할 이전이 아니라 모델 응답 이후에 동작합니다.",
+          "w": "출력 파서는 모델이 만든 원시 텍스트를 분석해 정보를 뽑거나 원하는 형식으로 재구성합니다. 예시 삽입은 프롬프트, 분할은 문서 로더·splitter의 일입니다.",
+          "an": "5일차 출력 파서 (Output Parser)",
+          "src": "출력 파서 (Output Parser)\n - 모델의 출력을 처리하고, 그 결과를 원하는 형식으로 변환하는 역할을 한다"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "쉼표로 구분된 모델 응답을 파이썬 리스트로 바꿔 주는 파서 클래스는?",
+          "o": [
+            "JsonOutputParser",
+            "PromptTemplate",
+            "ChatOpenAI",
+            "CommaSeparatedListOutputParser"
+          ],
+          "a": 3,
+          "h": "자료는 출력 파서의 종류로 csv Parser와 json Parser 두 가지를 듭니다. 이 중 csv Parser는 쉼표(Comma)로 구분된(Separated) 응답을 리스트(List)로 바꾸는 클래스이며, <code>langchain_core.output_parsers</code>에서 임포트합니다.",
+          "w": "<code>CommaSeparatedListOutputParser</code>가 CSV Parser입니다. JsonOutputParser는 dict를 만들고, PromptTemplate과 ChatOpenAI는 파서가 아닙니다.",
+          "an": "5일차 출력 파서 (Output Parser) · 종류",
+          "src": "from langchain_core.output_parsers import CommaSeparatedListOutputParser\n# CommaSeparatedListOutputParser 객체를 생성"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>output_parser.get_format_instructions()</code>가 하는 일은?",
+          "o": [
+            "모델 응답을 리스트로 변환한다",
+            "응답 형식 지침 문자열을 돌려준다",
+            "체인을 한 번 실행한다",
+            "프롬프트 변수를 검사한다"
+          ],
+          "a": 1,
+          "h": "예제 주석은 이 메서드를 '파서의 형식 지침을 가져온다. 이 지침은 모델에게 어떤 형식으로 응답해야 할지 알려준다'고 설명합니다. 그래서 결과를 print 하면 영어 안내 문장이 나오고, 그 문장을 프롬프트의 <code>{format_instructions}</code> 자리에 넣습니다.",
+          "w": "get_format_instructions()는 모델에게 어떤 형식으로 답해야 하는지 알려 주는 지침 문자열을 반환합니다. 실제 변환은 체인 끝의 파서가 invoke 때 수행합니다.",
+          "an": "5일차 CSV Parser 예제",
+          "src": "# 파서의 형식 지침을 가져온다. 이 지침은 모델에게 어떤 형식으로 응답해야 할지 알려준다.\nformat_instructions =\n# 형식 지침을 출력\nprint(format_instructions)"
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "CSV 파서의 형식 지침을 출력하면 <code>Your response should be a list of comma separated values, eg: `foo, bar, baz`</code>가 나옵니다. 모델에게 요구하는 응답 형식은?",
+          "o": [
+            "JSON 객체",
+            "표(table) 형식",
+            "쉼표로 구분된 값 목록",
+            "한 줄 요약문"
+          ],
+          "a": 2,
+          "h": "형식 지침은 모델에게 응답 모양을 알려 주는 문장입니다. 예시로 든 <code>foo, bar, baz</code>는 값 사이를 무엇으로 나누는지 보여 주며, 실제로 이 지침을 받은 모델은 '비빔밥, 불고기, 김치…'처럼 항목을 나열해 답했습니다.",
+          "w": "지침은 '쉼표로 구분된 값의 목록'으로 답하라고 요구합니다. 이 지침을 프롬프트의 {format_instructions} 자리에 넣어 모델에게 전달합니다.",
+          "an": "5일차 CSV Parser 예제 · 형식 지침 출력",
+          "src": "\"다음 질문에 대해 5개의 항목을 쉼표로 구분하여 답변하세요.\\n{format_instructions}\\n질문: {question}\""
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "CSV 파서 예제에서 <code>prompt</code>, <code>model</code>, <code>output_parser</code>로 LCEL 체인을 만들 때 빈칸 <code>chain = ____</code>에 알맞은 것은?",
+          "o": [
+            "prompt | output_parser | model",
+            "prompt | model | output_parser",
+            "model | prompt | output_parser",
+            "output_parser | prompt | model"
+          ],
+          "a": 1,
+          "h": "LCEL 체인은 <code>|</code> 왼쪽의 출력이 오른쪽의 입력이 되는 흐름입니다. 예제 주석 '체인 구성 (프롬프트 | 모델 | 파서)'처럼 프롬프트가 질문을 완성하고, 모델이 답을 만들고, 파서는 이미 만들어진 답을 변환해야 하므로 맨 마지막에 와야 합니다.",
+          "w": "프롬프트가 입력을 채우고, 모델이 답하고, 파서가 그 답을 리스트로 바꿉니다. 파서를 모델 앞에 두면 변환할 응답이 아직 없습니다.",
+          "an": "5일차 CSV Parser 예제 · 4. 체인 구성",
+          "src": "# 3. 모델 정의\nmodel = ChatOpenAI(model=\"gpt-4o-mini\")\n# 4. 체인 구성 (프롬프트 | 모델 | 파서)"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "자료에 소개된 출력 파서의 주요 기능은 출력 포맷 변경, 정보 추출, 결과 정제, 조건부 로직 적용이다.",
+          "a": true,
+          "h": "자료의 출력 파서 설명에는 '주요기능' 번호 목록이 있습니다. 모델 출력의 포맷을 바꾸고, 필요한 정보를 뽑아내고, 결과를 다듬고, 조건에 따라 처리하는 기능이 차례로 나열되어 있습니다.",
+          "w": "맞습니다. 출력 파서는 이 네 가지 기능으로 모델 출력을 원하는 형태로 다듬습니다.",
+          "an": "5일차 출력 파서 (Output Parser) · 주요기능",
+          "src": "- 주요기능\n 1. 출력 포맷 변경\n 2. 정보 추출\n 3. 결과 정제\n 4. 조건부 로직 적용"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>CommaSeparatedListOutputParser</code>를 체인 끝에 붙여도 결과는 하나의 문자열로 돌아온다.",
+          "a": false,
+          "h": "CSV 파서의 역할은 쉼표로 구분된 응답 문자열을 파이썬 자료구조로 바꾸는 것입니다. 예제 실행 결과는 대괄호 [ ] 안에 음식 이름 다섯 개가 따옴표로 하나씩 감싸진 모양이었습니다.",
+          "w": "틀렸습니다. 예제 출력은 <code>['김치', '불고기', '비빔밥', '잡채', '떡볶이']</code>처럼 파이썬 리스트입니다. 파서가 쉼표 구분 문자열을 리스트로 바꿔 줍니다.",
+          "an": "5일차 CSV Parser 예제 · 출력 예시",
+          "src": "result = chain.invoke({\n})\nprint(result)\n# 출력 예시: ['비빔밥', '불고기', '김치', '잡채', '떡볶이']"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "5일차에 쓰인 구성 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "CommaSeparatedListOutputParser",
+              "쉼표 구분 응답을 리스트로 변환"
+            ],
+            [
+              "JsonOutputParser",
+              "JSON 응답을 dict로 변환"
+            ],
+            [
+              "get_format_instructions()",
+              "응답 형식 지침 문자열 반환"
+            ],
+            [
+              "PromptTemplate.from_template()",
+              "문자열로 프롬프트 템플릿 생성"
+            ]
+          ],
+          "h": "5일차의 두 파서 중 하나는 쉼표 응답을 대괄호 자료형으로, 다른 하나는 JSON 응답을 중괄호 자료형으로 바꿉니다. 형식 지침 메서드는 모델에게 줄 안내 문장을 돌려주고, <code>from_template()</code>은 중괄호 변수가 들어 있는 문자열 하나로 템플릿을 만듭니다.",
+          "w": "CSV 파서는 리스트, JSON 파서는 dict를 만듭니다. get_format_instructions()는 지침을 주고, from_template()은 문자열로 템플릿을 만듭니다.",
+          "an": "5일차 CSV Parser 예제 · 5일차 실무 예시: JsonOutputParser 활용",
+          "src": "# 1. 파서 초기화\noutput_parser = CommaSeparatedListOutputParser()\n# 2. 프롬프트 템플릿에 지침 포함\nprompt = PromptTemplate.from_template(\n \"다음 질문에 대해 5개의 항목을 쉼표로 구분하여 답변하세요.\\n{format_instructions}\\n질문: {question}\"\n)\n# 3. 모델 정의\nmodel = ChatOpenAI(model=\"gpt-4o-mini\")\n# 4. 체인 구성 (프롬프트 | 모델 | 파서)"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "CSV 파서 예제 코드의 작성 순서대로 나열하세요.",
+          "steps": [
+            "파서 초기화",
+            "프롬프트 템플릿에 지침 포함",
+            "모델 정의",
+            "체인 구성 (프롬프트 | 모델 | 파서)",
+            "invoke로 실행"
+          ],
+          "h": "예제 셀은 주석 번호 1~5로 단계를 나눕니다. 형식 지침을 프롬프트에 넣으려면 그 지침을 줄 파서가 먼저 있어야 하고, 체인으로 묶으려면 프롬프트와 모델이 모두 준비되어 있어야 하며, 실행은 언제나 마지막입니다.",
+          "w": "파서를 먼저 만들어야 그 지침을 프롬프트에 넣을 수 있습니다. 그다음 모델을 정의하고 체인으로 묶어 invoke로 실행합니다.",
+          "an": "5일차 CSV Parser 예제 · 주석 1~5",
+          "src": "# 1. 파서 초기화\noutput_parser = CommaSeparatedListOutputParser()\n# 2. 프롬프트 템플릿에 지침 포함\nprompt = PromptTemplate.from_template(\n \"다음 질문에 대해 5개의 항목을 쉼표로 구분하여 답변하세요.\\n{format_instructions}\\n질문: {question}\"\n)\n# 3. 모델 정의\nmodel = ChatOpenAI(model=\"gpt-4o-mini\")\n# 4. 체인 구성 (프롬프트 | 모델 | 파서)\nchain =\n# 5. 실행"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "CSV 파서 예제의 템플릿은 <code>PromptTemplate.from_template('...{format_instructions}\\n질문: {question}')</code>입니다. <code>chain.invoke({ })</code>에 넣어야 할 키를 모두 고르세요.",
+          "o": [
+            "question",
+            "format_instructions",
+            "query",
+            "content",
+            "destination"
+          ],
+          "a": [
+            0,
+            1
+          ],
+          "h": "<code>from_template()</code>은 템플릿 문자열 안의 중괄호 변수를 모두 입력 변수로 봅니다. 이 예제는 <code>partial_variables</code>로 미리 채운 값이 없으므로, 템플릿에 보이는 중괄호 변수는 전부 invoke 딕셔너리에서 값을 받아야 합니다.",
+          "w": "from_template()로 만들고 partial_variables를 쓰지 않았으므로 템플릿의 두 변수 question과 format_instructions를 모두 invoke에 넘겨야 합니다. query·content·destination은 다른 예제의 변수입니다.",
+          "an": "5일차 CSV Parser 예제 · 5. 실행",
+          "src": "# 2. 프롬프트 템플릿에 지침 포함\nprompt = PromptTemplate.from_template(\n \"다음 질문에 대해 5개의 항목을 쉼표로 구분하여 답변하세요.\\n{format_instructions}\\n질문: {question}\"\n)"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "JsonOutputParser · Pydantic",
+      "ref": "5일차 실무 예시 JsonOutputParser · CusineRecipe",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>JsonOutputParser</code>를 체인 끝에 붙였을 때 결과의 파이썬 자료형은?",
+          "o": [
+            "list",
+            "dict",
+            "str",
+            "tuple"
+          ],
+          "a": 1,
+          "h": "JsonOutputParser 예제의 마지막 주석은 '이제 Python의 ○○로 출력됩니다!'입니다. 실행 결과 <code>{'수도': '서울', '인구': '약 9,700,000명'}</code>처럼 키와 값이 쌍으로 묶인 중괄호 자료형이 나옵니다.",
+          "w": "JSON 파서는 모델의 JSON 응답을 파이썬 dict로 바꿉니다. 리스트는 CSV 파서의 결과입니다.",
+          "an": "5일차 실무 예시: JsonOutputParser 활용 · 5. 실행",
+          "src": "result = chain.invoke({\"question\": \"대한민국의 수도와 인구는?\"})\nprint(result) # 이제 Python의 dict로 출력됩니다!"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "응답 JSON의 구조(스키마)를 정의할 때 Pydantic에서 상속하는 클래스는?",
+          "o": [
+            "BaseModel",
+            "Field",
+            "PromptTemplate",
+            "JsonOutputParser"
+          ],
+          "a": 0,
+          "h": "레시피 예제는 <code>from pydantic import ____, Field</code>로 두 이름을 임포트합니다. 실습 문제들도 '○○○○○○○을 이용하여 JSON 스키마를 정의하세요'라고 요구하며, 데이터 구조 클래스는 이 클래스를 괄호 안에 넣어 상속합니다.",
+          "w": "<code>class CusineRecipe(BaseModel):</code>처럼 BaseModel을 상속해 필드를 정의합니다. Field는 함께 임포트하는 보조 도구일 뿐 상속 대상이 아닙니다.",
+          "an": "5일차 JSON 파서 · CusineRecipe 레시피 예제 · 1. 데이터 구조 정의",
+          "src": "from pydantic import BaseModel, Field\n# 1. 한글 데이터 구조 정의 (Pydantic 모델)\nclass CusineRecipe(BaseModel):"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "<code>partial_variables={'format_instructions': parser.get_format_instructions()}</code>를 쓰면 어떤 효과가 있나요?",
+          "o": [
+            "모델 출력을 dict로 변환한다",
+            "question 변수를 생략하게 한다",
+            "지침을 미리 채워 invoke에서 생략한다",
+            "모델 이름을 미리 고정한다"
+          ],
+          "a": 2,
+          "h": "partial은 '일부만 미리'라는 뜻으로, 템플릿 변수 중 일부를 생성 시점에 채워 둡니다. JSON 예제에서는 파서의 형식 지침을 미리 넣었기 때문에 <code>input_variables</code>에는 사용자의 질문 변수 하나만 남습니다.",
+          "w": "형식 지침을 템플릿에 미리 채워 두므로 invoke에는 question만 넘기면 됩니다. dict 변환은 파서가 하고, question은 여전히 필요합니다.",
+          "an": "5일차 실무 예시: JsonOutputParser 활용 · 3. 프롬프트",
+          "src": "# 3. 프롬프트에 파서의 가이드라인(format instructions) 추가\nprompt = PromptTemplate(\n template=\"질문에 대해 JSON 형식으로 답변하세요.\\n{format_instructions}\\n질문: {question}\",\n input_variables=[\"question\"],\n partial_variables={\"format_instructions\": parser.get_format_instructions()},"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "레시피 예제의 실행 결과는 <code>{'name': '김치찌개', 'recipe': '1. 재료 준비…'}</code>입니다. CusineRecipe 모델에 정의된 필드로 알맞은 것은?",
+          "o": [
+            "title · steps",
+            "dish · ingredients",
+            "query · answer",
+            "name · recipe"
+          ],
+          "a": 3,
+          "h": "JsonOutputParser는 정의한 스키마대로 JSON을 받아 dict로 바꾸므로, 결과 dict의 키가 곧 BaseModel의 필드 이름입니다. 실행 결과에는 요리 이름을 담은 키와 1~7단계 조리법을 담은 키 두 개가 보입니다.",
+          "w": "JsonOutputParser가 스키마대로 만든 dict의 키는 name과 recipe입니다. query는 프롬프트 입력 변수 이름이지 출력 필드가 아닙니다.",
+          "an": "5일차 JSON 파서 · CusineRecipe 레시피 예제 · 실행 결과",
+          "src": "# 1. 한글 데이터 구조 정의 (Pydantic 모델)\nclass CusineRecipe(BaseModel):"
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "레시피 예제 템플릿에는 <code>{format_instructions}</code>와 <code>{query}</code>가 있고 format_instructions는 partial_variables로 채웠습니다. 올바른 실행 코드는?",
+          "o": [
+            "chain.invoke({'query': 질문})",
+            "chain.invoke({'question': 질문})",
+            "chain.invoke({'format_instructions': 질문})",
+            "chain.invoke(질문, parser)"
+          ],
+          "a": 0,
+          "h": "레시피 템플릿은 <code>input_variables=['query']</code>이고 형식 지침은 <code>partial_variables</code>로 이미 채워져 있습니다. 따라서 invoke에는 남은 입력 변수 이름 하나를 키로 한 딕셔너리만 넘기면 됩니다.",
+          "w": "input_variables=['query']이므로 <code>{'query': '김치찌개 맛있게 끓이는 법 알려줘'}</code>처럼 넘깁니다. question은 다른 예제의 변수 이름입니다.",
+          "an": "5일차 JSON 파서 · CusineRecipe 레시피 예제 · 6. 실행",
+          "src": "template='사용자의 질문에 답변하세요.\\n{format_instructions}\\n질문: {query}\\n',\n input_variables=['query'],\n partial_variables={'format_instructions': format_instructions}\n)\n# 4. 모델 초기화\nmodel = ChatOpenAI(model='gpt-4o-mini', temperature=0 )\n# 5. 체인 결합\nchain =\n# 6. 실행\nresponse = chain.invoke({'query': '김치찌개 맛있게 끓이는 법 알려줘'})"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "JsonOutputParser 예제에서 체인 결과는 JSON 문자열이라서 <code>json.loads()</code>로 한 번 더 바꿔야 dict가 된다.",
+          "a": false,
+          "h": "출력 파서는 체인의 마지막 단계에서 모델의 원시 텍스트를 원하는 파이썬 자료형으로 바꿔 줍니다. 예제는 체인 결과를 바로 print 했고, 주석에서 이미 파이썬 자료형으로 나온다고 설명합니다.",
+          "w": "틀렸습니다. 파서가 이미 dict로 바꿔 주므로 추가 변환이 필요 없습니다. 이것이 파서를 체인에 넣는 이유입니다.",
+          "an": "5일차 실무 예시: JsonOutputParser 활용 · 5. 실행 주석",
+          "src": "# 5. 실행\nresult = chain.invoke({\"question\": \"대한민국의 수도와 인구는?\"})\nprint(result) # 이제 Python의 dict로 출력됩니다!"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "PromptTemplate의 <code>input_variables</code>에는 invoke 때 사용자가 넘길 변수 이름을 적는다.",
+          "a": true,
+          "h": "PromptTemplate은 템플릿 문자열과 함께 변수 목록을 받습니다. JSON 예제는 <code>input_variables=['question']</code>를, 레시피 예제는 <code>input_variables=['query']</code>를 적었고 실제 invoke도 그 이름으로 값을 넘겼습니다.",
+          "w": "맞습니다. JSON 예제는 <code>input_variables=['question']</code>, 레시피 예제는 <code>['query']</code>를 적었습니다. 지침처럼 미리 채우는 값은 partial_variables에 둡니다.",
+          "an": "5일차 실무 예시: JsonOutputParser 활용 · 5일차 JSON 파서 · CusineRecipe 레시피 예제",
+          "src": "template='사용자의 질문에 답변하세요.\\n{format_instructions}\\n질문: {query}\\n',\n input_variables=['query'],\n partial_variables={'format_instructions': format_instructions}"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "레시피 예제의 코드 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "class CusineRecipe(BaseModel)",
+              "출력 JSON의 구조 정의"
+            ],
+            [
+              "JsonOutputParser",
+              "모델 응답을 dict로 변환"
+            ],
+            [
+              "partial_variables",
+              "형식 지침을 템플릿에 미리 채움"
+            ],
+            [
+              "input_variables",
+              "invoke로 받을 변수 목록"
+            ]
+          ],
+          "h": "레시피 예제는 데이터 구조 정의 → JSON 파서 정의 → 프롬프트 템플릿 정의 순서로 작성됩니다. 템플릿 인자 중 하나는 실행 전에 미리 채우는 값을, 다른 하나는 invoke 때 사용자가 넘길 변수 이름을 담습니다.",
+          "w": "BaseModel 클래스가 스키마를, 파서가 변환을 맡습니다. partial_variables는 미리 채우는 값, input_variables는 실행 때 받을 값입니다.",
+          "an": "5일차 JSON 파서 · CusineRecipe 레시피 예제",
+          "src": "# 1. 한글 데이터 구조 정의 (Pydantic 모델)\nclass CusineRecipe(BaseModel):\n# 2. JSON 파서 정의\noutput_parser =\nformat_instructions =\n# 3. 한글 프롬프트 템플릿 정의\nprompt = PromptTemplate(\n template='사용자의 질문에 답변하세요.\\n{format_instructions}\\n질문: {query}\\n',\n input_variables=['query'],\n partial_variables={'format_instructions': format_instructions}"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "레시피(JSON 파서) 예제의 작성 순서대로 나열하세요.",
+          "steps": [
+            "Pydantic 모델로 데이터 구조 정의",
+            "JSON 파서와 형식 지침 생성",
+            "프롬프트 템플릿 정의",
+            "모델 초기화 후 체인 결합",
+            "invoke로 실행"
+          ],
+          "h": "레시피 예제의 주석 번호는 1. 데이터 구조 정의 → 2. JSON 파서 정의 → 3. 프롬프트 템플릿 → 4. 모델 초기화 → 5. 체인 결합 → 6. 실행입니다. 파서는 구조가 있어야, 프롬프트는 파서의 지침이 있어야 만들 수 있습니다.",
+          "w": "구조(BaseModel)를 먼저 정의해야 파서와 지침을 만들 수 있고, 지침이 있어야 템플릿을 완성할 수 있습니다. 마지막에 체인을 묶어 실행합니다.",
+          "an": "5일차 JSON 파서 · CusineRecipe 레시피 예제 · 주석 1~6",
+          "src": "# 2. JSON 파서 정의\noutput_parser =\nformat_instructions =\n# 3. 한글 프롬프트 템플릿 정의\nprompt = PromptTemplate(\n template='사용자의 질문에 답변하세요.\\n{format_instructions}\\n질문: {query}\\n',\n input_variables=['query'],\n partial_variables={'format_instructions': format_instructions}\n)\n# 4. 모델 초기화\nmodel = ChatOpenAI(model='gpt-4o-mini', temperature=0 )\n# 5. 체인 결합\nchain =\n# 6. 실행"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "JSON 예제 코드 <code>PromptTemplate(template=..., input_variables=['question'], partial_variables={'format_instructions': parser.get_format_instructions()})</code>에 대해 옳은 설명을 모두 고르세요.",
+          "o": [
+            "question은 invoke 때 넘긴다",
+            "format_instructions는 미리 채워진다",
+            "체인 결과는 dict로 나온다",
+            "format_instructions도 invoke에 꼭 넘긴다",
+            "템플릿에 변수가 하나도 없다"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "<code>input_variables</code>는 invoke 때 받을 변수, <code>partial_variables</code>는 미리 채워 두는 변수입니다. 또한 체인 끝에 JsonOutputParser가 있으면 결과가 파이썬 자료형으로 바뀌어 나온다는 점도 함께 따져 보세요.",
+          "w": "question은 실행 때 넘기고 format_instructions는 미리 채워져 있으며, 체인 끝의 JsonOutputParser가 dict를 돌려줍니다. 지침을 다시 넘길 필요는 없습니다.",
+          "an": "5일차 실무 예시: JsonOutputParser 활용",
+          "src": "prompt = PromptTemplate(\n template=\"질문에 대해 JSON 형식으로 답변하세요.\\n{format_instructions}\\n질문: {question}\",\n input_variables=[\"question\"],\n partial_variables={\"format_instructions\": parser.get_format_instructions()},\n)\n# 4. 체인 구성\nchain =\n# 5. 실행\nresult = chain.invoke({\"question\": \"대한민국의 수도와 인구는?\"})\nprint(result) # 이제 Python의 dict로 출력됩니다!"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "실습 · JSON 파서 응용 3종",
+      "ref": "5일차 문제) 여행 일정 · 이력서 평가 · 고객 문의 분류",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "여행 일정 생성기 TODO 1에서 하루 일정을 담는 BaseModel의 필드는?",
+          "o": [
+            "day · plan",
+            "date · place",
+            "step · todo",
+            "name · score"
+          ],
+          "a": 0,
+          "h": "여행 일정 생성기 TODO 1은 '일정 정보를 저장할 BaseModel'을 괄호 안 두 필드로 작성하라고 합니다. 출력 예시 schedule 안 각 항목은 몇째 날인지 나타내는 숫자와 그날의 계획 문장으로 이루어져 있습니다.",
+          "w": "TODO 1은 (day, plan)을 요구합니다. 출력 예시의 <code>{'day': 1, 'plan': '...'}</code>가 이 모델 하나입니다.",
+          "an": "5일차 문제) 여행 일정 생성기 · TODO 1",
+          "src": "# TODO 1\n# 일정 정보를 저장할 BaseModel을 작성하세요.\n# (day, plan)"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "여행 일정 생성기 PromptTemplate에 반드시 포함할 입력 변수는?",
+          "o": [
+            "question · query",
+            "destination · days",
+            "resume · score",
+            "inquiry · priority"
+          ],
+          "a": 1,
+          "h": "TODO 4는 PromptTemplate에 '반드시 포함할 변수' 두 개를 적어 둡니다. 입력 예시가 '여행지 : 제주도, 여행일수 : 3'이고, 출력 예시의 첫 두 키도 이 두 정보를 영어 이름으로 담습니다.",
+          "w": "TODO 4는 destination과 days를 반드시 포함하라고 합니다. resume·inquiry는 다른 실습의 입력 변수입니다.",
+          "an": "5일차 문제) 여행 일정 생성기 · TODO 4",
+          "src": "# 반드시 포함할 변수\n# - destination\n# - days"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "전체 여행 정보 모델(destination, days, schedule)에서 <code>schedule</code> 필드에 담기는 것은?",
+          "o": [
+            "여행지 이름 문자열",
+            "여행 일수 정수",
+            "하루 일정 객체의 리스트",
+            "형식 지침 문자열"
+          ],
+          "a": 2,
+          "h": "TODO 2의 전체 여행 정보 모델은 여행지, 일수, 일정 세 필드로 구성됩니다. 출력 예시에서 schedule 값은 대괄호로 시작하고, 그 안에 day와 plan을 가진 중괄호 묶음이 날짜 수만큼 들어 있습니다.",
+          "w": "schedule은 day·plan 일정 객체 여러 개를 담는 리스트입니다. 여행지는 destination, 일수는 days 필드가 맡습니다.",
+          "an": "5일차 문제) 여행 일정 생성기 · TODO 2 · 출력 예시",
+          "src": "# 전체 여행 정보를 저장할 BaseModel을 작성하세요.\n# (destination, days, schedule)"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "이력서 평가 시스템 출력 예시에서 <code>interview_questions</code> 필드의 자료형은?",
+          "o": [
+            "정수(int)",
+            "문자열(str)",
+            "불리언(bool)",
+            "문자열 리스트"
+          ],
+          "a": 3,
+          "h": "이력서 평가 출력 예시에서 score는 따옴표 없는 숫자이고, name과 career_level은 따옴표 문자열입니다. interview_questions는 skills·strengths처럼 대괄호 안에 따옴표 항목 여러 개가 나열되어 있습니다.",
+          "w": "interview_questions는 질문 여러 개를 담은 문자열 리스트입니다. 정수로 나오는 필드는 score입니다.",
+          "an": "5일차 문제) AI 이력서 평가 시스템 · 출력 예시",
+          "src": "\"score\": 92,\n \"interview_questions\": [\n \"...\",\n \"...\",\n \"...\"\n ]"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "여행 일정 생성기 TODO 7(제주도 / 3일)을 실행하는 코드로 알맞은 것은?",
+          "o": [
+            "chain.invoke({'question': '제주도 3일'})",
+            "chain.invoke({'destination': '제주도', 'days': 3})",
+            "chain.invoke({'query': '제주도', 'days': 3})",
+            "chain.invoke({'resume': '제주도'})"
+          ],
+          "a": 1,
+          "h": "invoke 딕셔너리의 키는 PromptTemplate의 입력 변수 이름과 같아야 템플릿이 채워집니다. 여행 일정 생성기 TODO 4가 반드시 포함하라고 한 두 변수에 '제주도'와 3을 각각 넣는다고 생각해 보세요.",
+          "w": "프롬프트 입력 변수가 destination과 days이므로 이 두 키로 넘깁니다. 키 이름이 다르면 템플릿 변수가 채워지지 않습니다.",
+          "an": "5일차 문제) 여행 일정 생성기 · TODO 7",
+          "src": "입력 예시\n여행지 : 제주도\n여행일수 : 3"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "고객 문의 분류 출력 예시에서 배송 지연 문의의 priority는 '높음', sentiment는 '부정'이다.",
+          "a": true,
+          "h": "고객 문의 분류 입력 예시는 '주문한 상품이 아직 도착하지 않았고 배송 조회도 되지 않는다'는 불만 문의입니다. 출력 예시는 이 문의를 category '배송'으로 분류하고, 급한 정도와 고객 감정도 함께 판정합니다.",
+          "w": "맞습니다. 예시는 category '배송', priority '높음', sentiment '부정'과 요약·추천 조치를 반환합니다.",
+          "an": "5일차 문제) 고객 문의 자동 분류 시스템 · 출력 예시",
+          "src": "\"category\": \"배송\",\n \"priority\": \"높음\",\n \"sentiment\": \"부정\","
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "이력서 평가 시스템 출력 예시에서 score는 '92점'처럼 문자열로 나온다.",
+          "a": false,
+          "h": "JSON에서 따옴표로 감싼 값은 문자열, 따옴표 없는 숫자는 수치 값입니다. 이력서 평가 출력 예시의 score 줄이 어떤 모양으로 적혀 있는지 떠올려 보세요.",
+          "w": "틀렸습니다. 예시는 <code>'score': 92</code>처럼 따옴표 없는 숫자입니다. 점수를 숫자로 받아야 비교·정렬에 바로 쓸 수 있습니다.",
+          "an": "5일차 문제) AI 이력서 평가 시스템 · 출력 예시",
+          "src": "\"weaknesses\": [\n \"...\"\n ],\n \"score\": 92,"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "실습과 BaseModel에 들어가는 대표 필드를 연결하세요.",
+          "pairs": [
+            [
+              "여행 일정 생성기",
+              "destination · days · schedule"
+            ],
+            [
+              "이력서 평가(ResumeEvaluation)",
+              "career_level · strengths · score"
+            ],
+            [
+              "고객 문의 분류(CustomerInquiry)",
+              "category · priority · sentiment"
+            ]
+          ],
+          "h": "세 실습은 각각 여행 계획, 지원자 평가, 고객 문의 분석을 JSON으로 돌려줍니다. 여행 모델은 여행지·일수·일정을, 이력서 모델은 경력 수준·강점·점수를, 문의 모델은 유형·우선순위·감정을 담습니다.",
+          "w": "여행 일정은 여행지·일수·일정, 이력서 평가는 경력 수준·강점·점수, 고객 문의는 유형·우선순위·감정을 담습니다.",
+          "an": "5일차 문제) 여행 일정 생성기 · 5일차 문제) AI 이력서 평가 시스템 · 5일차 문제) 고객 문의 자동 분류 시스템",
+          "src": "# CustomerInquiry BaseModel을 작성하세요.\n#\n# 포함 항목\n# category\n# priority\n# sentiment\n# summary\n# recommended_action"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "이력서 평가 시스템의 TODO 순서대로 나열하세요.",
+          "steps": [
+            "ResumeEvaluation BaseModel 작성",
+            "JsonOutputParser 생성",
+            "get_format_instructions()를 넣어 PromptTemplate 작성",
+            "ChatOpenAI 객체 생성",
+            "LCEL 체인 작성 후 invoke로 분석"
+          ],
+          "h": "이력서 평가 TODO는 1. BaseModel 작성 → 2. JsonOutputParser 생성 → 3. PromptTemplate 작성 → 4. ChatOpenAI 생성 → 5. LCEL 체인 → 6. invoke 순서입니다. 프롬프트에는 파서의 형식 지침이 들어가야 하므로 파서가 먼저 있어야 합니다.",
+          "w": "스키마가 있어야 파서를, 파서가 있어야 형식 지침을 만들 수 있습니다. 모델까지 준비되면 LCEL 체인으로 묶어 invoke로 실행합니다.",
+          "an": "5일차 문제) AI 이력서 평가 시스템 · TODO 1~6",
+          "src": "요구사항\nPydantic 모델 정의\nJsonOutputParser 사용\nparser.get_format_instructions() 사용\nLCEL 체인 사용\ninvoke() 사용"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "고객 문의 자동 분류 시스템의 CustomerInquiry 모델에 넣어야 할 필드를 모두 고르세요.",
+          "o": [
+            "category",
+            "priority",
+            "sentiment",
+            "score",
+            "destination"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "고객 문의 분류 TODO 1의 포함 항목은 문의 유형, 우선순위, 감정 분석, 요약, 추천 조치 다섯 개입니다. 출력 예시의 키 이름과 비교해 보고, 다른 실습(이력서 점수·여행지)의 필드는 걸러 내세요.",
+          "w": "TODO 1의 포함 항목은 category, priority, sentiment, summary, recommended_action입니다. score는 이력서 평가, destination은 여행 일정의 필드입니다.",
+          "an": "5일차 문제) 고객 문의 자동 분류 시스템 · TODO 1",
+          "src": "# CustomerInquiry BaseModel을 작성하세요.\n#\n# 포함 항목\n# category\n# priority\n# sentiment\n# summary\n# recommended_action"
+        }
+      ]
+    }
+  ]
+}

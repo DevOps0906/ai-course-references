@@ -1,0 +1,1353 @@
+{
+  "id": "lc-d08",
+  "code": "LC8",
+  "title": "LangChain 8일차 · RAG 기초 (TextSplitter·FAISS·LCEL RAG 체인)",
+  "subtitle": "RAG 개념·구성 요소 · TextSplitter 청크 분할 · FAISS·LCEL RAG 체인",
+  "course": "05 · LangChain · RAG · Agent",
+  "source": "05-langchain-agent/day08/8일차_LLM_LCEL_Runnable Interface_RAG_기본_사용법_new배포_.ipynb",
+  "salt": "lc-d08",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "RAG 개념 · 필요성",
+      "ref": "8일차 RAG란? · RAG가 필요한 이유 · 구성 요소 · Context란?",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "RAG(Retrieval-Augmented Generation)가 결합하는 두 가지는?",
+          "o": [
+            "분류와 요약",
+            "검색과 생성",
+            "번역과 생성",
+            "학습과 추론"
+          ],
+          "a": 1,
+          "h": "약어의 R은 Retrieval, G는 Generation입니다. 자료는 RAG를 '___한 정보를 기반으로 답변을 ___하는 기술'이라고 한 문장으로 요약합니다.",
+          "w": "RAG는 검색(Retrieval)과 생성(Generation)을 결합합니다. 먼저 관련 문서를 검색한 뒤 그 문서를 참고해 답변을 생성합니다.",
+          "an": "8일차 RAG란?",
+          "src": "RAG(Retrieval-Augmented Generation)는 **검색(Retrieval)** 과 **생성(Generation)** 을 결합한 AI 기술이다.\n\n기존 LLM(Large Language Model)은 학습된 데이터만을 기반으로 답변을 생성한다. 따라서 최신 정보나 학습되지 않은 문서에 대해서는 정확한 답변을 제공하기 어렵다.\n\n이러한 한계를 해결하기 위해 등장한 기술이 RAG이다.\n\nRAG는 사용자의 질문과 관련된 문서를 먼저 검색한 후(Search), 검색된 문서를 참고하여 답변을 생성(Generation)한다.\n\n즉,\n\n **\"검색한 정보를 기반으로 답변을 생성하는 기술\"**\n\n이라고 이해하면 된다.\n\n---\n# RAG가 필요한 이유"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "LLM이 존재하지 않는 내용을 사실처럼 생성하는 현상은?",
+          "o": [
+            "Retrieval(검색)",
+            "Context(문맥)",
+            "Embedding(임베딩)",
+            "Hallucination(환각)"
+          ],
+          "a": 3,
+          "h": "자료는 'RAG가 필요한 이유'에서 LLM의 한계 네 가지를 듭니다. 최신 정보를 모름, 회사 내부 문서 미학습, 전문 지식 부족, 그리고 없는 내용을 사실처럼 꾸며 내는 현상입니다. 우리말 이름은 '헛것을 본다'는 뜻입니다.",
+          "w": "없는 내용을 사실처럼 생성하는 현상은 Hallucination(환각)입니다. Retrieval·Context·Embedding은 이를 줄이려는 RAG의 구성 개념입니다.",
+          "an": "8일차 RAG가 필요한 이유",
+          "src": "RAG는 사용자의 질문과 관련된 문서를 먼저 검색한 후(Search), 검색된 문서를 참고하여 답변을 생성(Generation)한다.\n\n즉,\n\n **\"검색한 정보를 기반으로 답변을 생성하는 기술\"**\n\n이라고 이해하면 된다.\n\n---\n# RAG가 필요한 이유\n\nLLM은 매우 뛰어난 언어 생성 능력을 가지고 있지만 다음과 같은 한계가 있다.\n\n- 최신 정보를 알지 못할 수 있다.\n- 회사 내부 문서를 학습하지 않았다.\n- 특정 분야의 전문 지식이 부족할 수 있다.\n- 존재하지 않는 내용을 사실처럼 생성하는 Hallucination(환각) 현상이 발생할 수 있다.\n\n예를 들어,\n\n```\n우리 회사의 휴가 규정을 알려줘."
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "'우리 회사의 휴가 규정을 알려줘'에 일반 LLM이 정확히 답하기 어려운 이유는?",
+          "o": [
+            "회사 내부 문서를 학습하지 않음",
+            "질문이 너무 짧음",
+            "한국어를 이해하지 못함",
+            "temperature가 높음"
+          ],
+          "a": 0,
+          "h": "기존 LLM은 학습된 데이터만으로 답변합니다. 자료는 이 예시에서 RAG가 규정 문서를 검색하고, Context로 제공해, 그 문서를 근거로 답하게 한다고 설명합니다.",
+          "w": "LLM은 회사 내부 문서를 학습하지 않았기 때문에 정확한 답을 만들 수 없습니다. RAG는 규정 문서를 검색해 Context로 넣어 이 한계를 보완합니다.",
+          "an": "8일차 RAG가 필요한 이유 · 휴가 규정 예시",
+          "src": "# RAG가 필요한 이유\n\nLLM은 매우 뛰어난 언어 생성 능력을 가지고 있지만 다음과 같은 한계가 있다.\n\n- 최신 정보를 알지 못할 수 있다.\n- 회사 내부 문서를 학습하지 않았다.\n- 특정 분야의 전문 지식이 부족할 수 있다.\n- 존재하지 않는 내용을 사실처럼 생성하는 Hallucination(환각) 현상이 발생할 수 있다.\n\n예를 들어,\n\n```\n우리 회사의 휴가 규정을 알려줘.\n```\n\n라는 질문을 한다면,\n\nLLM은 회사 내부 문서를 학습하지 않았기 때문에 정확한 답변을 생성할 수 없다.\n\n하지만 RAG를 사용하면\n\n1. 회사 규정 문서를 검색하고\n2. 검색된 문서를 Context로 제공한 후\n3. 해당 문서를 기반으로 답변을 생성한다."
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "RAG에서 말하는 Context란 무엇인가요?",
+          "o": [
+            "사용자의 원래 질문",
+            "LLM의 최종 답변",
+            "Retriever가 검색한 문서",
+            "임베딩 모델의 이름"
+          ],
+          "a": 2,
+          "h": "자료의 'Context란?' 절은 Context를 한 문장으로 정의합니다. 여행지 질문 예시에서 제주도·경주·부산 문장들이 어떤 과정을 거쳐 LLM에 전달되었는지 떠올리세요.",
+          "w": "Context는 Retriever가 검색한 문서입니다. LLM은 질문과 함께 이 Context를 참고해 답변합니다.",
+          "an": "8일차 Context란?",
+          "src": "Retriever가 검색한 문서를 Context로 전달받아 최종 답변을 생성한다.\n\n즉,\n\n```\nQuestion\n+\nContext\n↓\nLLM\n↓\nAnswer\n```\n\n의 역할을 수행한다.\n\n---\n# Context란?\n\nContext는 Retriever가 검색한 문서를 의미한다.\n\n예를 들어,\n\n사용자가\n\n```\n혼자 여행하기 좋은 곳 추천해줘.\n```\n\n라고 질문하면,\n\nRetriever는\n\n```\n제주도는 혼자 여행하기 좋은 여행지이다.\n\n경주는 역사 문화 도시이다.\n\n부산은 해안 관광지로 유명하다.\n```\n\n와 같은 문서를 검색한다.\n\n이 검색된 문서 전체가 Context가 된다.\n\nLLM은 Context를 참고하여 답변을 생성한다.\n\n---\n# RAG 실행 흐름"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "'혼자 여행하기 좋은 곳 추천해줘'에 Retriever가 제주도·경주·부산 문서 3개를 찾았습니다. LLM에 전달되는 Context는?",
+          "o": [
+            "가장 짧은 문서 1개",
+            "검색된 문서 전체",
+            "질문 문장만",
+            "LLM이 학습한 지식"
+          ],
+          "a": 1,
+          "h": "자료의 예시는 Retriever가 찾은 세 문장을 보여 준 뒤 '이 검색된 문서 전체가 ___가 된다'고 말합니다. 질문은 따로 전달되고, LLM은 이 묶음을 참고해 답을 만듭니다.",
+          "w": "검색된 문서 전체가 Context가 됩니다. 질문은 question으로 따로 들어가며, LLM이 원래 학습한 지식은 Context가 아닙니다.",
+          "an": "8일차 Context란? · 여행 질문 예시",
+          "src": "Retriever가 검색한 문서를 Context로 전달받아 최종 답변을 생성한다.\n\n즉,\n\n```\nQuestion\n+\nContext\n↓\nLLM\n↓\nAnswer\n```\n\n의 역할을 수행한다.\n\n---\n# Context란?\n\nContext는 Retriever가 검색한 문서를 의미한다.\n\n예를 들어,\n\n사용자가\n\n```\n혼자 여행하기 좋은 곳 추천해줘.\n```\n\n라고 질문하면,\n\nRetriever는\n\n```\n제주도는 혼자 여행하기 좋은 여행지이다.\n\n경주는 역사 문화 도시이다.\n\n부산은 해안 관광지로 유명하다.\n```\n\n와 같은 문서를 검색한다.\n\n이 검색된 문서 전체가 Context가 된다.\n\nLLM은 Context를 참고하여 답변을 생성한다."
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "RAG는 관련 문서를 먼저 검색한 뒤 그 문서를 참고해 답변을 생성한다.",
+          "a": true,
+          "h": "자료는 RAG가 사용자의 질문과 관련된 문서를 먼저 검색(Search)하고, 검색된 문서를 참고해 답변을 생성(Generation)한다고 설명합니다. 전체 동작 그림도 질문 → 문서 검색 → Context → Prompt → LLM 순입니다.",
+          "w": "맞습니다. 검색이 먼저이고, 검색 결과를 근거로 생성합니다.",
+          "an": "8일차 RAG란? · RAG의 전체 동작 과정",
+          "src": "기존 LLM(Large Language Model)은 학습된 데이터만을 기반으로 답변을 생성한다. 따라서 최신 정보나 학습되지 않은 문서에 대해서는 정확한 답변을 제공하기 어렵다.\n\n이러한 한계를 해결하기 위해 등장한 기술이 RAG이다.\n\nRAG는 사용자의 질문과 관련된 문서를 먼저 검색한 후(Search), 검색된 문서를 참고하여 답변을 생성(Generation)한다.\n\n즉,\n\n **\"검색한 정보를 기반으로 답변을 생성하는 기술\"**\n\n이라고 이해하면 된다.\n\n---\n# RAG가 필요한 이유"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Retriever는 검색한 문서를 바탕으로 최종 답변 문장도 직접 생성한다.",
+          "a": false,
+          "h": "자료는 Retriever를 '사용자의 질문과 가장 유사한 문서를 검색하는 역할'로 정의하고, 그것이 문서를 생성하는지에 대해 따로 한 줄을 덧붙입니다. 최종 답변은 Question + Context를 받는 다른 구성 요소가 만듭니다.",
+          "w": "틀렸습니다. Retriever는 검색만 하고, 최종 답변은 LLM이 Context를 받아 생성합니다.",
+          "an": "8일차 RAG 구성 요소 · 4. Retriever",
+          "src": "이번 실습에서는 **FAISS**를 사용한다.\n\n---\n## 4. Retriever\n\nRetriever는\n\n **사용자의 질문과 가장 유사한 문서를 검색하는 역할**\n\n을 수행한다.\n\n즉,\n\n\nQuestion\n │\n ▼\nRetriever\n │\n ▼\n관련 Document\n\n\n의 과정을 담당한다.\n\nRetriever는 문서를 생성하는 것이 아니라 검색만 수행한다.\n\n---\n## 5. LLM\n\nRetriever가 검색한 문서를 Context로 전달받아 최종 답변을 생성한다."
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "RAG 구성 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "Documents",
+              "검색 대상이 되는 원본 데이터"
+            ],
+            [
+              "Embedding Model",
+              "텍스트를 벡터로 변환"
+            ],
+            [
+              "Vector Database",
+              "임베딩된 벡터를 저장"
+            ],
+            [
+              "Retriever",
+              "질문과 유사한 문서를 검색"
+            ],
+            [
+              "LLM",
+              "Context로 최종 답변 생성"
+            ]
+          ],
+          "h": "자료는 RAG를 다섯 요소로 나눕니다. PDF·Word 같은 원본 자료, 그 자료를 숫자로 바꾸는 모델, 숫자를 보관하는 저장소, 질문에 맞는 자료를 찾는 검색기, 그리고 답을 쓰는 모델입니다.",
+          "w": "Documents는 원본, Embedding Model은 벡터 변환, Vector Database는 벡터 저장, Retriever는 유사 문서 검색, LLM은 최종 답변 생성을 맡습니다.",
+          "an": "8일차 RAG 구성 요소 1~5",
+          "src": "RAG는 일반적으로 다음과 같은 순서로 동작한다.\n\n```\n사용자 질문\n │\n ▼\n문서 검색(Retrieval)\n │\n ▼\n관련 문서(Context)\n │\n ▼\nPrompt 생성\n │\n ▼\n LLM\n │\n ▼\n최종 답변 생성\n```\n\n---\n# RAG 구성 요소\n\nRAG 시스템은 크게 다섯 가지 요소로 구성된다.\n## 1. Documents\n\n검색의 대상이 되는 원본 데이터이다.\n\n예를 들어\n\n- PDF\n- Word\n- TXT\n- CSV\n- 데이터베이스(DB)\n- 웹 페이지\n- 사내 문서\n\n등이 모두 Documents가 될 수 있다.\n\n---\n## 2. Embedding Model\n\nEmbedding Model은 텍스트를 숫자(Vector)로 변환하는 모델이다."
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "RAG의 전체 동작 과정을 순서대로 나열하세요.",
+          "steps": [
+            "사용자 질문",
+            "문서 검색(Retrieval)",
+            "관련 문서(Context)",
+            "Prompt 생성",
+            "LLM이 최종 답변 생성"
+          ],
+          "h": "자료의 'RAG의 전체 동작 과정' 그림을 떠올리세요. 질문으로 문서를 찾고, 찾은 문서로 프롬프트를 채운 다음, 모델이 답을 씁니다.",
+          "w": "질문 → 문서 검색 → Context → Prompt 생성 → LLM 답변 순입니다.",
+          "an": "8일차 RAG의 전체 동작 과정",
+          "src": "# RAG의 전체 동작 과정\n\nRAG는 일반적으로 다음과 같은 순서로 동작한다.\n\n```\n사용자 질문\n │\n ▼\n문서 검색(Retrieval)\n │\n ▼\n관련 문서(Context)\n │\n ▼\nPrompt 생성\n │\n ▼\n LLM\n │\n ▼\n최종 답변 생성\n```\n\n---\n# RAG 구성 요소\n\nRAG 시스템은 크게 다섯 가지 요소로 구성된다.\n## 1. Documents\n\n검색의 대상이 되는 원본 데이터이다.\n\n예를 들어\n\n- PDF\n- Word\n- TXT\n- CSV\n- 데이터베이스(DB)\n- 웹 페이지\n- 사내 문서\n\n등이 모두 Documents가 될 수 있다.\n\n---\n## 2. Embedding Model\n\nEmbedding Model은 텍스트를 숫자(Vector)로 변환하는 모델이다."
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "RAG를 도입하면 특히 도움이 되는 상황을 모두 고르세요.",
+          "o": [
+            "최신 정보가 필요한 질문",
+            "사내 문서 기반 답변",
+            "특정 분야 전문 지식 질문",
+            "단순 인사말에 응답",
+            "참고 문서 없는 자유 창작"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "자료가 든 LLM의 한계는 최신 정보 부족, 회사 내부 문서 미학습, 특정 분야 전문 지식 부족, 환각입니다. RAG는 외부 문서를 검색해 근거로 삼으므로, 참고할 문서가 있어야 의미가 있습니다.",
+          "w": "최신 정보·사내 문서·전문 지식처럼 LLM이 학습하지 않은 내용을 문서로 보완할 때 RAG가 효과적입니다. 인사말이나 근거 문서가 없는 창작에는 검색 단계가 필요 없습니다.",
+          "an": "8일차 RAG가 필요한 이유",
+          "src": "RAG는 사용자의 질문과 관련된 문서를 먼저 검색한 후(Search), 검색된 문서를 참고하여 답변을 생성(Generation)한다.\n\n즉,\n\n **\"검색한 정보를 기반으로 답변을 생성하는 기술\"**\n\n이라고 이해하면 된다.\n\n---\n# RAG가 필요한 이유\n\nLLM은 매우 뛰어난 언어 생성 능력을 가지고 있지만 다음과 같은 한계가 있다.\n\n- 최신 정보를 알지 못할 수 있다.\n- 회사 내부 문서를 학습하지 않았다.\n- 특정 분야의 전문 지식이 부족할 수 있다.\n- 존재하지 않는 내용을 사실처럼 생성하는 Hallucination(환각) 현상이 발생할 수 있다."
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "RAG 흐름 · LCEL 구성",
+      "ref": "8일차 RAG 실행 흐름 · LangChain에서의 RAG 구성 · 주요 클래스 · chain1/chain2",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "8일차 실습에서 사용하는 Vector Database는?",
+          "o": [
+            "Pinecone",
+            "Milvus",
+            "FAISS",
+            "Weaviate"
+          ],
+          "a": 2,
+          "h": "자료는 대표적인 Vector Database로 다섯 가지를 나열한 뒤, 이번 실습에서 쓸 하나를 굵게 표시합니다. 설치 셀에서 이 라이브러리를 '-cpu' 버전으로 설치합니다.",
+          "w": "8일차는 FAISS를 사용합니다(설치: faiss-cpu). Pinecone·Milvus·Weaviate는 자료에 대표 예로만 나옵니다.",
+          "an": "8일차 RAG 구성 요소 · 3. Vector Database",
+          "src": "와 같은 벡터(Vector)로 변환한다.\n\n이러한 벡터를 이용하면 단순한 키워드 검색이 아닌 의미 기반(Semantic Search)의 검색이 가능해진다.\n\n---\n## 3. Vector Database\n\nEmbedding된 벡터를 저장하는 데이터베이스이다.\n\n대표적인 Vector Database는 다음과 같다.\n\n- FAISS\n- Chroma\n- Pinecone\n- Milvus\n- Weaviate\n\n이번 실습에서는 **FAISS**를 사용한다."
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "주요 클래스 표에서 'Document를 문자열(Context)로 변환'하는 역할을 맡은 것은?",
+          "o": [
+            "RunnableLambda",
+            "RunnablePassthrough",
+            "OpenAIEmbeddings",
+            "ChatPromptTemplate"
+          ],
+          "a": 0,
+          "h": "Retriever는 Document 객체 목록을 돌려주지만 프롬프트에는 문자열이 필요합니다. 그래서 7일차에 배운, 사용자 정의 함수(format_docs)를 감싸 체인에 넣는 클래스를 씁니다.",
+          "w": "RunnableLambda가 format_docs 함수를 감싸 Document 리스트를 Context 문자열로 바꿉니다. RunnablePassthrough는 질문을 그대로 전달합니다.",
+          "an": "8일차 이번 실습에서 사용할 주요 클래스",
+          "src": "# 이번 실습에서 사용할 주요 클래스\n\n| 클래스 | 역할 |\n|---------|------|\n| OpenAIEmbeddings | 문서를 벡터(Vector)로 변환 |\n| FAISS | 벡터를 저장하는 Vector Database |\n| Retriever | 관련 문서를 검색 |\n| RunnableLambda | Document를 문자열(Context)로 변환 |\n| RunnableParallel | 여러 Runnable을 병렬 실행 |\n| RunnablePassthrough | 사용자 질문을 그대로 전달 |\n| ChatPromptTemplate | Prompt 생성 |\n| ChatOpenAI | 최종 답변 생성 |\n| StrOutputParser | AIMessage를 문자열로 변환 |"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "LCEL RAG 구성에서 사용자 질문을 바꾸지 않고 question에 그대로 넘기는 것은?",
+          "o": [
+            "RunnableLambda",
+            "Retriever",
+            "StrOutputParser",
+            "RunnablePassthrough"
+          ],
+          "a": 3,
+          "h": "RAG 구성 그림에서 RunnableParallel은 두 갈래로 나뉩니다. 한쪽은 Retriever → RunnableLambda → Context이고, 다른 쪽은 입력을 그대로 통과시켜 Question이 됩니다.",
+          "w": "RunnablePassthrough가 질문을 그대로 question에 넣습니다. Retriever와 RunnableLambda는 context 갈래를 만듭니다.",
+          "an": "8일차 LangChain에서의 RAG 구성",
+          "src": "| RunnablePassthrough | 사용자 질문을 그대로 전달 |\n| ChatPromptTemplate | Prompt 생성 |\n| ChatOpenAI | 최종 답변 생성 |\n| StrOutputParser | AIMessage를 문자열로 변환 |\n# 핵심 정리\n\nRAG는 단순히 LLM에게 질문하는 방식이 아니라, 먼저 관련 문서를 검색한 후 검색된 문서를 기반으로 답변을 생성하는 기술이다.\n\n즉,\n\n\n검색(Retrieval) + 생성(Generation) = RAG\n\n\n이번 실습에서는 FAISS를 이용하여 관련 문서를 검색하고, LCEL 기반 RAG Chain을 구성하여 검색된 Context를 ChatOpenAI에 전달하는 전체 과정을 구현해 본다."
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "임베딩을 쓰면 단순 키워드 검색이 아닌 의미 기반 검색이 가능해지는 이유는?",
+          "o": [
+            "키워드 일치 개수를 셈",
+            "텍스트를 벡터로 바꿔 비교",
+            "문서를 시간순 정렬",
+            "LLM이 문서를 모두 읽음"
+          ],
+          "a": 1,
+          "h": "자료는 Embedding Model이 '인공지능'을 [0.13, -0.27, 0.94, ...] 같은 숫자 목록으로 바꾼다고 예를 듭니다. 이런 숫자 표현을 쓰면 글자가 달라도 뜻이 가까운 문서를 찾을 수 있다고 설명합니다.",
+          "w": "임베딩은 텍스트를 벡터로 바꾸고, 벡터끼리 비교해 의미가 가까운 문서를 찾습니다(Semantic Search). 키워드 개수 세기는 단순 키워드 검색입니다.",
+          "an": "8일차 RAG 구성 요소 · 2. Embedding Model",
+          "src": "- 사내 문서\n\n등이 모두 Documents가 될 수 있다.\n\n---\n## 2. Embedding Model\n\nEmbedding Model은 텍스트를 숫자(Vector)로 변환하는 모델이다.\n\n예를 들어\n\n```\n\"인공지능\"\n```\n\n이라는 단어를\n\n```\n[0.13, -0.27, 0.94, ...]\n```\n\n와 같은 벡터(Vector)로 변환한다.\n\n이러한 벡터를 이용하면 단순한 키워드 검색이 아닌 의미 기반(Semantic Search)의 검색이 가능해진다."
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "기존 <code>{'country': RunnablePassthrough()} | PromptTemplate.from_template('{country}의 수도는?') | ChatOpenAI()</code>를 개선할 때 맨 끝에 덧붙이는 것은?",
+          "o": [
+            "RunnableParallel()",
+            "OpenAIEmbeddings()",
+            "StrOutputParser()",
+            "TextLoader()"
+          ],
+          "a": 2,
+          "h": "8일차 첫 실습의 개선 코드 주석은 단계마다 역할을 적습니다. 입력 → country 매핑, 프롬프트 생성, LLM 호출, 그리고 'AIMessage → 문자열 변환'입니다.",
+          "w": "마지막에 <code>StrOutputParser()</code>를 붙여 AIMessage를 문자열로 바꿉니다. 그래서 combined_chain 결과가 {'capital': '대한민국의 수도는 서울입니다.', ...}처럼 문자열로 나옵니다.",
+          "an": "8일차 chain1·chain2 개선 코드(LCEL 표준 + 안정성)",
+          "src": "from langchain_core.output_parsers import StrOutputParser # 문자열 변환\n# ------------------------------------------------------------\n# chain1: 수도 질문 체인\n# ------------------------------------------------------------\nchain1 = (\n # 입력 → country 매핑\n # 프롬프트 생성\n # LLM 호출\n # AIMessage → 문자열 변환"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "RAG 실행 흐름에서 사용자 질문도 Embedding을 거쳐 Vector Search에 쓰인다.",
+          "a": true,
+          "h": "자료의 'RAG 실행 흐름' 그림은 사용자 질문에서 시작해 Embedding → Vector Search → Retriever → 관련 문서 → Context 생성으로 이어집니다. 문서와 질문이 같은 벡터 공간에 있어야 서로 비교할 수 있습니다.",
+          "w": "맞습니다. 질문도 임베딩되어 Vector Search로 유사한 문서를 찾습니다.",
+          "an": "8일차 RAG 실행 흐름",
+          "src": "와 같은 문서를 검색한다.\n\n이 검색된 문서 전체가 Context가 된다.\n\nLLM은 Context를 참고하여 답변을 생성한다.\n\n---\n# RAG 실행 흐름\n\n실제 RAG 시스템은 다음과 같은 순서로 동작한다.\n\n```\n사용자 질문\n │\n ▼\nEmbedding\n │\n ▼\nVector Search\n │\n ▼\nRetriever\n │\n ▼\n관련 문서(Document)\n │\n ▼\nContext 생성\n │\n ▼\nPromptTemplate\n │\n ▼\nChatOpenAI\n │\n ▼\n최종 답변\n```\n\n---\n# LangChain에서의 RAG 구성\n\n이번 실습에서는 LangChain의 LCEL(LangChain Expression Language)을 사용하여 RAG를 구현한다."
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "LCEL 체인(chain1, chain2)은 Runnable이 아니므로 RunnableParallel에 그대로 넣을 수 없다.",
+          "a": false,
+          "h": "8일차 첫 셀의 핵심 포인트 주석은 'LCEL 체인은 Runnable 자체다'와 'RunnableParallel로 쉽게 병렬 확장 가능'입니다. 실제로 <code>RunnableParallel(capital=chain1, area=chain2)</code>를 실행해 dict 결과를 얻었습니다.",
+          "w": "틀렸습니다. LCEL 체인도 Runnable이므로 RunnableParallel에 그대로 넣어 병렬 실행할 수 있습니다. 이것이 RAG·비교 QA 구조의 기본 패턴입니다.",
+          "an": "8일차 chain1·chain2 핵심 포인트",
+          "src": "# 이 코드는 LCEL 체인 자체를 RunnableParallel 구조로 확장할 수 있다는 개념을 설명한다.\n#\n# 핵심 개념:\n#\n# - LCEL 체인(chain1, chain2)도 하나의 Runnable이다\n# - RunnableParallel에 체인을 그대로 넣어 병렬 실행 가능\n# - RunnablePassthrough를 통해 입력을 country 키로 매핑\n#\n# 전체 흐름:\n#\n# 입력(dict or value)\n# → RunnablePassthrough\n# → PromptTemplate\n# → ChatOpenAI\n# → 각 chain 독립 실행\n#\n# 특징:\n# - chain 자체가 Runnable이므로 재사용 가능"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "주요 클래스와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "OpenAIEmbeddings",
+              "문서를 벡터로 변환"
+            ],
+            [
+              "FAISS",
+              "벡터를 저장하는 Vector DB"
+            ],
+            [
+              "ChatOpenAI",
+              "최종 답변 생성"
+            ],
+            [
+              "StrOutputParser",
+              "AIMessage를 문자열로 변환"
+            ]
+          ],
+          "h": "자료의 '주요 클래스' 표는 클래스마다 역할을 한 줄로 적습니다. 임베딩 클래스, 벡터 저장소, 답변 모델, 출력 파서가 RAG 흐름에서 각각 어느 단계를 맡는지 떠올리세요.",
+          "w": "OpenAIEmbeddings는 벡터 변환, FAISS는 벡터 저장, ChatOpenAI는 답변 생성, StrOutputParser는 문자열 변환을 맡습니다.",
+          "an": "8일차 이번 실습에서 사용할 주요 클래스",
+          "src": "# 이번 실습에서 사용할 주요 클래스\n\n| 클래스 | 역할 |\n|---------|------|\n| OpenAIEmbeddings | 문서를 벡터(Vector)로 변환 |\n| FAISS | 벡터를 저장하는 Vector Database |\n| Retriever | 관련 문서를 검색 |\n| RunnableLambda | Document를 문자열(Context)로 변환 |\n| RunnableParallel | 여러 Runnable을 병렬 실행 |\n| RunnablePassthrough | 사용자 질문을 그대로 전달 |\n| ChatPromptTemplate | Prompt 생성 |\n| ChatOpenAI | 최종 답변 생성 |\n| StrOutputParser | AIMessage를 문자열로 변환 |"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "자료의 'RAG 실행 흐름' 중 다음 단계를 순서대로 나열하세요.",
+          "steps": [
+            "Embedding",
+            "Vector Search",
+            "Context 생성",
+            "PromptTemplate",
+            "ChatOpenAI 최종 답변"
+          ],
+          "h": "질문은 먼저 숫자 벡터로 바뀌어야 벡터 검색을 할 수 있습니다. 찾은 문서로 Context를 만들고, 그것을 프롬프트에 채운 뒤 모델이 답변합니다.",
+          "w": "Embedding → Vector Search → (Retriever·관련 문서) → Context 생성 → PromptTemplate → ChatOpenAI 순입니다.",
+          "an": "8일차 RAG 실행 흐름",
+          "src": "이 검색된 문서 전체가 Context가 된다.\n\nLLM은 Context를 참고하여 답변을 생성한다.\n\n---\n# RAG 실행 흐름\n\n실제 RAG 시스템은 다음과 같은 순서로 동작한다.\n\n```\n사용자 질문\n │\n ▼\nEmbedding\n │\n ▼\nVector Search\n │\n ▼\nRetriever\n │\n ▼\n관련 문서(Document)\n │\n ▼\nContext 생성\n │\n ▼\nPromptTemplate\n │\n ▼\nChatOpenAI\n │\n ▼\n최종 답변"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "<code>combined_chain = RunnableParallel(capital=chain1, area=chain2)</code>를 <code>invoke('대한민국')</code>으로 실행할 때 옳은 것을 모두 고르세요.",
+          "o": [
+            "입력 문자열이 각 체인의 country로 전달",
+            "결과는 capital·area 키의 dict",
+            "두 체인은 같은 입력으로 실행",
+            "area 체인은 capital 결과를 입력받음",
+            "결과는 문자열 하나로 합쳐짐"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "각 체인 맨 앞의 <code>{'country': RunnablePassthrough()}</code>가 받은 값을 country 키에 넣습니다. RunnableParallel은 동일 입력을 여러 체인에 동시에 나눠 주고 결과를 키별로 merge합니다.",
+          "w": "'대한민국'이 두 체인의 country로 동시에 들어가고, 결과는 capital·area 키를 가진 dict입니다. 두 체인은 서로의 결과를 주고받지 않습니다.",
+          "an": "8일차 combined_chain 개선 코드 · 실행 결과",
+          "src": "# 이 코드는 LCEL 체인(chain1, chain2)을 RunnableParallel로 결합하여\n# 하나의 입력으로 여러 LLM 체인을 동시에 실행하는 구조이다.\n#\n# 핵심 개념:\n#\n# - RunnableParallel은 여러 Runnable(여기서는 chain)을 동시에 실행\n# - 각 chain은 독립적인 LCEL 파이프라인으로 동작\n# - 동일 입력이 각 chain으로 전달됨\n# - 결과는 dict 형태로 병합되어 반환됨\n#\n# 입력 흐름:\n#\n# \"대한민국\"\n# → capital chain1 (수도 질문)\n# → area chain2 (면적 질문)\n# → 각각 LLM 실행\n# → 결과 merge(dict)"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "CharacterTextSplitter",
+      "ref": "8일차 CharacterTextSplitter",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "CharacterTextSplitter에서 각 청크의 최대 길이를 정하는 매개변수는?",
+          "o": [
+            "chunk_size",
+            "chunk_overlap",
+            "separator",
+            "length_function"
+          ],
+          "a": 0,
+          "h": "노트북 주석은 분할기의 핵심 매개변수를 정리합니다. 하나는 '각 조각의 최대 길이', 하나는 '문맥 연결을 위한 중복 구간', 또 하나는 길이 계산 기준입니다. '크기(size)'라는 단어를 떠올리세요.",
+          "w": "chunk_size가 청크의 최대 길이입니다. chunk_overlap은 겹침 길이, separator는 구분자, length_function은 길이 계산 함수입니다.",
+          "an": "8일차 CharacterTextSplitter · 핵심 개념",
+          "src": "# 긴 텍스트를 일정한 크기의 청크(chunk)로 분할하는 예제이다.\n#\n# 핵심 개념:\n#\n# - CharacterTextSplitter\n# → 문자열 기준으로 텍스트를 일정 길이로 분할\n#\n# - chunk_size\n# → 각 조각의 최대 길이\n#\n# - chunk_overlap\n# → 문맥 연결을 위한 중복 구간"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "청크 사이 문맥 연결을 위해 겹치는 구간의 길이를 정하는 매개변수는?",
+          "o": [
+            "chunk_size",
+            "separator",
+            "chunk_overlap",
+            "search_kwargs"
+          ],
+          "a": 2,
+          "h": "청크를 딱 잘라 나누면 경계에서 문장의 앞뒤 맥락이 끊길 수 있습니다. 주석은 이 매개변수를 '의미 연결 유지 핵심'이며 검색 품질에 직접 영향을 준다고 설명합니다.",
+          "w": "chunk_overlap이 인접 청크 사이에 겹치는 길이입니다. 실습에서는 100자를 겹쳤습니다.",
+          "an": "8일차 CharacterTextSplitter · 핵심 포인트",
+          "src": "# 1. 상세 설명\n# ============================================================\n# 이 코드는 LangChain의 CharacterTextSplitter를 사용하여\n# 긴 텍스트를 일정한 크기의 청크(chunk)로 분할하는 예제이다.\n#\n# 핵심 개념:\n#\n# - CharacterTextSplitter\n# → 문자열 기준으로 텍스트를 일정 길이로 분할\n#\n# - chunk_size\n# → 각 조각의 최대 길이\n#\n# - chunk_overlap\n# → 문맥 연결을 위한 중복 구간"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>CharacterTextSplitter(separator='', ...)</code>로 설정하면 어떻게 분할되나요?",
+          "o": [
+            "줄바꿈 기준 분할",
+            "문자 단위로 분할",
+            "문단 기준 분할",
+            "분할하지 않음"
+          ],
+          "a": 1,
+          "h": "separator는 어디서 자를지 정하는 구분자입니다. 빈 문자열을 주면 특정 기호를 기다리지 않고 가장 작은 단위에서 자를 수 있다고 주석이 설명합니다.",
+          "w": "separator=''는 문자 단위로 분할합니다(가장 작은 단위 split). 줄바꿈 기준으로 나누려면 separator에 줄바꿈 문자를 줍니다.",
+          "an": "8일차 CharacterTextSplitter · separator='' 설명",
+          "src": "# 1. 상세 설명\n# ============================================================\n# 이 코드는 CharacterTextSplitter를 사용하여\n# 문서를 문자 단위 기준으로 청크로 분할하는 예제이다.\n#\n# 핵심 개념:\n#\n# - separator=''\n# → 문자 단위로 분할 (가장 작은 단위 split)\n#\n# - chunk_size=500\n# → 하나의 chunk 최대 길이\n#\n# - chunk_overlap=100\n# → chunk 간 문맥 유지용 겹침 구간\n#\n# - length_function=len\n# → 문자열 길이 계산 기준 지정\n#\n# 활용:\n#\n# - RAG에서 초미세 단위 분할"
+        },
+        {
+          "id": "t3-04",
+          "ty": "num",
+          "lv": 3,
+          "game": false,
+          "p": "TextLoader로 읽은 2105자 문서를 <code>separator=''</code>, <code>chunk_size=500</code>, <code>chunk_overlap=100</code>으로 나눴습니다. 청크는 몇 개인가요?",
+          "a": 6,
+          "unit": "개",
+          "h": "(2105 − 100) ÷ (500 − 100)을 계산한 뒤 소수점을 올림합니다. 청크마다 100자가 겹치므로 새로 진행하는 거리는 500 − 100 = 400자이고, 마지막 겹침 100자를 뺀 나머지를 400자씩 덮는 횟수가 청크 수입니다.",
+          "w": "(2105 − 100) ÷ 400 ≈ 5.01을 올림하면 6입니다. 노트북에서 <code>len(texts)</code> 출력도 6이었고, 첫 청크 길이는 499자였습니다.",
+          "an": "8일차 CharacterTextSplitter · separator='' 실행 결과",
+          "src": "# 문서를 문자 단위 기준으로 청크로 분할하는 예제이다.\n#\n# 핵심 개념:\n#\n# - separator=''\n# → 문자 단위로 분할 (가장 작은 단위 split)\n#\n# - chunk_size=500\n# → 하나의 chunk 최대 길이\n#\n# - chunk_overlap=100\n# → chunk 간 문맥 유지용 겹침 구간\n#\n# - length_function=len\n# → 문자열 길이 계산 기준 지정\n#\n# 활용:\n#\n# - RAG에서 초미세 단위 분할"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "줄바꿈 기준으로 다시 나누자 청크 길이가 (387, 494, 392)처럼 500자보다 짧아졌습니다. 이유로 알맞은 것은?",
+          "o": [
+            "chunk_overlap이 커져서",
+            "length_function이 바뀌어서",
+            "임베딩 길이 제한 때문",
+            "구분자 위치에서 끊기 때문"
+          ],
+          "a": 3,
+          "h": "separator=''일 때는 거의 500자를 꽉 채워 첫 청크가 499자였습니다. 줄바꿈을 구분자로 주면 분할기는 chunk_size를 넘지 않는 범위에서 줄바꿈이 있는 자리에서만 자를 수 있습니다.",
+          "w": "줄바꿈 기준 분할은 구분자가 있는 위치에서 끊으므로 500자에 못 미치는 청크가 생깁니다. overlap이나 length_function은 바꾸지 않았습니다.",
+          "an": "8일차 CharacterTextSplitter · 줄바꿈 문자를 기준으로 분할",
+          "src": "# 줄바꿈 문자를 기준으로 분할\n\ntext_splitter = CharacterTextSplitter(\n\n\n)\n\ntexts = text_splitter.split_text(data[0].page_content)\n\nlen(texts)\n\n```\n\n```python\nlen(texts[0]), len(texts[1]), len(texts[2])"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>split_text()</code>는 문자열을 받아 청크 문자열의 리스트를 반환한다.",
+          "a": true,
+          "h": "주석은 split_text()를 '문자열 → 리스트(chunk list) 변환'이라고 설명합니다. 예시 텍스트를 나눈 출력도 대괄호 안에 문자열 두 개가 담긴 형태였습니다.",
+          "w": "맞습니다. split_text()의 결과는 List[str]입니다. Document를 유지하려면 split_documents()를 씁니다.",
+          "an": "8일차 CharacterTextSplitter · 라인별 주석",
+          "src": "# 4. 라인별 주석\n# ============================================================\n# CharacterTextSplitter\n# → 텍스트를 문자 기준으로 분할하는 LangChain 전처리 도구\n# separator=\"\"\n# → 문자 단위로 하나씩 split\n# chunk_size=500\n# → 한 조각 최대 500자 제한\n# chunk_overlap=100\n# → 문맥 유지 위해 100자 겹침\n# length_function=len\n# → 문자열 길이 기준 정의\n# split_text()\n# → 문자열 → 리스트(chunk list) 변환"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "chunk_size를 아주 작게 잡을수록 검색 품질은 항상 좋아진다.",
+          "a": false,
+          "h": "노트북의 핵심 포인트는 '너무 작은 chunk_size는 의미 손실 발생'과 'chunk 길이가 너무 짧거나 길면 검색 성능 저하'입니다. 청크 하나에 담긴 뜻이 너무 적어지면 어떤 일이 생길지 떠올리세요.",
+          "w": "틀렸습니다. chunk_size가 너무 작으면 의미가 손실되어 검색 성능이 떨어질 수 있습니다. 균일하고 적절한 길이가 중요합니다.",
+          "an": "8일차 CharacterTextSplitter · 핵심 포인트",
+          "src": "# 5. 핵심 포인트\n# ============================================================\n# - chunk 품질 확인용 기본 디버깅 코드\n# - RAG에서는 chunk 길이 균일성이 중요\n# - 너무 짧거나 길면 검색 성능 저하 발생"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "분할 설정과 노트북 실행 결과를 연결하세요.",
+          "pairs": [
+            [
+              "TextLoader로 읽은 전체 길이",
+              "2105자"
+            ],
+            [
+              "separator='', 500/100 분할",
+              "6개 청크"
+            ],
+            [
+              "위 분할의 첫 청크 길이",
+              "499자"
+            ],
+            [
+              "줄바꿈 기준 분할",
+              "5개 청크"
+            ]
+          ],
+          "h": "업로드한 텍스트 파일의 전체 길이를 먼저 출력하고, 문자 단위 분할로 청크 수와 첫 청크 길이를 확인했습니다. 그다음 줄바꿈 기준으로 다시 나누자 청크 수가 하나 줄었습니다.",
+          "w": "전체 2105자를 문자 단위로 나누면 6개(첫 청크 499자), 줄바꿈 기준으로 나누면 5개(387·494·392자)였습니다.",
+          "an": "8일차 CharacterTextSplitter · 실행 출력",
+          "src": "# → 첫 번째 분할된 텍스트 chunk\n# len(texts[0])\n# → 해당 chunk의 문자 길이 계산\n# print(...)\n# → 결과 출력 (디버깅/검증 목적)\n# ============================================================\n# 5. 핵심 포인트\n# ============================================================\n# - chunk 품질 확인용 기본 디버깅 코드\n# - RAG에서는 chunk 길이 균일성이 중요\n# - 너무 짧거나 길면 검색 성능 저하 발생\n\n```\n\n```python\ntexts[0]\n\n```\n\n```python\n# 줄바꿈 문자를 기준으로 분할"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "CharacterTextSplitter 실습 순서대로 나열하세요.",
+          "steps": [
+            "files.upload()로 파일 업로드",
+            "TextLoader로 Document 로드",
+            "CharacterTextSplitter 설정",
+            "split_text()로 분할",
+            "len(texts)로 청크 수 확인"
+          ],
+          "h": "TextLoader 셀의 흐름은 '파일 업로드 → 경로 추출 → TextLoader 로딩 → Document 생성 → 내용 확인'입니다. 이어지는 셀에서 분할기를 설정하고, 로드한 page_content를 나눈 뒤 결과 개수를 확인합니다.",
+          "w": "파일을 올리고 TextLoader로 읽은 다음, 분할기를 설정해 split_text()로 나누고 len(texts)로 결과를 확인합니다.",
+          "an": "8일차 TextLoader · CharacterTextSplitter 실습",
+          "src": "# 이 코드는 Colab 환경에서 텍스트 파일을 업로드하고\n# LangChain의 TextLoader를 사용해 문서를 로딩하는 예제이다.\n#\n# 핵심 개념:\n#\n# - TextLoader\n# → 로컬 텍스트 파일을 Document 객체로 변환\n#\n# - files.upload()\n# → Colab에서 사용자 파일 업로드 기능\n#\n# - Document 구조\n# → page_content: 실제 텍스트\n# → metadata: 파일 정보\n#\n# 전체 흐름:\n#\n# 파일 업로드 → 경로 추출 → TextLoader 로딩 → Document 생성 → 내용 확인"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 1,
+          "game": true,
+          "p": "노트북에서 CharacterTextSplitter를 설정할 때 쓴 매개변수를 모두 고르세요.",
+          "o": [
+            "chunk_size",
+            "chunk_overlap",
+            "separator",
+            "length_function",
+            "search_kwargs"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "문자 단위 분할 셀의 기존 코드는 네 줄의 인자를 넘깁니다. 최대 길이, 겹침 길이, 구분자, 길이 계산 함수(len)입니다. 남은 하나는 Retriever 검색 옵션에 쓰는 이름입니다.",
+          "w": "chunk_size·chunk_overlap·separator·length_function을 설정했습니다. search_kwargs는 Retriever의 검색 옵션입니다.",
+          "an": "8일차 CharacterTextSplitter · 기존 코드",
+          "src": "# 이 코드는 CharacterTextSplitter를 사용하여\n# 문서를 문자 단위 기준으로 청크로 분할하는 예제이다.\n#\n# 핵심 개념:\n#\n# - separator=''\n# → 문자 단위로 분할 (가장 작은 단위 split)\n#\n# - chunk_size=500\n# → 하나의 chunk 최대 길이\n#\n# - chunk_overlap=100\n# → chunk 간 문맥 유지용 겹침 구간\n#\n# - length_function=len\n# → 문자열 길이 계산 기준 지정\n#\n# 활용:\n#\n# - RAG에서 초미세 단위 분할"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "TextLoader · Recursive 분할",
+      "ref": "8일차 TextLoader · RecursiveCharacterTextSplitter · split_documents",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "로컬 텍스트 파일을 Document 객체로 바꿔 주는 LangChain 로더는?",
+          "o": [
+            "CharacterTextSplitter",
+            "OpenAIEmbeddings",
+            "FAISS",
+            "TextLoader"
+          ],
+          "a": 3,
+          "h": "8일차는 Colab의 files.upload()로 .txt 파일을 올린 뒤 <code>langchain_community.document_loaders</code>의 로더로 읽습니다. 로더 이름은 다루는 파일 종류(텍스트)를 그대로 따릅니다.",
+          "w": "TextLoader가 텍스트 파일을 Document로 변환합니다. Splitter는 분할, Embeddings는 벡터 변환, FAISS는 벡터 저장을 맡습니다.",
+          "an": "8일차 TextLoader · 핵심 개념",
+          "src": "# LangChain의 TextLoader를 사용해 문서를 로딩하는 예제이다.\n#\n# 핵심 개념:\n#\n# - TextLoader\n# → 로컬 텍스트 파일을 Document 객체로 변환\n#\n# - files.upload()\n# → Colab에서 사용자 파일 업로드 기능"
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Document 객체에서 실제 텍스트가 담긴 속성은?",
+          "o": [
+            "page_content",
+            "metadata",
+            "content",
+            "source"
+          ],
+          "a": 0,
+          "h": "주석은 Document 구조를 두 부분으로 설명합니다. 하나는 실제 텍스트이고, 다른 하나는 파일 정보입니다. 노트북은 <code>len(data[0].___)</code>로 전체 글자 수를 출력했습니다.",
+          "w": "page_content에 실제 텍스트가, metadata에 source 같은 파일 정보가 담깁니다. content는 AIMessage의 속성입니다.",
+          "an": "8일차 TextLoader · Document 구조",
+          "src": "# 1. 상세 설명\n# ============================================================\n# 이 코드는 Colab 환경에서 텍스트 파일을 업로드하고\n# LangChain의 TextLoader를 사용해 문서를 로딩하는 예제이다.\n#\n# 핵심 개념:\n#\n# - TextLoader\n# → 로컬 텍스트 파일을 Document 객체로 변환\n#\n# - files.upload()\n# → Colab에서 사용자 파일 업로드 기능\n#\n# - Document 구조\n# → page_content: 실제 텍스트\n# → metadata: 파일 정보\n#\n# 전체 흐름:"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>TextLoader(file_path, encoding='utf-8')</code>에서 encoding을 지정하는 이유는?",
+          "o": [
+            "파일 크기 축소",
+            "청크 수 줄이기",
+            "한글 깨짐 방지",
+            "업로드 속도 향상"
+          ],
+          "a": 2,
+          "h": "개선 코드의 빈칸 주석은 TextLoader 인자 두 개를 설명합니다. 하나는 업로드된 파일 경로이고, 다른 하나는 한국어 문서를 읽을 때 생기는 문제를 막는 설정입니다.",
+          "w": "encoding='utf-8'은 한글이 깨지지 않게 파일을 읽기 위한 설정입니다. 파일 크기·청크 수·속도와는 관계없습니다.",
+          "an": "8일차 TextLoader · 개선 코드 주석",
+          "src": "file_path = list(uploaded.keys())[0]\n# ------------------------------------------------------------\n# TextLoader 생성\n# ------------------------------------------------------------\nloader = TextLoader(\n # 업로드된 파일 경로\n # 한글 깨짐 방지\n)\n# ------------------------------------------------------------\n# 문서 로드"
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "RecursiveCharacterTextSplitter는 어떤 방식으로 분할하나요?",
+          "o": [
+            "항상 고정 글자 수로 자름",
+            "문단→문장→단어→문자 순 재귀 분할",
+            "줄바꿈에서만 자름",
+            "토큰 수로만 자름"
+          ],
+          "a": 1,
+          "h": "주석은 CharacterTextSplitter를 '단순 문자/구분자 기반 분할'이라고 하고, 이 분할기는 '의미 유지 우선'으로 큰 단위부터 차례로 작은 단위로 내려가며 나눈다고 비교합니다. 그래서 문단 구조를 유지하며 자연스럽게 나뉘고, 실무 RAG 표준으로 소개됩니다.",
+          "w": "RecursiveCharacterTextSplitter는 문단 → 문장 → 단어 → 문자 순으로 재귀적으로 나눠 의미를 최대한 보존합니다. 그래서 실무 RAG의 표준 분할기로 소개됩니다.",
+          "an": "8일차 RecursiveCharacterTextSplitter · CharacterTextSplitter와 차이",
+          "src": "# 이 코드는 RecursiveCharacterTextSplitter를 사용하여\n# 문서를 의미 단위를 고려해 재귀적으로 분할하는 예제이다.\n#\n# CharacterTextSplitter와 차이:\n#\n# - CharacterTextSplitter\n# → 단순 문자/구분자 기반 분할\n#\n# - RecursiveCharacterTextSplitter\n# → 문단 → 문장 → 단어 → 문자 순으로 \"의미 유지 우선\" 분할\n#\n# 핵심 개념:\n#\n# - chunk_size=500\n# → 최대 500자 기준\n#\n# - chunk_overlap=100\n# → 문맥 유지용 중복 영역\n#\n# - length_function=len\n# → 길이 기준 함수\n#\n# 활용:\n#\n# - RAG에서 가장 표준적인 splitter"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "<code>texts = text_splitter.split_text(...)</code> 후 <code>texts[0].page_content</code>를 쓰면 오류가 나는 이유는?",
+          "o": [
+            "결과가 문자열 리스트이기 때문",
+            "metadata가 비어 있어서",
+            "chunk_size가 너무 커서",
+            "encoding이 달라서"
+          ],
+          "a": 0,
+          "h": "노트북 주석은 '결과: List[str]'인 메서드와 '결과: List[Document]'인 메서드를 비교하고, 'page_content는 Document에서만 사용 가능'하다고 적었습니다. str과 Document 타입 차이가 핵심 원인이라고 강조합니다.",
+          "w": "split_text()는 List[str]를 돌려주므로 각 원소에 page_content 속성이 없습니다. page_content를 쓰려면 split_documents()로 Document를 유지해야 합니다.",
+          "an": "8일차 split_documents · 라인별 주석",
+          "src": "# split_text()\n# → 결과: List[str] (문자열 리스트)\n# split_documents()\n# → 결과: List[Document] (LangChain 구조 객체)\n# page_content\n# → Document에서만 사용 가능\n# ============================================================\n# 6. 핵심 포인트\n# ============================================================\n# - str vs Document 타입 차이가 핵심 원인\n# - RAG에서는 split_documents()가 표준\n# - page_content 사용하려면 반드시 Document 유지해야 함"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "RAG에서는 Document 구조를 유지하는 <code>split_documents()</code>가 표준이다.",
+          "a": true,
+          "h": "split_documents 셀의 핵심 포인트는 세 가지입니다. str vs Document 타입 차이가 핵심 원인이라는 것, RAG에서 어떤 메서드가 표준인지, page_content를 쓰려면 반드시 Document를 유지해야 한다는 것입니다.",
+          "w": "맞습니다. split_documents()는 List[Document]를 돌려주어 page_content와 metadata를 그대로 유지하므로 RAG의 표준입니다.",
+          "an": "8일차 split_documents · 핵심 포인트",
+          "src": "# → 결과: List[Document] (LangChain 구조 객체)\n# page_content\n# → Document에서만 사용 가능\n# ============================================================\n# 6. 핵심 포인트\n# ============================================================\n# - str vs Document 타입 차이가 핵심 원인\n# - RAG에서는 split_documents()가 표준\n# - page_content 사용하려면 반드시 Document 유지해야 함"
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>split_documents()</code>로 나눈 청크에는 원본 파일 정보(metadata의 source)가 남지 않는다.",
+          "a": false,
+          "h": "노트북은 <code>print(docs[0])</code>로 Document 전체를 출력했습니다. 출력 끝부분을 보면 page_content 다음에 원본 파일 이름이 담긴 필드가 붙어 있었습니다.",
+          "w": "틀렸습니다. 출력 끝에 <code>metadata={'source': '...txt'}</code>가 남아 있어 청크마다 원본 파일 정보가 유지됩니다.",
+          "an": "8일차 split_documents · docs[0] 출력",
+          "src": "# LangChain의 TextLoader를 사용해 문서를 로딩하는 예제이다.\n#\n# 핵심 개념:\n#\n# - TextLoader\n# → 로컬 텍스트 파일을 Document 객체로 변환\n#\n# - files.upload()\n# → Colab에서 사용자 파일 업로드 기능\n#\n# - Document 구조\n# → page_content: 실제 텍스트\n# → metadata: 파일 정보\n#\n# 전체 흐름:\n#\n# 파일 업로드 → 경로 추출 → TextLoader 로딩 → Document 생성 → 내용 확인\n# ============================================================\n# 2. 기존 코드 (원본 유지)"
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "메서드·속성과 결과를 연결하세요.",
+          "pairs": [
+            [
+              "loader.load()",
+              "파일 내용을 Document로 읽음"
+            ],
+            [
+              "data[0].page_content",
+              "문서의 실제 텍스트"
+            ],
+            [
+              "split_text()",
+              "List[str] 반환"
+            ],
+            [
+              "split_documents()",
+              "List[Document] 반환"
+            ]
+          ],
+          "h": "로더는 파일을 LangChain 구조 객체로 바꾸고, 그 객체의 한 속성에 텍스트가 들어 있습니다. 분할 메서드 둘은 입력도 결과 타입도 다릅니다. 하나는 문자열을, 다른 하나는 Document를 다룹니다.",
+          "w": "load()는 Document를 만들고, page_content는 텍스트입니다. split_text()는 문자열 리스트, split_documents()는 Document 리스트를 반환합니다.",
+          "an": "8일차 TextLoader · split_documents 라인별 주석",
+          "src": "docs = text_splitter.split_documents(data)\n# 이제는 Document이므로 page_content 사용 가능\nprint(len(docs[0].page_content))\nprint(docs[0]) # Document 전체 출력\n# ============================================================\n# 5. 라인별 주석\n# ============================================================\n# split_text()\n# → 결과: List[str] (문자열 리스트)\n# split_documents()\n# → 결과: List[Document] (LangChain 구조 객체)"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "8일차 노트북 docstring이 정리한 처리 흐름을 순서대로 나열하세요.",
+          "steps": [
+            "TextLoader",
+            "TextSplitter(docs)",
+            "Embedding(OpenAI)",
+            "FAISS Vector DB",
+            "Similarity Search"
+          ],
+          "h": "문서를 읽어야 나눌 수 있고, 나눈 청크를 숫자 벡터로 바꿔야 벡터 DB에 넣을 수 있습니다. 벡터 DB가 만들어진 뒤에야 질문과 비슷한 청크를 찾을 수 있습니다.",
+          "w": "TextLoader → TextSplitter → Embedding → FAISS → Similarity Search 순으로 RAG 검색 기반을 만듭니다.",
+          "an": "8일차 FAISS 셀 앞 docstring",
+          "src": "TextLoader\n ↓\nTextSplitter (docs)\n ↓\nEmbedding (OpenAI)\n ↓\nFAISS Vector DB\n ↓\nSimilarity Search\n\"\"\"\n```\n\n```python\n# ============================================================\n# 1. 상세 설명\n# ============================================================\n# 이 코드는 LangChain 기반 RAG 구조에서\n# Document를 Embedding으로 변환하고 FAISS 벡터 DB에 저장하는 과정이다.\n#\n# 전체 흐름:"
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "RecursiveCharacterTextSplitter(500/100) 실습 결과에 대해 옳은 것을 모두 고르세요.",
+          "o": [
+            "청크가 5개 생성됨",
+            "청크 길이가 모두 500자 이하",
+            "split_documents의 docs[0]도 390자",
+            "모든 청크가 정확히 500자",
+            "docs[0]의 metadata는 비어 있음"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "노트북 출력은 <code>len(texts)</code>가 5, 앞 세 청크의 길이가 (390, 497, 393)이었습니다. 이어서 split_documents로 나눈 docs[0]의 page_content 길이와 Document 전체도 출력했습니다.",
+          "w": "청크는 5개였고 길이는 chunk_size 500자를 넘지 않았으며, docs[0]도 390자로 같았습니다. 의미 단위로 자르므로 정확히 500자가 되지 않고, metadata에는 source가 들어 있습니다.",
+          "an": "8일차 RecursiveCharacterTextSplitter · split_documents 실행 출력",
+          "src": "# 이 코드는 RecursiveCharacterTextSplitter를 사용하여\n# 문서를 의미 단위를 고려해 재귀적으로 분할하는 예제이다.\n#\n# CharacterTextSplitter와 차이:\n#\n# - CharacterTextSplitter\n# → 단순 문자/구분자 기반 분할\n#\n# - RecursiveCharacterTextSplitter\n# → 문단 → 문장 → 단어 → 문자 순으로 \"의미 유지 우선\" 분할"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "FAISS · 기본 RAG 체인",
+      "ref": "8일차 FAISS 벡터 DB · 실무 RAG 기본 아키텍처",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Document 리스트와 임베딩 모델로 FAISS 벡터 DB를 만드는 메서드는?",
+          "o": [
+            "FAISS.as_retriever",
+            "FAISS.from_documents",
+            "FAISS.split_documents",
+            "FAISS.load_text"
+          ],
+          "a": 1,
+          "h": "FAISS 셀은 RecursiveCharacterTextSplitter로 만든 docs와 <code>OpenAIEmbeddings()</code>를 인자로 넘겨 vector_db를 만듭니다. 메서드 이름은 '무엇으로부터(from) 만드는가'를 나타냅니다.",
+          "w": "<code>FAISS.from_documents(docs, embeddings)</code>가 Document를 임베딩해 FAISS에 저장합니다. as_retriever는 이미 만든 벡터 DB를 Retriever로 바꿉니다.",
+          "an": "8일차 FAISS 셀 · 5. Vector DB 생성",
+          "src": "# 5. Vector DB 생성 (FAISS)\n# ============================================================\n# docs: RecursiveCharacterTextSplitter로 생성된 Document 리스트\nvector_db = FAISS.from_documents(\n docs, # 문서 리스트\n embeddings # 임베딩 모델\n)\n# ============================================================\n# 6. 검색 테스트\n# ============================================================\n\nquery = \"이 문서에서 핵심 내용은 무엇인가?\""
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>vector_db.similarity_search(query, k=3)</code>에서 <code>k=3</code>의 의미는?",
+          "o": [
+            "유사한 문서 상위 3개 반환",
+            "청크를 3개로 분할",
+            "검색을 3번 재시도",
+            "답변을 3문장으로 생성"
+          ],
+          "a": 0,
+          "h": "주석은 이 호출을 '유사도 기반 검색 (Top-K = 3)'이라고 설명합니다. 질문과 가까운 순서로 정렬했을 때 몇 개를 돌려받을지 정하는 값입니다.",
+          "w": "k는 Top-K, 즉 질문과 가장 유사한 문서를 몇 개 돌려줄지입니다. 분할·재시도·답변 길이와는 관계없습니다.",
+          "an": "8일차 FAISS 셀 · 6. 검색 테스트",
+          "src": "query = \"이 문서에서 핵심 내용은 무엇인가?\"\n# 유사도 기반 검색 (Top-K = 3)\nresult_docs = vector_db.similarity_search(query, k=3)\n# 결과 출력\nprint(result_docs[0].page_content)\n```\n# 실무 RAG 기본 아키텍처\n\n```python\n# ============================================================\n# 1. 상세 설명"
+        },
+        {
+          "id": "t5-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "VectorStore를 Retriever 형태로 바꾸는 메서드는?",
+          "o": [
+            "from_documents()",
+            "similarity_search()",
+            "split_text()",
+            "as_retriever()"
+          ],
+          "a": 3,
+          "h": "BookFinder 셀 주석은 'Vector Database 자체는 검색 기능만 제공'하고, Retriever는 invoke()로 질문 → 문서 검색을 수행한다고 설명합니다. 메서드 이름은 '검색기로서(as)'라는 뜻입니다.",
+          "w": "<code>vectorstore.as_retriever()</code>가 Retriever를 만듭니다. Retriever는 LCEL 체인 안에서 invoke로 질문을 받아 List[Document]를 돌려줍니다.",
+          "an": "8일차 실무 RAG 기본 아키텍처 · 3. Retriever 생성",
+          "src": "# Vector Database 자체는\n# 검색 기능만 제공한다.\n#\n# Retriever는\n#\n# invoke()\n#\n# 를 통해\n#\n# 질문 → 문서 검색\n#\n# 기능을 수행한다.\n#\n# 실행 흐름\n#\n# Question\n# │\n# ▼\n# Retriever\n# │\n# ▼\n# List[Document]\n#\n# ==============================================================================\n# VectorStore를 Retriever 형태로 변환한다."
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "기본 RAG 프롬프트가 '다음 context만 사용해서 질문에 답변하세요.'로 시작하는 목적은?",
+          "o": [
+            "답변 길이를 줄임",
+            "질문을 영어로 바꿈",
+            "검색 문서만 근거로 답하게 함",
+            "검색 속도를 높임"
+          ],
+          "a": 2,
+          "h": "프롬프트에는 {context}와 {question} 두 자리가 있습니다. RAG의 목적은 LLM이 학습한 지식이나 환각 대신 검색된 문서에 기대어 신뢰성 높은 답을 만드는 것입니다.",
+          "w": "'context만 사용'하라는 지시는 검색된 문서를 근거로만 답하게 해 환각을 줄입니다. 길이·언어·검색 속도와는 관계없습니다.",
+          "an": "8일차 실무 RAG 기본 아키텍처 · 4. Prompt Template",
+          "src": "다음 context만 사용해서 질문에 답변하세요.\n\ncontext:\n{context}\n\nquestion:\n{question}\n\n답변:"
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "기본 아키텍처의 <code>rag_chain</code> 빈칸에 알맞은 LCEL 구성은?",
+          "o": [
+            "{'context': RunnablePassthrough(), 'question': retriever} | prompt | llm",
+            "{'context': retriever, 'question': RunnablePassthrough()} | prompt | llm | StrOutputParser()",
+            "retriever | llm | prompt | StrOutputParser()",
+            "{'question': retriever} | llm | StrOutputParser()"
+          ],
+          "a": 1,
+          "h": "흐름은 Question → Retriever(FAISS) → Context → PromptTemplate → ChatOpenAI → StrOutputParser입니다. 딕셔너리의 키는 프롬프트 변수 {context}·{question}과 같아야 하고, 질문은 바꾸지 않고 넘겨야 합니다.",
+          "w": "context에는 retriever 검색 결과, question에는 RunnablePassthrough()로 질문을 그대로 넣은 뒤 prompt → llm → 파서 순으로 잇습니다. 키를 바꾸거나 prompt보다 llm을 먼저 두면 흐름이 맞지 않습니다.",
+          "an": "8일차 실무 RAG 기본 아키텍처 · 6. LCEL RAG Chain 구성",
+          "src": "# 실무 RAG 기본 아키텍처\n\n```python\n# ============================================================\n# 1. 상세 설명\n# ============================================================\n# 이 코드는 LCEL(LangChain Expression Language)을 사용하여\n# FAISS Vector DB 기반 RAG 체인을 구성하는 구조이다.\n#\n# 전체 흐름:\n#\n# Question\n# ↓\n# Retriever (FAISS)\n# ↓\n# Context (유사 문서)\n# ↓\n# PromptTemplate\n# ↓\n# ChatOpenAI\n# ↓\n# StrOutputParser"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Embedding은 텍스트를 숫자 벡터로 바꾸는 과정이다.",
+          "a": true,
+          "h": "FAISS 셀 주석의 핵심 개념은 Embedding, FAISS, similarity search 세 가지입니다. 임베딩 모델 생성 부분에는 'text → vector 변환'이라고 적혀 있습니다.",
+          "w": "맞습니다. Embedding은 텍스트를 숫자 벡터로 바꾸며, 그 벡터로 FAISS가 유사도 검색을 합니다.",
+          "an": "8일차 FAISS 셀 · 핵심 개념",
+          "src": "# Document를 Embedding으로 변환하고 FAISS 벡터 DB에 저장하는 과정이다.\n#\n# 전체 흐름:\n#\n# Document (docs)\n# → Embedding 모델 (OpenAI)\n# → Vector DB (FAISS)\n# → 유사도 검색 기반 Retrieval\n#\n# 핵심 개념:\n#\n# - Embedding\n# → 텍스트를 숫자 벡터로 변환\n#\n# - FAISS\n# → 벡터 기반 유사도 검색 DB\n#\n# - similarity search"
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Vector Database 자체가 질문을 받아 최종 답변 문장을 생성한다.",
+          "a": false,
+          "h": "자료에서 Vector Database는 임베딩된 벡터를 저장하고 유사도 검색을 제공하는 역할입니다. Context와 질문을 받아 답변을 만드는 것은 RAG의 다섯 번째 구성 요소입니다.",
+          "w": "틀렸습니다. Vector DB는 벡터를 저장·검색할 뿐이고, 최종 답변은 LLM(ChatOpenAI)이 생성합니다.",
+          "an": "8일차 RAG 구성 요소 · FAISS 셀",
+          "src": "Embedding된 벡터를 저장하는 데이터베이스이다.\n\n대표적인 Vector Database는 다음과 같다.\n\n- FAISS\n- Chroma\n- Pinecone\n- Milvus\n- Weaviate\n\n이번 실습에서는 **FAISS**를 사용한다.\n\n---\n## 4. Retriever\n\nRetriever는\n\n **사용자의 질문과 가장 유사한 문서를 검색하는 역할**\n\n을 수행한다.\n\n즉,\n\n\nQuestion\n │\n ▼\nRetriever\n │\n ▼\n관련 Document\n\n\n의 과정을 담당한다.\n\nRetriever는 문서를 생성하는 것이 아니라 검색만 수행한다.\n\n---\n## 5. LLM\n\nRetriever가 검색한 문서를 Context로 전달받아 최종 답변을 생성한다."
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "코드와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "OpenAIEmbeddings()",
+              "텍스트를 벡터로 변환"
+            ],
+            [
+              "FAISS.from_documents(docs, embeddings)",
+              "벡터 DB 생성"
+            ],
+            [
+              "vector_db.as_retriever()",
+              "질문으로 문서를 찾는 객체 생성"
+            ],
+            [
+              "rag_chain.invoke(질문)",
+              "검색부터 답변 생성까지 실행"
+            ]
+          ],
+          "h": "FAISS 셀은 임베딩 모델 생성 → Vector DB 생성 → 검색 테스트 순서이고, 기본 아키텍처 셀은 Retriever 생성 → 프롬프트 → LLM → 체인 구성 → 실행 순서입니다. 각 코드가 이 흐름 중 어디에 해당하는지 떠올리세요.",
+          "w": "임베딩 모델이 벡터를 만들고, from_documents가 DB를 만들며, as_retriever가 검색기를 만들고, rag_chain.invoke가 전체 RAG를 실행합니다.",
+          "an": "8일차 FAISS 셀 · 실무 RAG 기본 아키텍처",
+          "src": "# 이 코드는 LangChain 기반 RAG 구조에서\n# Document를 Embedding으로 변환하고 FAISS 벡터 DB에 저장하는 과정이다.\n#\n# 전체 흐름:\n#\n# Document (docs)\n# → Embedding 모델 (OpenAI)\n# → Vector DB (FAISS)\n# → 유사도 검색 기반 Retrieval\n#\n# 핵심 개념:\n#\n# - Embedding\n# → 텍스트를 숫자 벡터로 변환\n#\n# - FAISS\n# → 벡터 기반 유사도 검색 DB\n#\n# - similarity search\n# → 질문과 가장 가까운 문서 검색"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "기본 RAG 체인의 흐름을 순서대로 나열하세요.",
+          "steps": [
+            "Question",
+            "Retriever(FAISS)",
+            "Context(유사 문서)",
+            "PromptTemplate",
+            "ChatOpenAI",
+            "StrOutputParser"
+          ],
+          "h": "기본 아키텍처 셀 맨 위 주석이 전체 흐름을 화살표로 보여 줍니다. 검색으로 문서를 가져와 프롬프트를 채우고, 모델 응답을 마지막에 문자열로 정리합니다.",
+          "w": "Question → Retriever → Context → PromptTemplate → ChatOpenAI → StrOutputParser → Final Answer입니다.",
+          "an": "8일차 실무 RAG 기본 아키텍처 · 전체 흐름",
+          "src": "# 실무 RAG 기본 아키텍처\n\n```python\n# ============================================================\n# 1. 상세 설명\n# ============================================================\n# 이 코드는 LCEL(LangChain Expression Language)을 사용하여\n# FAISS Vector DB 기반 RAG 체인을 구성하는 구조이다.\n#\n# 전체 흐름:\n#\n# Question\n# ↓\n# Retriever (FAISS)\n# ↓\n# Context (유사 문서)\n# ↓\n# PromptTemplate\n# ↓\n# ChatOpenAI\n# ↓\n# StrOutputParser"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "<code>result_docs = vector_db.similarity_search(query, k=3)</code>의 결과에 대해 옳은 것을 모두 고르세요.",
+          "o": [
+            "Document의 리스트",
+            "result_docs[0]이 가장 유사한 문서",
+            "page_content로 내용 확인",
+            "문자열의 리스트",
+            "LLM이 생성한 답변"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "노트북은 결과를 <code>print(result_docs[0].page_content)</code>로 출력했고, 문서 속 AI 정책 단락이 그대로 나왔습니다. 유사도 검색은 저장된 청크 가운데 질문과 가까운 순서로 돌려줄 뿐, 새 문장을 만들지 않습니다.",
+          "w": "similarity_search는 질문과 가까운 순서의 Document 리스트를 돌려주므로 [0]이 가장 유사하고, page_content로 내용을 봅니다. 답변 생성은 LLM 단계에서 이루어집니다.",
+          "an": "8일차 FAISS 셀 · 6. 검색 테스트 출력",
+          "src": "docs, # 문서 리스트\n embeddings # 임베딩 모델\n)\n# ============================================================\n# 6. 검색 테스트\n# ============================================================\n\nquery = \"이 문서에서 핵심 내용은 무엇인가?\"\n# 유사도 기반 검색 (Top-K = 3)\nresult_docs = vector_db.similarity_search(query, k=3)\n# 결과 출력\nprint(result_docs[0].page_content)"
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "BookFinder RAG · format_docs",
+      "ref": "8일차 LCEL + FAISS 기반 RAG 시스템",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "BookFinder 예제에서 Retriever의 반환값 형태는?",
+          "o": [
+            "str",
+            "dict",
+            "List[Document]",
+            "AIMessage"
+          ],
+          "a": 2,
+          "h": "BookFinder 셀의 '6. Retriever 생성' 실행 흐름은 Question → Retriever → ? 입니다. 7번 함수 설명도 이 반환값이 Document 객체 여러 개라서 문자열로 바꿔야 한다고 말합니다.",
+          "w": "Retriever는 List[Document]를 반환합니다. 그래서 프롬프트에 넣기 전에 format_docs로 문자열로 바꿉니다.",
+          "an": "8일차 LCEL + FAISS 기반 RAG 시스템 · 6. Retriever 생성",
+          "src": "# 7. Document → String 변환 함수\n# ==============================================================================\n#\n# 역할\n#\n# Retriever의 반환값은\n#\n# List[Document]\n#\n# 형태이다.\n#\n# PromptTemplate은\n#\n# 문자열(String)\n#\n# 만 입력받을 수 있다.\n#\n# 따라서\n#\n# Document 객체를\n#\n# 하나의 Context 문자열로 변환해야 한다."
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "BookFinder 예제에서 <code>format_docs</code> 함수가 필요한 이유는?",
+          "o": [
+            "Prompt가 문자열만 입력받아서",
+            "문서를 벡터로 바꾸려고",
+            "검색 문서 수를 늘리려고",
+            "LLM 응답을 파싱하려고"
+          ],
+          "a": 0,
+          "h": "주석은 Retriever의 반환값이 List[Document] 형태라는 것과, PromptTemplate이 받을 수 있는 입력 형태를 나란히 적습니다. 그래서 Document 객체들을 하나의 Context로 바꿔야 한다고 설명합니다.",
+          "w": "PromptTemplate은 문자열만 입력받으므로 Document 리스트를 하나의 Context 문자열로 바꿔야 합니다. 벡터 변환은 임베딩, 응답 파싱은 StrOutputParser의 일입니다.",
+          "an": "8일차 LCEL + FAISS 기반 RAG 시스템 · 7. Document → String 변환 함수",
+          "src": "# 7. Document → String 변환 함수\n# ==============================================================================\n#\n# 역할\n#\n# Retriever의 반환값은\n#\n# List[Document]\n#\n# 형태이다.\n#\n# PromptTemplate은\n#\n# 문자열(String)\n#\n# 만 입력받을 수 있다.\n#\n# 따라서\n#\n# Document 객체를\n#\n# 하나의 Context 문자열로 변환해야 한다."
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "format_docs의 구현으로 알맞은 것은?",
+          "o": [
+            "'\\n\\n'.join(docs)",
+            "[doc.metadata for doc in docs]",
+            "docs[0]",
+            "'\\n\\n'.join(doc.page_content for doc in docs)"
+          ],
+          "a": 3,
+          "h": "주석의 출력 예시는 문서1, 문서2, 문서3이 빈 줄을 사이에 두고 이어진 하나의 문자열입니다. TODO 4 힌트는 'Document.page_content 사용'이고, Document 객체를 그대로 join하면 문자열이 아니라 실패합니다.",
+          "w": "각 Document의 page_content를 꺼내 빈 줄로 이어 붙여야 하나의 Context 문자열이 됩니다. Document를 그대로 join하거나 metadata만 모으거나 첫 문서만 쓰면 Context가 맞지 않습니다.",
+          "an": "8일차 BookFinder 7. format_docs · TO DO 4 Hint",
+          "src": "# Retriever의 반환값은\n#\n# List[Document]\n#\n# 형태이다.\n#\n# PromptTemplate은\n#\n# 문자열(String)\n#\n# 만 입력받을 수 있다.\n#\n# 따라서\n#\n# Document 객체를\n#\n# 하나의 Context 문자열로 변환해야 한다.\n#\n# 입력\n#\n# [\n# Document(...),\n# Document(...),\n# Document(...)\n# ]\n#\n#\n# 출력\n#\n# 문서1\n#\n# 문서2\n#\n# 문서3\n#\n# ==============================================================================\n\ndef format_docs(docs):"
+        },
+        {
+          "id": "t6-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "BookFinder의 <code>retriever_chain</code> 구성으로 알맞은 것은?",
+          "o": [
+            "RunnableLambda(format_docs) | retriever",
+            "retriever | RunnableLambda(format_docs)",
+            "retriever | RunnablePassthrough()",
+            "prompt | retriever"
+          ],
+          "a": 1,
+          "h": "'9. Retriever Chain 생성'의 실행 흐름은 User Question → Retriever → List[Document] → RunnableLambda → Context(String)입니다. 검색이 먼저 일어나야 변환할 Document가 생깁니다.",
+          "w": "먼저 retriever가 문서를 찾고, RunnableLambda(format_docs)가 이를 문자열로 바꿉니다. 순서를 바꾸면 검색 전에 변환하게 되고, Passthrough로는 Document가 문자열이 되지 않습니다.",
+          "an": "8일차 LCEL + FAISS 기반 RAG 시스템 · 9. Retriever Chain",
+          "src": "# 9. Retriever Chain 생성\n# ==============================================================================\n#\n# 역할\n#\n# Retriever의 반환값은\n#\n# List[Document]\n#\n# 이다.\n#\n# Prompt는\n#\n# String\n#\n# 만 입력받을 수 있다.\n#\n# 따라서\n#\n# Retriever\n#\n# ↓\n#\n# RunnableLambda\n#\n# ↓\n#\n# Context(String)\n#\n# 형태로 변환해야 한다.\n#\n#\n# 실행 흐름\n#\n# User Question"
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "BookFinder 프롬프트의 system 메시지가 LLM에 요구한 것은?",
+          "o": [
+            "제공된 Context 기반 답변",
+            "최신 베스트셀러 검색",
+            "영어로만 답변",
+            "도서 가격 계산"
+          ],
+          "a": 0,
+          "h": "system 메시지는 LLM에게 도서 추천 전문가 역할을 주고, 무엇을 '반드시' 기반으로 답하라고 요구합니다. user 메시지는 'Context\\n{context}\\n\\nQuestion\\n{question}' 형태입니다.",
+          "w": "system 메시지는 '반드시 제공된 Context를 기반으로 답변하라'고 지시합니다. 그래서 답변이 검색된 도서 정보에 근거합니다.",
+          "an": "8일차 LCEL + FAISS 기반 RAG 시스템 · 8. ChatPromptTemplate",
+          "src": "\"system\",\n \"당신은 도서 추천 전문가이다. 반드시 제공된 Context를 기반으로 답변하라.\"\n ),\n (\n \"user\",\n \"Context\\n{context}\\n\\nQuestion\\n{question}\"\n ),\n ]\n\n)\n# ==============================================================================\n# 9. Retriever Chain 생성\n# ==============================================================================\n#\n# 역할"
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "BookFinder 예제의 rag_chain에서 question 키에는 Retriever가 찾은 문서가 들어간다.",
+          "a": false,
+          "h": "'10. LCEL 기반 RAG Chain' 그림에서 User Question은 두 갈래로 나뉩니다. 한쪽은 Retriever Chain을 거쳐 Context(String)가 되고, 다른 쪽은 RunnablePassthrough를 거쳐 원래 질문 그대로 남습니다.",
+          "w": "틀렸습니다. question에는 RunnablePassthrough로 사용자 질문이 그대로 들어가고, 검색된 문서는 context에 들어갑니다.",
+          "an": "8일차 LCEL + FAISS 기반 RAG 시스템 · 10. LCEL 기반 RAG Chain",
+          "src": "# RunnableParallel을 이용하여\n#\n# context\n#\n# question\n#\n# 두 개의 입력을 동시에 생성한다.\n#\n#\n# 전체 실행 흐름\n#\n#\n# User Question\n# │\n# ┌───────┴───── ──┐\n# │ │\n# ▼ ▼\n#\n# Retriever Chain RunnablePassthrough\n#\n# │ │\n# ▼ ▼\n#\n# Context(String) User Question\n#\n# └───────┬───────┘\n# ▼\n#\n# ChatPromptTemplate\n# │\n# ▼\n#\n# ChatOpenAI\n# │\n# ▼\n#\n# StrOutputParser\n# │\n# ▼\n#\n# Final Answer"
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "'AI 관련 책을 추천해 주세요.' 실행 결과는 생성형 AI 시스템 구축 방법을 다룬 도서를 추천했다.",
+          "a": true,
+          "h": "원본 문서 세 개는 실무 Python 프로그래밍 도서, 머신러닝 입문 도서, 생성형 AI 시스템 구축 방법을 설명하는 실전 도서였습니다. Retriever는 질문 'AI 관련 책'과 의미가 가장 가까운 문서를 Context로 넘깁니다.",
+          "w": "맞습니다. 출력은 생성형 AI 시스템 구축 방법을 실전 중심으로 설명하는 도서를 추천했습니다. Context에 있는 문서 내용만 근거로 답한 것입니다.",
+          "an": "8일차 LCEL + FAISS 기반 RAG 시스템 · 실행 결과",
+          "src": "\"파이썬 코딩의 기술은 실무 중심의 Python 프로그래밍을 학습하기 좋은 도서이다.\",\n\n # 두 번째 문서\n \"혼자 공부하는 머신러닝+딥러닝은 머신러닝 입문자를 위한 대표적인 도서이다.\",\n\n # 세 번째 문서\n \"LLM 엔지니어링은 생성형 AI 시스템 구축 방법을 설명하는 실전 도서이다.\",\n\n]\n# ==============================================================================\n# 4. Embedding Model 생성\n# ==============================================================================\n#\n# 역할\n#\n# 텍스트를 숫자(Vector)로 변환한다."
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "BookFinder rag_chain의 구성 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "context",
+              "retriever_chain(검색 후 문자열 변환)"
+            ],
+            [
+              "question",
+              "RunnablePassthrough()(질문 그대로)"
+            ],
+            [
+              "ChatPromptTemplate",
+              "Context·Question을 하나의 Prompt로 구성"
+            ]
+          ],
+          "h": "RunnableParallel은 context와 question 두 입력을 동시에 만듭니다. 그 뒤 프롬프트가 두 값을 user 메시지 자리에 채워 하나의 Prompt로 만듭니다.",
+          "w": "context는 retriever_chain이, question은 RunnablePassthrough가 만들고, ChatPromptTemplate이 둘을 하나의 프롬프트로 합칩니다.",
+          "an": "8일차 LCEL + FAISS 기반 RAG 시스템 · 8~10",
+          "src": "# 8. ChatPromptTemplate 생성\n# ==============================================================================\n#\n# 역할\n#\n# Retriever가 검색한 Context와\n# 사용자가 입력한 Question을 하나의 Prompt로 구성한다.\n#\n# PromptTemplate은\n#\n# context\n# question\n#\n# 두 개의 입력값을 받아"
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "BookFinder 서비스의 실행 흐름을 순서대로 나열하세요.",
+          "steps": [
+            "사용자 질문",
+            "FAISS Retriever 검색",
+            "format_docs()로 Context 문자열",
+            "ChatPromptTemplate",
+            "ChatOpenAI",
+            "StrOutputParser"
+          ],
+          "h": "셀 맨 위 '전체 실행 흐름' 그림은 질문 → 검색 → 관련 Document → 함수로 문자열 변환 → 프롬프트 → 모델 → 파서 → 최종 추천 결과 순서입니다. Retriever가 돌려준 Document는 프롬프트에 넣기 전에 문자열로 바꿔야 한다는 점을 기억하세요.",
+          "w": "질문으로 FAISS를 검색하고, format_docs로 Context를 만든 뒤, 프롬프트 → ChatOpenAI → StrOutputParser 순으로 추천 결과를 만듭니다.",
+          "an": "8일차 LCEL + FAISS 기반 RAG 시스템 · 전체 실행 흐름",
+          "src": "# 2. 검색된 도서 정보를 Context로 구성한 후\n# 3. ChatOpenAI가 Context를 기반으로 도서를 추천한다.\n#\n# ==============================================================================\n#\n# 전체 실행 흐름\n#\n# 사용자 질문(User Question)\n# │\n# ▼\n# FAISS Retriever 검색\n# │\n# ▼\n# 관련 Document 검색\n# │\n# ▼\n# format_docs()\n# │\n# ▼\n# Context(String)\n# │\n# ▼\n# ChatPromptTemplate\n# │\n# ▼\n# ChatOpenAI\n# │\n# ▼\n# StrOutputParser\n# │\n# ▼\n# 최종 추천 결과"
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "<code>rag_chain = RunnableParallel(context=retriever_chain, question=RunnablePassthrough()) | prompt | llm | StrOutputParser()</code>에 대해 옳은 것을 모두 고르세요.",
+          "o": [
+            "invoke에 질문 문자열 하나만 넣으면 됨",
+            "context와 question이 동시에 만들어짐",
+            "최종 결과는 문자열",
+            "format_docs가 question도 변환함",
+            "RunnableParallel 대신 batch가 필수"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "노트북은 <code>rag_chain.invoke('AI 관련 책을 추천해 주세요.')</code>처럼 문자열 하나로 실행했습니다. RunnableParallel은 같은 입력을 두 갈래에 동시에 넘기고, format_docs는 retriever_chain 갈래에만 들어 있습니다.",
+          "w": "질문 문자열 하나가 두 갈래에 동시에 전달되어 context와 question이 만들어지고, 파서 덕분에 결과는 문자열입니다. format_docs는 context 갈래에만 적용되며, batch는 여러 입력을 처리할 때 쓰는 선택 사항입니다.",
+          "an": "8일차 LCEL + FAISS 기반 RAG 시스템 · 10~11",
+          "src": "# RunnableParallel을 이용하여\n#\n# context\n#\n# question\n#\n# 두 개의 입력을 동시에 생성한다.\n#\n#\n# 전체 실행 흐름\n#\n#\n# User Question\n# │\n# ┌───────┴───── ──┐\n# │ │\n# ▼ ▼\n#\n# Retriever Chain RunnablePassthrough\n#\n# │ │\n# ▼ ▼\n#\n# Context(String) User Question\n#\n# └───────┬───────┘\n# ▼\n#\n# ChatPromptTemplate\n# │\n# ▼\n#\n# ChatOpenAI\n# │\n# ▼\n#\n# StrOutputParser\n# │\n# ▼\n#\n# Final Answer"
+        }
+      ]
+    },
+    {
+      "id": "t7",
+      "title": "TravelMind TO DO 문제",
+      "ref": "8일차 TO DO 문제 · 문제) LCEL + FAISS 기반 RAG Chain 완성",
+      "qs": [
+        {
+          "id": "t7-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "TravelMind TO DO 1 'OpenAI Embedding 객체를 생성하시오'의 답은?",
+          "o": [
+            "OpenAIEmbeddings()",
+            "ChatOpenAI()",
+            "FAISS()",
+            "StrOutputParser()"
+          ],
+          "a": 0,
+          "h": "임베딩 객체는 텍스트를 벡터로 바꾸는 모델입니다. 같은 셀에서 <code>from langchain_openai import OpenAIEmbeddings</code>로 이미 가져와 두었고, BookFinder에서도 같은 클래스로 embeddings를 만들었습니다.",
+          "w": "<code>embeddings = OpenAIEmbeddings()</code>입니다. ChatOpenAI는 답변 생성 모델, FAISS는 벡터 저장소, StrOutputParser는 출력 변환기입니다.",
+          "an": "8일차 문제) LCEL + FAISS 기반 RAG Chain 완성 · TO DO 1",
+          "src": "# OpenAI Embedding 모델 사용\n# text → vector 변환\nembeddings = OpenAIEmbeddings()\n# ============================================================\n# 5. Vector DB 생성 (FAISS)\n# ============================================================\n# docs: RecursiveCharacterTextSplitter로 생성된 Document 리스트\nvector_db = FAISS.from_documents(\n docs, # 문서 리스트\n embeddings # 임베딩 모델"
+        },
+        {
+          "id": "t7-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "TO DO 2에서 문자열 리스트 docs와 embeddings로 FAISS VectorStore를 만드는 코드로 알맞은 것은?",
+          "o": [
+            "FAISS.from_documents(docs, embeddings)",
+            "FAISS(docs)",
+            "FAISS.from_texts(docs, embeddings)",
+            "embeddings.from_texts(FAISS)"
+          ],
+          "a": 2,
+          "h": "TravelMind의 docs는 Document가 아니라 '제주도는 ...' 같은 문자열 세 개의 리스트입니다. FAISS에는 Document 리스트를 받는 생성 메서드와 문자열(text) 리스트를 받는 생성 메서드가 따로 있습니다.",
+          "w": "문자열 리스트이므로 <code>FAISS.from_texts(docs, embeddings)</code>를 씁니다. from_documents는 TextSplitter로 만든 Document 리스트에 쓰는 메서드입니다.",
+          "an": "8일차 문제) TO DO 2 · BookFinder 5. FAISS 생성(문자열 문서)",
+          "src": "\"제주도는 자연경관이 아름답고 혼자 여행하기 좋은 지역이다.\",\n \"경주는 역사 유적 중심 여행지이다.\",\n \"부산은 해운대와 광안리가 유명하다.\"\n]\n# ------------------------------------------------------------\n# TO DO 1\n# OpenAI Embedding 객체를 생성하시오.\n# ------------------------------------------------------------\nembeddings =\n# ------------------------------------------------------------\n# TO DO 2\n# docs와 embeddings를 이용하여 FAISS VectorStore를 생성하시오."
+        },
+        {
+          "id": "t7-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "TO DO 3 'VectorStore로부터 Retriever를 생성하시오'의 답은?",
+          "o": [
+            "vectorstore.similarity_search()",
+            "vectorstore.as_retriever()",
+            "retriever.as_vectorstore()",
+            "FAISS.from_retriever()"
+          ],
+          "a": 1,
+          "h": "첫 번째 TO DO 문제는 'vectorstore.as_retriever() 형태라고 가정'한다고 주석에 적었습니다. Retriever는 VectorStore에서 변환해 만들고, LCEL 체인 안에서 질문을 받아 문서를 돌려줍니다.",
+          "w": "<code>retriever = vectorstore.as_retriever()</code>입니다. similarity_search는 바로 검색만 할 뿐 체인에 넣을 Retriever를 만들지 않습니다.",
+          "an": "8일차 문제) TO DO 3",
+          "src": "# system 역할: 여행 전문가로 설정하시오\n (\"system\", ),\n\n # user 입력: context + question을 사용\n (\"user\", )\n])\n# ------------------------------------------------------------\n# 3. Retriever (FAISS 기반이라고 가정)\n# ------------------------------------------------------------\n# vectorstore.as_retriever() 형태라고 가정\nretriever =\n# ------------------------------------------------------------\n# 4. LCEL RAG Chain 구성 (TO DO)"
+        },
+        {
+          "id": "t7-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "TO DO 4의 format_docs를 완성할 때 각 Document에서 꺼내야 하는 것은?",
+          "o": [
+            "Document.metadata",
+            "AIMessage.content",
+            "docs.keys()",
+            "Document.page_content"
+          ],
+          "a": 3,
+          "h": "TO DO 4는 '검색된 Document 리스트를 하나의 문자열(Context)로 변환하는 함수'를 요구하고, Hint 한 줄을 줍니다. Document에서 실제 텍스트가 담긴 속성을 떠올리세요.",
+          "w": "각 Document의 page_content를 꺼내 이어 붙여야 합니다. metadata는 파일 정보이고, AIMessage.content는 모델 응답의 속성입니다.",
+          "an": "8일차 문제) TO DO 4 Hint",
+          "src": "# VectorStore로부터 Retriever를 생성하시오.\n# ------------------------------------------------------------\nretriever =\n# ------------------------------------------------------------\n# TO DO 4\n# 검색된 Document 리스트를 하나의 문자열(Context)로\n# 변환하는 함수를 완성하시오.\n# Hint)\n# Document.page_content 사용\n# ------------------------------------------------------------\ndef format_docs(docs):"
+        },
+        {
+          "id": "t7-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "TO DO 6의 <code>rag_chain</code>으로 알맞은 것은?",
+          "o": [
+            "RunnableParallel(context=retriever_chain, question=RunnablePassthrough()) | prompt | llm | StrOutputParser()",
+            "RunnableParallel(context=RunnablePassthrough(), question=retriever_chain) | prompt | llm | StrOutputParser()",
+            "retriever_chain | RunnablePassthrough() | prompt | llm",
+            "RunnableParallel(context=retriever, question=prompt) | llm | StrOutputParser()"
+          ],
+          "a": 0,
+          "h": "TO DO 6 Hint는 context와 question 각각에 무엇을 넣을지 직접 알려 줍니다. 표준 패턴 그림은 RunnableParallel → ChatPromptTemplate → ChatOpenAI → StrOutputParser 순입니다.",
+          "w": "context에는 retriever_chain, question에는 RunnablePassthrough()를 넣고 prompt → llm → StrOutputParser를 잇습니다. 두 값을 뒤바꾸거나 prompt를 병렬 값으로 넣으면 표준 패턴과 다릅니다.",
+          "an": "8일차 문제) TO DO 6 · 표준 패턴",
+          "src": "# TO DO 6\n# RunnableParallel을 이용하여\n#\n# context\n# question\n#\n# 을 생성하는 LCEL 체인을 작성하시오.\n#\n# Hint)\n# context = retriever_chain\n# question = RunnablePassthrough()\n# ------------------------------------------------------------\nrag_chain = ("
+        },
+        {
+          "id": "t7-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "첫 번째 TO DO 문제(구조 이해)의 dict에서 'question' 키에는 retriever 결과를 연결한다.",
+          "a": false,
+          "h": "TO DO 4번 주석은 dict 안 두 줄을 각각 'retriever 결과 연결'과 '사용자 입력 그대로 전달'로 설명합니다. 핵심 체크 포인트 3번도 retriever 결과가 어느 키로 들어가야 하는지 적었습니다.",
+          "w": "틀렸습니다. retriever 결과는 context 키에 연결하고, question에는 사용자 입력을 그대로 전달합니다.",
+          "an": "8일차 TO DO 문제 · 4. LCEL RAG Chain 구성 · 체크 포인트 3",
+          "src": "# TODO 핵심 체크 포인트\n# 1. retriever는 FAISS 기반으로 구성되어야 함\n# 2. LCEL에서 dict 입력 → prompt mapping 이해\n# 3. context는 retriever 결과로 들어가야 함\n# 4. StrOutputParser로 문자열 출력 변환\n# ============================================================\n```\n\n문제) LCEL + FAISS 기반 RAG Chain 완성\n\n```python\n\"\"\"\n다음의 표준 패턴에 맞는 문제를 작성하시오.\n\n Question"
+        },
+        {
+          "id": "t7-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": false,
+          "p": "TO DO 5의 retriever_chain은 Retriever 결과를 RunnableLambda(format_docs)로 넘겨 Context 문자열을 만든다.",
+          "a": true,
+          "h": "TO DO 5는 'Retriever와 format_docs를 연결하여 Retriever Chain을 구성'하라고 하고, Hint로 <code>retriever |</code>와 <code>RunnableLambda(...)</code>를 보여 줍니다. BookFinder의 9번 단계와 같은 구조입니다.",
+          "w": "맞습니다. <code>retriever | RunnableLambda(format_docs)</code>로 검색 결과를 하나의 Context 문자열로 바꿉니다.",
+          "an": "8일차 문제) TO DO 5",
+          "src": "# TO DO 5\n# Retriever와 format_docs를 연결하여\n# Retriever Chain을 구성하시오.\n#\n# Hint)\n# retriever |\n# RunnableLambda(...)\n# ------------------------------------------------------------\nretriever_chain =\n# ------------------------------------------------------------\n# TO DO 6\n# RunnableParallel을 이용하여\n#\n# context"
+        },
+        {
+          "id": "t7-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "TravelMind TO DO 번호와 작성할 내용을 연결하세요.",
+          "pairs": [
+            [
+              "TO DO 1",
+              "OpenAI Embedding 객체 생성"
+            ],
+            [
+              "TO DO 2",
+              "FAISS VectorStore 생성"
+            ],
+            [
+              "TO DO 3",
+              "VectorStore에서 Retriever 생성"
+            ],
+            [
+              "TO DO 4",
+              "Document 리스트를 Context 문자열로 변환"
+            ],
+            [
+              "TO DO 5",
+              "retriever와 format_docs 연결"
+            ]
+          ],
+          "h": "TO DO는 RAG 준비 순서를 그대로 따라갑니다. 임베딩 모델 → 벡터 저장소 → 검색기 → 문서를 문자열로 바꾸는 함수 → 검색기와 함수를 잇는 체인 순입니다.",
+          "w": "1 임베딩 → 2 VectorStore → 3 Retriever → 4 format_docs → 5 retriever_chain 순으로 작성하고, 6에서 rag_chain을 완성합니다.",
+          "an": "8일차 문제) TO DO 1~5",
+          "src": "# TO DO 3\n# VectorStore로부터 Retriever를 생성하시오.\n# ------------------------------------------------------------\nretriever =\n# ------------------------------------------------------------\n# TO DO 4\n# 검색된 Document 리스트를 하나의 문자열(Context)로\n# 변환하는 함수를 완성하시오.\n# Hint)\n# Document.page_content 사용\n# ------------------------------------------------------------\ndef format_docs(docs):"
+        },
+        {
+          "id": "t7-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "첫 번째 TO DO 문제가 제시한 RAG 체인 흐름을 순서대로 나열하세요.",
+          "steps": [
+            "question",
+            "retriever",
+            "context",
+            "prompt",
+            "llm",
+            "string output"
+          ],
+          "h": "TO DO 4번 주석에 흐름이 한 줄로 적혀 있습니다. 질문으로 문서를 찾고, 찾은 문서가 context가 되어 프롬프트에 들어가며, 모델 답변이 마지막에 문자열로 바뀝니다.",
+          "w": "question → retriever → context → prompt → llm → string output 순입니다.",
+          "an": "8일차 TO DO 문제 · 4. LCEL RAG Chain 구성 흐름",
+          "src": "# 4. LCEL RAG Chain 구성 (TO DO)\n# ------------------------------------------------------------\n# 흐름:\n# question → retriever → context → prompt → llm → string output\n\nchain = (\n {\n # retriever 결과 연결\n # 사용자 입력 그대로 전달"
+        },
+        {
+          "id": "t7-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "완성한 TravelMind 체인에 '한국에서 2박3일 혼자 여행하기 좋은 곳 추천해줘.'를 invoke하면 일어나는 일을 모두 고르세요.",
+          "o": [
+            "Retriever가 관련 여행 문서를 검색",
+            "format_docs가 검색 문서를 한 문자열로 합침",
+            "question에 입력 문장이 그대로 들어감",
+            "LLM이 FAISS에 새 문서를 추가",
+            "결과가 Document 리스트로 출력"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "TravelMind의 docs는 제주도·경주·부산 세 문장입니다. 질문은 RunnableParallel의 두 갈래로 동시에 들어가, 한쪽은 검색과 문자열 변환을 거치고 다른 쪽은 그대로 남습니다. 체인 끝에는 StrOutputParser가 있습니다.",
+          "w": "질문으로 관련 문서를 검색해 format_docs로 Context를 만들고, question에는 질문이 그대로 들어갑니다. LLM은 저장소를 수정하지 않으며, 결과는 문자열입니다.",
+          "an": "8일차 문제) LCEL + FAISS 기반 RAG Chain 완성 · 실행",
+          "src": "관련 Document\n\n\n의 과정을 담당한다.\n\nRetriever는 문서를 생성하는 것이 아니라 검색만 수행한다.\n\n---\n## 5. LLM\n\nRetriever가 검색한 문서를 Context로 전달받아 최종 답변을 생성한다.\n\n즉,\n\n```\nQuestion\n+\nContext\n↓\nLLM\n↓\nAnswer\n```\n\n의 역할을 수행한다.\n\n---\n# Context란?\n\nContext는 Retriever가 검색한 문서를 의미한다.\n\n예를 들어,\n\n사용자가\n\n```\n혼자 여행하기 좋은 곳 추천해줘.\n```\n\n라고 질문하면,\n\nRetriever는\n\n```\n제주도는 혼자 여행하기 좋은 여행지이다.\n\n경주는 역사 문화 도시이다.\n\n부산은 해안 관광지로 유명하다."
+        }
+      ]
+    }
+  ]
+}

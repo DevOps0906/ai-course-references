@@ -1,0 +1,1536 @@
+{
+  "id": "aosp-d2",
+  "code": "AF2",
+  "title": "Android 프레임워크 2일차 · Native Binder · AIDL · HAL",
+  "subtitle": "수작업 Bn/Bp와 Parcel · AIDL 보안과 init.rc · AIDL HAL과 VINTF",
+  "course": "09 · Android 프레임워크",
+  "source": "09-android_framework-main/Day2/Day2.pdf + md/*.md",
+  "salt": "aosp-d2",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "libbinder 계층 · ProcessState",
+      "ref": "Day2 p.3–5, p.10, p.28 · 01_env_check · 02_binder1_min_server · 13_demo_binder_perf",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Native Binder에서 Process당 하나만 존재하며 <code>/dev/binder</code>를 열고 1 MB를 mmap하는 클래스는?",
+          "o": [
+            "IPCThreadState",
+            "ProcessState",
+            "BBinder",
+            "IServiceManager"
+          ],
+          "a": 1,
+          "h": "libbinder는 Process당 하나인 클래스와 Thread당 하나인 클래스로 역할을 나눕니다. 해설은 Process당 하나인 쪽이 self()로 얻어지며 /dev/binder open, mmap, Thread Pool 관리를 맡는다고 설명합니다.",
+          "w": "<code>ProcessState::self()</code>가 /dev/binder open, mmap, Thread Pool 관리를 맡습니다. IPCThreadState는 Thread마다 하나로 transact와 joinThreadPool을 담당합니다.",
+          "an": "Day2_Worksheet Q1 · Day2 p.5",
+          "src": "ProcessState — Process 당 1\n• open(\"/dev/binder\") + BINDER_VERSION\n• mmap 1 MB — Transaction Buffer\n• BINDER_SET_MAX_THREADS (15)\n• startThreadPool() — Binder Thread 생성\n• self() 최초 호출 시 생성"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "서버 main()의 마지막 줄에서 현재 Thread를 요청 대기 루프로 만드는 IPCThreadState의 Method는?",
+          "o": [
+            "startThreadPool()",
+            "transact()",
+            "addService()",
+            "joinThreadPool()"
+          ],
+          "a": 3,
+          "h": "IPCThreadState는 Thread마다 하나씩 있으며 transact와 요청 대기 루프를 맡습니다. 서버 main()의 마지막 줄은 현재 Thread를 Thread Pool에 '합류'시켜 반환하지 않고 요청을 기다리게 합니다.",
+          "w": "<code>IPCThreadState::self()->joinThreadPool()</code>은 반환하지 않고 Binder 요청을 처리합니다. startThreadPool()은 추가 Binder Thread를 만드는 별개의 함수입니다.",
+          "an": "Day2_Worksheet Q9 · 02_binder1_min_server 핵심 정리",
+          "src": "• joinThreadPool() — 요청 대기 루프\n• getCallingUid() / getCallingPid()\n• 처리 중 Transaction 의 발신자 보관"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>defaultServiceManager()</code>가 돌려주는 ServiceManager Proxy가 가리키는 handle은?",
+          "o": [
+            "handle 0",
+            "handle 1",
+            "handle 15",
+            "서비스마다 다른 handle"
+          ],
+          "a": 0,
+          "h": "실습 2 원리 표는 defaultServiceManager()가 특정 handle을 ServiceManager Proxy로 감싸 돌려준다고 적습니다. servicemanager는 모든 Process가 미리 알고 있는 고정 handle 번호에 있습니다.",
+          "w": "defaultServiceManager()는 handle 0의 ServiceManager Proxy를 반환합니다. 1은 FIRST_CALL_TRANSACTION 값, 15는 Thread Pool 상한이라 헷갈리기 쉽습니다.",
+          "an": "02_binder1_min_server 원리 표 · Day2 p.5",
+          "src": "| `ProcessState::self()` | Process 당 하나. `/dev/binder` open + mmap, Thread Pool 관리 |\n| `defaultServiceManager()` | handle 0 → ServiceManager Proxy |\n| `BBinder` | Server 측 Binder 객체의 기본 클래스 (`onTransact` 를 가진다) |\n| `IPCThreadState::self()->joinThreadPool()` | 현재 Thread 를 Binder Thread 로 만들어 요청 대기 |"
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "실습 2의 raw BBinder 서버에 <code>service call my.service 1</code>을 보내면 결과는?",
+          "o": [
+            "0 (NO_ERROR)",
+            "PERMISSION_DENIED",
+            "-1 (UNKNOWN_TRANSACTION)",
+            "서버 프로세스 종료"
+          ],
+          "a": 2,
+          "h": "실습 2 서버는 onTransact()를 오버라이드하지 않은 raw BBinder를 등록합니다. 확인 포인트는 이 서버에 service call을 보내면 '모르는 Transaction'이라는 뜻의 오류 코드가 돌아온다고 적습니다.",
+          "w": "BBinder는 onTransact()를 오버라이드하지 않으면 모든 code에 UNKNOWN_TRANSACTION(-1)을 돌려줍니다. PERMISSION_DENIED는 실습 4에서 토큰이 없을 때 CHECK_INTERFACE가 내는 결과입니다.",
+          "an": "02_binder1_min_server Step 3 · Day2 p.10",
+          "src": "• service call → -1 (UNKNOWN_TRANSACTION)"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "<code>startThreadPool()</code> 없이 띄운 서버에 클라이언트 3개를 동시에 보내면 서버 로그의 tid는?",
+          "o": [
+            "모두 같고 순차 처리된다",
+            "3개 모두 다르다",
+            "15개로 분산된다",
+            "요청이 모두 거부된다"
+          ],
+          "a": 0,
+          "h": "BINDER_SET_MAX_THREADS는 15이지만 상한일 뿐이고, startThreadPool()을 부르지 않으면 main Thread 하나만 요청을 받습니다. 따라서 동시에 보낸 3개 요청이 한 Thread에서 차례로 처리되는지 tid를 비교해 보세요.",
+          "w": "startThreadPool()을 부르지 않으면 main Thread 하나만 요청을 받아 tid가 모두 같고 순차 처리됩니다. startThreadPool()을 넣은 실습 4 서버로 바꾸면 tid가 달라집니다.",
+          "an": "13_demo_binder_perf Step 3 · Day2 p.28",
+          "src": "```bash\nfor i in 1 2 3; do /data/my_client_test_4 $i & done; wait\n```\n\n`BINDER_SET_MAX_THREADS` 는 15 지만 `startThreadPool()` 을 안 부르면 main Thread 하나만 요청을 받는다 → 서버 로그의 tid 가 모두 같고 순차 처리된다. `startThreadPool()` 을 넣은 실습 4 서버로 바꾸면 tid 가 달라진다.\n\n```bash\nSPID=$(pidof my_server_test_4)"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "IPCThreadState는 Process당 하나만 생성되어 모든 Thread가 공유한다.",
+          "a": false,
+          "h": "Day2 p.5 표에서 ProcessState는 Process당 1, IPCThreadState는 Thread당 1이라고 구분합니다. getCallingUid()가 돌려주는 '처리 중 Transaction의 발신자'도 thread-local(TLS)에 저장됩니다.",
+          "w": "틀렸습니다. IPCThreadState는 Thread당 하나이며 TLS(thread-local)에 저장됩니다. Process당 하나인 것은 ProcessState입니다.",
+          "an": "Day2 p.5",
+          "src": "| libbinder 구조 | `ProcessState`(Process 당 1, `/dev/binder` open·mmap·Thread Pool) · `IPCThreadState`(Thread 당 1, `transact` / `joinThreadPool`) |"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Android.bp는 그대로 두고 <code>.cpp</code>만 고친 뒤 <code>mm</code>을 실행해도 Soong 재분석이 다시 돈다.",
+          "a": false,
+          "h": "실습 1 트러블슈팅은 mm이 다시 6분 걸리면 Android.bp를 건드렸는지 확인하라고 합니다. .cpp만 고쳤다면 Soong 분석이 다시 돌지 않는다는 설명입니다.",
+          "w": "틀렸습니다. .cpp만 고치면 analyzing Android.bp 단계 없이 수십 초에 끝납니다. .bp를 고치면 다시 5~6분의 재분석이 돕니다.",
+          "an": "01_env_check Step 5 · 트러블슈팅",
+          "src": "## 트러블슈팅\n\n| 증상 | 해결 |\n|---|---|\n| `addService = -1` | SELinux — `adb shell setenforce 0` (커스텀 이미지는 이미 permissive) |\n| `mm` 이 다시 6분 | `Android.bp` 를 건드렸는지 확인. `.cpp` 만 고쳤다면 분석이 다시 돌지 않는다 |"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "strace로 본 시스템 콜과 의미를 연결하세요.",
+          "pairs": [
+            [
+              "openat /dev/binderfs/binder",
+              "ProcessState 생성 시 Driver 열기"
+            ],
+            [
+              "mmap 1040384",
+              "1 MB − 8 KB Transaction Buffer"
+            ],
+            [
+              "BINDER_SET_MAX_THREADS",
+              "Thread Pool 상한(15) 설정"
+            ],
+            [
+              "BINDER_WRITE_READ",
+              "모든 transact()의 실체"
+            ]
+          ],
+          "h": "strace에서 openat /dev/binderfs/binder와 mmap 1040384(1 MB − 8 KB)는 ProcessState 생성 시 Driver를 열고 Buffer를 확보하는 장면입니다. BINDER_SET_MAX_THREADS [15]는 Thread Pool 상한, BINDER_WRITE_READ는 모든 transact()의 실체입니다.",
+          "w": "openat과 mmap은 ProcessState 생성 시 1회 일어나고, BINDER_SET_MAX_THREADS는 Thread Pool 상한을 정합니다. checkService와 ledOn() 호출은 모두 BINDER_WRITE_READ ioctl로 나갑니다.",
+          "an": "13_demo_binder_perf Step 2 · Day2 p.28",
+          "src": "mmap(NULL, 1040384, PROT_READ, MAP_PRIVATE|MAP_NORESERVE, 3, 0) ← 1 MB − 8 KB Bu\nffer\nioctl(3, BINDER_SET_MAX_THREADS, [15]) = 0 ← Thread Pool 상한\nioctl(3, BINDER_WRITE_READ, ...) = 0 ← checkService (h\nandle 0)\nioctl(3, BINDER_WRITE_READ, ...) = 0 ← ledOn() transac\nt\n관찰 의미"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "최소 Native Binder 서버 main()의 코드 순서를 맞추세요.",
+          "steps": [
+            "ProcessState::self() — /dev/binder open·mmap",
+            "defaultServiceManager() — handle 0 획득",
+            "addService('my.service', new BBinder)",
+            "IPCThreadState::self()->joinThreadPool()"
+          ],
+          "h": "원리 표의 순서대로 ProcessState::self()가 /dev/binder를 열고 mmap한 뒤, defaultServiceManager()로 handle 0 Proxy를 얻습니다. 이어 addService로 BBinder를 이름과 함께 등록하고, 마지막 줄에서 IPCThreadState가 요청 대기 루프에 들어갑니다.",
+          "w": "ProcessState로 Driver를 열고, handle 0의 ServiceManager를 얻어 BBinder를 등록한 뒤, joinThreadPool()로 요청을 기다립니다. joinThreadPool()은 반환하지 않으므로 항상 마지막 줄입니다.",
+          "an": "02_binder1_min_server Step 1 · Day2 p.5",
+          "src": "## 원리\n\n| 클래스 | 역할 |\n|---|---|\n| `ProcessState::self()` | Process 당 하나. `/dev/binder` open + mmap, Thread Pool 관리 |\n| `defaultServiceManager()` | handle 0 → ServiceManager Proxy |\n| `BBinder` | Server 측 Binder 객체의 기본 클래스 (`onTransact` 를 가진다) |"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "실습 13 데모의 측정·strace 결과로 옳은 것을 모두 고르세요.",
+          "o": [
+            "transact는 BINDER_WRITE_READ",
+            "mmap은 ProcessState 생성 시 1회",
+            "Emulator 왕복 30~80 µs",
+            "IPC는 함수 호출만큼 싸다",
+            "checkService는 ioctl 없이 처리"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "실습 13 정리 표는 Binder 왕복 비용이 Emulator에서 30~80 µs/call이라 루프 안에서 IPC를 부르지 말라고 합니다. openat + mmap 1 MB는 ProcessState 생성 시 1회이고, BINDER_WRITE_READ ioctl이 모든 transact()의 실체입니다.",
+          "w": "모든 transact()는 ioctl(BINDER_WRITE_READ)이고, openat·mmap은 ProcessState 생성 시 1회이며, Emulator 왕복은 약 30~80 µs입니다. 함수 호출보다 수천 배 길어 루프 안에서 IPC를 부르면 안 되고, checkService도 handle 0으로 BINDER_WRITE_READ를 씁니다.",
+          "an": "13_demo_binder_perf 정리 표 · Day2 p.28",
+          "src": "### 실습 13 (데모). Binder 호출 비용 측정 · strace 로 ioctl 관찰 — 15분 (강사 시연)\n- 1000회 왕복 µs 측정 (30~80 µs/call) · `strace -e ioctl,mmap` 로 `BINDER_WRITE_READ`, 1 MB mmap, `BINDER_SET_MAX_THREADS` 확인 · `startThreadPool` 유무에 따른 tid 변화"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "Bn/Bp 객체 모델 · META 매크로",
+      "ref": "Day2 p.6–7, p.11 · 03_binder2_client_proxy · 04_binder3_bn_bp",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Server 측에서 요청을 받아 code로 분기하는 <code>onTransact()</code>를 가진 기본 클래스는?",
+          "o": [
+            "BpBinder",
+            "IInterface",
+            "BBinder",
+            "BpInterface"
+          ],
+          "a": 2,
+          "h": "해설은 로컬 Binder 객체의 기본 클래스가 onTransact를 오버라이드해 요청을 처리한다고 설명합니다. 반면 BpBinder는 원격 handle을 감싼 Proxy이며, 'p'가 Proxy를 뜻합니다.",
+          "w": "BBinder가 로컬 Binder 객체의 기본 클래스이며 onTransact를 오버라이드해 요청을 처리합니다. BpBinder는 원격 handle을 감싼 Proxy입니다.",
+          "an": "Day2_Worksheet Q2 · Day2 p.6",
+          "src": "**2. ②**\nBBinder 가 로컬 Binder 객체의 기본 클래스이며 onTransact 를 오버라이드해 요청을 처리한다. BpBinder 는 원격 handle 을 감싼 Proxy 다.\n**3. ①**"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "<code>interface_cast&lt;ILedService&gt;(binder)</code>가 내부적으로 호출하는 것은?",
+          "o": [
+            "ILedService::asInterface()",
+            "new BnLedService(binder)",
+            "binder->transact(0)",
+            "sm->getService()"
+          ],
+          "a": 0,
+          "h": "Worksheet Q3 해설은 interface_cast가 인터페이스 클래스의 정적 asInterface()를 호출한다고 설명합니다. asInterface는 queryLocalInterface로 로컬이면 객체 자체를, 원격이면 new BpX(binder)를 반환합니다.",
+          "w": "interface_cast는 I::asInterface()를 호출합니다. asInterface는 queryLocalInterface로 로컬이면 객체 자신을, 원격이면 new BpX(binder)를 반환합니다.",
+          "an": "Day2_Worksheet Q3 · Day2 p.7",
+          "src": "**3. ①**\ninterface_cast 는 I::asInterface() 를 호출한다. asInterface 는 queryLocalInterface 로 로컬이면 객체 자체를, 원격이면 new BpX(binder) 를 반환한다.\n**4. ②**"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "AIDL Method의 첫 번째 Transaction code 값인 <code>FIRST_CALL_TRANSACTION</code>은?",
+          "o": [
+            "0",
+            "0x5f444d50",
+            "100",
+            "1"
+          ],
+          "a": 3,
+          "h": "해설은 IBinder::FIRST_CALL_TRANSACTION이 AIDL Method에 붙는 첫 code라고 설명하며, 0x5f444d50은 DUMP_TRANSACTION 같은 예약 code의 형태라고 구분합니다. ILedService의 enum에도 LED_ON = FIRST_CALL_TRANSACTION 옆에 그 값이 주석으로 적혀 있습니다.",
+          "w": "IBinder::FIRST_CALL_TRANSACTION은 1입니다. 0x5f444d50은 DUMP_TRANSACTION 같은 예약 특수 code의 형태입니다.",
+          "an": "Day2_Worksheet Q4 · 03_binder2_client_proxy Step 1",
+          "src": "**4. ②**\nIBinder::FIRST_CALL_TRANSACTION = 1 이다. 0x5f444d50 은 DUMP_TRANSACTION 등 예약된 특수 code 의 형태다.\n**5. ③**"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "수작업 인터페이스에서 헤더의 (1) 매크로가 asInterface·descriptor를 선언하고, .cpp의 (2) 매크로가 본문과 descriptor 문자열을 정의합니다. (1)/(2)는?",
+          "o": [
+            "IMPLEMENT / DECLARE_META_INTERFACE",
+            "DECLARE / IMPLEMENT_META_INTERFACE",
+            "CHECK_INTERFACE / writeInterfaceToken",
+            "DECLARE / DO_NOT_CHECK_MANUAL"
+          ],
+          "a": 1,
+          "h": "Worksheet Q14 해설은 헤더의 매크로가 asInterface/descriptor를 '선언'하고, .cpp의 매크로가 그 본문과 descriptor 문자열을 '구현'한다고 설명합니다. 두 매크로 모두 _META_INTERFACE로 끝나며 AIDL은 이 쌍을 자동 생성합니다.",
+          "w": "DECLARE_META_INTERFACE(X)는 선언, IMPLEMENT_META_INTERFACE(X, 'desc')는 구현입니다. AIDL은 이 쌍을 자동 생성합니다.",
+          "an": "Day2_Worksheet Q14 · Day2 p.7",
+          "src": "**14. (1) DECLARE_META_INTERFACE / (2) IMPLEMENT_META_INTERFACE**\nDECLARE_META_INTERFACE(X) 는 선언, IMPLEMENT_META_INTERFACE(X, \"desc\") 는 구현. AIDL 은 이 쌍을 자동 생성한다."
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "서버가 <code>LedService : BnLedService</code> 객체를 등록했을 때 <code>service list</code>에 보이는 줄은?",
+          "o": [
+            "my.led_service: []",
+            "my.led_service: [BBinder]",
+            "my.led_service: [android.my.ILedService]",
+            "목록에 나오지 않는다"
+          ],
+          "a": 2,
+          "h": "실습 4 Step 5의 service list 출력에는 '★ descriptor가 보인다'는 주석이 달려 있습니다. raw BBinder일 때는 대괄호가 비어 있었지만, BnLedService는 IMPLEMENT_META_INTERFACE에 준 \"android.my.ILedService\"를 descriptor로 가집니다.",
+          "w": "BnLedService는 IMPLEMENT_META_INTERFACE의 descriptor를 알기 때문에 [android.my.ILedService]가 표시됩니다. 실습 2·3처럼 raw BBinder를 등록하면 [] 로 비어 있습니다.",
+          "an": "04_binder3_bn_bp Step 5 · Day2 p.11",
+          "src": "# 131 my.led_service: [android.my.ILedService] ← ★ descriptor 가 보인다\nadb shell /data/my_client_test_3\n```"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": false,
+          "p": "<code>BnInterface&lt;I&gt;</code>는 BBinder와 I를 동시에 상속하므로 같은 객체를 addService에 넘길 수도, ledOn()으로 부를 수도 있다.",
+          "a": true,
+          "h": "Day2 p.6은 BnInterface&lt;I&gt;를 'BBinder + I'로 표시합니다. BBinder 쪽 덕분에 Binder 객체로 addService에 넘길 수 있고, I 쪽 덕분에 LedService 구현체의 ledOn() 같은 인터페이스 메서드를 그대로 부를 수 있습니다.",
+          "w": "맞습니다. BBinder이므로 addService에 넘길 수 있고, ILedService이므로 ledOn()도 부를 수 있습니다.",
+          "an": "Day2 p.6 · 04_binder3_bn_bp 핵심 정리",
+          "src": "LedService BnLedService 구현체 · ledOn() 의 실제 일\nJava (Day 1) 대응"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": false,
+          "p": "Android 12+에서 수작업 Binder 인터페이스를 빌드할 때 <code>DO_NOT_CHECK_MANUAL_BINDER_INTERFACES</code> 정의는 필요 없다.",
+          "a": false,
+          "h": "실습 3의 ILedService.cpp 첫 줄은 <code>#define DO_NOT_CHECK_MANUAL_BINDER_INTERFACES</code>이며 주석으로 '수작업 인터페이스 허용 (Android 12+)'이라고 적혀 있습니다. 트러블슈팅은 이 정의가 없으면 'manual binder interfaces are deprecated' 오류가 난다고 안내합니다.",
+          "w": "틀렸습니다. 수작업 인터페이스는 include보다 먼저 #define DO_NOT_CHECK_MANUAL_BINDER_INTERFACES를 넣어야 합니다. 없으면 deprecated 오류가 납니다.",
+          "an": "03_binder2_client_proxy Step 2 · 트러블슈팅 · Day2 p.7",
+          "src": "| `error: manual binder interfaces are deprecated` | `ILedService.cpp` 맨 위의 `#define DO_NOT_CHECK_MANUAL_BINDER_INTERFACES` 확인 (include 보다 먼저) |"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "C++ Native Binder 클래스와 Day 1 Java 클래스를 연결하세요.",
+          "pairs": [
+            [
+              "BBinder",
+              "Binder"
+            ],
+            [
+              "BpBinder",
+              "BinderProxy"
+            ],
+            [
+              "BnInterface",
+              "I.Stub"
+            ],
+            [
+              "BpInterface",
+              "I.Stub.Proxy"
+            ],
+            [
+              "interface_cast",
+              "I.Stub.asInterface()"
+            ]
+          ],
+          "h": "해설은 C++과 Java 클래스를 'BBinder↔Binder, BpBinder↔BinderProxy' 식으로 짝지어 같은 Driver 객체의 두 언어 표면이라고 설명합니다. Bn은 로컬 Stub, Bp는 원격 Proxy에 대응하고, interface_cast는 asInterface()에 대응합니다.",
+          "w": "BBinder↔Binder, BpBinder↔BinderProxy, BnInterface↔Stub, BpInterface↔Stub.Proxy, interface_cast↔asInterface입니다. 같은 Driver 객체의 두 언어 표면입니다.",
+          "an": "Day2_Worksheet Q20 · Day2 p.6",
+          "src": "BBinder↔Binder, BpBinder↔BinderProxy, BnInterface↔Stub, BpInterface↔Stub.Proxy, interface_cast↔asInterface. 같은 Driver 객체의 두 언어 표면이다."
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "Client가 Proxy를 얻어 서버를 호출하기까지의 순서를 맞추세요.",
+          "steps": [
+            "checkService('led.service')로 IBinder 획득",
+            "interface_cast로 ILedService 형으로 변환",
+            "asInterface가 queryLocalInterface로 로컬/원격 판별",
+            "원격이므로 new BpLedService(binder) 반환",
+            "pLed->ledOn()이 remote()->transact(LED_ON)"
+          ],
+          "h": "Client는 먼저 checkService로 IBinder를 얻고 interface_cast로 ILedService 형으로 바꿉니다. asInterface는 queryLocalInterface로 로컬/원격을 판별해 원격이면 new BpLedService(binder)를 돌려주고, ledOn()은 remote()->transact(LED_ON)으로 이어집니다.",
+          "w": "checkService로 받은 IBinder를 interface_cast하면 asInterface가 로컬 여부를 확인하고, 다른 Process이므로 BpLedService를 만듭니다. 이후 ledOn()은 remote()->transact()로 바뀌어 서버의 onTransact(code=1)에 도착합니다.",
+          "an": "03_binder2_client_proxy 구조 · Step 4 · Day2 p.7",
+          "src": "| `IMPLEMENT_META_INTERFACE(X, \"desc\")` | 위 두 함수의 구현. `asInterface` 는 `queryLocalInterface` 로 로컬/원격 분기 → 원격이면 `new BpX(binder)` |"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "IMPLEMENT_META_INTERFACE가 만든 <code>asInterface()</code>에 대해 옳은 것을 모두 고르세요.",
+          "o": [
+            "queryLocalInterface로 분기",
+            "같은 Process면 자기 자신 반환",
+            "원격이면 new BpLedService",
+            "원격이면 new BnLedService",
+            "항상 Binder Driver를 거침"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Day2 p.7 표는 IMPLEMENT_META_INTERFACE가 만든 asInterface가 queryLocalInterface로 로컬/원격을 분기한다고 적습니다. 같은 Process의 BBinder라면 그 객체 자신을, 원격이면 new BpX(binder)를 반환합니다.",
+          "w": "asInterface는 queryLocalInterface(descriptor)로 로컬이면 this를 반환해 Binder를 거치지 않고, 원격이면 new BpLedService(binder)를 만듭니다. BnLedService는 Server 측 Stub이라 Proxy로 쓰이지 않습니다.",
+          "an": "Day2 p.7 · 03_binder2_client_proxy 핵심 정리",
+          "src": "| `IMPLEMENT_META_INTERFACE(X, \"desc\")` | 위 두 함수의 구현. `asInterface` 는 `queryLocalInterface` 로 로컬/원격 분기 → 원격이면 `new BpX(binder)` |"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "Parcel · Transaction 흐름",
+      "ref": "Day2 p.8, p.11–12 · 04_binder3_bn_bp Step 6 · 05_binder4_parcel_args",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "Proxy는 Parcel 맨 앞에 (1)로 인터페이스 토큰을 쓰고, Stub은 (2) 매크로로 검증합니다. (1)/(2)는?",
+          "o": [
+            "writeInt32 / readInt32",
+            "writeInterfaceToken / CHECK_INTERFACE",
+            "writeStrongBinder / interface_cast",
+            "writeString16 / checkService"
+          ],
+          "a": 1,
+          "h": "Worksheet Q15 해설은 Proxy가 Parcel 맨 앞에 인터페이스 토큰을 쓰고, Stub이 매크로로 이를 검사한다고 설명합니다. 토큰이 없거나 다르면 PERMISSION_DENIED를 반환하므로 service call에 s16 \"descriptor\"를 붙여야 합니다.",
+          "w": "Proxy는 writeInterfaceToken으로 토큰을 쓰고 Stub은 CHECK_INTERFACE로 검증합니다. 토큰이 없거나 다르면 PERMISSION_DENIED가 반환됩니다.",
+          "an": "Day2_Worksheet Q15 · Day2 p.8",
+          "src": "**15. (1) writeInterfaceToken / (2) CHECK_INTERFACE**\n토큰이 없거나 다르면 CHECK_INTERFACE 가 PERMISSION_DENIED 를 반환한다. service call 에 s16 \"descriptor\" 를 붙여야 하는 이유다."
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Parcel API 중 Pipe·ashmem 같은 FD를 실어 보내는 것은?",
+          "o": [
+            "writeString16",
+            "writeInt32",
+            "writeStrongBinder",
+            "writeFileDescriptor"
+          ],
+          "a": 3,
+          "h": "Day2 p.8의 Parcel API 표는 쓰기/읽기 함수를 용도별로 정리합니다. 이름 가운데에 File Descriptor가 들어간 쌍이 Pipe·ashmem 같은 FD를 실어 보냅니다.",
+          "w": "writeFileDescriptor/readFileDescriptor가 FD를 전달합니다. writeStrongBinder는 IBinder(Callback), writeString16은 UTF-16 문자열용입니다.",
+          "an": "Day2 p.8 Parcel API 표",
+          "src": "반환\nreturn NO_ERROR;\n}\nParcel API 용도\nwriteInt32 / readInt32 기본형\nwriteString16 / readString16 문자열 (UTF-16)\nwriteStrongBinder / readStrongBinder IBinder (Callback)\nwriteFileDescriptor / readFileDescriptor FD (Pipe · ashmem)\nwriteInterfaceToken / CHECK_INTERFACE 인터페이스 검증\n애니메이션 3 · Bn/Bp Transaction 흐름"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "토큰 없이 <code>service call my.led_service 1</code>을 보내면 실습 4 서버의 결과는?",
+          "o": [
+            "PERMISSION_DENIED",
+            "UNKNOWN_TRANSACTION",
+            "LED가 정상으로 켜진다",
+            "서버가 재시작된다"
+          ],
+          "a": 0,
+          "h": "실습 4 서버의 Stub은 CHECK_INTERFACE로 Parcel 맨 앞의 인터페이스 토큰을 검사합니다. service call은 토큰을 자동으로 넣지 않으므로, s16 \"android.my.ILedService\"를 빼면 확인 포인트에 적힌 거부 결과가 나옵니다.",
+          "w": "CHECK_INTERFACE가 토큰 불일치로 PERMISSION_DENIED를 반환합니다. s16 'android.my.ILedService'를 붙이면 통과합니다. UNKNOWN_TRANSACTION은 raw BBinder의 기본 응답입니다.",
+          "an": "04_binder3_bn_bp Step 6 · Day2 p.11",
+          "src": "• 토큰 없으면 PERMISSION_DENIED"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "실습 5 서버는 ratio를 0~100으로 보정합니다. Client가 <code>ledOn(250)</code>을 부르면 반환값은?",
+          "o": [
+            "250",
+            "0",
+            "100",
+            "-1"
+          ],
+          "a": 2,
+          "h": "실습 5 서버는 <code>ratio &lt; 0 ? 0 : (ratio &gt; 100 ? 100 : ratio)</code>로 값을 0~100 범위로 보정해 돌려줍니다. 실행 예에서 ledOn(70)은 70이 그대로 나오고, 상한을 넘는 값은 상한으로 잘립니다.",
+          "w": "250은 100보다 크므로 서버가 100으로 보정해 reply에 씁니다. -1은 transact 자체가 실패했을 때 Proxy가 돌려주는 값입니다.",
+          "an": "05_binder4_parcel_args Step 4–5 · Day2 p.12",
+          "src": "```bash\ncd ~/aosp/day2 && mm -j$(nproc)\n```\n\n```bash\nadb shell /data/my_server_test_4 &\nadb shell /data/my_client_test_4 70 # client: ledOn(70) = 70\nadb shell /data/my_client_test_4 250 # client: ledOn(250) = 100\nadb shell service call my.led_service 1 s16 \"android.my.ILedService\" i32 30"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>service call … s16 'android.my.ILedService' i32 30</code> 결과 Parcel에 보인 <code>0x1e</code>의 의미는?",
+          "o": [
+            "30을 16진수로 쓴 반환값",
+            "Status 예외 코드",
+            "LED_ON transaction code",
+            "Parcel 전체 길이"
+          ],
+          "a": 0,
+          "h": "service call 결과 Parcel은 반환값을 16진수로 보여 줍니다. 확인 포인트의 'i32 30 → Parcel 0x1e'처럼, 16진수 1e를 10진수로 바꾸면 1×16 + 14가 되어 보낸 값과 비교할 수 있습니다.",
+          "w": "0x1e는 10진수 30이며, 서버가 reply->writeInt32(applied)로 쓴 반환값입니다. 셸에서 손으로 만든 바이트가 Proxy가 만드는 것과 같다는 것을 보여 줍니다.",
+          "an": "05_binder4_parcel_args Step 5 · Day2 p.8",
+          "src": "• service call … i32 30 → Parcel 0x1e"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Parcel에는 타입 정보가 함께 실리므로 Stub이 읽는 순서를 바꿔도 값이 올바르게 나온다.",
+          "a": false,
+          "h": "실습 5 Step 6은 Stub의 readInt32() 앞에 readString16()을 끼우면 값이 엉뚱하게 나오거나 ratio가 0이 된다고 보여 줍니다. Parcel은 타입 정보가 없는 바이트 스트림이라 쓰기·읽기 순서가 곧 계약입니다.",
+          "w": "틀렸습니다. Parcel은 타입 정보가 없는 바이트 스트림이라 쓰기 순서 = 읽기 순서가 계약입니다. 순서가 어긋나도 컴파일러는 모르며, 그래서 AIDL이 이 코드를 자동 생성합니다.",
+          "an": "05_binder4_parcel_args Step 6 · Day2 p.8",
+          "src": "## Step 6. 순서를 어기면?\n\nStub 의 `readInt32()` 앞에 `data.readString16()` 을 한 줄 넣고 빌드해 보자. 값이 엉뚱하게 나오거나 `ratio` 가 0 이 된다. Parcel 은 **타입 정보가 없는 바이트 스트림**이라 쓰기·읽기 순서가 계약이다. AIDL 이 이 코드를 자동 생성해 주는 이유다."
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>reply</code>도 Parcel이며, 반환값은 Stub이 <code>reply->write*</code>로 싣고 Proxy가 <code>reply.read*</code>로 꺼낸다.",
+          "a": true,
+          "h": "실습 5 핵심 정리는 reply도 Parcel이라고 적습니다. Stub은 반환값을 reply->write*로 싣고, Proxy는 transact 후 reply.read*로 꺼내 반환합니다.",
+          "w": "맞습니다. 인자는 data Parcel, 반환값은 reply Parcel로 오갑니다.",
+          "an": "05_binder4_parcel_args 핵심 정리",
+          "src": "## 핵심 정리\n\n- `Parcel` 쓰기 API: `writeInt32 / writeInt64 / writeString16 / writeStrongBinder / writeFileDescriptor …`\n- 읽기는 같은 순서의 `read*`. 순서·타입이 어긋나도 컴파일러는 모른다.\n- `reply` 도 Parcel — 반환값은 `reply->write*` 로 싣고 Proxy 가 `reply.read*` 로 꺼낸다."
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "Parcel API와 용도를 연결하세요.",
+          "pairs": [
+            [
+              "writeInt32 / readInt32",
+              "기본형 정수"
+            ],
+            [
+              "writeString16 / readString16",
+              "UTF-16 문자열"
+            ],
+            [
+              "writeStrongBinder / readStrongBinder",
+              "IBinder (Callback)"
+            ],
+            [
+              "writeInterfaceToken",
+              "인터페이스 검증 토큰"
+            ]
+          ],
+          "h": "Parcel API 표에서 writeInt32/readInt32는 기본형, writeString16/readString16은 UTF-16 문자열, writeStrongBinder/readStrongBinder는 Callback 같은 IBinder를 담당합니다. writeInterfaceToken은 CHECK_INTERFACE와 짝을 이루는 인터페이스 검증용입니다.",
+          "w": "기본형은 Int32, 문자열은 String16(UTF-16), IBinder는 StrongBinder, 인터페이스 검증은 InterfaceToken으로 씁니다.",
+          "an": "Day2 p.8 Parcel API 표",
+          "src": "| Parcel | `writeInt32 / writeString16 / writeStrongBinder / writeFileDescriptor`, 쓰기 순서 = 읽기 순서, `writeInterfaceToken` / `CHECK_INTERFACE` |\n| Transaction code | `FIRST_CALL_TRANSACTION = 1`, `DUMP_TRANSACTION`, `INTERFACE_TRANSACTION` |"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "Client의 <code>led->ledOn(70)</code> 호출이 처리되는 순서를 맞추세요.",
+          "steps": [
+            "BpLedService::ledOn이 Parcel에 토큰과 70을 쓰고 transact()",
+            "IPCThreadState::transact가 ioctl(BINDER_WRITE_READ) 호출",
+            "Driver가 서버의 Binder Thread를 깨운다",
+            "BnLedService::onTransact가 readInt32로 인자를 읽고 ledOn() 호출",
+            "Proxy가 reply.readInt32()로 반환값을 돌려준다"
+          ],
+          "h": "Worksheet Q18 해설은 BpLedService::ledOn이 Parcel에 토큰과 70을 써서 transact()하고, IPCThreadState::transact가 ioctl(BINDER_WRITE_READ)을 부른다고 설명합니다. 이어 Driver가 서버 Binder Thread를 깨우고, onTransact가 readInt32로 읽어 ledOn()을 호출한 뒤 Proxy가 reply.readInt32()로 결과를 돌려줍니다.",
+          "w": "Proxy 직렬화 → IPCThreadState의 ioctl → Driver가 Binder Thread를 깨움 → Stub 역직렬화·호출 → reply로 반환 순서입니다.",
+          "an": "Day2_Worksheet Q18 · Day2 p.8",
+          "src": "**18. BpLedService::ledOn 이 Parcel 에 토큰과 70 을 쓰고 transact() → IPCThreadState::transact 가 ioctl(BINDER_WRITE_READ) 호출 → Driver 가 서버의 Binder Thread 를 깨운다 → BnLedService::onTransact 가 readInt32 로 인자를 읽고 ledOn() 호출 → Proxy 가 reply.readInt32() 로 반환값을 돌려준다**"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "Stub의 <code>case LED_ON:</code> 블록에서 하는 일을 모두 고르세요.",
+          "o": [
+            "CHECK_INTERFACE로 토큰 검사",
+            "쓴 순서대로 readInt32",
+            "reply->writeInt32로 반환",
+            "remote()->transact 호출",
+            "writeInterfaceToken 호출"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Day2 p.8의 Stub 코드에서 case LED_ON: 블록은 CHECK_INTERFACE로 토큰을 검사하고, data.readInt32()로 '쓴 순서대로' 인자를 읽습니다. 그 뒤 ledOn() 결과를 reply->writeInt32로 실어 돌려줍니다.",
+          "w": "Stub은 토큰 검사 → 인자 읽기 → 가상 함수 호출 → reply 쓰기를 합니다. remote()->transact와 writeInterfaceToken은 Proxy(Client) 쪽 코드입니다.",
+          "an": "Day2 p.8 · 05_binder4_parcel_args Step 3",
+          "src": "data.writeInt32(ratio);\nremote()->transact(LED_ON, data, &reply);\nreturn reply.readInt32();\n}\n// Stub (Server)\ncase LED_ON: {\nCHECK_INTERFACE(ILedService, data, reply); // 토큰 검사\nint ratio = data.readInt32(); // 쓴 순서대로\nreply->writeInt32(ledOn(ratio)); // 가상 호출 + \n반환\nreturn NO_ERROR;\n}\nParcel API 용도"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "Callback 역방향 호출",
+      "ref": "Day2 p.9, p.12 · 06_binder5_callback",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Callback처럼 IBinder를 Parcel에 실어 보낼 때 Proxy가 사용하는 Parcel API는?",
+          "o": [
+            "writeInt32",
+            "writeString16",
+            "writeStrongBinder",
+            "writeFileDescriptor"
+          ],
+          "a": 2,
+          "h": "Worksheet Q5 해설은 IBinder를 Parcel에 싣는 API를 쓰면 Driver를 지나며 송신 측 포인터가 수신 측 handle로 변환된다고 설명합니다. Parcel API 표에서 IBinder (Callback) 용도로 적힌 쌍입니다.",
+          "w": "writeStrongBinder로 실린 IBinder는 Driver를 지나며 송신 측 포인터가 수신 측 handle로 변환됩니다.",
+          "an": "Day2_Worksheet Q5 · Day2 p.9",
+          "src": "**5. ③**\nwriteStrongBinder 로 실린 IBinder 는 Driver 를 지나며 송신 측 포인터가 수신 측 handle 로 변환된다.\n**6. ②**"
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Client가 Parcel에 실은 로컬 BBinder는 Driver를 지나 서버에서 무엇이 되나요?",
+          "o": [
+            "같은 메모리 포인터",
+            "handle을 가진 BpBinder",
+            "String16 descriptor",
+            "파일 디스크립터"
+          ],
+          "a": 1,
+          "h": "Day2 p.9에 따르면 Client가 writeStrongBinder로 실은 로컬 BBinder는 BINDER_TYPE_BINDER로 Driver에 들어갑니다. Driver는 node를 만들고 서버용 ref인 BINDER_TYPE_HANDLE로 바꾸며, 서버는 readStrongBinder로 원격 객체를 받습니다.",
+          "w": "Driver가 node를 만들고 BINDER_TYPE_BINDER를 BINDER_TYPE_HANDLE로 바꿔, 서버는 readStrongBinder로 BpBinder를 받습니다. 메모리 포인터는 다른 Process에서 의미가 없습니다.",
+          "an": "Day2 p.9 · 06_binder5_callback 핵심 정리",
+          "src": "BINDER_TYPE_BINDER\nDriver\nnode 생성 → 서버용 ref\nBINDER_TYPE_HANDLE 로 변환\nServer\nreadStrongBinder → BpBinder"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "서버가 <code>readStrongBinder()</code> 결과에 <code>interface_cast&lt;IMyDataCallback&gt;</code>를 하면 얻는 객체는?",
+          "o": [
+            "BnMyDataCallback",
+            "MyCallback",
+            "MyDataService",
+            "BpMyDataCallback"
+          ],
+          "a": 3,
+          "h": "서버 입장에서 Client가 넘긴 Callback 객체는 다른 Process에 있으므로 readStrongBinder 결과는 원격 BpBinder입니다. 여기에 interface_cast를 하면 asInterface가 원격 분기로 가서 해당 인터페이스의 Bp 클래스를 만듭니다.",
+          "w": "Callback의 실체는 Client Process에 있으므로 서버는 Proxy인 BpMyDataCallback을 얻습니다. MyCallback(BnMyDataCallback 상속)은 Client 쪽 구현체입니다.",
+          "an": "06_binder5_callback Step 2 · Day2 p.9",
+          "src": "onDataReceived(\"Hello…\") ◀── BpMyDataCallback::onDataReceived ── cb->onDataReceived()\n (Client 의 Binder Thread 에서 실행)\n```"
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "client.cpp 끝의 startThreadPool·joinThreadPool 두 줄을 주석 처리하면?",
+          "o": [
+            "콜백이 오지 않거나 멈춘다",
+            "콜백이 main tid에서 실행된다",
+            "서버가 PERMISSION_DENIED",
+            "컴파일 오류가 난다"
+          ],
+          "a": 0,
+          "h": "실습 6 Step 5는 client.cpp 마지막 두 줄을 주석 처리하면 registerCallback()이 반환되지 않거나 콜백이 오지 않는다고 적습니다. Client에 요청을 받을 Binder Thread가 없기 때문입니다.",
+          "w": "Client에 요청을 받을 Binder Thread가 없어 registerCallback()이 반환되지 않거나 콜백이 오지 않습니다. 코드 자체는 문제없이 컴파일됩니다.",
+          "an": "06_binder5_callback Step 5 · Day2 p.12",
+          "src": "## Step 5. 실험 — Client 의 joinThreadPool 을 빼면?\n\n`client.cpp` 마지막 두 줄을 주석 처리하고 실행하면 `registerCallback()` 이 반환되지 않거나 콜백이 오지 않는다. Client 에 요청을 받을 Binder Thread 가 없기 때문이다. Day 1 실습 9 의 Java Client 는 Framework 가 Thread Pool 을 자동으로 켜 주었지만, Native 는 직접 켜야 한다."
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "실습 6에서 Client의 <code>onDataReceived()</code>는 어느 Thread에서 실행되나요?",
+          "o": [
+            "Client의 main Thread",
+            "서버의 Binder Thread",
+            "Client의 다른 tid Binder Thread",
+            "servicemanager의 Thread"
+          ],
+          "a": 2,
+          "h": "실습 6 출력에서 Client의 main은 tid=6011로 콜백을 등록하고, onDataReceived는 tid=6013에서 찍히며 '★ main이 아닌 Binder Thread'라는 주석이 붙어 있습니다. startThreadPool로 만든 Thread가 역방향 호출을 받습니다.",
+          "w": "onDataReceived는 main이 아닌 Client의 Binder Thread(다른 tid)에서 실행됩니다. 서버는 BpMyDataCallback으로 Client에 transact할 뿐 직접 실행하지 않습니다.",
+          "an": "06_binder5_callback Step 4 · 확인 포인트",
+          "src": "client: onDataReceived(\"Hello from C++ Binder Server\") tid=6013 ← ★ main 이 아닌 Binder Thread\nserver: callback returned"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Java Client는 Framework가 Thread Pool을 자동으로 켜 주지만, Native Client는 직접 켜야 한다.",
+          "a": true,
+          "h": "실습 6 Step 5는 Day 1 실습 9의 Java Client와 오늘의 Native Client를 비교합니다. Java는 Framework가 Thread Pool을 자동으로 켜 주었지만, Native는 startThreadPool/joinThreadPool을 직접 호출해야 한다고 적습니다.",
+          "w": "맞습니다. Java는 Framework가 자동으로 처리하지만 Native는 startThreadPool()과 joinThreadPool()을 직접 불러야 합니다.",
+          "an": "06_binder5_callback Step 5 · Day2 p.9",
+          "src": "`client.cpp` 마지막 두 줄을 주석 처리하고 실행하면 `registerCallback()` 이 반환되지 않거나 콜백이 오지 않는다. Client 에 요청을 받을 Binder Thread 가 없기 때문이다. Day 1 실습 9 의 Java Client 는 Framework 가 Thread Pool 을 자동으로 켜 주었지만, Native 는 직접 켜야 한다."
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "writeStrongBinder로 보낸 객체 포인터 값은 그대로 서버 Process에 전달된다.",
+          "a": false,
+          "h": "Day2 p.9는 '포인터는 Process를 넘지 않는다'고 정리합니다. Parcel에 실린 객체 포인터(BINDER_TYPE_BINDER)는 Driver가 node를 만들고 서버용 handle(BINDER_TYPE_HANDLE)로 변환해 전달합니다.",
+          "w": "틀렸습니다. 포인터는 Process를 넘지 않습니다. Driver가 송신 측 객체 포인터를 수신 측 handle로 변환합니다.",
+          "an": "Day2 p.9",
+          "src": "BINDER_TYPE_BINDER\nDriver\nnode 생성 → 서버용 ref\nBINDER_TYPE_HANDLE 로 변환\nServer\nreadStrongBinder → BpBinder"
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "실습 6의 클래스와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "MyCallback",
+              "Client 쪽 콜백 구현체"
+            ],
+            [
+              "MyDataService",
+              "Server 쪽 서비스 구현체"
+            ],
+            [
+              "BpMyDataService",
+              "Client가 registerCallback을 보내는 Proxy"
+            ],
+            [
+              "BpMyDataCallback",
+              "Server가 Client를 부르는 Proxy"
+            ]
+          ],
+          "h": "실습 6 구조도에서 Client 쪽 MyCallback은 BnMyDataCallback을, Server 쪽 MyDataService는 BnMyDataService를 상속한 구현체입니다. Bp가 붙은 클래스는 상대편을 부르는 Proxy로, BpMyDataService는 Client→Server, BpMyDataCallback은 Server→Client 방향입니다.",
+          "w": "Client는 MyCallback을 구현해 BpMyDataService로 넘기고, 서버는 MyDataService 안에서 BpMyDataCallback으로 Client를 역호출합니다.",
+          "an": "06_binder5_callback 구조 · Step 3",
+          "src": "## 구조\n\n```\nClient Server\n MyCallback : BnMyDataCallback MyDataService : BnMyDataService"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "Callback 역방향 호출이 일어나는 순서를 맞추세요.",
+          "steps": [
+            "Client가 registerCallback(cb)에서 writeStrongBinder",
+            "Driver가 node를 만들고 handle로 변환",
+            "서버가 readStrongBinder 후 interface_cast",
+            "서버가 cb->onDataReceived() 호출",
+            "Client Binder Thread에서 onDataReceived 실행"
+          ],
+          "h": "Client가 registerCallback(cb)에서 writeStrongBinder로 콜백을 싣고, Driver가 node를 만들어 handle로 바꿉니다. 서버는 readStrongBinder 후 interface_cast로 Proxy를 얻어 cb->onDataReceived()를 호출하고, 이 호출은 Client의 Binder Thread에서 실행됩니다.",
+          "w": "Client가 IBinder를 Parcel에 싣고, Driver가 handle로 바꾸며, 서버가 Proxy를 만들어 역호출하면 Client의 Binder Thread에서 콜백이 실행됩니다.",
+          "an": "Day2 p.9 · 06_binder5_callback 구조",
+          "src": "Parcel 에 객체 포인터\nBINDER_TYPE_BINDER\nDriver\nnode 생성 → 서버용 ref\nBINDER_TYPE_HANDLE 로 변환\nServer\nreadStrongBinder → BpBinder\ninterface_cast → BpMyDataCallbac\nk\ncb->onDataReceived()\n서버 → Client transact\nClient Binder Thread 에서 실행\n// Proxy\ndata.writeStrongBinder(IInterface::asBinder(cb));\n// Stub"
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "역방향 호출(Callback)에 대해 옳은 것을 모두 고르세요.",
+          "o": [
+            "포인터는 Process를 넘지 않는다",
+            "콜백 받는 Client도 서버 역할",
+            "linkToDeath는 node/ref 위 통지",
+            "Native Client는 Thread Pool 불필요",
+            "서버가 Client 함수를 직접 호출"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Day2 p.9는 포인터가 Process를 넘지 않고 Driver가 handle로 변환한다고 정리합니다. 콜백을 받는 Client도 서버 역할을 하므로 Thread Pool이 필요하며, linkToDeath 사망 통지도 이 node/ref 구조 위에서 동작합니다.",
+          "w": "포인터는 handle로 변환되고, 콜백을 받는 Client도 Server 역할이라 Thread Pool이 필요하며, RemoteCallbackList·linkToDeath는 이 node/ref 위의 사망 통지입니다. 서버는 transact로 요청할 뿐 Client 함수를 직접 부르지 않습니다.",
+          "an": "Day2 p.9 · 06_binder5_callback 핵심 정리",
+          "src": "cb->onDataReceived(String16(\"Hello\")); // 역방향\n// Client — 요청을 받아야 하므로\nProcessState::self()->startThreadPool();\nIPCThreadState::self()->joinThreadPool();\n• 포인터는 Process 를 넘지 않는다 — Dri\nver 가 handle 로 변환\n• Client 도 Server 역할 → Thread Pool 필\n수\n• Java 는 Framework 가 자동, Native 는\n직접"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "AIDL Native backend · Status",
+      "ref": "Day2 p.13–16 · 07_binder7_aidl_cpp",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Soong에서 <code>.aidl</code> 파일로 cpp/ndk/java backend 라이브러리를 만드는 모듈 타입은?",
+          "o": [
+            "cc_binary",
+            "aidl_interface",
+            "vintf_fragments",
+            "init_rc"
+          ],
+          "a": 1,
+          "h": "Worksheet Q12 해설은 이 모듈 타입이 name, srcs, backend { cpp/ndk/java }를 받아 &lt;name&gt;-cpp, &lt;name&gt;-ndk 라이브러리를 만든다고 설명합니다. 이름은 AIDL 인터페이스를 뜻하는 두 단어를 밑줄로 이은 것입니다.",
+          "w": "aidl_interface { name, srcs, backend { cpp/ndk/java } }가 &lt;name&gt;-cpp, &lt;name&gt;-ndk 라이브러리를 만듭니다. cc_binary는 실행 파일, init_rc는 .rc 설치 속성입니다.",
+          "an": "Day2_Worksheet Q12 · Day2 p.14",
+          "src": "**12. aidl_interface**\naidl_interface { name, srcs, backend { cpp/ndk/java } } 가 <name>-cpp, <name>-ndk 라이브러리를 만든다.\n**13. servicemanager**"
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "AIDL cpp backend 생성 Method는 예외를 (1) 타입으로 반환하고, 반환값은 (2) 이름의 out 포인터로 전달합니다. (1)/(2)는?",
+          "o": [
+            "binder::Status / _aidl_return",
+            "ScopedAStatus / reply",
+            "status_t / _aidl_data",
+            "Parcel / _aidl_reply"
+          ],
+          "a": 0,
+          "h": "Worksheet Q16 해설은 생성 시그니처를 <code>Status f(in…, T* _aidl_return)</code>로 보여 줍니다. 예외는 binder 네임스페이스의 상태 타입으로 반환되고, 실제 결과값은 마지막 out 포인터 인자에 담깁니다.",
+          "w": "생성 Method는 Status f(in…, T* _aidl_return) 형태입니다. ScopedAStatus는 ndk backend의 상태 타입입니다.",
+          "an": "Day2_Worksheet Q16 · Day2 p.14–15",
+          "src": "**16. (1) binder::Status / (2) _aidl_return**\nStatus f(in…, T* _aidl_return). Status::fromExceptionCode(EX_SECURITY) 등이 Parcel 예외 헤더로 전달되어 Java 예외가 된다."
+        },
+        {
+          "id": "t5-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>aidl_interface { name: 'my_interface' }</code>가 만드는 cpp backend 라이브러리 이름은?",
+          "o": [
+            "libmy_interface",
+            "my_interface-ndk",
+            "my_interface-cpp",
+            "my_interface-java"
+          ],
+          "a": 2,
+          "h": "실습 7 Android.bp에서 cc_binary는 static_libs에 my_interface 뒤에 backend 이름을 붙인 라이브러리를 씁니다. 핵심 정리는 aidl_interface가 -cpp, -ndk, -java 접미사로 backend별 라이브러리를 만든다고 적습니다.",
+          "w": "aidl_interface는 -cpp, -ndk, -java 접미사로 backend별 라이브러리를 만들고, cc_binary는 static_libs: ['my_interface-cpp']로 링크합니다.",
+          "an": "07_binder7_aidl_cpp Step 2 · Day2 p.14",
+          "src": "local_include_dir: \"binder7\",\n backend: { cpp: { enabled: true } },\n unstable: true, // VINTF 안정성 검사 제외 (실습용)\n}\ncc_binary { name: \"binder_server_7\", ..., static_libs: [\"my_interface-cpp\"] }\n```\n\n`aidl_interface` 하나가 `my_interface-cpp` 라이브러리를 만들고, 그 안에 Bn/Bp/I 헤더와 구현이 들어간다."
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "서버가 <code>Status::fromExceptionCode(EX_ILLEGAL_ARGUMENT)</code>를 반환하면 Java 쪽에서는 어떤 예외가 되나요?",
+          "o": [
+            "SecurityException",
+            "IllegalStateException",
+            "ServiceSpecificException",
+            "IllegalArgumentException"
+          ],
+          "a": 3,
+          "h": "Day2 p.15의 'Status → Java 예외 매핑'은 EX_SECURITY가 SecurityException으로 바뀌는 것처럼 EX_ 뒤의 이름이 Java 예외 이름으로 이어진다고 정리합니다. EX_ILLEGAL_STATE, EX_NULL_POINTER도 같은 방식입니다.",
+          "w": "EX_ILLEGAL_ARGUMENT는 IllegalArgumentException으로 매핑됩니다. EX_SECURITY는 SecurityException, fromServiceSpecificError(n)는 ServiceSpecificException이 됩니다.",
+          "an": "Day2 p.15 Status → Java 예외 매핑",
+          "src": "Status → Java 예외 매핑\n• EX_SECURITY → SecurityException (실습 8·12)\n• EX_ILLEGAL_ARGUMENT → IllegalArgumentException"
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "수작업 <code>IMPLEMENT_META_INTERFACE</code>에 대응하는 AIDL 생성 코드의 이름은?",
+          "o": [
+            "CHECK_INTERFACE",
+            "DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE",
+            "DECLARE_META_INTERFACE",
+            "TRANSACTION_registerCallback"
+          ],
+          "a": 1,
+          "h": "실습 7 Step 5 대조 표는 손으로 쓴 매크로와 AIDL 생성 코드를 나란히 비교합니다. 생성 코드에서는 같은 매크로 이름 앞에 '직접 쓰지 말라'는 경고 문구가 접두사로 붙어 있습니다.",
+          "w": "생성 코드는 DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(MyDataService, 'IMyDataService')를 씁니다. TRANSACTION_registerCallback은 case LED_ON에 대응하는 code입니다.",
+          "an": "07_binder7_aidl_cpp Step 5 대조 표 · Day2 p.16",
+          "src": "| `case LED_ON:` | `case BnMyDataService::TRANSACTION_registerCallback:` |\n| `IMPLEMENT_META_INTERFACE` | `DO_NOT_DIRECTLY_USE_ME_IMPLEMENT_META_INTERFACE(MyDataService, \"IMyDataService\")` |\n| 반환값 `reply->writeInt32` | `_aidl_reply->writeInt32(_aidl_return)` + `Status` 헤더 |"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>unstable: true</code>는 실습용이며, 실제 HAL은 <code>stability: 'vintf'</code>와 versions로 버전을 고정한다.",
+          "a": true,
+          "h": "실습 7 핵심 정리는 unstable: true가 VINTF 안정성 검사를 빼는 실습용 설정이라고 적습니다. 실제 HAL은 stability: \"vintf\"와 versions, aidl_api/ 동결로 버전을 고정합니다.",
+          "w": "맞습니다. unstable: true는 VINTF 안정성 검사를 제외하는 실습용 설정이고, 실제 HAL은 stability: 'vintf' + versions + aidl_api/ 동결을 씁니다.",
+          "an": "07_binder7_aidl_cpp 핵심 정리 · Day2 p.14",
+          "src": "## 핵심 정리\n\n- `aidl_interface` = AIDL 컴파일 + 라이브러리 패키징. `-cpp`, `-ndk`, `-java` 접미사로 backend 별 라이브러리를 만든다.\n- 생성된 Method 시그니처는 항상 `Status f(in..., out* _aidl_return)`. 반환값은 out 포인터, 예외는 `Status`.\n- `unstable: true` 는 실습용. 실제 HAL 은 `stability: \"vintf\"` + `versions` 로 버전을 고정한다 (실습 10)."
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "AIDL cpp backend가 생성한 Method는 int 같은 결과값을 함수의 리턴값으로 직접 돌려준다.",
+          "a": false,
+          "h": "핵심 정리는 생성된 Method 시그니처가 항상 <code>Status f(in..., out* _aidl_return)</code>라고 적습니다. 반환값은 out 포인터로, 예외는 Status로 전달되므로 <code>svc->add(40, 2, &amp;r)</code>의 결과는 r에 담깁니다.",
+          "w": "틀렸습니다. 리턴값은 항상 Status이고, 결과는 out 포인터(_aidl_return)로 받습니다. 예: <code>Status st = svc->add(40, 2, &amp;r)</code>.",
+          "an": "07_binder7_aidl_cpp Step 4 · 핵심 정리",
+          "src": "## 핵심 정리\n\n- `aidl_interface` = AIDL 컴파일 + 라이브러리 패키징. `-cpp`, `-ndk`, `-java` 접미사로 backend 별 라이브러리를 만든다.\n- 생성된 Method 시그니처는 항상 `Status f(in..., out* _aidl_return)`. 반환값은 out 포인터, 예외는 `Status`.\n- `unstable: true` 는 실습용. 실제 HAL 은 `stability: \"vintf\"` + `versions` 로 버전을 고정한다 (실습 10)."
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "실습 4~6에서 손으로 쓴 코드와 AIDL 생성 코드를 연결하세요.",
+          "pairs": [
+            [
+              "class BpLedService",
+              "BpMyDataService (BpInterface 상속)"
+            ],
+            [
+              "CHECK_INTERFACE",
+              "_aidl_data.checkInterface(this)"
+            ],
+            [
+              "case LED_ON:",
+              "TRANSACTION_registerCallback"
+            ],
+            [
+              "writeStrongBinder(asBinder(cb))",
+              "_aidl_data.writeStrongBinder(cb)"
+            ]
+          ],
+          "h": "실습 7 대조 표는 손으로 쓴 코드 옆에 AIDL 생성 코드를 둡니다. 생성 코드는 _aidl_data, _aidl_reply처럼 _aidl_ 접두사 변수를 쓰고, code 상수는 TRANSACTION_메서드명 형태이며, Bp 클래스는 BpInterface를 상속합니다.",
+          "w": "AIDL은 Proxy 클래스, 토큰 검사, code 분기, IBinder 직렬화를 모두 같은 구조로 자동 생성합니다. 손으로 써 본 코드가 곧 생성 코드의 실체입니다.",
+          "an": "07_binder7_aidl_cpp Step 5 대조 표",
+          "src": "| `writeInterfaceToken` | `_aidl_data.writeInterfaceToken(getInterfaceDescriptor())` |\n| `writeStrongBinder(asBinder(cb))` | `_aidl_data.writeStrongBinder(cb)` |\n| `CHECK_INTERFACE` | `if (!(_aidl_data.checkInterface(this))) return BAD_TYPE;` |"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "실습 7(AIDL cpp backend 전환)의 진행 순서를 맞추세요.",
+          "steps": [
+            ".aidl 2개 작성 (Callback · Service)",
+            "server.cpp — BnMyDataService 상속 구현",
+            "client.cpp — BnMyDataCallback 구현·add 호출",
+            "mm으로 빌드",
+            "out/soong/.intermediates에서 생성 코드 확인"
+          ],
+          "h": "실습 7은 먼저 Callback·Service용 .aidl 2개를 작성하고, server.cpp에서 BnMyDataService를, client.cpp에서 BnMyDataCallback을 상속해 구현합니다. 그다음 mm으로 빌드하고 out/soong/.intermediates 아래 my_interface-cpp-source에서 생성 코드를 확인합니다.",
+          "w": ".aidl로 인터페이스를 정의하고 서버·클라이언트를 생성 클래스로 구현한 뒤 빌드하면, my_interface-cpp-source 아래에서 생성된 Bn/Bp/I를 볼 수 있습니다.",
+          "an": "Day2 p.16 · 07_binder7_aidl_cpp Step 1–5",
+          "src": "2. server.cpp: BnMyDataService 상속, Status add(a, b, &ret) · EX_ILLEGAL_ARGUMEN\nT\n3. client.cpp: BnMyDataCallback 상속, add(40,2) / add(-1,2) 호출\n4. mm → find out/soong/.intermediates/…/my_interface-cpp-source\n5. Step 5-1: aidl --lang=cpp -I . -o gen -h gen → gen/ 8파일 · --lang=ndk 비교\n확인 포인트"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "AIDL ndk backend(HAL용)에 해당하는 것을 모두 고르세요.",
+          "o": [
+            "aidl:: 네임스페이스",
+            "ndk::ScopedAStatus",
+            "libbinder_ndk",
+            "sp<> 참조",
+            "interface_cast로 획득"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Day2 p.15의 cpp vs ndk 비교에서 NDK backend는 aidl:: 네임스페이스, ndk::ScopedAStatus, SharedRefBase::make, AServiceManager_* 함수를 씁니다. 라이브러리도 안정 ABI를 가진 NDK 계열을 링크합니다.",
+          "w": "ndk backend는 aidl::&lt;pkg&gt;:: 네임스페이스, ScopedAStatus, libbinder_ndk, std::shared_ptr와 I::fromBinder를 씁니다. sp&lt;&gt;와 interface_cast는 cpp backend 쪽입니다.",
+          "an": "Day2 p.15 cpp vs ndk 표",
+          "src": "| 안정성 | `unstable: true` (실습) vs `stability: \"vintf\"` + `versions` + `aidl_api/` 동결 (HAL) |\n| NDK backend | `aidl::` 네임스페이스 · `ndk::ScopedAStatus` · `SharedRefBase::make` · `AServiceManager_*` · `fromBinder` |"
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "UID 접근 제어 · App 호출",
+      "ref": "Day2 p.18, p.21, p.27 · 08_auth_uid · 12_app_to_native",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Stub Method 안에서 호출자의 UID를 얻는 IPCThreadState의 Method는?",
+          "o": [
+            "getuid()",
+            "getCallingPid()",
+            "getCallingUid()",
+            "checkCallingPermission()"
+          ],
+          "a": 2,
+          "h": "Worksheet Q10 해설은 이 메서드가 Driver가 Transaction에 붙인 sender_euid를 반환한다고 설명합니다. Day2 p.18 코드에서는 <code>IPCThreadState::self()-></code> 뒤에 '호출한 쪽'의 UID를 묻는 이름으로 호출합니다.",
+          "w": "getCallingUid()는 Driver가 Transaction에 붙인 sender_euid를 반환합니다. getuid()는 자기 Process의 uid, getCallingPid()는 호출자 PID입니다.",
+          "an": "Day2_Worksheet Q10 · Day2 p.18",
+          "src": "**10. getCallingUid()**\nDriver 가 Transaction 에 붙인 sender_euid 를 반환한다. 커널 cred 기반이라 사용자 공간에서 위조할 수 없다.\n**11. 1000**"
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "system_server와 system 계정이 사용하는 UID 값 <code>AID_SYSTEM</code>은?",
+          "o": [
+            "0",
+            "1000",
+            "10000",
+            "10050"
+          ],
+          "a": 1,
+          "h": "Worksheet Q11 해설은 AID_SYSTEM 값과 함께 root는 0, 일반 App은 10000번대(AID_APP_START)부터 받는다고 정리합니다. 실습 8에서는 <code>su 1000 /data/led_auth_client</code>로 실행했을 때 LED ON이 성공했습니다.",
+          "w": "AID_SYSTEM은 1000입니다. root는 0, 일반 App은 10000번대(AID_APP_START)부터 받습니다.",
+          "an": "Day2_Worksheet Q11 · 08_auth_uid Step 2",
+          "src": "**11. 1000**\nAID_SYSTEM = 1000. root 는 0, 일반 App 은 10000 번대(AID_APP_START) 부터 하나씩 받는다.\n**12. aidl_interface**"
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "root shell(uid 0)에서 <code>/data/led_auth_client</code>를 실행하면 결과는?",
+          "o": [
+            "LEDON() succeeded",
+            "EX_ILLEGAL_ARGUMENT",
+            "EX_SECURITY로 거부",
+            "서비스를 찾지 못함"
+          ],
+          "a": 2,
+          "h": "실습 8 서버는 호출자 uid가 AID_SYSTEM(1000)이 아니면 EX_SECURITY를 반환합니다. Day2 p.18 표에서 root shell로 실행한 /data/led_auth_client의 uid는 0이며, root도 예외로 취급되지 않습니다.",
+          "w": "uid 0은 1000이 아니므로 EX_SECURITY로 거부됩니다. root라도 허용 목록에 없으면 실패하며, su 1000으로 실행해야 성공합니다.",
+          "an": "08_auth_uid Step 5 · Day2 p.18 표",
+          "src": "실행 uid 결과\n/data/led_auth_client (root shell) 0 EX_SECURITY\nsu 1000 /data/led_auth_client 1000 LED ON"
+        },
+        {
+          "id": "t6-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "App이 Parcel에 'uid=1000'이라고 써서 LEDON을 호출하면 어떻게 되나요?",
+          "o": [
+            "Driver가 붙인 uid로 거부",
+            "uid 1000으로 인정",
+            "CHECK_INTERFACE에서 실패",
+            "앱이 즉시 종료"
+          ],
+          "a": 0,
+          "h": "실습 8 Step 6은 Parcel에 '나는 1000'이라고 써 넣어도 서버는 그 값을 읽지 않는다고 설명합니다. getCallingUid()는 커널 Binder Driver가 송신 Process의 cred에서 직접 채우는 값이라 위조할 수 없습니다.",
+          "w": "getCallingUid()는 커널 Binder Driver가 송신 Process의 cred에서 직접 채우는 값이라 Parcel 내용으로 위조할 수 없습니다. 따라서 App의 실제 uid(10xxx)로 거부됩니다.",
+          "an": "08_auth_uid Step 6 · Day2 p.18",
+          "src": "## Step 6. 위조 시도\n\nClient 코드에서 uid 를 속일 방법이 있는가? `setuid(1000)` 은 root 에서만 되고, 그 경우 실제로 uid 가 1000 이 된다. Parcel 에 \"나는 1000\" 이라고 써 넣어도 서버는 그 값을 읽지 않는다. `getCallingUid()` 는 **커널 Binder Driver 가 송신 Process 의 cred 에서 직접 채우는 값**이라 사용자 공간에서 조작할 수 없다."
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "실습 12 App에서 <code>reply.readException()</code>은 서버의 EX_SECURITY를 무엇으로 바꾸나요?",
+          "o": [
+            "IllegalArgumentException",
+            "ServiceSpecificException",
+            "NoSuchMethodError",
+            "SecurityException"
+          ],
+          "a": 3,
+          "h": "실습 12 App은 transact(1) 후 reply.readException()을 호출합니다. Day2 p.15 매핑에 따라 서버의 EX_SECURITY는 Java 쪽에서 보안 관련 예외로 바뀌어 던져집니다.",
+          "w": "binder::Status의 예외 코드는 Parcel 예외 헤더로 전달되어 readException()에서 SecurityException으로 되살아납니다. NoSuchMethodError는 hidden API가 차단될 때 날 수 있는 오류입니다.",
+          "an": "12_app_to_native Step 2–3 · Day2 p.27",
+          "src": "• readException → SecurityException"
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>getCallingUid()</code>를 서버 main()에서 부르면 마지막으로 호출한 Client의 uid가 나온다.",
+          "a": false,
+          "h": "Day2 p.18은 getCallingUid()가 Stub Method(Binder Thread) 안에서만 유효하다고 적습니다. 처리 중인 Transaction이 없는 main에서 부르면 Client가 아니라 자기 자신의 uid가 나옵니다.",
+          "w": "틀렸습니다. getCallingUid()는 Stub Method(Binder Thread) 안에서만 유효하며, main에서 부르면 자기 uid가 나옵니다.",
+          "an": "Day2 p.18",
+          "src": "• Stub Method(Binder Thread) 안에서만 유효 — main 에서 부르면 자기 uid"
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "일반 App의 UID는 10000번대부터 하나씩 배정된다.",
+          "a": true,
+          "h": "Worksheet Q11 해설은 root는 0, AID_SYSTEM은 1000이고, 일반 App은 AID_APP_START부터 하나씩 UID를 받는다고 설명합니다. 실습 12 앱 로그에도 uid=10152처럼 10xxx 값이 찍혔습니다.",
+          "w": "맞습니다. 일반 App은 AID_APP_START(10000)부터 UID를 받습니다. 그래서 App이 1000만 허용하는 서비스를 부르면 거부됩니다.",
+          "an": "Day2_Worksheet Q11 해설 · 12_app_to_native Step 4",
+          "src": "**11. 1000**\nAID_SYSTEM = 1000. root 는 0, 일반 App 은 10000 번대(AID_APP_START) 부터 하나씩 받는다.\n**12. aidl_interface**"
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "UID 값과 계정을 연결하세요.",
+          "pairs": [
+            [
+              "0",
+              "root"
+            ],
+            [
+              "1000",
+              "system (AID_SYSTEM)"
+            ],
+            [
+              "10000번대",
+              "일반 App"
+            ]
+          ],
+          "h": "Worksheet Q11 해설은 AID_SYSTEM이 system_server와 system 계정의 UID이고, 일반 App은 AID_APP_START부터 하나씩 받는다고 정리합니다. 리눅스 전통대로 최고 권한 계정은 가장 작은 값을 가지며, 숫자가 작을수록 시스템에 가까운 계정입니다.",
+          "w": "0은 root, 1000은 system_server·system 계정, 10000번대는 일반 App입니다. 실습 8에서는 1000만 LEDON을 허용했습니다.",
+          "an": "08_auth_uid Step 5 · Day2_Worksheet Q11",
+          "src": "**11. 1000**\nAID_SYSTEM = 1000. root 는 0, 일반 App 은 10000 번대(AID_APP_START) 부터 하나씩 받는다.\n**12. aidl_interface**"
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "실습 12 App이 C++ 서비스를 직접 호출하는 순서를 맞추세요.",
+          "steps": [
+            "리플렉션으로 ServiceManager.getService('led.auth')",
+            "getInterfaceDescriptor()로 ILedAuthService 확인",
+            "data.writeInterfaceToken('ILedAuthService')",
+            "binder.transact(1, data, reply, 0)",
+            "reply.readException()에서 SecurityException"
+          ],
+          "h": "실습 12는 ServiceManager.getService()가 hidden API라 리플렉션으로 'led.auth'의 IBinder를 얻고, getInterfaceDescriptor()로 ILedAuthService를 확인합니다. 그다음 writeInterfaceToken → transact(1) → readException() 순으로 호출해 SecurityException을 받습니다.",
+          "w": "hidden API라 리플렉션으로 IBinder를 얻고, descriptor를 확인한 뒤 토큰을 써서 transact합니다. App uid(10xxx)로 거부되어 readException()이 SecurityException을 던집니다.",
+          "an": "12_app_to_native Step 2 · Day2 p.27",
+          "src": "## 목표\n\n- Java App 이 **AIDL Java backend 없이** `IBinder.transact()` 로 C++ Service 를 직접 호출한다.\n- `ServiceManager.getService()` 가 hidden API 라 리플렉션으로 접근해야 함을 본다.\n- App 의 UID(10xxx) 로 호출하면 실습 8 의 UID 검사에 걸려 `SecurityException` 이 되는 것을 확인한다."
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "App과 Native Service의 관계에 대해 옳은 것을 모두 고르세요.",
+          "o": [
+            "system_server가 대신 HAL 호출",
+            "권한 검사는 checkCallingPermission",
+            "platform 서명이면 uid 1000 가능",
+            "ServiceManager는 공개 API다",
+            "su는 배포용 기능이다"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "실습 12 핵심 정리는 실제 Framework가 App이 HAL/Native Service를 직접 부르지 못하게 하고, system_server의 Java Service(uid 1000)가 대신 호출한다고 설명합니다. 권한 검사는 checkCallingPermission()이 같은 uid로 PackageManager를 조회하며, platform 키 서명 + sharedUserId=android.uid.system이면 성공합니다.",
+          "w": "App은 HAL·Native Service를 직접 부르지 않고 system_server(uid 1000)가 대신 호출하며, 권한은 Java Service에서 checkCallingPermission()으로 검사합니다. platform 서명 + sharedUserId=android.uid.system이면 uid 1000으로 실행됩니다. ServiceManager.getService는 hidden API이고, su는 userdebug 테스트 전용입니다.",
+          "an": "12_app_to_native Step 4–5 · 08_auth_uid 핵심 정리",
+          "src": "• Java checkCallingPermission() 도 이 uid 로 PackageManager 조회\n• App 이 HAL 을 직접 못 부르는 이유 — system_server(1000) 만 허용\n애니메이션 6 · UID 접근 제어"
+        }
+      ]
+    },
+    {
+      "id": "t7",
+      "title": "init.rc 데몬 · SELinux",
+      "ref": "Day2 p.19, p.22 · 09_rc_service_selinux",
+      "qs": [
+        {
+          "id": "t7-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "init.rc의 <code>service</code>로 등록한 데몬을 시작하는 명령은?",
+          "o": [
+            "systemctl start name",
+            "start name",
+            "adb shell run name",
+            "exec /system/bin/name"
+          ],
+          "a": 1,
+          "h": "Worksheet Q8 해설은 init에게 데몬 시작을 요청하는 짧은 명령이 <code>setprop ctl.start &lt;name&gt;</code>과 같다고 설명합니다. 상태는 getprop init.svc.&lt;name&gt;으로 확인합니다.",
+          "w": "start &lt;name&gt;(= setprop ctl.start &lt;name&gt;)으로 init에게 요청합니다. 상태는 getprop init.svc.&lt;name&gt;으로 확인합니다.",
+          "an": "Day2_Worksheet Q8 · 09_rc_service_selinux Step 4",
+          "src": "**8. ②**\nstart <name> (= setprop ctl.start <name>) 으로 init 에게 요청한다. 상태는 getprop init.svc.<name> 으로 확인한다.\n**9. joinThreadPool()**"
+        },
+        {
+          "id": "t7-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "SELinux가 permissive인 상태에서 정책 위반이 발생하면?",
+          "o": [
+            "avc: denied 로그만 남고 허용",
+            "즉시 차단되고 프로세스 종료",
+            "아무 로그 없이 허용",
+            "커널 패닉 발생"
+          ],
+          "a": 0,
+          "h": "Worksheet Q7 해설은 permissive가 위반을 기록만 하고 동작은 그대로 둔다고 설명합니다. 로그에는 permissive=1이 찍히며, enforcing으로 바꾸면 같은 위반이 실제로 차단됩니다.",
+          "w": "permissive는 기록만 하고 허용합니다(로그에 permissive=1). enforcing으로 바꾸면 같은 위반이 실제로 차단됩니다.",
+          "an": "Day2_Worksheet Q7 · Day2 p.19",
+          "src": "**7. ②**\npermissive 는 기록만 하고 허용한다(로그에 permissive=1). enforcing 으로 바꾸면 같은 위반이 실제로 차단된다.\n**8. ②**"
+        },
+        {
+          "id": "t7-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": false,
+          "p": "전용 .te 없이 init이 띄운 rc_led_service의 avc 로그에서 <code>scontext</code>는?",
+          "o": [
+            "u:r:servicemanager:s0",
+            "u:object_r:system_file:s0",
+            "u:r:init:s0",
+            "u:object_r:default_android_service:s0"
+          ],
+          "a": 2,
+          "h": "실습 9 Step 5의 avc 로그 예시에서 scontext는 주체(데몬)의 도메인입니다. 전용 .te가 없으면 exec 때 도메인 전환이 일어나지 않아, 데몬을 띄운 부모 init의 도메인이 그대로 남습니다.",
+          "w": "전용 도메인이 없어 데몬이 init 도메인(u:r:init:s0)으로 돕니다. servicemanager와 default_android_service는 tcontext(객체) 쪽에 나오는 라벨입니다.",
+          "an": "09_rc_service_selinux Step 5 · Day2 p.19",
+          "src": "```bash\ngetenforce # Permissive\nlogcat -b all -d | grep avc | grep rc_led | head\n```\npermissive 에서도 `avc: denied` 로그는 남는다. 예:\n```text\navc: denied { call } for pid=6301 comm=\"rc_led_service\" scontext=u:r:init:s0 tcontext=u:r:servicemanager:s0 tclass=binder permissive=1"
+        },
+        {
+          "id": "t7-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>start rc_led_service</code> 직후 <code>getprop init.svc.rc_led_service</code>의 값은?",
+          "o": [
+            "disabled",
+            "stopped",
+            "enabled",
+            "running"
+          ],
+          "a": 3,
+          "h": "Day2 p.19 예시에서 <code>start rc_led_service</code> 뒤 getprop init.svc.rc_led_service의 값이 주석으로 적혀 있습니다. stop 후에는 stopped가 나오며, 실행 중일 때는 그 반대 상태입니다.",
+          "w": "start 후에는 running, stop 후에는 stopped가 됩니다. disabled는 .rc에 disabled가 있어 아직 시작하지 않은 초기 상태입니다.",
+          "an": "09_rc_service_selinux Step 4 · Day2 p.19",
+          "src": "$ start rc_led_service # = setprop ctl.start"
+        },
+        {
+          "id": "t7-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "<code>setenforce 1</code> 후 rc_led_service를 재시작하면 logcat에 남는 결과는?",
+          "o": [
+            "addService = 0",
+            "addService = -1",
+            "addService = 1",
+            "로그가 남지 않는다"
+          ],
+          "a": 1,
+          "h": "setenforce 1로 enforcing 모드가 되면 permissive에서 기록만 되던 { add } 거부가 실제로 적용됩니다. 실습 9의 logcat 출력 주석은 이때 addService 반환값이 PERMISSION_DENIED를 뜻하는 음수라고 적습니다.",
+          "w": "enforcing에서는 { add } 위반이 차단되어 addService = -1(PERMISSION_DENIED)이 됩니다. setenforce 0으로 permissive에 돌아오면 다시 0이 됩니다.",
+          "an": "09_rc_service_selinux Step 5 · Day2 p.22",
+          "src": "```bash\nsetenforce 1\nstop rc_led_service; start rc_led_service\nlogcat -s rc_led_service -d | tail -2 # addService = -1 (PERMISSION_DENIED)\nsetenforce 0 # 다시 permissive\n```"
+        },
+        {
+          "id": "t7-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "init이 띄우는 데몬은 터미널이 없으므로 printf 대신 ALOGI로 logcat에 로그를 남긴다.",
+          "a": true,
+          "h": "init이 띄운 데몬은 터미널에 연결되어 있지 않으므로 출력은 logcat으로 남겨야 합니다. 실습 9 코드는 <code>ALOGI(\"addService = %d\", st)</code>로 기록하고 logcat -s rc_led_service로 확인합니다.",
+          "w": "맞습니다. init이 실행한 데몬에는 터미널이 없어 ALOGI(liblog)로 logcat에 씁니다.",
+          "an": "09_rc_service_selinux Step 1",
+          "src": "ALOGI(\"addService = %d\", st);"
+        },
+        {
+          "id": "t7-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": ".rc 파일에서 <code>disabled</code> 줄을 지워도 데몬은 부팅 시 자동으로 시작되지 않는다.",
+          "a": false,
+          "h": "실습 9 Step 4는 .rc에서 disabled를 지웠을 때 부팅 시 동작이 어떻게 바뀌는지 적습니다. 실습에서 disabled를 넣은 목적은 start rc_led_service로만 수동 시작하기 위해서였습니다.",
+          "w": "틀렸습니다. disabled는 start 명령으로만 시작하게 하는 옵션이며, 지우면 부팅 시 자동 시작됩니다.",
+          "an": "09_rc_service_selinux Step 2 · Step 4",
+          "src": "`.rc` 에서 `disabled` 를 지우면 부팅 시 자동 시작된다."
+        },
+        {
+          "id": "t7-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "avc: denied 로그의 필드와 의미를 연결하세요.",
+          "pairs": [
+            [
+              "{ add } / { call }",
+              "거부된 권한"
+            ],
+            [
+              "scontext",
+              "주체 도메인"
+            ],
+            [
+              "tcontext",
+              "객체 라벨"
+            ],
+            [
+              "permissive=1",
+              "기록만 하고 허용"
+            ]
+          ],
+          "h": "SELinux는 도메인(scontext) × 객체(tcontext) × 권한 삼중 검사입니다. { add }·{ call }은 거부된 권한, scontext는 주체 도메인, tcontext는 객체 라벨이며, permissive=1은 기록만 하고 허용했다는 뜻입니다.",
+          "w": "SELinux는 도메인(scontext) × 객체(tcontext) × 권한의 삼중 검사입니다. permissive=1은 기록만, 0이면 차단입니다.",
+          "an": "Day2 p.19 필드 표 · 09_rc_service_selinux Step 5",
+          "src": "- `user/group` 으로 데몬의 UID 를 정한다 → 실습 8 의 UID 검사가 여기서 의미를 갖는다.\n- SELinux 는 **도메인(scontext) × 객체(tcontext) × 권한** 삼중 검사. permissive 는 기록, enforcing 은 차단.\n- 전용 도메인 없이 init 도메인으로 돌면 거의 모든 것이 거부된다 → `.te` + `service_contexts` + `file_contexts` 세트가 필요."
+        },
+        {
+          "id": "t7-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "init.rc로 등록한 데몬이 start 명령으로 실행되어 Service를 등록하기까지의 순서를 맞추세요.",
+          "steps": [
+            "start name (setprop ctl.start) 실행",
+            "init이 .rc 정의를 찾아 fork → setuid(user) → exec",
+            "exec 시 SELinux 도메인 전환 (전용 .te 없으면 init 유지)",
+            "데몬이 defaultServiceManager()->addService() 호출",
+            "servicemanager가 SELinux canAdd 검사 후 등록"
+          ],
+          "h": "Worksheet Q19 해설은 start(= setprop ctl.start)로 시작해 init이 .rc 정의를 찾아 fork → setuid(user) → exec 한다고 설명합니다. exec 시 SELinux 도메인 전환이 일어나고, 데몬이 addService()를 호출하면 servicemanager가 SELinux canAdd 검사 후 등록합니다.",
+          "w": "start → init fork/exec → 도메인 전환 → addService → servicemanager canAdd 검사·등록 순서입니다.",
+          "an": "Day2_Worksheet Q19 · Day2 p.19–20",
+          "src": "**19. start <name> (setprop ctl.start) 실행 → init 이 .rc 정의를 찾아 fork → setuid(user) → exec → exec 시 SELinux 도메인 전환 (전용 .te 없으면 init 도메인 유지) → 데몬이 defaultServiceManager()->addService() 호출 → servicemanager 가 SELinux canAdd 검사 후 테이블에 등록**"
+        },
+        {
+          "id": "t7-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "rc_led_service에 전용 SELinux 도메인을 주기 위해 필요한 정책 세트를 모두 고르세요.",
+          "o": [
+            ".te (init_daemon_domain 등)",
+            "service_contexts",
+            "file_contexts",
+            "compatibility_matrix.xml",
+            "vintf_fragments"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Day2 p.19는 전용 도메인에 필요한 세트로 .te(domain + init_daemon_domain + binder_use + add_service), service_contexts, file_contexts를 듭니다. 각각 도메인 정의, 서비스 이름 라벨, 실행 파일 라벨을 담당합니다.",
+          "w": ".te(domain + init_daemon_domain + binder_use + add_service), service_contexts(서비스 이름 라벨), file_contexts(실행 파일 라벨)가 한 세트입니다. compatibility_matrix와 vintf_fragments는 VINTF(HAL) 쪽 개념입니다.",
+          "an": "09_rc_service_selinux Step 6 · Day2 p.19",
+          "src": "• 필요한 세트: .te (domain + init_daemon_domain + binder_use + add_service) · service_con\ntexts · file_contexts"
+        }
+      ]
+    },
+    {
+      "id": "t8",
+      "title": "AIDL HAL · VINTF · System Service",
+      "ref": "Day2 p.20, p.23–26 · 10_aidl_hal · 11_java_system_service",
+      "qs": [
+        {
+          "id": "t8-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "vendor 파티션의 AIDL HAL 프로세스가 링크할 수 있는 Binder 라이브러리는?",
+          "o": [
+            "libbinder",
+            "libhwbinder",
+            "libbinder_ndk",
+            "libutils"
+          ],
+          "a": 2,
+          "h": "Worksheet Q6 해설은 vendor가 system 전용 libbinder를 쓸 수 없고 안정 ABI 라이브러리(NDK backend)만 사용한다고 설명합니다. 이름에 NDK의 소문자 표기가 접미사로 붙습니다.",
+          "w": "vendor는 system 전용 libbinder를 쓸 수 없고 안정 ABI인 libbinder_ndk(NDK backend)만 사용합니다. 그래서 NDK backend가 HAL의 표준입니다.",
+          "an": "Day2_Worksheet Q6 · Day2 p.24",
+          "src": "**6. ②**\nvendor 는 system 전용 libbinder 를 쓸 수 없고 안정 ABI 인 libbinder_ndk(NDK backend) 만 사용한다.\n**7. ②**"
+        },
+        {
+          "id": "t8-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "Binder Service 이름과 handle을 관리하며 addService 때 SELinux 검사(canAdd)를 하는 Native 데몬은?",
+          "o": [
+            "system_server",
+            "servicemanager",
+            "init",
+            "vendor.example.led-service"
+          ],
+          "a": 1,
+          "h": "Worksheet Q13 해설은 Java의 ServiceManager.addService와 C++의 defaultServiceManager()->addService가 모두 handle 0의 Native 데몬에 도착한다고 설명합니다. 소스는 frameworks/native/cmds 아래에 있으며 addService 시 mAccess->canAdd로 SELinux 검사를 합니다.",
+          "w": "frameworks/native/cmds/servicemanager입니다. Java의 ServiceManager.addService와 C++의 defaultServiceManager()->addService가 모두 여기(handle 0)에 도착합니다.",
+          "an": "Day2_Worksheet Q13 · 11_java_system_service Step 2",
+          "src": "**13. servicemanager**\nframeworks/native/cmds/servicemanager. Java 의 ServiceManager.addService 와 C++ 의 defaultServiceManager()->addService 모두 여기(handle 0)에 도착한다."
+        },
+        {
+          "id": "t8-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "AIDL HAL 인스턴스 이름의 형식은? 예: <code>android.hardware.light.ILights/default</code>",
+          "o": [
+            "패키지.인터페이스/인스턴스",
+            "인터페이스/패키지.인스턴스",
+            "패키지/인터페이스.인스턴스",
+            "인스턴스.패키지/인터페이스"
+          ],
+          "a": 0,
+          "h": "예시 android.hardware.light.ILights/default에서 android.hardware.light는 AIDL 패키지 경로, ILights는 I로 시작하는 인터페이스 이름입니다. 슬래시 뒤 default는 같은 인터페이스의 여러 구현 중 어느 것인지 가리키며, vendor manifest의 fqname ILights/default와 대응합니다.",
+          "w": "&lt;패키지&gt;.&lt;인터페이스&gt;/&lt;인스턴스&gt; 형식이며, 예시에서 패키지는 android.hardware.light, 인터페이스는 ILights입니다. vendor manifest의 &lt;fqname&gt;ILights/default&lt;/fqname&gt;와 대응합니다.",
+          "an": "Day2_Worksheet Q17 · Day2 p.24",
+          "src": "**Q16.** AIDL cpp backend 가 생성한 Method 는 예외를 ( 1 ) 타입으로 반환하고, 반환값은 ( 2 ) 이름의 out 포인터 인자로 전달한다.\n\n(1) __________ (2) __________\n\n**Q17.** AIDL HAL 인스턴스 이름은 ( 1 ).( 2 )/default 형식이다. 예: android.hardware.light.ILights/default 에서 [1]=android.hardware.light, [2]=ILights.\n\n(1) __________ (2) __________"
+        },
+        {
+          "id": "t8-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "VINTF에서 vendor 쪽 manifest.xml이 선언하는 내용은?",
+          "o": [
+            "Framework가 요구하는 버전 범위",
+            "SELinux 도메인 규칙",
+            "init 서비스 목록",
+            "기기가 제공하는 HAL과 버전"
+          ],
+          "a": 3,
+          "h": "실습 10 Step 7은 vendor의 manifest를 '이 기기는 이 HAL을 이 버전으로 제공한다'로, system의 compatibility matrix를 'Framework는 이 HAL이 이 버전 범위여야 부팅한다'로 설명합니다. 부팅 시 두 파일을 대조합니다.",
+          "w": "manifest(vendor)는 '이 기기는 이 HAL을 이 버전으로 제공한다'를, compatibility matrix(system)는 'Framework는 이 버전 범위가 필요하다'를 선언합니다. 부팅 시 둘을 대조해 맞지 않으면 부팅에 실패합니다.",
+          "an": "10_aidl_hal Step 7 · Day2 p.24",
+          "src": "<fqname>ILights/default</fqname>\n</hal>\n```\n\n- **manifest**(vendor) = \"이 기기는 이 HAL 을 이 버전으로 제공한다\"\n- **compatibility matrix**(system) = \"Framework 는 이 HAL 이 이 버전 범위여야 부팅한다\"\n- 부팅 시 두 파일을 대조하고, `stability: \"vintf\"` 인 인터페이스는 `AServiceManager_addService` 때 manifest 에 없으면 **등록이 거부**된다."
+        },
+        {
+          "id": "t8-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "직접 만든 C++ 서비스 led.auth에서 <code>dumpsys led.auth</code>가 동작하게 하려면?",
+          "o": [
+            "dump()를 오버라이드한다",
+            "onTransact에 code 0 추가",
+            ".rc에 dumpsys 등록",
+            "service_contexts에 추가"
+          ],
+          "a": 0,
+          "h": "Day2 p.20은 dumpsys &lt;svc&gt;가 IBinder.dump(), 즉 DUMP_TRANSACTION 호출이라고 정리합니다. C++ 서비스에서 해당 함수를 오버라이드하면 dumpsys가 동작합니다.",
+          "w": "dumpsys는 각 Service의 IBinder.dump()(DUMP_TRANSACTION)를 호출하므로, C++ 서비스에서 dump()를 오버라이드하면 됩니다. .rc나 SELinux 설정은 dumpsys 출력과 관계가 없습니다.",
+          "an": "11_java_system_service Step 4 · Day2 p.20",
+          "src": "• dumpsys <svc> = IBinder.dump() = DUMP_TRANSACTION → C++ 에서 dump() 오버라이드하면 dumpsy\ns 동작"
+        },
+        {
+          "id": "t8-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>stability: 'vintf'</code> 인터페이스는 manifest에 없으면 AServiceManager_addService 때 등록이 거부된다.",
+          "a": true,
+          "h": "Day2 p.24는 stability: \"vintf\" 인터페이스가 manifest에 선언되지 않으면 addService가 거부된다고 적습니다. 그래서 실습에서는 unstable: true로 이 검사를 우회했습니다.",
+          "w": "맞습니다. stability: 'vintf'면 manifest에 선언되지 않은 인스턴스의 등록이 거부됩니다. 실습은 unstable: true라 검사 대상이 아닙니다.",
+          "an": "10_aidl_hal Step 7 · Day2 p.24",
+          "src": "• stability: \"vintf\" 면 manifest 없이 addService 거부 · 실습은 unstable: true 로 우회"
+        },
+        {
+          "id": "t8-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "system_server의 Java System Service는 C++ 서비스와 별개인 Java 전용 테이블에 등록된다.",
+          "a": false,
+          "h": "실습 11 핵심 정리는 system_server의 Java Service도 결국 ServiceManager.addService → servicemanager 데몬으로 간다고 설명합니다. 오늘 만든 C++ 서비스와 같은 테이블에 들어가므로 service list 한 번에 함께 보입니다.",
+          "w": "틀렸습니다. Java의 ServiceManager.addService도 handle 0의 servicemanager 데몬에 도착하므로 C++ 서비스, vendor HAL과 같은 테이블에 들어갑니다.",
+          "an": "11_java_system_service 핵심 정리 · Day2 p.20",
+          "src": "## 핵심 정리\n\n- system_server 의 Java Service 도 결국 `ServiceManager.addService` → servicemanager 데몬. 오늘 만든 C++ 서비스와 **같은 테이블**에 들어간다.\n- `Binder`(Java) ↔ `BBinder`(C++) ↔ `AIBinder`(NDK) 는 같은 Driver 객체의 세 언어 표면이다.\n- `dumpsys` 는 Binder `dump()` Transaction. 자기 Service 에 `dump()` 를 구현해 두면 디버깅이 편해진다."
+        },
+        {
+          "id": "t8-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "SystemServer.run()의 단계와 대표 Service를 연결하세요.",
+          "pairs": [
+            [
+              "startBootstrapServices",
+              "ActivityManagerService"
+            ],
+            [
+              "startCoreServices",
+              "BatteryService"
+            ],
+            [
+              "startOtherServices",
+              "WindowManagerService"
+            ]
+          ],
+          "h": "실습 11 Step 1 표는 SystemServer.run()의 세 단계에 들어가는 대표 Service를 나열합니다. Bootstrap 단계에는 ActivityManagerService·PowerManagerService·PackageManagerService가, Core 단계에는 BatteryService·UsageStatsService가, Other 단계에는 WindowManagerService·InputManagerService가 있습니다.",
+          "w": "Bootstrap 단계에 ActivityManagerService·PowerManagerService·PackageManagerService, Core 단계에 BatteryService·UsageStatsService, Other 단계에 WindowManagerService·InputManagerService·CarService 등이 있습니다.",
+          "an": "11_java_system_service Step 1 표",
+          "src": "| `startBootstrapServices` | ActivityManagerService, PowerManagerService, PackageManagerService |\n| `startCoreServices` | BatteryService, UsageStatsService |\n| `startOtherServices` | WindowManagerService, InputManagerService, **CarService (Automotive)** … |"
+        },
+        {
+          "id": "t8-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "Java System Service가 servicemanager에 등록되는 경로를 순서대로 맞추세요.",
+          "steps": [
+            "publishBinderService('battery', …)",
+            "ServiceManager.addService() (Java)",
+            "IServiceManager Proxy → handle 0",
+            "servicemanager의 ServiceManager::addService",
+            "mAccess->canAdd로 SELinux 검사"
+          ],
+          "h": "BatteryService는 SystemService 헬퍼인 publishBinderService('battery', …)로 시작해 Java ServiceManager.addService()를 부릅니다. 이 호출은 IServiceManager Proxy로 handle 0에 전달되고, servicemanager의 ServiceManager::addService가 mAccess->canAdd로 SELinux를 검사합니다.",
+          "w": "publishBinderService는 내부에서 ServiceManager.addService를 부르고, 이는 IServiceManager Proxy(handle 0)를 거쳐 servicemanager 데몬의 addService에 도착하며, 그 안의 mAccess->canAdd가 SELinux 검사 지점입니다.",
+          "an": "Day2 p.20 · 11_java_system_service Step 2·5",
+          "src": "5. BatteryService 의 publishBinderService · BinderService extends Binder 따라가기\n확인 포인트\n• 3단계 함수와 addService 호출 위치\n• Java·C++·HAL 이 한 service list\n• dumpsys led.auth 출력 (선택)"
+        },
+        {
+          "id": "t8-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "실습 10 AIDL HAL에 대해 옳은 것을 모두 고르세요.",
+          "o": [
+            "vendor: true면 /vendor/bin 설치",
+            "vendor는 NDK backend 사용",
+            "App은 HAL을 직접 부르지 않음",
+            "HAL은 interface_cast로 획득",
+            "AIDL HAL은 /dev/hwbinder 사용"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Day2 p.24 규칙은 모듈을 vendor: true로 두면 /vendor/bin에 설치되고, vendor 쪽은 NDK backend(libbinder_ndk)만 쓴다고 적습니다. 호출자 App은 HAL을 직접 부르지 못하고 system_server(uid 1000)가 대신 호출합니다.",
+          "w": "vendor: true 모듈은 $OUT/vendor/bin에 설치되고, vendor는 libbinder_ndk 기반 NDK backend를 쓰며, App 대신 system_server가 HAL을 부릅니다. NDK에서는 I::fromBinder로 획득하고, AIDL HAL은 HIDL의 /dev/hwbinder가 아닌 /dev/binder를 씁니다.",
+          "an": "Day2 p.24 규칙 표 · 10_aidl_hal",
+          "src": "실습 10\nAIDL HAL 구조 따라 만들기 — NDK backend · vendor · VINTF\nAndroid Framework 16 심화 · Day 2 25\n목표 실제 HAL 과 같은 형태(패키지명, ndk, vendor: true)로 최소 LED HAL 을 만들고 VINTF manifest 를 읽는다 · 소요 45분\n진행 순서\n1. led_hal/vendor/example/led/ILed.aidl (package vendor.example.led)"
+        }
+      ]
+    }
+  ]
+}

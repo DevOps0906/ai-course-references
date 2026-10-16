@@ -1,0 +1,1349 @@
+{
+  "id": "lc-d09",
+  "code": "LC9",
+  "title": "LangChain 9일차 · RAG LCEL 파이프라인과 대화형 RAG",
+  "subtitle": "RAG 8단계 LCEL 체인 · Chat Memory·Query Rewriting · BM25+FAISS 앙상블",
+  "course": "05 · LangChain · RAG · Agent",
+  "source": "05-langchain-agent/day09/9일차_RAG LCEL_파이프라인_배포_new.ipynb",
+  "salt": "lc-d09",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "RAG 8단계와 워크플로우",
+      "ref": "9일차 PDF 문서 기반 QA · RAG 워크플로우",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "RAG 8단계 중 2단계에서 하는 일은?",
+          "o": [
+            "문서 로드",
+            "텍스트 분할",
+            "임베딩",
+            "벡터DB 저장"
+          ],
+          "a": 1,
+          "h": "자료는 1단계에서 문서 내용을 불러온 뒤, 다음 단계에서 문서를 특정 기준(Chunk)으로 나눈다고 설명합니다. 임베딩은 그렇게 나뉜 조각을 대상으로 3단계에서 수행합니다.",
+          "w": "2단계는 분할(Text Split)로, 문서를 Chunk 단위로 나눕니다. 1단계가 문서 로드, 3단계가 임베딩, 4단계가 벡터DB 저장입니다.",
+          "an": "9일차 PDF 문서 기반 QA · 1~8단계",
+          "src": "1. 1단계 문서로드(Document Load): 문서 내용을 불러옵니다.\n2. 2단계 분할(Text Split): 문서를 특정 기준(Chunk) 으로 분할합니다.\n3. 3단계 임베딩(Embedding): 분할된(Chunk) 를 임베딩하여 저장합니다.\n4. 4단계 벡터DB 저장: 임베딩된 Chunk 를 DB에 저장합니다.\n5. 5단계 검색기(Retriever): 쿼리(Query) 를 바탕으로 DB에서 검색하여 결과를 가져오기 위하여 리트리버를 정의합니다. 리트리버는 검색 알고리즘이며(Dense, Sparse) 리트리버로 나뉘게 됩니다. Dense: 유사도 기반 검색, Sparse: 키워드 기반 검색"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "리트리버 중 키워드 기반 검색을 하는 종류는?",
+          "o": [
+            "Dense 리트리버",
+            "Embedding 모델",
+            "Sparse 리트리버",
+            "Output Parser"
+          ],
+          "a": 2,
+          "h": "5단계 설명에서 리트리버는 검색 알고리즘이며 두 종류로 나뉜다고 합니다. 한쪽은 유사도(벡터) 기반 검색, 다른 쪽은 단어가 일치하는지를 보는 검색입니다.",
+          "w": "자료는 리트리버를 Dense(유사도 기반)와 Sparse(키워드 기반)로 나눕니다. Embedding 모델과 Output Parser는 리트리버 종류가 아닙니다.",
+          "an": "9일차 PDF 문서 기반 QA · 5단계 검색기",
+          "src": "4. 4단계 벡터DB 저장: 임베딩된 Chunk 를 DB에 저장합니다.\n5. 5단계 검색기(Retriever): 쿼리(Query) 를 바탕으로 DB에서 검색하여 결과를 가져오기 위하여 리트리버를 정의합니다. 리트리버는 검색 알고리즘이며(Dense, Sparse) 리트리버로 나뉘게 됩니다. Dense: 유사도 기반 검색, Sparse: 키워드 기반 검색\n6. 6단계 프롬프트: RAG 를 수행하기 위한 프롬프트를 생성합니다. 프롬프트의 context 에는 문서에서 검색된 내용이 입력됩니다. 프롬프트 엔지니어링을 통하여 답변의 형식을 지정할 수 있습니다.\n7. 7단계 LLM: 모델을 정의합니다.(GPT-3.5, GPT-4, Claude, etc..)"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "6단계 RAG 프롬프트의 <code>{context}</code>에 들어가는 내용은?",
+          "o": [
+            "문서에서 검색된 내용",
+            "이전 대화 기록",
+            "LLM의 최종 답변",
+            "사용자 세션 ID"
+          ],
+          "a": 0,
+          "h": "6단계는 RAG를 수행하기 위한 프롬프트를 만드는 단계로, 5단계 리트리버의 결과를 받아 씁니다. 이전 대화 기록은 뒤의 메모리 단원에서 별도 변수로 추가합니다.",
+          "w": "프롬프트의 context에는 문서에서 검색된 내용이 입력됩니다. 이전 대화 기록은 메모리 확장에서 별도 변수(chat_history)로 다룹니다.",
+          "an": "9일차 PDF 문서 기반 QA · 6단계 프롬프트",
+          "src": "4. 4단계 벡터DB 저장: 임베딩된 Chunk 를 DB에 저장합니다.\n5. 5단계 검색기(Retriever): 쿼리(Query) 를 바탕으로 DB에서 검색하여 결과를 가져오기 위하여 리트리버를 정의합니다. 리트리버는 검색 알고리즘이며(Dense, Sparse) 리트리버로 나뉘게 됩니다. Dense: 유사도 기반 검색, Sparse: 키워드 기반 검색\n6. 6단계 프롬프트: RAG 를 수행하기 위한 프롬프트를 생성합니다. 프롬프트의 context 에는 문서에서 검색된 내용이 입력됩니다. 프롬프트 엔지니어링을 통하여 답변의 형식을 지정할 수 있습니다."
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "RAG 워크플로우에서 인덱싱(Offline) 단계에 속하지 <b>않는</b> 작업은?",
+          "o": [
+            "로드",
+            "분할",
+            "저장",
+            "생성"
+          ],
+          "a": 3,
+          "h": "인덱싱은 소스에서 데이터를 수집해 나중에 검색할 수 있도록 준비해 두는 파이프라인입니다. 반면 사용자 쿼리를 받은 뒤 모델이 답을 만드는 일은 실행 시간(Online)에 일어납니다.",
+          "w": "인덱싱은 로드·분할·저장으로 이루어지고, 생성은 사용자 질문이 들어온 뒤의 검색 및 생성(Online) 단계에 속합니다.",
+          "an": "9일차 LangChain 기반 RAG 워크플로우 · RAG 의 기능별 다양한 모듈 활용기",
+          "src": "LangChain 기반 RAG(Retrieval-Augmented Generation) 워크플로우\n1. 인덱싱 단계 (Indexing - Offline)\n2. 검색 + 생성 단계 (Retrieval + Generation - Online)\nRAG 의 기능별 다양한 모듈 활용기\n- 인덱싱: 소스에서 데이터를 수집하고 인덱싱하는 파이프라인입니다. 이 작업은 보통 오프라인에서 발생합니다.\n- 검색 및 생성: 실제 RAG 체인으로, 사용자 쿼리를 실행 시간에 받아 인덱스에서 관련 데이터를 검색한 다음, 그 데이터를 모델에 전달합니다."
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "사용자가 질문을 입력한 순간(Online) 가장 먼저 일어나는 일은?",
+          "o": [
+            "DocumentLoader로 원본 로드",
+            "Retriever로 관련 분할 검색",
+            "Text splitter로 청크 분할",
+            "청크 임베딩을 DB에 저장"
+          ],
+          "a": 1,
+          "h": "로드·분할·저장은 질문이 오기 전에 오프라인 인덱싱에서 이미 끝나 있습니다. 검색 및 생성 단계는 사용자 입력이 주어지면 저장소에서 관련 조각을 찾는 일부터 시작합니다.",
+          "w": "검색 및 생성 단계에서는 사용자 입력이 주어지면 Retriever로 저장소에서 관련 분할을 검색합니다. 로드·분할·저장은 오프라인 인덱싱 작업입니다.",
+          "an": "9일차 RAG 의 기능별 다양한 모듈 활용기 · 검색 및 생성",
+          "src": "- 로드: 먼저 데이터를 로드해야 합니다. 이를 위해 DocumentLoaders를 사용할 것입니다.\n - 분할: Text splitters는 큰 Documents를 더 작은 청크로 나눕니다. 이는 데이터를 인덱싱하고 모델에 전달하는 데 유용하며, 큰 청크는 검색하기 어렵고 모델의 유한한 컨텍스트 창에 맞지 않습니다.\n - 저장: 나중에 검색할 수 있도록 분할을 저장하고 인덱싱할 장소가 필요합니다. 이는 종종 VectorStore와 Embeddings 모델을 사용하여 수행됩니다.\n 2. 검색 및 생성\n - 검색: 사용자 입력이 주어지면 Retriever를 사용하여 저장소에서 관련 분할을 검색합니다.\n - 생성: ChatModel / LLM은 질문과 검색된 데이터를 포함한 프롬프트를 사용하여 답변을 생성합니다"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "인덱싱은 보통 오프라인에서 일어나고, 검색·생성은 사용자 쿼리를 실행 시간에 받아 처리한다.",
+          "a": true,
+          "h": "자료의 워크플로우는 1. 인덱싱 단계(Indexing - Offline)와 2. 검색 + 생성 단계(Retrieval + Generation - Online)로 나뉩니다. 실제 RAG 체인은 사용자 쿼리를 실행 시간에 받아 인덱스에서 데이터를 찾습니다.",
+          "w": "맞습니다. 인덱싱은 Offline, 검색 + 생성은 Online으로 구분합니다.",
+          "an": "9일차 LangChain 기반 RAG 워크플로우",
+          "src": "ask(\"정부의 저출생 대책을 bullet point로 정리해 주세요\")\n```\nLangChain 기반 RAG(Retrieval-Augmented Generation) 워크플로우\n1. 인덱싱 단계 (Indexing - Offline)\n2. 검색 + 생성 단계 (Retrieval + Generation - Online)\nRAG 의 기능별 다양한 모듈 활용기\n- 인덱싱: 소스에서 데이터를 수집하고 인덱싱하는 파이프라인입니다. 이 작업은 보통 오프라인에서 발생합니다.\n- 검색 및 생성: 실제 RAG 체인으로, 사용자 쿼리를 실행 시간에 받아 인덱스에서 관련 데이터를 검색한 다음, 그 데이터를 모델에 전달합니다.\n- RAW 데이터에서 답변을 받기까지의 전체 순서는 다음과 같습니다."
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "청크는 클수록 검색하기 쉽고 모델의 컨텍스트 창에도 잘 들어간다.",
+          "a": false,
+          "h": "Text splitters는 큰 Documents를 더 작은 청크로 나누는 도구입니다. 자료는 그 이유로 큰 청크의 검색 난이도와 모델의 유한한 컨텍스트 창을 함께 듭니다.",
+          "w": "틀렸습니다. 큰 청크는 검색하기 어렵고 모델의 유한한 컨텍스트 창에 맞지 않기 때문에 작은 청크로 나눕니다.",
+          "an": "9일차 RAG 의 기능별 다양한 모듈 활용기 · 분할",
+          "src": "- 검색 및 생성: 실제 RAG 체인으로, 사용자 쿼리를 실행 시간에 받아 인덱스에서 관련 데이터를 검색한 다음, 그 데이터를 모델에 전달합니다.\n- RAW 데이터에서 답변을 받기까지의 전체 순서는 다음과 같습니다.\n 1. 인덱싱\n - 로드: 먼저 데이터를 로드해야 합니다. 이를 위해 DocumentLoaders를 사용할 것입니다.\n - 분할: Text splitters는 큰 Documents를 더 작은 청크로 나눕니다. 이는 데이터를 인덱싱하고 모델에 전달하는 데 유용하며, 큰 청크는 검색하기 어렵고 모델의 유한한 컨텍스트 창에 맞지 않습니다."
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "RAG 단계와 하는 일을 연결하세요.",
+          "pairs": [
+            [
+              "Document Load",
+              "문서 내용을 불러온다"
+            ],
+            [
+              "Text Split",
+              "문서를 Chunk로 나눈다"
+            ],
+            [
+              "Embedding",
+              "Chunk를 벡터로 바꾼다"
+            ],
+            [
+              "Retriever",
+              "쿼리로 DB에서 검색한다"
+            ],
+            [
+              "Chain",
+              "프롬프트-LLM-출력을 잇는다"
+            ]
+          ],
+          "h": "8단계는 로드 → 분할 → 임베딩 → 벡터DB 저장 → 검색기 → 프롬프트 → LLM → 체인 순서입니다. 각 단계 이름의 영어 뜻(Load·Split·Retrieve·Chain)이 하는 일을 그대로 알려 줍니다.",
+          "w": "로드 → 분할 → 임베딩 → (벡터DB 저장) → 검색기 → 프롬프트 → LLM → 체인 순서이며, 체인은 프롬프트부터 출력까지를 하나로 연결합니다.",
+          "an": "9일차 PDF 문서 기반 QA · 1~8단계",
+          "src": "1. 1단계 문서로드(Document Load): 문서 내용을 불러옵니다.\n2. 2단계 분할(Text Split): 문서를 특정 기준(Chunk) 으로 분할합니다.\n3. 3단계 임베딩(Embedding): 분할된(Chunk) 를 임베딩하여 저장합니다.\n4. 4단계 벡터DB 저장: 임베딩된 Chunk 를 DB에 저장합니다.\n5. 5단계 검색기(Retriever): 쿼리(Query) 를 바탕으로 DB에서 검색하여 결과를 가져오기 위하여 리트리버를 정의합니다. 리트리버는 검색 알고리즘이며(Dense, Sparse) 리트리버로 나뉘게 됩니다. Dense: 유사도 기반 검색, Sparse: 키워드 기반 검색"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "질문 시점(QUERY TIME)의 RAG 흐름을 순서대로 맞추세요.",
+          "steps": [
+            "User Question",
+            "Retriever (Vector Search)",
+            "Context Documents",
+            "Prompt",
+            "LLM → Answer"
+          ],
+          "h": "전체 RAG 파이프라인 그림은 [INDEXING]과 [QUERY TIME] 두 부분으로 나뉩니다. 질문 시점에는 벡터 검색으로 문서를 찾고, 찾은 문서를 프롬프트에 넣은 뒤 모델이 답을 만듭니다.",
+          "w": "질문이 들어오면 Retriever가 벡터 검색으로 Context Documents를 찾고, 이를 Prompt에 넣어 LLM이 Answer를 만듭니다.",
+          "an": "9일차 전체 RAG 파이프라인 [QUERY TIME]",
+          "src": "- 생성: ChatModel / LLM은 질문과 검색된 데이터를 포함한 프롬프트를 사용하여 답변을 생성합니다\n```python\n\"\"\"\n전체 RAG 파이프라인\n[INDEXING]\nDocument\n→ Split\n→ Embedding\n→ Vector DB\n[QUERY TIME]\nUser Question\n→ Retriever (Vector Search)\n→ Context Documents\n→ Prompt\n→ LLM\n→ Answer\n\"\"\"\n```\n전체 기능 요약\n이 코드는 다음과 같은 순서로 동작하는 최신 LCEL 기반 RAG(Retrieval-Augmented Generation) 시스템입니다.\n1. 웹 페이지(또는 PDF 등)를 LangChain Document 객체로 불러옵니다."
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "인덱싱(INDEXING) 단계에 속하는 것을 모두 고르세요.",
+          "o": [
+            "문서 로드",
+            "텍스트 분할",
+            "임베딩·벡터DB 저장",
+            "Retriever 검색",
+            "LLM 답변 생성"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "파이프라인 그림의 [INDEXING]은 Document에서 시작해 Vector DB에서 끝납니다. 사용자 질문이 있어야만 할 수 있는 작업은 [QUERY TIME] 쪽에 있습니다.",
+          "w": "인덱싱은 Document → Split → Embedding → Vector DB입니다. Retriever 검색과 LLM 답변 생성은 질문 시점(QUERY TIME) 작업입니다.",
+          "an": "9일차 전체 RAG 파이프라인 [INDEXING]",
+          "src": "전체 RAG 파이프라인\n[INDEXING]\nDocument\n→ Split\n→ Embedding\n→ Vector DB\n[QUERY TIME]\nUser Question\n→ Retriever (Vector Search)\n→ Context Documents\n→ Prompt\n→ LLM\n→ Answer"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "PDF QA 체인 구성",
+      "ref": "9일차 PDF 문서 기반 QA · URL PDF 실습",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "업로드한 PDF를 페이지 단위 Document 리스트로 바꾸는 첫 실습 로더는?",
+          "o": [
+            "PyPDFLoader",
+            "WebBaseLoader",
+            "TextLoader",
+            "DirectoryLoader"
+          ],
+          "a": 0,
+          "h": "첫 셀은 <code>files.upload()</code>로 로컬 PDF를 올린 뒤 1) Document Load에서 <code>langchain_community.document_loaders</code>의 PDF 로더를 import합니다. 웹 페이지나 txt 파일용 로더는 다른 단원에서 씁니다.",
+          "w": "PyPDFLoader로 PDF를 페이지 단위 Document로 만듭니다. WebBaseLoader는 웹 페이지, TextLoader·DirectoryLoader는 텍스트 파일용입니다.",
+          "an": "9일차 PDF 문서 기반 QA · 1) Document Load",
+          "src": "# 1) Document Load (PDF 로드 단계)\n# =========================================================\n# 역할:\n# 업로드된 PDF 파일을 Document 객체로 변환\n\nfrom langchain_community.document_loaders import PyPDFLoader\n\nloader =\n# 로컬에서 업로드된 PDF 파일을 그대로 사용\n\ndocs =\n# 페이지 단위 Document 리스트 생성"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>format_docs</code> 함수가 RAG 체인에 꼭 필요한 이유는?",
+          "o": [
+            "검색 속도를 높이려고",
+            "LLM 입력을 문자열로 맞추려고",
+            "임베딩 비용을 줄이려고",
+            "청크를 다시 나누려고"
+          ],
+          "a": 1,
+          "h": "함수 docstring은 \"LLM은 Document / dict 처리 불가\"라고 적고 있습니다. 함수 본문은 각 doc의 page_content를 줄바꿈 두 개로 이어 붙입니다.",
+          "w": "Retriever는 Document 리스트를 돌려주는데 LLM 입력은 문자열이어야 하므로 page_content를 이어 붙인 문자열로 바꿉니다. 검색 속도나 비용과는 무관합니다.",
+          "an": "9일차 PDF 문서 기반 QA · 9. Context 변환 함수",
+          "src": "# - FAISS 기반 실시간 검색 구조\n\n!pip install -q langchain langchain-community langchain-openai langchainhub faiss-cpu beautifulsoup4 nest_asyncio\n\n```\n\nLLM에 들어가는 입력을 통제해서 RAG 결과를 안정화한 코드\n- Document → string 변환을 강제한 안정형 LCEL RAG 체인\n- Retriever가 반환한 Document를 LLM이 처리 가능한 문자열로 변환해 LCEL 파이프라인에서 데이터 타입 안정성과 예측 가능한 RAG 동작을 보장한 구조"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "FAISS 인덱스를 로컬에 저장해 재사용할 때 쓴 메서드는?",
+          "o": [
+            "persist",
+            "from_documents",
+            "load_and_split",
+            "save_local"
+          ],
+          "a": 3,
+          "h": "4) Vector DB 생성 블록에서 인덱스를 만든 직후 \"선택: 로컬 저장 (재사용 가능)\" 주석과 함께 폴더 이름 'faiss_index'를 넘기는 메서드를 호출합니다. 인덱스를 만드는 메서드와 Chroma의 저장 메서드는 이름이 다릅니다.",
+          "w": "<code>vectorstore.save_local('faiss_index')</code>로 저장합니다. persist는 Chroma의 저장 메서드이고, from_documents는 인덱스를 만드는 메서드입니다.",
+          "an": "9일차 PDF 문서 기반 QA · 4) Vector DB 생성",
+          "src": "# 4) Vector DB 생성 (FAISS)\n# =========================================================\n# 역할:\n# chunk embedding을 저장하고 빠르게 검색\n\nfrom langchain_community.vectorstores import FAISS\n\nvectorstore =\n\n\n\nvectorstore.save_local(\"faiss_index\")\n# 선택: 로컬 저장 (재사용 가능)"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "RAG용 LLM을 <code>temperature=0</code>으로 설정한 이유는?",
+          "o": [
+            "답변을 더 창의적으로",
+            "답변을 더 길게",
+            "결정적·일관된 출력",
+            "토큰 비용 절감"
+          ],
+          "a": 2,
+          "h": "temperature는 출력의 무작위성을 조절하는 값입니다. 자료의 주석은 이 값을 0으로 두는 설정을 \"RAG 필수\"라고 부르며, 문서 기반 QA에서는 같은 질문에 매번 같은 답이 나와야 합니다.",
+          "w": "temperature=0은 결정적 출력으로, 자료는 이를 RAG 필수 설정이라고 적습니다. 창의성을 높이려면 오히려 값을 올립니다.",
+          "an": "9일차 PDF 다운로드 실습 · 11. LLM 정의",
+          "src": "# 2. LLM 설정\n# ============================================================\n\nllm = ChatOpenAI(\n model=\"gpt-4o-mini\", # 경량 GPT 모델\n temperature=0 # 일관된 답변 (RAG는 0이 안정적)\n)\n# ============================================================\n# 3. SAMPLE DOCUMENTS (실제 환경에서는 외부 데이터로 교체)\n# ============================================================\n\ndocs = [\n \"부영그룹은 출산 장려 정책으로 자녀 1명당 1억 원 지원을 발표했다.\","
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "URL PDF 실습에서 답변이 \"문서에 없음\"으로 나온 이유로 가장 알맞은 것은?",
+          "o": [
+            "temperature를 0으로 설정",
+            "지정 URL이 PDF가 아닌 웹페이지",
+            "chunk_overlap을 200으로 설정",
+            "gpt-4o-mini 모델 사용"
+          ],
+          "a": 1,
+          "h": "<code>pdf_url</code> 변수 옆에는 주석으로 URL의 종류가 적혀 있고, 코드는 그 응답을 그대로 .pdf 파일로 저장합니다. 프롬프트는 Context에 근거가 없으면 \"문서에 없음\"이라고 답하라고 지시합니다.",
+          "w": "코드 주석대로 지정 URL은 웹페이지라 PDF 내용을 얻지 못했고, 프롬프트 규칙에 따라 \"문서에 없음\"을 답했습니다. 나머지 설정은 정상적인 RAG 설정입니다.",
+          "an": "9일차 PDF 다운로드 실습 · 4. PDF 다운로드 · 13. 실행 결과",
+          "src": "# OpenAI API Key 환경변수 등록\nos.environ[\"OPENAI_API_KEY\"] = userdata.get(\"OPENAI_API_KEY\")\n# =========================================================\n# 4. PDF 다운로드 (URL → 로컬 저장)\n# =========================================================\npdf_url = \"https://spri.kr/posts/view/23908\" # 웹페이지 URL\nlocal_pdf_path = \"/tmp/downloaded.pdf\" # Colab 내부 저장 경로\n# HTTP 요청으로 파일 다운로드\nresponse =\n# 응답 상태 확인 (200 = 정상)"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "PDF QA 프롬프트는 Context에 관련 내용이 없을 때 \"문서에 없음\"이라고 답하도록 지시한다.",
+          "a": true,
+          "h": "프롬프트는 Context를 근거로 답하되 요약하거나 인용하라고 지시합니다. 마지막 규칙은 Context에 관련 내용이 전혀 없을 때만 쓰는 고정 문구를 정해 둡니다.",
+          "w": "맞습니다. 추측을 막기 위해 Context에 없으면 \"문서에 없음\"이라고 답하게 합니다.",
+          "an": "9일차 PDF 문서 기반 QA · 6) Prompt 설계",
+          "src": "아래 Context를 근거로 질문에 답변하라.\n\n답변에는 Context의 내용을 요약하거나 인용하여 설명하라.\n\nContext에 관련 내용이 전혀 없는 경우에만\n\"문서에 없음\"이라고 답변한다.\n\"\"\"\n# =========================================================\nprompt = ChatPromptTemplate.from_template(\n\"\"\"\n너는 PDF 기반 QA 시스템이다.\n\n반드시 Context만 사용해서 답변해라.\n모르면 \"문서에 없음\"이라고 답변해라.\n추측 금지."
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "다운로드 코드에서 <code>response.status_code == 200</code>이면 다운로드 실패로 처리한다.",
+          "a": false,
+          "h": "주석에 \"응답 상태 확인 (200 = 정상)\"이라고 적혀 있습니다. if 블록에서는 바이너리로 파일을 쓰고, else 블록에서 예외를 발생시킵니다.",
+          "w": "틀렸습니다. 200은 정상 응답이며 이때 바이너리로 파일을 저장합니다. 그 밖의 경우에 \"PDF 다운로드 실패\" 예외를 냅니다.",
+          "an": "9일차 PDF 다운로드 실습 · 4. PDF 다운로드",
+          "src": "# 응답 상태 확인 (200 = 정상)\nif response.status_code == 200:\n # 바이너리 파일 저장\n with open(local_pdf_path, \"wb\") as f:\n f.write(response.content)\nelse:\n # 실패 시 에러 발생\n raise Exception(\"PDF 다운로드 실패\")"
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "데이터흐름의 구성 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "PyMuPDFLoader",
+              "PDF를 Document로 변환"
+            ],
+            [
+              "RecursiveCharacterTextSplitter",
+              "긴 문서를 chunk로 분할"
+            ],
+            [
+              "OpenAIEmbeddings",
+              "텍스트를 벡터로 변환"
+            ],
+            [
+              "FAISS",
+              "벡터 저장과 유사도 검색"
+            ],
+            [
+              "StrOutputParser",
+              "결과를 문자열로 변환"
+            ]
+          ],
+          "h": "임포트 셀 주석은 각 부품을 PDF 로더, 문서 분할(Chunking), 벡터 DB(빠른 유사도 검색), Embedding 모델, Output 처리로 소개합니다. 클래스 이름 끝(Loader·Splitter·Embeddings·Parser)이 역할을 알려 줍니다.",
+          "w": "PDF → Document → Chunk → Embedding → FAISS로 이어지고, 마지막에 StrOutputParser가 LLM 결과를 문자열로 바꿉니다.",
+          "an": "9일차 PDF 다운로드 실습 · 데이터흐름",
+          "src": "# LangChain PDF 로더 (PDF → Document 변환)\nfrom langchain_community.document_loaders import PyMuPDFLoader\n# 문서 분할 (Chunking)\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\n# 벡터 DB (FAISS: 빠른 유사도 검색)\nfrom langchain_community.vectorstores import FAISS\n# LLM + Embedding 모델\nfrom langchain_openai import ChatOpenAI, OpenAIEmbeddings\n# Prompt + Output 처리"
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 3,
+          "game": false,
+          "p": "PDF RAG 데이터흐름을 순서대로 맞추세요.",
+          "steps": [
+            "PDF를 Document로 로드",
+            "Document를 Chunk로 분할",
+            "Chunk를 Embedding해 FAISS 저장",
+            "Retriever로 Document[] 검색",
+            "format_docs로 string 변환 후 Prompt"
+          ],
+          "h": "자료의 데이터흐름 문자열은 PDF로 시작해 Prompt → LLM → Answer로 끝납니다. 중간에 Retriever가 Document[]를 돌려주고, 이것이 문자열로 바뀐 뒤 프롬프트로 들어갑니다.",
+          "w": "PDF → Document → Chunk → Embedding → FAISS → Retriever → Document[] → format_docs → string → Prompt → LLM 순서입니다.",
+          "an": "9일차 PDF 다운로드 실습 · 데이터흐름",
+          "src": "→ Retriever (Vector Search)\n→ Context Documents\n→ Prompt\n→ LLM\n→ Answer\n\"\"\"\n```\n전체 기능 요약\n이 코드는 다음과 같은 순서로 동작하는 최신 LCEL 기반 RAG(Retrieval-Augmented Generation) 시스템입니다.\n1. 웹 페이지(또는 PDF 등)를 LangChain Document 객체로 불러옵니다.\n2. 긴 문서를 RecursiveCharacterTextSplitter를 이용하여\n검색하기 적합한 크기의 Chunk로 분할합니다.\n3. 각 Chunk를 OpenAI Embedding 모델을 이용하여\n의미(Vector)로 변환합니다.\n4. 생성된 Embedding을 FAISS Vector Database에 저장하여"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "URL PDF 실습의 텍스트 분할 설정에 대한 설명으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "chunk_size=1200",
+            "chunk_overlap=200",
+            "overlap은 앞뒤 문맥 연결용",
+            "chunk_size는 토큰 수 기준",
+            "overlap 0으로 독립 분할"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "6. Text Splitting 블록에는 두 숫자가 주석과 함께 적혀 있습니다. 하나는 \"한 chunk 최대 길이 (문맥 유지)\", 다른 하나는 \"앞뒤 문맥 연결 (검색 품질 향상)\"입니다. length_function을 따로 주지 않았으므로 길이는 기본 방식으로 셉니다.",
+          "w": "chunk_size=1200, chunk_overlap=200이며 overlap은 앞뒤 문맥을 이어 검색 품질을 높입니다. 기본 length_function은 문자 수 기준이고 overlap은 0이 아닙니다.",
+          "an": "9일차 PDF 다운로드 실습 · 6. Text Splitting",
+          "src": "loader = # PDF 로더 생성\n\ndocs = # 페이지 단위 Document 리스트 생성\n# =========================================================\n# 6. Text Splitting (Chunking)\n# =========================================================\n# 역할: 긴 문서를 검색 가능한 단위로 나누기\n\ntext_splitter = RecursiveCharacterTextSplitter(\n chunk_size=1200, # 한 chunk 최대 길이 (문맥 유지)\n chunk_overlap=200 # 앞뒤 문맥 연결 (검색 품질 향상)"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "웹 뉴스 QA와 LCEL 체인",
+      "ref": "9일차 뉴스기사 QA · 입력 통제 안정형 RAG",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "웹 페이지를 LangChain Document로 불러오는 로더는?",
+          "o": [
+            "PyPDFLoader",
+            "PDFPlumberLoader",
+            "WebBaseLoader",
+            "DirectoryLoader"
+          ],
+          "a": 2,
+          "h": "뉴스기사 QA 소개에는 bs4로 웹 페이지를 파싱하고 langchain으로 문서 로딩을 한다고 적혀 있습니다. 이 로더는 기사 URL과 bs_kwargs를 받아 HTML을 Document로 바꿉니다.",
+          "w": "WebBaseLoader가 HTML 페이지를 Document로 바꿉니다. 나머지는 PDF나 디렉터리 파일용 로더입니다.",
+          "an": "9일차 뉴스기사 QA · 5. 웹 문서 로딩",
+          "src": "네이버 뉴스기사 QA(Question-Answer)\n\n이 가이드에서는 OpenAI 챗 모델과 임베딩, 그리고 Chroma 벡터 스토어를 사용할 것입니다.\n\n먼저 다음의 과정을 통해 간단한 인덱싱 파이프라인과 RAG 체인을 약 20줄의 코드로 구현할 수 있습니다.\n\n라이브러리\n\n- bs4는 웹 페이지를 파싱하기 위한 라이브러리입니다.\n- langchain은 AI와 관련된 다양한 기능을 제공하는 라이브러리로, 여기서는 특히\n 1. 텍스트 분할(RecursiveCharacterTextSplitter),\n 2. 문서 로딩(WebBaseLoader),"
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "HTML에서 기사 제목·본문 div만 골라내는 데 쓴 것은?",
+          "o": [
+            "bs4.SoupStrainer",
+            "RunnableMap",
+            "nest_asyncio",
+            "StrOutputParser"
+          ],
+          "a": 0,
+          "h": "\"4. BS4 필터 설정\"에서 \"div\"와 class 목록(본문·제목)을 인자로 넘겨 필터 객체를 만듭니다. 이 객체는 로더의 bs_kwargs 안 parse_only 값으로 들어갑니다.",
+          "w": "bs4.SoupStrainer로 특정 class의 div만 파싱해 제목과 본문만 남깁니다. nest_asyncio는 async 충돌 방지, RunnableMap은 체인 구성용입니다.",
+          "an": "9일차 뉴스기사 QA · 4. BS4 필터 설정",
+          "src": "# 역할: HTML 페이지 → LangChain Document 객체로 변환\n\nloader = WebBaseLoader(\n web_paths=(\"https://n.news.naver.com/article/437/0000378416\",), # 뉴스 URL\n bs_kwargs=dict(\n parse_only=bs4.SoupStrainer(\n \"div\", # 특정 HTML div만 추출\n attrs={\"class\": [\"newsct_article _article_body\", \"media_end_head_title\"]}, # 본문 + 제목"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>nest_asyncio.apply()</code>를 실행하는 목적은?",
+          "o": [
+            "HTML 본문만 추출",
+            "API 키 환경변수 등록",
+            "FAISS 벡터 개수 확인",
+            "Colab/Jupyter async 충돌 방지"
+          ],
+          "a": 3,
+          "h": "노트북 환경은 이미 이벤트 루프가 돌고 있어서 비동기 코드를 실행할 때 문제가 생길 수 있습니다. 자료는 이 호출 바로 아래 주석에 그 목적을 적어 두었습니다.",
+          "w": "Colab/Jupyter의 비동기(async) 이벤트 루프 충돌을 막기 위해 적용합니다. 본문 추출은 SoupStrainer, 키 등록은 os.environ이 담당합니다.",
+          "an": "9일차 뉴스기사 QA · 2. 라이브러리 임포트",
+          "src": "nest_asyncio.apply()\n# Colab/Jupyter async 충돌 방지\n# =========================================================\n# 3. API KEY 설정\n# =========================================================\n# 기존: 하드코딩\n# 개선: Colab Secrets\n\nfrom google.colab import userdata\n\nos.environ[\"OPENAI_API_KEY\"] = userdata.get(\"OPENAI_API_KEY\")\n# =========================================================\n# 4. BS4 필터 설정 (뉴스 본문만 추출)"
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>{'question': RunnablePassthrough(), 'context': retriever | format_docs} | prompt | llm</code>에서 prompt의 context로 들어가는 값은?",
+          "o": [
+            "Document 객체 리스트",
+            "검색 청크를 이은 문자열",
+            "사용자 질문 원문",
+            "LLM 답변 문자열"
+          ],
+          "a": 1,
+          "h": "retriever의 반환값은 List[Document]이고, 파이프로 이어진 format_docs는 각 page_content를 \"\\n\\n\"으로 join합니다. 질문 원문은 다른 키에서 RunnablePassthrough로 그대로 전달됩니다.",
+          "w": "retriever가 반환한 List[Document]가 format_docs를 거쳐 하나의 문자열이 되어 context로 들어갑니다. 질문 원문은 RunnablePassthrough로 question에 전달됩니다.",
+          "an": "9일차 청크 분할 실험 · 10. RAG 실행 함수(test_rag)",
+          "src": "def test_rag(question, retriever): # 질문 + retriever 입력\n rag_chain = ( # LCEL 체인 구성 시작\n {\n \"context\": retriever | format_docs, # 검색 → 문자열 변환\n \"question\": RunnablePassthrough() # 질문 그대로 전달\n }\n | prompt # prompt 적용\n | llm # LLM 실행\n | StrOutputParser() # 문자열 변환"
+        },
+        {
+          "id": "t3-05",
+          "ty": "num",
+          "lv": 1,
+          "game": false,
+          "p": "기사 1개를 분할해 청크 3개가 생겼습니다. FAISS에 저장한 뒤 <code>vectorstore.index.ntotal</code>의 출력값은?",
+          "a": 3,
+          "unit": "개",
+          "h": "계산식: 저장된 벡터 수 = 청크 수 × 청크당 벡터 1개. <code>FAISS.from_documents</code>는 분할된 Chunk 하나하나를 임베딩해 벡터 하나로 저장하고, ntotal은 인덱스에 저장된 벡터의 총개수입니다.",
+          "w": "청크마다 임베딩 벡터가 하나씩 저장되므로 출력 결과도 \"FAISS Vector 개수 : 3\"이었습니다.",
+          "an": "9일차 뉴스기사 QA · 6. FAISS Vector Store 생성 실행 결과",
+          "src": "# Chunk → Embedding → FAISS 저장\nvectorstore =\n# 저장된 Vector 개수 확인\nprint(\"=\" * 60)\nprint(\"FAISS Vector 개수 :\", vectorstore.index.ntotal)"
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Retriever는 List[Document]를 반환하므로 Prompt에 넣기 전에 문자열 Context로 변환해야 한다.",
+          "a": true,
+          "h": "\"9. Retriever 반환 타입 확인\" 셀은 <code>type(test_docs)</code>와 <code>type(test_docs[0])</code>을 출력합니다. 주석은 Prompt가 문자열(String)을 입력으로 쓴다고 설명합니다.",
+          "w": "맞습니다. Prompt는 문자열을 입력으로 쓰므로 format_docs()로 Document를 하나의 문자열로 바꿉니다.",
+          "an": "9일차 뉴스기사 QA · 9. Retriever 반환 타입 확인",
+          "src": "# List[Document]\n#\n# 를 반환한다.\n#\n# Prompt는 문자열(String)을 입력으로 사용하므로\n# 다음 단계에서는\n#\n# Document\n# │\n# ▼\n# String(Context)\n#\n# 으로 변환해야 한다.\n# ============================================================\n\nprint(\"=\" * 60)\nprint(\"Retriever 반환 타입\")\nprint(type(test_docs))\nprint(type(test_docs[0]))"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "RunnableParallel 체인에서 question 값도 Retriever와 format_docs를 거친 뒤 Prompt에 전달된다.",
+          "a": false,
+          "h": "13번 흐름도에서 RunnableParallel은 두 갈래로 나뉩니다. 한 갈래는 사용자 질문을 그대로 전달하고, 다른 갈래만 Retriever → format_docs() → Context를 거칩니다.",
+          "w": "틀렸습니다. question은 사용자 질문을 그대로 전달하고, context 갈래만 Retriever → format_docs()를 거칩니다.",
+          "an": "9일차 뉴스기사 QA · 13. LCEL RAG Chain 구성",
+          "src": "def test_rag(question, retriever): # 질문 + retriever 입력\n rag_chain = ( # LCEL 체인 구성 시작\n {\n \"context\": retriever | format_docs, # 검색 → 문자열 변환\n \"question\": RunnablePassthrough() # 질문 그대로 전달\n }\n | prompt # prompt 적용\n | llm # LLM 실행\n | StrOutputParser() # 문자열 변환"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "LCEL RAG 체인의 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "RunnablePassthrough()",
+              "질문을 그대로 전달"
+            ],
+            [
+              "retriever | format_docs",
+              "검색 후 문자열 Context 생성"
+            ],
+            [
+              "ChatPromptTemplate",
+              "Context와 Question 결합"
+            ],
+            [
+              "StrOutputParser()",
+              "최종 문자열 출력"
+            ]
+          ],
+          "h": "Passthrough는 입력을 바꾸지 않고 \"통과\"시키고, Parser는 LLM 응답을 다른 형태로 바꿉니다. 프롬프트 템플릿에는 {context}와 {question} 두 자리가 있습니다.",
+          "w": "질문은 통과시키고, context는 검색·문자열화한 뒤, 프롬프트가 둘을 합쳐 LLM에 넘기고 StrOutputParser가 문자열로 돌려줍니다.",
+          "an": "9일차 뉴스기사 QA · 전체 기능 요약",
+          "src": "6. 검색된 Context와 사용자 질문을 Prompt로 구성하여\nChatOpenAI가 최종 답변을 생성합니다.\n7. StrOutputParser를 이용하여 LLM의 응답을 문자열(String) 형태로 반환합니다.\n```python\n\"\"\"\nUser Question\n │\n ▼\nWebBaseLoader\n │\n ▼\nRecursiveCharacterTextSplitter\n │\n ▼\nOpenAIEmbeddings\n │\n ▼\nFAISS\n │\n ▼\nRetriever\n │\n ▼\nRunnableParallel\n │\n ├────────► Question\n │\n └────────► Context\n │\n ▼\n format_docs()\n │\n ▼\n ChatPromptTemplate"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 3,
+          "game": false,
+          "p": "웹 뉴스 RAG 시스템의 동작 순서를 맞추세요.",
+          "steps": [
+            "WebBaseLoader로 Document 생성",
+            "RecursiveCharacterTextSplitter로 Chunk 분할",
+            "OpenAIEmbeddings로 벡터화해 FAISS 저장",
+            "Retriever가 관련 Chunk 검색",
+            "ChatOpenAI가 답변 생성"
+          ],
+          "h": "\"전체 기능 요약\"은 1. 문서 불러오기부터 7. StrOutputParser 문자열 반환까지 일곱 단계로 설명합니다. 질문은 Embedding으로 바뀐 뒤 FAISS Retriever가 관련 Chunk를 찾고, 그다음에 Prompt를 구성합니다.",
+          "w": "불러오기 → 분할 → 임베딩·FAISS 저장 → 질문 임베딩 후 검색 → Prompt 구성과 답변 생성 순이며, 마지막에 StrOutputParser가 문자열로 반환합니다.",
+          "an": "9일차 전체 기능 요약 1~7",
+          "src": "4. 생성된 Embedding을 FAISS Vector Database에 저장하여\n의미 기반(Semantic Search) 검색이 가능하도록 합니다.\n5. 사용자의 질문(Query)을 Embedding으로 변환한 후\nFAISS Retriever가 가장 관련성이 높은 Chunk를 검색합니다.\n6. 검색된 Context와 사용자 질문을 Prompt로 구성하여\nChatOpenAI가 최종 답변을 생성합니다.\n7. StrOutputParser를 이용하여 LLM의 응답을 문자열(String) 형태로 반환합니다.\n```python\n\"\"\"\nUser Question\n │\n ▼\nWebBaseLoader\n │\n ▼\nRecursiveCharacterTextSplitter\n │\n ▼\nOpenAIEmbeddings"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": false,
+          "p": "세 번째 뉴스 QA 예제에서 LCEL Runnable로 import한 것을 모두 고르세요.",
+          "o": [
+            "RunnableLambda",
+            "RunnableParallel",
+            "RunnablePassthrough",
+            "RunnableWithMessageHistory",
+            "EnsembleRetriever"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "\"# LCEL Runnable\" 주석 아래 <code>from langchain_core.runnables import (...)</code> 괄호 안에 세 클래스가 있습니다. 대화 기록 래퍼는 <code>langchain_core.runnables.history</code>에서, 앙상블 검색기는 retrievers 모듈에서 가져옵니다.",
+          "w": "RunnableLambda·RunnableParallel·RunnablePassthrough를 import했습니다. RunnableWithMessageHistory는 메모리 단원, EnsembleRetriever는 리트리버 비교 단원에서 씁니다.",
+          "an": "9일차 뉴스기사 QA · 2. 라이브러리 Import",
+          "src": "# LCEL Runnable\nfrom langchain_core.runnables import (\n RunnableLambda,\n RunnableParallel,\n RunnablePassthrough,\n)\n# ============================================================\n# 3. 뉴스 기사 로딩\n# ============================================================\n#\n# 역할\n# ------------------------------------------------------------\n# WebBaseLoader를 이용하여"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "Multi Query와 Chat Memory",
+      "ref": "9일차 개선된 실무용 RAG",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Multi Query RAG의 핵심 동작은?",
+          "o": [
+            "질문을 여러 유사 질문으로 확장",
+            "문서를 더 작게 분할",
+            "답변을 JSON으로 파싱",
+            "대화를 디스크에 저장"
+          ],
+          "a": 0,
+          "h": "기존 방식은 하나의 질문으로 한 번만 검색해 질문 표현이 조금만 달라져도 검색 성능이 떨어졌습니다. 개선 방식은 질문 쪽을 늘려서 여러 번 검색한 뒤 결과를 통합합니다.",
+          "w": "하나의 질문을 여러 유사 질문으로 만들고, 각각 검색한 결과를 통합해 LLM에 넘깁니다. 분할·파싱·저장은 다른 단계의 일입니다.",
+          "an": "9일차 개선된 실무용 RAG · 1. 검색 정확도 개선",
+          "src": "기존 RAG 시스템은 사용자의 질문을 한 번만 검색하여 관련 문서를 찾고, 검색된 문서를 기반으로 LLM이 답변을 생성하는 구조였다. 하지만 질문 표현이 조금만 달라져도 검색 성능이 저하되고, 이전 대화 내용을 기억하지 못하는 한계가 있었다.\n\n이를 개선하기 위해 **Chat Memory**와 **Multi Query RAG**를 적용하여 검색 정확도와 대화 연속성을 향상시켰다.\n\n---\n## 1. 검색 정확도 개선 (Multi Query RAG)\n### 기존 방식\n- 하나의 질문으로 한 번만 검색 수행\n- 질문 표현이 달라질 경우 검색 성능 저하\n### 개선 방식\n- 하나의 질문을 여러 개의 유사 질문으로 자동 생성\n- 생성된 모든 질문으로 문서를 검색\n- 검색 결과를 통합하여 LLM에 전달"
+        },
+        {
+          "id": "t4-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Multi Query를 적용했을 때 기대 효과로 제시된 것은?",
+          "o": [
+            "응답 속도만 향상",
+            "임베딩 차원 축소",
+            "Recall(재현율) 향상",
+            "토큰 비용 0원"
+          ],
+          "a": 2,
+          "h": "기대 효과에는 다양한 표현에 대한 검색 성능 향상과 관련 문서 검색 누락 감소가 적혀 있습니다. 관련 문서를 빠뜨리지 않고 찾아내는 정도를 나타내는 평가 지표를 떠올리세요.",
+          "w": "다양한 표현으로 검색해 관련 문서 누락이 줄어 Recall(재현율)이 오릅니다. 질문을 여러 번 검색하므로 속도나 비용이 줄어든다는 설명은 없습니다.",
+          "an": "9일차 개선된 실무용 RAG · 1. 기대 효과",
+          "src": "이를 개선하기 위해 **Chat Memory**와 **Multi Query RAG**를 적용하여 검색 정확도와 대화 연속성을 향상시켰다.\n\n---\n## 1. 검색 정확도 개선 (Multi Query RAG)\n### 기존 방식\n- 하나의 질문으로 한 번만 검색 수행\n- 질문 표현이 달라질 경우 검색 성능 저하\n### 개선 방식\n- 하나의 질문을 여러 개의 유사 질문으로 자동 생성\n- 생성된 모든 질문으로 문서를 검색\n- 검색 결과를 통합하여 LLM에 전달\n### 기대 효과\n- 다양한 표현에 대한 검색 성능 향상\n- 관련 문서 검색 누락 감소\n- Recall(재현율) 향상"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Chat Memory가 없는 기존 RAG의 한계로 설명된 것은?",
+          "o": [
+            "검색을 여러 번 수행",
+            "질문마다 독립 처리",
+            "문서를 저장하지 않음",
+            "LLM을 두 번 호출"
+          ],
+          "a": 1,
+          "h": "\"2. 대화 기억 기능\"의 기존 방식 항목은 이전 대화 내용을 고려하지 않는다고 적습니다. 개선 방식은 이전 질문과 답변을 저장해 새 질문과 함께 Context로 활용합니다.",
+          "w": "기존 방식은 질문마다 독립적으로 처리해 이전 대화를 고려하지 않습니다. 개선 방식은 이전 질문과 답변을 저장해 Context로 활용합니다.",
+          "an": "9일차 개선된 실무용 RAG · 2. 대화 기억 기능",
+          "src": "## 2. 대화 기억 기능 (Chat Memory)\n### 기존 방식\n- 질문마다 독립적으로 처리\n- 이전 대화 내용을 고려하지 않음\n### 개선 방식\n- 이전 질문과 답변을 함께 저장\n- 새로운 질문과 함께 이전 대화 내용을 Context로 활용\n### 기대 효과\n- 연속적인 질의응답 가능\n- 문맥(Context) 유지\n- 자연스러운 대화형 RAG 구현"
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "실습의 <code>multi_query_prompt</code>는 질문을 몇 개의 검색 질문으로 바꾸게 하나요?",
+          "o": [
+            "2개",
+            "4개",
+            "5개",
+            "3개"
+          ],
+          "a": 3,
+          "h": "프롬프트 첫 줄은 \"다음 질문을 N개의 서로 다른 검색 질문으로 변환해라\"이고, \"출력:\" 아래에는 번호 칸이 그 개수만큼 비어 있습니다. retrieve_multi_query docstring에도 같은 숫자가 나옵니다.",
+          "w": "\"다음 질문을 3개의 서로 다른 검색 질문으로 변환해라\"라고 지시하고, 출력 칸도 1.~3.입니다.",
+          "an": "9일차 개선된 실무용 RAG · 6. MULTI QUERY GENERATION",
+          "src": "multi_query_prompt = ChatPromptTemplate.from_template(\n\"\"\"\n다음 질문을 3개의 서로 다른 검색 질문으로 변환해라.\n\n질문:\n{question}\n\n출력:\n1.\n2.\n3.\n\"\"\"\n)\n# LLM → 3개의 검색 query 생성\n\nmulti_query_chain =\n# ============================================================\n# 7. RETRIEVAL FUNCTION (Multi Query 기반 검색)\n# ============================================================\n\ndef retrieve_multi_query(question):"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>RunnableWithMessageHistory(..., input_messages_key='question', history_messages_key='history')</code>에서 <code>history_messages_key</code>가 가리키는 것은?",
+          "o": [
+            "프롬프트 안 메모리 자리",
+            "사용자 질문 입력 키",
+            "세션 ID 저장 키",
+            "검색 결과 문서 키"
+          ],
+          "a": 0,
+          "h": "MEMORY WRAPPER 코드 주석은 input_messages_key를 \"입력 key\", history_messages_key를 \"prompt 내 memory slot\"이라고 설명합니다. session_id는 키가 아니라 invoke의 config로 넘깁니다.",
+          "w": "history_messages_key는 프롬프트에서 이전 대화가 들어갈 자리의 이름입니다. 사용자 질문 키는 input_messages_key, 세션 ID는 config로 전달합니다.",
+          "an": "9일차 개선된 실무용 RAG · 11. MEMORY WRAPPER",
+          "src": "memory_chain = RunnableWithMessageHistory(\n runnable=rag_chain, # 기존 RAG chain\n get_session_history=get_session_history, # memory provider\n input_messages_key=\"question\", # 입력 key\n history_messages_key=\"history\" # prompt 내 memory slot"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "이 실습의 FAISS 저장소는 문장 3개짜리 문자열 리스트로 <code>FAISS.from_texts</code>를 써서 만들었다.",
+          "a": true,
+          "h": "\"3. SAMPLE DOCUMENTS\"는 정책 설명 문장을 리스트로 직접 적고, 실제 환경에서는 외부 데이터로 교체하라고 안내합니다. 이어지는 \"4. VECTOR STORE\"는 이 문자열 리스트와 embeddings를 받아 저장소를 만듭니다.",
+          "w": "맞습니다. 샘플 문장 3개를 FAISS.from_texts(docs, embeddings)로 저장했고, 실제 환경에서는 외부 데이터로 교체하라고 적혀 있습니다.",
+          "an": "9일차 개선된 실무용 RAG · 3~4. SAMPLE DOCUMENTS · VECTOR STORE",
+          "src": "# 3. SAMPLE DOCUMENTS (실제 환경에서는 외부 데이터로 교체)\n# ============================================================\n\ndocs = [\n \"부영그룹은 출산 장려 정책으로 자녀 1명당 1억 원 지원을 발표했다.\",\n \"이 정책은 저출산 문제 해결과 인구 감소 대응을 목표로 한다.\",\n \"기업 복지와 사회적 책임 강화 목적도 포함된다.\"\n]\n# ============================================================\n# 4. VECTOR STORE (FAISS)"
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "개선 RAG는 기존 LCEL(Runnable) 구조를 버리고 새 구조로 다시 작성했다.",
+          "a": false,
+          "h": "자료의 세 번째 소제목은 \"LCEL 기반 파이프라인 유지\"이며, 기존 구조 위에 기능을 확장했다고 설명합니다. 실제 코드도 RunnableParallel | prompt | llm | StrOutputParser() 형태를 그대로 씁니다.",
+          "w": "틀렸습니다. 기존 LCEL 구조를 그대로 유지하면서 Chat Memory와 Multi Query 기능을 확장했습니다.",
+          "an": "9일차 개선된 실무용 RAG · 3. LCEL 기반 파이프라인 유지",
+          "src": "- 자연스러운 대화형 RAG 구현\n\n---\n## 3. LCEL 기반 파이프라인 유지\n\n기존 LCEL(Runnable) 구조를 그대로 유지하면서 기능을 확장하였다.\n\n```\nUser Question\n │\n ▼\nChat Memory\n │\n ▼\nMulti Query 생성\n │\n ▼\nRetriever\n │\n ▼\nformat_docs()\n │\n ▼\nChatPromptTemplate\n │\n ▼\nChatOpenAI\n │\n ▼\nStrOutputParser\n │\n ▼\nFinal Answer\n```\n\n---\n## 4. Context 생성 방식 개선\n\n검색된 Document 객체는 LLM이 직접 처리하기 어렵기 때문에 `format_docs()` 함수를 사용하여 하나의 문자열(Context)로 변환한다."
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "개선 요소와 효과를 연결하세요.",
+          "pairs": [
+            [
+              "Multi Query",
+              "표현 차이로 인한 검색 누락 감소"
+            ],
+            [
+              "Chat Memory",
+              "문맥을 유지한 연속 질의응답"
+            ],
+            [
+              "format_docs()",
+              "LLM 입력 형식 통일·타입 오류 방지"
+            ],
+            [
+              "RunnableWithMessageHistory",
+              "세션별 대화 기록을 체인에 연결"
+            ]
+          ],
+          "h": "자료는 개선점을 검색 정확도, 대화 기억, Context 생성 방식으로 나누어 설명합니다. 마지막 래퍼는 session_id 기준으로 기록을 찾아 체인에 붙이는 메모리 연결 장치입니다.",
+          "w": "Multi Query는 검색 정확도, Chat Memory는 대화 연속성, format_docs는 Context 형식 안정성, RunnableWithMessageHistory는 메모리 연결을 담당합니다.",
+          "an": "9일차 개선된 실무용 RAG · 1~4",
+          "src": "- 다양한 표현에 대한 검색 성능 향상\n- 관련 문서 검색 누락 감소\n- Recall(재현율) 향상\n\n---\n## 2. 대화 기억 기능 (Chat Memory)\n### 기존 방식\n- 질문마다 독립적으로 처리\n- 이전 대화 내용을 고려하지 않음\n### 개선 방식\n- 이전 질문과 답변을 함께 저장\n- 새로운 질문과 함께 이전 대화 내용을 Context로 활용\n### 기대 효과\n- 연속적인 질의응답 가능\n- 문맥(Context) 유지\n- 자연스러운 대화형 RAG 구현\n\n---\n## 3. LCEL 기반 파이프라인 유지\n\n기존 LCEL(Runnable) 구조를 그대로 유지하면서 기능을 확장하였다.\n\n```\nUser Question\n │\n ▼\nChat Memory\n │\n ▼\nMulti Query 생성"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "개선된 RAG 시스템의 동작 순서를 맞추세요.",
+          "steps": [
+            "사용자 질문 입력",
+            "이전 대화(Chat Memory) 고려",
+            "Multi Query로 질의 확장",
+            "각 질의로 관련 문서 검색",
+            "Context와 질문으로 답변 생성"
+          ],
+          "h": "\"전체 기능 요약\"은 질문 입력에서 시작해 문자열 결과 반환까지 8단계로 설명합니다. 흐름 그림에서도 Chat Memory 칸이 Multi Query 생성보다 위에, Retriever가 그 아래에 있습니다.",
+          "w": "질문 입력 → 이전 대화 고려 → 여러 검색 질의로 확장 → 각 질의로 검색 → 하나의 Context로 구성해 답변 생성 순서입니다.",
+          "an": "9일차 개선된 실무용 RAG · 전체 기능 요약",
+          "src": "- 향후 LangGraph Agent, Tool Calling, Context Compression 등으로 쉽게 확장 가능한 구조\n\n---\n## 전체 기능 요약\n\n개선된 RAG 시스템은 다음과 같은 순서로 동작한다.\n\n1. 사용자의 질문을 입력받는다.\n2. 이전 대화(Chat Memory)를 함께 고려한다.\n3. 질문을 여러 개의 검색 질의(Multi Query)로 확장한다.\n4. 각 질의를 이용하여 관련 문서를 검색한다.\n5. 검색된 문서를 하나의 Context로 구성한다.\n6. Prompt Template에 Context와 질문을 전달한다.\n7. ChatOpenAI가 최종 답변을 생성한다.\n8. StrOutputParser를 통해 문자열 형태의 최종 결과를 반환한다."
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "<code>retrieve_multi_query</code> 함수의 역할을 모두 고르세요.",
+          "o": [
+            "질문을 3개로 확장",
+            "각 query로 FAISS 검색",
+            "결과 문서 합치기",
+            "문서를 다시 임베딩",
+            "답변을 메모리에 저장"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "함수 docstring에는 역할이 세 줄로 적혀 있고, 본문도 1) 질문 확장, 2) 문자열을 리스트로 변환, 3) query별 retrieval 순서입니다. 임베딩은 저장소를 만들 때 이미 끝났고, 기록 저장은 메모리 래퍼가 맡습니다.",
+          "w": "질문 확장 → 각 query로 FAISS 검색 → 결과 문서 합치기를 합니다. 임베딩은 저장소를 만들 때 이미 끝났고, 메모리 저장은 RunnableWithMessageHistory가 맡습니다.",
+          "an": "9일차 개선된 실무용 RAG · 7. RETRIEVAL FUNCTION",
+          "src": "def retrieve_multi_query(question):\n \"\"\"\n 역할:\n - 질문을 3개로 확장\n - 각각 FAISS 검색 수행\n - 결과 문서 합치기\n \"\"\"\n\n # 1) 질문 확장 (3개 query 생성)\n queries =\n\n\n # 2) 문자열 → 리스트 변환\n query_list = [\n\n ]\n\n docs = [] # 결과 문서 저장\n\n # 3) 각 query별 retrieval 수행"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "대화 기록 체인",
+      "ref": "9일차 이전 대화를 기억하는 Chain 생성방법",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "프롬프트에 이전 대화 기록이 들어갈 자리를 만드는 클래스는?",
+          "o": [
+            "ChatMessageHistory",
+            "RunnablePassthrough",
+            "StrOutputParser",
+            "MessagesPlaceholder"
+          ],
+          "a": 3,
+          "h": "이 셀은 <code>langchain_core.prompts</code>에서 ChatPromptTemplate과 함께 메시지 자리 표시용 클래스를 import합니다. from_messages 목록에서 system과 human 사이 빈칸에 들어가며, 대화 기록을 담는 저장 객체와는 다른 클래스입니다.",
+          "w": "MessagesPlaceholder가 chat_history 메시지를 끼워 넣을 자리를 만듭니다. ChatMessageHistory는 기록을 담는 저장 객체입니다.",
+          "an": "9일차 1. 일반 Chain 에 대화기록 추가 · Prompt 정의",
+          "src": "ARCHITECTURE NOTE (핵심 구조 설명)\n\nRunnableWithMessageHistory\n ↓\nChatMessageHistory 자동 관리 (session 기반)\n ↓\nsession_id 기준으로 memory 분리\n ↓\nMessagesPlaceholder(chat_history)에 자동 주입\n ↓\nprompt → LLM 실행\n\n핵심: memory는 \"입력값\"이 아니라 \"시스템 레벨 상태\""
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "대화 세션 ID는 <code>invoke</code> 호출 때 어디에 넣어 전달하나요?",
+          "o": [
+            "config의 'configurable'",
+            "입력 dict의 'question'",
+            "프롬프트의 system 메시지",
+            "ChatOpenAI 생성자"
+          ],
+          "a": 0,
+          "h": "invoke의 첫 번째 인자에는 질문 dict만 넣습니다. 두 번째 키워드 인자 안에 중첩 dict를 만들어 \"세션 ID 기준으로 대화를 기록\"하게 합니다.",
+          "w": "session_id는 <code>config={'configurable': {'session_id': ...}}</code>로 넘깁니다. 입력 dict에는 질문만 넣습니다.",
+          "an": "9일차 1. 일반 Chain 에 대화기록 추가 · 첫 번째 질문 실행",
+          "src": "chain_with_history.invoke(\n # 질문 입력\n {\"question\": \"내 이름이 뭐라고?\"},\n # 세션 ID 기준으로 대화를 기록합니다.\n config={\"configurable\": {\"session_id\": \"abc123\"}},\n)\n```\n## 2. RAG + RunnableWithMessageHistory\n\n먼저 일반 RAG Chain 을 생성합니다. 단, 6단계의 prompt 에 `{chat_history}` 를 꼭 추가합니다."
+        },
+        {
+          "id": "t5-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>get_session_history</code>에서 처음 보는 session_id가 들어오면 어떻게 하나요?",
+          "o": [
+            "예외를 발생시킨다",
+            "새 ChatMessageHistory를 만든다",
+            "다른 세션 기록을 복사한다",
+            "None을 반환한다"
+          ],
+          "a": 1,
+          "h": "함수는 <code>if session_id not in store:</code>로 저장소에 세션이 있는지 먼저 확인합니다. 주석은 이를 \"lazy init pattern\", 즉 필요할 때 만드는 방식이라고 부르고, 마지막에 store[session_id]를 반환합니다.",
+          "w": "store에 해당 세션이 없으면 새 ChatMessageHistory를 만들어 저장한 뒤 반환합니다. 필요할 때 만드는 lazy init 방식입니다.",
+          "an": "9일차 대화를 기록하는 체인 생성 · 세션 히스토리 조회 함수",
+          "src": "from langchain_core.runnables import RunnableLambda # LCEL 함수 래핑\n\nstore = {} # session_id → ChatMessageHistory (in-memory DB)\n\n\ndef get_session_history(session_id):\n # 현재 어떤 사용자 세션인지 확인 (디버깅)\n print(f\"[SESSION]: {session_id}\")\n\n # 없으면 새 memory 생성 (lazy init)\n if session_id not in store:"
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "같은 session_id로 \"나의 이름은 학생A입니다.\" 다음에 \"내 이름이 뭐라고?\"를 물었더니 이름을 답했습니다. 그 이유는?",
+          "o": [
+            "retriever가 이름을 검색해서",
+            "temperature가 0이라서",
+            "같은 세션 기록이 프롬프트에 주입돼서",
+            "system 메시지에 이름이 있어서"
+          ],
+          "a": 2,
+          "h": "이 체인은 <code>prompt | llm | StrOutputParser()</code>뿐이라 검색기가 없습니다. 흐름도에서 RunnableWithMessageHistory는 session_id로 store의 ChatMessageHistory를 찾아 Prompt(chat_history + question)를 만듭니다.",
+          "w": "같은 세션의 ChatMessageHistory가 프롬프트의 chat_history 자리에 들어가 앞선 대화를 참고할 수 있었습니다. 이 체인에는 retriever가 없습니다.",
+          "an": "9일차 1. 일반 Chain 에 대화기록 추가 · 이어서 질문 실행",
+          "src": "\"question\": \"나의 이름은 홍길동입니다.\"\n },\n config={\n \"configurable\": {\n \"session_id\": \"abc123\"\n }\n }\n)\n```\n\n이어서 질문 실행\n\n```python\nchain_with_history.invoke(\n # 질문 입력\n {\"question\": \"내 이름이 뭐라고?\"},\n # 세션 ID 기준으로 대화를 기록합니다.\n config={\"configurable\": {\"session_id\": \"abc123\"}},\n)\n```\n## 2. RAG + RunnableWithMessageHistory\n\n먼저 일반 RAG Chain 을 생성합니다. 단, 6단계의 prompt 에 `{chat_history}` 를 꼭 추가합니다."
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "RAG + RunnableWithMessageHistory를 만들 때 <code>{chat_history}</code>를 꼭 추가하라고 한 곳은?",
+          "o": [
+            "1단계 문서 로드",
+            "6단계 프롬프트",
+            "3단계 임베딩",
+            "5단계 검색기"
+          ],
+          "a": 1,
+          "h": "자료는 먼저 일반 RAG 체인을 만들되 8단계 중 한 단계에만 변수를 꼭 추가하라고 안내합니다. 메모리가 LLM에게 보이려면 템플릿 안에 그 기록이 들어갈 자리가 있어야 합니다.",
+          "w": "일반 RAG 체인을 만들되 6단계 프롬프트에 {chat_history}를 꼭 추가합니다. 그래야 메모리가 주입될 자리가 생깁니다.",
+          "an": "9일차 2. RAG + RunnableWithMessageHistory",
+          "src": "## 2. RAG + RunnableWithMessageHistory\n\n먼저 일반 RAG Chain 을 생성합니다. 단, 6단계의 prompt 에 `{chat_history}` 를 꼭 추가합니다."
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>store</code>는 session_id를 키로 ChatMessageHistory를 저장하는 in-memory 딕셔너리다.",
+          "a": true,
+          "h": "수동 버전 코드는 <code>store = {}</code>로 시작하고, 주석에 \"session_id → ChatMessageHistory 저장 딕셔너리\"라고 적습니다. 세션이 없으면 <code>store[session_id] = ChatMessageHistory()</code>로 채웁니다.",
+          "w": "맞습니다. store는 session_id → ChatMessageHistory를 담는 메모리 안 저장소입니다.",
+          "an": "9일차 대화를 저장할 함수 정의 - 수동 · 1. Memory Store",
+          "src": "대화를 저장할 함수 정의 - 수동\n\n```python\n# =========================================================\n# 1. Memory Store (세션별 대화 저장 공간)\n# =========================================================\n\nstore = {} # session_id → ChatMessageHistory 저장 딕셔너리"
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "메모리 체인에서 대화 기록은 사용자가 매번 입력 dict에 직접 넣어 주어야 한다.",
+          "a": false,
+          "h": "ARCHITECTURE NOTE는 RunnableWithMessageHistory가 ChatMessageHistory를 session 기준으로 자동 관리하고 chat_history 자리에 자동 주입한다고 설명합니다. 노트의 마지막 줄은 memory를 \"입력값\"과 대비되는 다른 개념으로 정의합니다.",
+          "w": "틀렸습니다. RunnableWithMessageHistory가 session_id 기준으로 기록을 자동 관리·주입하며, 자료는 memory를 \"입력값\"이 아니라 \"시스템 레벨 상태\"라고 설명합니다.",
+          "an": "9일차 2. RAG + RunnableWithMessageHistory · ARCHITECTURE NOTE",
+          "src": "ARCHITECTURE NOTE (핵심 구조 설명)\n\nRunnableWithMessageHistory\n ↓\nChatMessageHistory 자동 관리 (session 기반)\n ↓\nsession_id 기준으로 memory 분리\n ↓\nMessagesPlaceholder(chat_history)에 자동 주입\n ↓\nprompt → LLM 실행\n\n핵심: memory는 \"입력값\"이 아니라 \"시스템 레벨 상태\""
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "RAG + 메모리 예제의 설정과 값을 연결하세요.",
+          "pairs": [
+            [
+              "PDF 로더",
+              "PDFPlumberLoader"
+            ],
+            [
+              "chunk_size / overlap",
+              "1000 / 50"
+            ],
+            [
+              "임베딩 모델",
+              "text-embedding-3-small"
+            ],
+            [
+              "검색 개수 k",
+              "3"
+            ]
+          ],
+          "h": "이 예제는 <code>!pip install -q pdfplumber</code> 뒤에 PDF를 올려 로드하고, 4. Chunking에서 길이와 겹침을, 5. Embedding에서 OpenAI 모델과 search_kwargs를 지정합니다. 겹침 값은 앞의 PDF 실습(200)보다 작게 잡았습니다.",
+          "w": "PDFPlumberLoader로 로드하고 1000/50으로 분할한 뒤 text-embedding-3-small로 FAISS를 만들고 k=3으로 검색합니다.",
+          "an": "9일차 2. RAG + RunnableWithMessageHistory · 3~5",
+          "src": "chunk_size=1000, # chunk 최대 길이\n chunk_overlap=50 # 문맥 유지용 overlap\n)\n\nsplit_docs = text_splitter.split_documents(docs) # 문서 → chunk 리스트\n# =========================================================\n# 5. Embedding + Vector DB 생성\n# =========================================================\n\nembeddings = OpenAIEmbeddings(model=\"text-embedding-3-small\") # embedding 모델"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "LCEL Memory Flow를 순서대로 맞추세요.",
+          "steps": [
+            "session_id로 세션 지정",
+            "RunnableWithMessageHistory 실행",
+            "ChatMessageHistory(store) 조회",
+            "Prompt에 기록과 질문 결합",
+            "LLM 답변 후 기록 저장"
+          ],
+          "h": "흐름도는 User Question에서 시작해 \"Answer + Memory 저장\"으로 끝납니다. 래퍼가 먼저 실행되어야 store에서 기록을 꺼내 올 수 있고, 프롬프트는 그 기록과 질문을 함께 받습니다.",
+          "w": "질문과 session_id → RunnableWithMessageHistory → store의 ChatMessageHistory → Prompt(chat_history + question) → LLM → 답변과 함께 기록 저장 순입니다.",
+          "an": "9일차 첫 번째 질문 실행 · 전체 구조 (LCEL Memory Flow)",
+          "src": "첫 번째 질문 실행\n\n```python\n\n\"\"\"\n=========================================================\n전체 구조 (LCEL Memory Flow)\n=========================================================\n\nUser Question\n ↓\nsession_id (abc123)\n ↓\nRunnableWithMessageHistory\n ↓\nChatMessageHistory (store)\n ↓\nPrompt (chat_history + question)\n ↓\nLLM\n ↓\nAnswer + Memory 저장"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "수동 버전 <code>rag_chain</code>의 RunnableParallel이 만드는 키를 모두 고르세요.",
+          "o": [
+            "question",
+            "context",
+            "chat_history",
+            "session_id",
+            "standalone_question"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "RunnableParallel의 키는 바로 뒤 PromptTemplate의 변수 이름과 같아야 합니다. 이 템플릿에는 Chat History, Question, Context 세 블록이 있고, 세션 ID는 config로만 넘깁니다.",
+          "w": "question·context·chat_history 세 키를 만들어 프롬프트에 매핑합니다. session_id는 config로 넘기고, standalone_question은 Conversational RAG에서 씁니다.",
+          "an": "9일차 대화를 저장할 함수 정의 - 수동 · 4. RAG Chain",
+          "src": "# user question 그대로 전달\n question=lambda x: x[\"question\"],\n\n # 핵심: FAISS retrieval 실행 (semantic search)\n context=\n\n\n # memory 전달 (RunnableWithMessageHistory가 자동 주입)\n chat_history=\n\n )\n | prompt # prompt formatting\n | llm # GPT inference\n | StrOutputParser() # string output normalization"
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "Conversational RAG",
+      "ref": "9일차 Conversational RAG (질문 재작성)",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "후속 질문을 독립 질문으로 바꾸는 체인 이름은?",
+          "o": [
+            "multi_query_chain",
+            "query_rewriter_chain",
+            "memory_chain",
+            "test_rag"
+          ],
+          "a": 1,
+          "h": "\"2. Query Rewriter\" 블록은 query_rewrite_prompt를 정의한 뒤, 주석 \"follow-up 질문을 독립 질문으로 변환\"과 함께 체인 변수를 만듭니다. 질문을 여러 개로 늘리는 체인은 앞 단원(Multi Query)의 것입니다.",
+          "w": "query_rewriter_chain이 chat history와 질문을 받아 standalone question을 만듭니다. multi_query_chain은 질문을 여러 개로 늘리는 체인입니다.",
+          "an": "9일차 Conversational RAG · 2. Query Rewriter",
+          "src": "query_rewrite_prompt = ChatPromptTemplate.from_template(\n\"\"\"\nYou are a query rewriting assistant.\n\nChat History:\n{chat_history}\n\nQuestion:\n{question}\n\nRewrite into a standalone question.\n\"\"\"\n)\n# 핵심: follow-up 질문을 \"독립 질문\"으로 변환\nquery_rewriter_chain ="
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Query Rewriter가 만들어 내는 질문을 부르는 말은?",
+          "o": [
+            "multi query",
+            "chat history",
+            "standalone question",
+            "context window"
+          ],
+          "a": 2,
+          "h": "query_rewrite_prompt는 Chat History와 Question을 받은 뒤 마지막 줄에서 영어로 \"Rewrite into a ... question.\"이라고 지시합니다. 대화 기록 없이도 혼자 뜻이 통하는 질문을 가리킵니다.",
+          "w": "프롬프트 마지막 지시가 \"Rewrite into a standalone question.\"입니다. 대화 기록 없이도 뜻이 통하는 독립 질문을 만듭니다.",
+          "an": "9일차 Conversational RAG · 2. Query Rewriter",
+          "src": "query_rewrite_prompt = ChatPromptTemplate.from_template(\n\"\"\"\nYou are a query rewriting assistant.\n\nChat History:\n{chat_history}\n\nQuestion:\n{question}\n\nRewrite into a standalone question.\n\"\"\"\n)\n# 핵심: follow-up 질문을 \"독립 질문\"으로 변환"
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Conversational RAG 흐름에서 ChatMessageHistory에 대화가 저장되는 시점은?",
+          "o": [
+            "질문 재작성 이전",
+            "검색 직후",
+            "프롬프트 생성 전",
+            "답변 생성 이후"
+          ],
+          "a": 3,
+          "h": "흐름도에서 ChatMessageHistory는 두 번 나옵니다. 처음에는 session_id로 기존 기록을 읽어 재작성에 쓰고, 그림의 맨 마지막 칸에서 새 대화를 기록합니다.",
+          "w": "흐름은 ... → LLM → Answer → ChatMessageHistory 저장으로 끝납니다. 앞 단계에서는 저장된 기록을 읽어 재작성에 씁니다.",
+          "an": "9일차 Conversational RAG · 흐름도",
+          "src": "ChatMessageHistory (session_id 기반)\n ↓\nquery_rewriter_chain\n ↓\nstandalone_question 생성\n ↓\nretriever (FAISS / BM25 / hybrid 가능)\n ↓\ncontext 생성\n ↓\nPrompt (chat_history + question + context)\n ↓\nLLM\n ↓\nAnswer\n ↓\nChatMessageHistory 저장"
+        },
+        {
+          "id": "t6-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "\"그걸 더 쉽게 설명해줘\"를 재작성 없이 그대로 검색하면 생기는 문제는?",
+          "o": [
+            "지시어 대상을 알 수 없다",
+            "질문이 너무 길다",
+            "한국어는 검색이 안 된다",
+            "세션 ID가 사라진다"
+          ],
+          "a": 0,
+          "h": "Conversational RAG는 chat history 기반 query rewriting과 context-aware retrieval을 특징으로 듭니다. 후속 질문 속 \"그걸\"이 무엇인지는 질문 문장 안에 없고 이전 대화에만 있습니다.",
+          "w": "\"그걸\"이 가리키는 대상은 이전 대화에만 있어서 검색어만으로는 관련 문서를 찾기 어렵습니다. 그래서 chat history로 독립 질문을 만든 뒤 검색합니다(context-aware retrieval).",
+          "an": "9일차 Conversational RAG · chat history 기반 query rewriting",
+          "src": "query_rewrite_prompt = ChatPromptTemplate.from_template(\n\"\"\"\nYou are a query rewriting assistant.\n\nChat History:\n{chat_history}\n\nQuestion:\n{question}\n\nRewrite into a standalone question.\n\"\"\"\n)\n# 핵심: follow-up 질문을 \"독립 질문\"으로 변환"
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>conversational_rag_chain = ( ____ | rag_prompt | llm_chain | StrOutputParser() )</code>의 빈칸(재작성·검색·포맷)에 알맞은 것은?",
+          "o": [
+            "RunnablePassthrough()",
+            "MessagesPlaceholder",
+            "RunnableLambda(build_context)",
+            "ChatMessageHistory()"
+          ],
+          "a": 2,
+          "h": "빈칸 옆 주석은 \"rewrite + retrieval + formatting\"이며, 이 세 일을 하는 함수는 3. Context Builder에서 정의했습니다. 같은 셀 맨 위에서 \"LCEL 함수 래핑\"용 클래스를 import해 일반 함수를 체인에 넣습니다.",
+          "w": "build_context 함수를 RunnableLambda로 감싸 체인 첫 단계로 둡니다. RunnablePassthrough는 입력을 그대로 넘길 뿐 재작성·검색을 하지 않습니다.",
+          "an": "9일차 Conversational RAG · 6. Conversational RAG Chain",
+          "src": "# 6. Conversational RAG Chain (Pipeline)\n# =========================================================\n\nconversational_rag_chain = (\n # rewrite + retrieval + formatting\n | rag_prompt # prompt injection\n | llm_chain # LLM inference\n | StrOutputParser() # output normalize"
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Conversational RAG 흐름도에서 retriever 자리에는 FAISS·BM25·hybrid를 쓸 수 있다고 적혀 있다.",
+          "a": true,
+          "h": "흐름도에서 standalone_question 다음 칸이 retriever이고, 옆 괄호에 쓸 수 있는 검색 방식이 나열되어 있습니다. 같은 노트북 마지막 단원은 실제로 Dense·Sparse·앙상블 리트리버를 비교합니다.",
+          "w": "맞습니다. 흐름도에 \"retriever (FAISS / BM25 / hybrid 가능)\"이라고 적혀 있습니다.",
+          "an": "9일차 Conversational RAG · 흐름도",
+          "src": "ChatMessageHistory (session_id 기반)\n ↓\nquery_rewriter_chain\n ↓\nstandalone_question 생성\n ↓\nretriever (FAISS / BM25 / hybrid 가능)\n ↓\ncontext 생성\n ↓\nPrompt (chat_history + question + context)\n ↓\nLLM\n ↓\nAnswer\n ↓\nChatMessageHistory 저장"
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "최종 rag_prompt는 chat_history 없이 question과 context만 받는다.",
+          "a": false,
+          "h": "rag_prompt 템플릿은 \"You are a Conversational RAG assistant.\"로 시작해 세 개의 제목 블록을 차례로 두고 \"Answer in Korean:\"으로 끝납니다. 흐름도에서도 Prompt 칸 괄호에 들어가는 항목이 세 가지입니다.",
+          "w": "틀렸습니다. Chat History·Question·Context 세 가지를 모두 받고 \"Answer in Korean:\"으로 답변을 요청합니다.",
+          "an": "9일차 Conversational RAG · 4. Prompt (Final RAG Prompt)",
+          "src": "# 4. Prompt (Final RAG Prompt)\n# =========================================================\n\nrag_prompt = ChatPromptTemplate.from_template(\n\"\"\"\nYou are a Conversational RAG assistant.\n\nChat History:\n{chat_history}\n\nQuestion:\n{question}\n\nContext:\n{context}\n\nAnswer in Korean:"
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "구성 요소와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "get_session_history",
+              "세션 기록 반환, 없으면 생성"
+            ],
+            [
+              "query_rewriter_chain",
+              "후속 질문을 독립 질문으로 변환"
+            ],
+            [
+              "build_context",
+              "재작성·검색·context 생성"
+            ],
+            [
+              "RunnableWithMessageHistory",
+              "체인과 세션 메모리 연결"
+            ]
+          ],
+          "h": "코드는 1. Memory Store → 2. Query Rewriter → 3. Context Builder → 7. Memory Wrapper 순으로 구성됩니다. 함수 이름의 동사(get·rewrite·build)와 클래스 이름의 History가 역할을 알려 줍니다.",
+          "w": "세션 관리 → 질문 재작성 → 컨텍스트 구성 → 메모리 연결로 역할이 나뉩니다.",
+          "an": "9일차 Conversational RAG · 1~7",
+          "src": "def build_context(inputs):\n\n # 1) 대화 기반 질문 정규화 (rewrite)\n standalone_question =\n\n\n\n # 2) Retriever 실행 (semantic search)\n docs =\n\n\n # 3) LLM 입력용 context 생성\n # (현재는 simple join → 확장 가능 지점)\n context =\n\n # 4) RAG input standardization"
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "<code>build_context</code> 내부 동작을 순서대로 맞추세요.",
+          "steps": [
+            "대화 기반으로 질문 재작성",
+            "독립 질문으로 Retriever 검색",
+            "검색 문서를 context로 결합",
+            "RAG 입력 dict로 반환"
+          ],
+          "h": "함수 안 주석은 1) 대화 기반 질문 정규화(rewrite), 2) Retriever 실행(semantic search), 3) LLM 입력용 context 생성, 4) RAG input standardization 순서입니다. 검색은 재작성된 질문으로 해야 의미가 있습니다.",
+          "w": "rewrite로 standalone question을 만들고, 그 질문으로 검색한 뒤 문서를 이어 context를 만들고, 표준 입력 형태로 반환합니다.",
+          "an": "9일차 Conversational RAG · 3. Context Builder",
+          "src": "def build_context(inputs):\n\n # 1) 대화 기반 질문 정규화 (rewrite)\n standalone_question =\n\n\n\n # 2) Retriever 실행 (semantic search)\n docs =\n\n\n # 3) LLM 입력용 context 생성\n # (현재는 simple join → 확장 가능 지점)\n context =\n\n # 4) RAG input standardization"
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": false,
+          "p": "질문 기반 RAG를 Conversational RAG로 바꾸며 얻은 특징을 모두 고르세요.",
+          "o": [
+            "session memory 기반 stateful",
+            "chat history 기반 query rewriting",
+            "context-aware retrieval",
+            "multi-turn dialogue 지원",
+            "BM25 단독 검색 고정"
+          ],
+          "a": [
+            0,
+            1,
+            2,
+            3
+          ],
+          "h": "자료는 개선 결과를 네 줄의 목록으로 정리합니다(상태 유지 구조, 질문 재작성, 맥락 인식 검색, 여러 턴 대화). 흐름도의 retriever 칸은 여러 검색 방식을 쓸 수 있다고 적습니다.",
+          "w": "자료는 stateful 구조, query rewriting, context-aware retrieval, multi-turn 지원을 듭니다. retriever는 FAISS·BM25·hybrid 모두 가능하므로 BM25 고정은 틀립니다.",
+          "an": "9일차 Conversational RAG · 개선 설명",
+          "src": "기존 질문 기반 검색 RAG 시스템을 대화 상태를 기억하고 질문을 재해석하는 검색 Conversational RAG 시스템으로 개선.\n\n\n\n- session memory 기반 stateful 구조\n- chat history 기반 query rewriting\n- context-aware retrieval\n- multi-turn dialogue 지원\n\n\n```python\n\"\"\"\n\nUser Question\n ↓\nChatMessageHistory (session_id 기반)\n ↓\nquery_rewriter_chain\n ↓\nstandalone_question 생성\n ↓\nretriever (FAISS / BM25 / hybrid 가능)"
+        }
+      ]
+    },
+    {
+      "id": "t7",
+      "title": "청크 실험·하이브리드 검색",
+      "ref": "9일차 청크 분할 실험 · 리트리버 비교",
+      "qs": [
+        {
+          "id": "t7-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "리트리버 비교에서 BM25의 강점으로 적힌 것은?",
+          "o": [
+            "의미 이해",
+            "키워드 정확도",
+            "대화 기억",
+            "질문 재작성"
+          ],
+          "a": 1,
+          "h": "코드 주석은 BM25를 \"Sparse keyword 검색\", FAISS를 \"Dense vector DB\"로 소개합니다. 리트리버 비교 메모는 FAISS의 강점을 임베딩을 통한 의미 이해라고 적고, BM25에는 그와 대비되는 강점을 적습니다.",
+          "w": "BM25는 키워드 정확도, FAISS는 임베딩 기반 의미 이해가 강점이며 앙상블은 둘을 합칩니다.",
+          "an": "9일차 리트리버 비교",
+          "src": "리트리버 비교:\n- BM25(키워드 정확도)\n- FAISS(임베딩 : 의미이해)\n- 앙상블 → 두 다 합침(검색 정확도 강화)"
+        },
+        {
+          "id": "t7-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "실습의 <code>EnsembleRetriever</code> weights 값은?",
+          "o": [
+            "[0.7, 0.3]",
+            "[0.3, 0.7]",
+            "[1.0, 0.0]",
+            "[0.5, 0.5]"
+          ],
+          "a": 3,
+          "h": "<code>build_rag</code>는 retrievers=[bm25, faiss]로 두 검색기를 묶습니다. weights 옆 주석은 두 검색기에 \"동일 가중치 적용\"이라고 적혀 있고, 가중치의 합은 1입니다.",
+          "w": "BM25와 FAISS에 같은 가중치 [0.5, 0.5]를 주었습니다.",
+          "an": "9일차 청크 분할 실험 · 7. RAG 구성 함수 build_rag",
+          "src": "bm25.k = 3 # 상위 3개 문서 검색\n\n faiss = vectorstore.as_retriever(search_kwargs={\"k\": 3}) # 의미 기반 retriever 생성\n\n ensemble = EnsembleRetriever( # Hybrid retriever 생성\n retrievers=[bm25, faiss], # BM25 + FAISS 결합\n weights=[0.5, 0.5] # 동일 가중치 적용"
+        },
+        {
+          "id": "t7-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "chunk_size를 조정할 때 서로 맞바꾸게 되는 두 가지는?",
+          "o": [
+            "검색 정확도와 문맥 유지",
+            "토큰 비용과 응답 속도",
+            "임베딩 차원과 메모리",
+            "세션 수와 기록 길이"
+          ],
+          "a": 0,
+          "h": "청크 분할 실험 메모는 \"문서를 얼마나 잘게 나누느냐에 따라\" 두 가지가 서로 달라진다고 씁니다. 잘게 나누면 찾는 조각은 정밀해지지만 한 조각에 담기는 앞뒤 내용은 줄어듭니다.",
+          "w": "잘게 나누면 검색은 정밀해지지만 문맥이 끊기고, 크게 나누면 문맥은 유지되지만 검색이 덜 정밀해집니다.",
+          "an": "9일차 청크 분할 실험",
+          "src": "청크 분할 실험:\n- 문서를 얼마나 잘게 나누느냐에 따라\n→ 검색 정확도 vs 문맥 유지가 달라짐\n- chunk_size / chunk_overlap 조정 → RAG 성능 비교\n\n리트리버 비교:\n- BM25(키워드 정확도)\n- FAISS(임베딩 : 의미이해)\n- 앙상블 → 두 다 합침(검색 정확도 강화)"
+        },
+        {
+          "id": "t7-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "<code>re.sub(r'\\s+', ' ', doc.page_content).strip()</code>의 역할은?",
+          "o": [
+            "HTML 태그 제거",
+            "문장 단위 분할",
+            "공백·줄바꿈 정리",
+            "숫자 제거"
+          ],
+          "a": 2,
+          "h": "정규식 <code>\\s+</code>는 공백·탭·줄바꿈이 하나 이상 이어진 부분을 뜻하고, 이를 공백 한 칸으로 바꾼 뒤 strip()으로 양끝을 다듬습니다. 이 블록 주석은 \"HTML → 순수 텍스트 정리 (LLM 입력 품질 향상)\"입니다.",
+          "w": "연속된 공백·줄바꿈을 공백 하나로 바꾸고 앞뒤 공백을 지웁니다. HTML 필터링은 SoupStrainer, 분할은 splitter가 합니다.",
+          "an": "9일차 청크 분할 실험 · 4. 텍스트 전처리",
+          "src": "# 역할: HTML → 순수 텍스트 정리 (LLM 입력 품질 향상)\n\nfor doc in docs: # 문서 단위 반복\n doc.page_content = re.sub(r\"\\s+\", \" \", doc.page_content).strip() # 공백/줄바꿈 정리"
+        },
+        {
+          "id": "t7-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "같은 질문에서 chunk 300 앙상블 답변이 500·800보다 내용이 적었습니다. 자료 설명에 가장 맞는 해석은?",
+          "o": [
+            "작은 청크엔 문맥이 덜 담긴다",
+            "temperature가 달랐다",
+            "LLM 모델이 달랐다",
+            "BM25가 빠졌다"
+          ],
+          "a": 0,
+          "h": "세 실험은 같은 prompt·LLM(temperature=0)·앙상블 구조를 쓰고, split_docs의 chunk_size·overlap만 바꿉니다. 실험 메모는 분할 크기에 따라 검색 정확도와 문맥 유지가 달라진다고 설명합니다.",
+          "w": "세 실험은 같은 LLM·temperature·앙상블을 쓰고 청크 크기만 바꿨습니다. 잘게 나눌수록 문맥 유지가 약해져 답변에 담기는 정보가 줄었습니다.",
+          "an": "9일차 청크 분할 실험 · 12. 실행 테스트 결과",
+          "src": "ask(\"예시 포함해서 다시 설명해줘\", \"user-1\")\n```\n\n청크 분할 실험:\n- 문서를 얼마나 잘게 나누느냐에 따라\n→ 검색 정확도 vs 문맥 유지가 달라짐\n- chunk_size / chunk_overlap 조정 → RAG 성능 비교\n\n리트리버 비교:\n- BM25(키워드 정확도)\n- FAISS(임베딩 : 의미이해)\n- 앙상블 → 두 다 합침(검색 정확도 강화)\n\nRAG 체인:\n- 검색 → 프롬프트 → LLM → 문자열 파싱 순서\n- Query → Retriever → Context → Prompt → LLM → Answer\n\nformat_docs: 검색된 여러 청크를 LLM 입력용 하나의 문자열로 변환\n\ntest_rag 함수: 재사용 가능, 다양한 질문과 리트리버 조합 테스트 가능"
+        },
+        {
+          "id": "t7-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "FAISS 리트리버는 임베딩 기반 의미 검색을 한다.",
+          "a": true,
+          "h": "9일차 1단계 설명은 리트리버를 Dense(유사도 기반)와 Sparse(키워드 기반)로 나눕니다. build_rag에서 FAISS 리트리버는 OpenAI 임베딩으로 만든 벡터 DB에서 만들어집니다.",
+          "w": "맞습니다. FAISS는 임베딩으로 의미를 이해하는 Dense 검색이고, BM25는 키워드 기반 Sparse 검색입니다.",
+          "an": "9일차 리트리버 비교",
+          "src": "리트리버 비교:\n- BM25(키워드 정확도)\n- FAISS(임베딩 : 의미이해)\n- 앙상블 → 두 다 합침(검색 정확도 강화)"
+        },
+        {
+          "id": "t7-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "청크 실험의 chunk_overlap은 세 경우 모두 50으로 같다.",
+          "a": false,
+          "h": "\"11. Chunk 실험 실행\"은 split_docs를 세 번 호출하며 두 번째 인자로 chunk_size, 세 번째 인자로 chunk_overlap을 넘깁니다. 세 줄의 마지막 숫자는 각 chunk_size에 비례해 정해져 있습니다.",
+          "w": "틀렸습니다. 300/30, 500/50, 800/80으로 overlap을 chunk_size의 10%씩 바꿨습니다.",
+          "an": "9일차 청크 분할 실험 · 11. Chunk 실험 실행",
+          "src": "# 11. Chunk 실험 실행\n# =========================================================\n# 역할: chunk size별 RAG 성능 비교\n\nsplit_300 = split_docs(docs, 300, 30) # 작은 chunk\nsplit_500 = split_docs(docs, 500, 50) # 중간 chunk\nsplit_800 = split_docs(docs, 800, 80) # 큰 chunk"
+        },
+        {
+          "id": "t7-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "청크 실험 설정의 chunk_size와 chunk_overlap을 연결하세요.",
+          "pairs": [
+            [
+              "chunk_size 300",
+              "overlap 30"
+            ],
+            [
+              "chunk_size 500",
+              "overlap 50"
+            ],
+            [
+              "chunk_size 800",
+              "overlap 80"
+            ]
+          ],
+          "h": "실험은 작은·중간·큰 chunk 세 세트를 만들고, 겹침은 각 크기의 일정 비율로 잡았습니다. 세 세트 모두 chunk_size를 10으로 나눈 값이 겹침입니다.",
+          "w": "split_docs(docs, 300, 30), (500, 50), (800, 80)으로 세 가지 청크 세트를 만들었습니다.",
+          "an": "9일차 청크 분할 실험 · 11. Chunk 실험 실행",
+          "src": "# 11. Chunk 실험 실행\n# =========================================================\n# 역할: chunk size별 RAG 성능 비교\n\nsplit_300 = split_docs(docs, 300, 30) # 작은 chunk\nsplit_500 = split_docs(docs, 500, 50) # 중간 chunk\nsplit_800 = split_docs(docs, 800, 80) # 큰 chunk"
+        },
+        {
+          "id": "t7-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "청크·리트리버 비교 실험의 진행 순서를 맞추세요.",
+          "steps": [
+            "WebBaseLoader로 웹 문서 로딩",
+            "정규식으로 공백 정리",
+            "chunk 크기별로 분할",
+            "build_rag로 리트리버 3종 생성",
+            "test_rag로 같은 질문 비교"
+          ],
+          "h": "코드 블록은 3. 웹 문서 로딩 → 4. 텍스트 전처리 → 5. Chunking 함수 → 7. RAG 구성 함수 → 10. RAG 실행 함수 순으로 정의되고, 11~12에서 실제로 실행됩니다. 리트리버는 청크가 있어야 만들 수 있습니다.",
+          "w": "로딩 → 전처리 → 크기별 분할 → BM25·FAISS·앙상블 생성 → 같은 질문으로 결과 비교 순서입니다.",
+          "an": "9일차 청크 분할 실험 · 3~12",
+          "src": "청크 분할 실험:\n- 문서를 얼마나 잘게 나누느냐에 따라\n→ 검색 정확도 vs 문맥 유지가 달라짐\n- chunk_size / chunk_overlap 조정 → RAG 성능 비교\n\n리트리버 비교:\n- BM25(키워드 정확도)\n- FAISS(임베딩 : 의미이해)\n- 앙상블 → 두 다 합침(검색 정확도 강화)\n\nRAG 체인:\n- 검색 → 프롬프트 → LLM → 문자열 파싱 순서\n- Query → Retriever → Context → Prompt → LLM → Answer\n\nformat_docs: 검색된 여러 청크를 LLM 입력용 하나의 문자열로 변환\n\ntest_rag 함수: 재사용 가능, 다양한 질문과 리트리버 조합 테스트 가능"
+        },
+        {
+          "id": "t7-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "<code>split_docs</code>의 separators에 들어 있는 것을 모두 고르세요.",
+          "o": [
+            "\\n\\n",
+            ".",
+            "?",
+            ",",
+            ";"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "separators 주석은 \"문장 단위 분할 기준\"이며, 목록은 문단 구분(빈 줄), 줄바꿈, 그리고 문장을 끝내는 부호 세 가지로 이루어져 있습니다. 문장 중간에 오는 부호는 포함하지 않았습니다.",
+          "w": "separators는 ['\\n\\n', '\\n', '.', '!', '?']로 문단과 문장 끝 기준입니다. 쉼표와 세미콜론은 없습니다.",
+          "an": "9일차 청크 분할 실험 · 5. Chunking 함수 정의",
+          "src": "def split_docs(docs, chunk_size, chunk_overlap): # 문서 + 파라미터 입력\n splitter = RecursiveCharacterTextSplitter( # 텍스트 분할기 생성\n chunk_size=chunk_size, # 최대 chunk 길이\n chunk_overlap=chunk_overlap, # 문맥 유지용 overlap\n separators=[\"\\n\\n\", \"\\n\", \".\", \"!\", \"?\"] # 문장 단위 분할 기준"
+        }
+      ]
+    }
+  ]
+}

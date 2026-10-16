@@ -1,0 +1,1081 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>임베디드 SW · Python 기초 (4일) · 문제은행</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+/* Quiz Bank 디자인 토큰 v2
+   타이포 기준: AI_Voice day07 워크시트 (본문 15px / 행간 1.55, 요소 13~14px)
+   다크 팔레트: day07 워크시트(#0b1220 남색 + 앰버·틸 포인트) / 라이트: 같은 구조의 중립 팔레트
+   build.py가 이 파일을 엔진 <style> 맨 앞에 그대로 넣는다. */
+:root{
+  /* 타이포 */
+  --font:"Pretendard Variable","Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --mono:"JetBrains Mono","D2Coding",Consolas,"SF Mono",monospace;
+  --fs-base:15px;--lh:1.55;
+  --fs-h1:24px;--fs-h2:17px;--fs-q:15px;--fs-opt:14px;--fs-btn:13px;--fs-btn-pri:14px;
+  --fs-sm:13px;--fs-xs:12px;--fs-2xs:11px;--fs-ox:22px;
+  /* 형태 */
+  --r-sm:6px;--r:8px;--r-md:10px;--r-lg:12px;--maxw:880px;
+
+  /* 라이트 */
+  --bg:#F5F6F8;--panel:#FFFFFF;--raised:#FFFFFF;--field:#FFFFFF;
+  --ink:#141A26;--muted:#5A6375;--faint:#8A93A4;--line:#E2E6EC;--line-2:#CDD3DC;--soft:#F0F2F5;
+  --title:#141A26;--link:#0E8C80;--accent:#B7791F;
+  --ok:#15803D;--bad:#D23B32;--combo:#7C3AED;--gold:#B7891F;
+  --btn-bg:#FFFFFF;--btn-line:#D5DAE2;--pri-bg:#141A26;--pri-line:#141A26;--pri-ink:#FFFFFF;
+  --ty-mc:#0E8C80;--ty-multi:#7C3AED;--ty-ox:#64748B;--ty-match:#C2417A;--ty-order:#B7791F;--ty-num:#2563EB;
+  --timer-hi:#16A34A;--timer-mid:#D97706;--timer-lo:#DC2626;
+  --lv1:#16A34A;--lv2:#EAB308;--lv3:#DC2626;  /* 난이도 1·2·3 */
+  --shadow:0 1px 2px rgb(16 24 40 / .04);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0B1220;--panel:#111A2E;--raised:#0E1628;--field:#0A0F1C;
+  --ink:#DBE4F0;--muted:#8A9BB8;--faint:#5E6F8E;--line:#1F2B45;--line-2:#2A3A5C;--soft:#16203A;
+  --title:#F5B942;--link:#2DD4BF;--accent:#F5B942;
+  --ok:#4ADE80;--bad:#F87171;--combo:#C084FC;--gold:#F5B942;
+  --btn-bg:#172239;--btn-line:#2A3A5C;--pri-bg:#123D33;--pri-line:#2DD4BF;--pri-ink:#2DD4BF;
+  --ty-mc:#2DD4BF;--ty-multi:#C084FC;--ty-ox:#8A9BB8;--ty-match:#F472B6;--ty-order:#F5B942;--ty-num:#60A5FA;
+  --timer-hi:#4ADE80;--timer-mid:#F5B942;--timer-lo:#F87171;
+  --lv1:#4ADE80;--lv2:#FACC15;--lv3:#F87171;
+  --shadow:none;
+  color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#0B1220;--panel:#111A2E;--raised:#0E1628;--field:#0A0F1C;
+  --ink:#DBE4F0;--muted:#8A9BB8;--faint:#5E6F8E;--line:#1F2B45;--line-2:#2A3A5C;--soft:#16203A;
+  --title:#F5B942;--link:#2DD4BF;--accent:#F5B942;
+  --ok:#4ADE80;--bad:#F87171;--combo:#C084FC;--gold:#F5B942;
+  --btn-bg:#172239;--btn-line:#2A3A5C;--pri-bg:#123D33;--pri-line:#2DD4BF;--pri-ink:#2DD4BF;
+  --ty-mc:#2DD4BF;--ty-multi:#C084FC;--ty-ox:#8A9BB8;--ty-match:#F472B6;--ty-order:#F5B942;--ty-num:#60A5FA;
+  --timer-hi:#4ADE80;--timer-mid:#F5B942;--timer-lo:#F87171;
+  --lv1:#4ADE80;--lv2:#FACC15;--lv3:#F87171;
+  --shadow:none;
+  color-scheme:dark;}
+@media (max-width:560px){:root{--fs-base:14.5px;--fs-h1:20px;--fs-h2:16px;--fs-q:14.5px;--fs-ox:20px}}
+
+/* ── 기본 ───────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:110px;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:var(--fs-base);line-height:var(--lh);
+  -webkit-font-smoothing:antialiased;letter-spacing:-.003em;padding-bottom:env(safe-area-inset-bottom,0px)}
+a{color:inherit}
+b,strong{font-weight:650}
+code{font-family:var(--mono);font-size:.88em;color:var(--link);background:var(--soft);padding:1px 5px;border-radius:4px}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px 56px}
+.muted{color:var(--muted)}
+/* 상단 바 */
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;height:calc(52px + env(safe-area-inset-top,0px));margin:0 -20px 22px;padding:env(safe-area-inset-top,0px) 20px 0;
+  background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
+.brand{font-size:var(--fs-xs);color:var(--muted);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0;letter-spacing:.01em}
+.brand b{color:var(--ink);font-weight:600}
+.iconbtn{font:inherit;font-size:14px;border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);width:32px;height:32px;border-radius:var(--r);cursor:pointer;flex:0 0 auto;display:grid;place-items:center}
+.iconbtn:hover{border-color:var(--muted)}
+/* 제목 */
+h1{font-size:var(--fs-h1);line-height:1.3;margin:0 0 6px;letter-spacing:-.02em;font-weight:700;color:var(--title)}
+h2{font-size:var(--fs-h2);line-height:1.4;margin:0;font-weight:650;letter-spacing:-.01em}
+.ph{font-size:14px;color:var(--muted);font-weight:600;margin:0 0 10px;letter-spacing:0}
+.sh{font-size:var(--fs-sm);color:var(--muted);font-weight:600;margin:16px 0 6px}
+.sub{color:var(--muted);margin:0 0 4px}
+.meta{font-size:var(--fs-xs);color:var(--faint);margin:0 0 18px;font-family:var(--mono);letter-spacing:-.01em}
+.crumbs{display:flex;gap:8px;align-items:center;margin-bottom:12px;font-size:var(--fs-sm);color:var(--faint)}
+.crumbs a{text-decoration:none;color:var(--muted)}
+.crumbs a:hover{color:var(--ink)}
+.part{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--link);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:1px 7px;white-space:nowrap;max-width:100%;font-weight:500;letter-spacing:0}
+.tabhead .part,.ngroup .part{white-space:normal;overflow-wrap:anywhere}  /* 긴 자료 위치(예: voice-ai 교시 라벨)는 줄바꿈 */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.center{text-align:center}
+.note-sm{font-size:var(--fs-sm);color:var(--muted)}
+.lbl{display:block;font-size:var(--fs-xs);color:var(--muted);margin-bottom:2px}
+/* 버튼 */
+.btn{font:inherit;font-size:var(--fs-btn);display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);
+  padding:7px 12px;border-radius:var(--r);cursor:pointer;text-decoration:none;min-height:34px;line-height:1.3;white-space:nowrap;transition:border-color .15s,background .15s}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--pri-bg);color:var(--pri-ink);border-color:var(--pri-line);font-weight:650;font-size:var(--fs-btn-pri);padding:8px 18px}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn.locked{opacity:.5}
+.btn.danger{color:var(--bad);border-color:color-mix(in srgb,var(--bad) 35%,var(--btn-line))}
+.btn.block{width:100%}
+.btn[disabled]{opacity:.4;cursor:not-allowed}
+.btn .cnt{font-family:var(--mono);font-size:var(--fs-2xs);background:var(--bad);color:#fff;border-radius:99px;padding:0 6px;min-width:18px;line-height:16px;text-align:center}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 0}
+button:focus-visible,a:focus-visible,input:focus-visible,.opt:focus-within{outline:2px solid var(--link);outline-offset:2px}
+/* 입력 */
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:14px;max-width:300px}
+.field label{font-size:var(--fs-xs);color:var(--muted)}
+.field input{font:inherit;font-size:14px;padding:7px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--field);color:var(--ink)}
+.field input::placeholder{color:var(--faint)}
+/* 진행 바 */
+.bar{flex:1;height:4px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bar>div{height:100%;width:0;background:var(--link);transition:width .25s}
+.progress{position:sticky;top:calc(52px + env(safe-area-inset-top,0px));z-index:5;background:var(--bg);padding:8px 0;margin-bottom:12px;display:flex;align-items:center;gap:12px}
+.progress span,.homeprog span{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:var(--fs-xs);color:var(--muted);white-space:nowrap}
+.homeprog{display:flex;align-items:center;gap:12px;margin:2px 0 16px}
+/* 홈 탭 카드 */
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:6px}
+.tcard{display:flex;flex-direction:column;gap:3px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;text-decoration:none;color:var(--ink);transition:border-color .15s;box-shadow:var(--shadow)}
+.tcard:hover{border-color:var(--line-2)}
+.tcard .tn{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint)}
+.tcard .tt{font-weight:600;font-size:14px;line-height:1.45}
+.tcard .ts{margin-top:auto;padding-top:8px;font-size:var(--fs-xs);color:var(--faint);display:flex;justify-content:space-between;align-items:center;font-family:var(--mono)}
+.tcard.done .ts b{color:var(--ok);font-weight:600}
+.tcard.perfect{border-color:color-mix(in srgb,var(--gold) 55%,var(--line))}
+.lockmsg{font-size:var(--fs-xs);color:var(--faint);margin:-6px 0 16px}
+/* 탭 바 */
+/* 학습 탭 선택: 웹(≥1024) 자유 배치 · 태블릿(560~1023) 3개 · 모바일(<560) 2개 */
+.tabbar{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+@media (max-width:1023px){.tabbar{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}}
+.tabchip{min-width:0;display:flex;align-items:center;gap:6px;font-size:var(--fs-btn);padding:6px 10px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);text-decoration:none;color:var(--ink);line-height:1.35;word-break:keep-all}
+.tabchip .tl{min-width:0}
+.tabchip .qc{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--muted);white-space:nowrap;margin-left:auto}
+.tabchip[aria-selected="true"] .qc{color:var(--link)}
+.tabchip .sc{white-space:nowrap}
+.btn .qc{font-family:var(--mono);font-weight:500;opacity:.85}
+.tabchip b{font-family:var(--mono);font-weight:600;color:var(--faint)}
+.tabchip:hover{border-color:var(--muted)}
+.tabchip[aria-selected="true"]{border-color:var(--link);color:var(--link);background:color-mix(in srgb,var(--link) 9%,var(--btn-bg))}
+.tabchip[aria-selected="true"] b{color:var(--link)}
+.tabchip .sc{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--ok)}
+.tabchip.sum{border-color:color-mix(in srgb,var(--gold) 60%,var(--btn-line));color:var(--gold)}
+.tabhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:4px 0 2px}
+.tabhead h2{color:var(--title)}
+/* 문항 카드 */
+.q{background:var(--raised);border:1px solid var(--line);border-left:3px solid var(--tc);border-radius:var(--r-md);padding:12px 14px;margin:0 0 10px;box-shadow:var(--shadow)}
+.q.correct{border-color:color-mix(in srgb,var(--ok) 45%,var(--line));border-left-color:var(--ok)}
+.q.wrong{border-color:color-mix(in srgb,var(--bad) 45%,var(--line));border-left-color:var(--bad)}
+.qhead{display:flex;gap:8px;align-items:center;margin-bottom:4px;flex-wrap:wrap}
+.qn{font-family:var(--mono);font-size:var(--fs-xs);color:var(--faint);font-weight:500}
+.tbadge{font-size:var(--fs-2xs);font-weight:600;padding:0 7px;line-height:18px;border-radius:var(--r-sm);color:var(--tc);border:1px solid color-mix(in srgb,var(--tc) 45%,transparent);background:color-mix(in srgb,var(--tc) 8%,transparent);white-space:nowrap}
+/* 난이도: 점 1 녹색 · 점 2 노랑 · 점 3 빨강 (쉬움 ●○○ / 보통 ●●○ / 어려움 ●●●) + 글자 */
+.lv{display:inline-flex;align-items:center;gap:4px;line-height:1}
+.lv .dots{font-size:9px;letter-spacing:1px}
+.lv i{font-style:normal}
+.lv .d1{color:var(--lv1)} .lv .d2{color:var(--lv2)} .lv .d3{color:var(--lv3)} .lv .off{color:var(--line-2)}
+.lv em{font-style:normal;font-size:var(--fs-2xs);font-weight:600}
+.lv1 em{color:var(--lv1)} .lv2 em{color:color-mix(in srgb,var(--lv2) 80%,var(--ink))} .lv3 em{color:var(--lv3)}
+.verdict{margin-left:auto;font-weight:650;font-size:var(--fs-xs)}
+.correct .verdict{color:var(--ok)} .wrong .verdict{color:var(--bad)}
+.qsrc{margin-left:auto;font-size:var(--fs-2xs);color:var(--faint)}
+.qt{font-size:var(--fs-q);font-weight:500;margin:4px 0 8px}
+.guide{font-size:var(--fs-xs);color:var(--faint);margin:-4px 0 8px}
+.opts{display:grid;gap:6px}
+.opt{display:flex;gap:10px;align-items:flex-start;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r);cursor:pointer;background:var(--panel);font-size:var(--fs-opt);transition:border-color .12s,background .12s}
+.opt:hover{border-color:var(--line-2)}
+.opt input{margin:4px 0 0;accent-color:var(--link);flex:0 0 auto;width:14px;height:14px}
+.opt:has(input:checked){border-color:var(--link);background:color-mix(in srgb,var(--link) 7%,var(--panel))}
+.opt.ans{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 10%,var(--panel))}
+.opt.miss{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 9%,var(--panel))}
+.ox{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:360px}
+.ox button{font:inherit;font-size:var(--fs-ox);font-weight:700;padding:8px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);cursor:pointer;line-height:1.3}
+.ox button:hover{border-color:var(--muted)}
+.ox button[aria-pressed="true"]{border-color:var(--link);color:var(--link);background:color-mix(in srgb,var(--link) 10%,var(--btn-bg))}
+.ox button.ans{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 16%,var(--btn-bg));color:var(--ok)}
+.ox button.miss{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 14%,var(--btn-bg));color:var(--bad)}
+/* 짝 맞추기 */
+.match{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:8px 14px}
+.mcol{display:flex;flex-direction:column;gap:6px}
+.mitem{font:inherit;font-size:var(--fs-opt);text-align:left;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--ink);padding:7px 10px;cursor:pointer;min-height:38px;display:flex;align-items:center;gap:8px;line-height:1.45}
+.mitem:hover{border-color:var(--line-2)}
+.mitem .tag{flex:0 0 auto;width:20px;height:20px;border-radius:var(--r-sm);border:1px dashed var(--line-2);display:grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);font-weight:600}
+.mitem.linked{border-color:color-mix(in srgb,var(--pc) 70%,var(--line))}
+.mitem.linked .tag{border:0;background:var(--pc);color:var(--bg)}
+.mitem.sel{border-color:var(--link);box-shadow:0 0 0 3px color-mix(in srgb,var(--link) 18%,transparent)}
+.mitem.okm{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--panel))}
+.mitem.nom{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--panel))}
+.mleft .mitem{font-weight:600}
+/* 순서 */
+.olist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.oitem{font:inherit;font-size:var(--fs-opt);text-align:left;width:100%;display:flex;align-items:center;gap:10px;padding:7px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--panel);color:var(--ink);cursor:pointer;transition:border-color .12s,background .12s}
+.oitem:hover{border-color:var(--line-2)}
+.oitem .num{width:22px;height:22px;border-radius:50%;border:1px dashed var(--line-2);display:grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);font-weight:600;color:var(--muted);flex:0 0 auto}
+.oitem.on{border-color:var(--link);background:color-mix(in srgb,var(--link) 7%,var(--panel))}
+.oitem.on .num{border:0;background:var(--link);color:var(--bg)}
+.oitem .txt{flex:1;line-height:1.45}
+.oitem .ofix{flex:0 0 auto;font-size:var(--fs-2xs);color:var(--ok);font-weight:600}
+.oitem.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 9%,var(--panel))}
+.oitem.ok .num{background:var(--ok)}
+.oitem.no{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 8%,var(--panel))}
+.oitem.no.on .num{background:var(--bad)}
+.numrow{display:flex;align-items:center;gap:8px;font-size:var(--fs-opt)}
+.numrow input{font-family:var(--mono);font-size:14px;width:120px;padding:6px 10px;border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--field);color:var(--ink);text-align:right}
+.numrow input.ans{border-color:var(--ok)} .numrow input.miss{border-color:var(--bad)}
+.locked .mitem,.locked .ox button,.locked .opt{pointer-events:none}
+.locked .oitem{pointer-events:none}
+.opt .onum{flex:0 0 auto;min-width:18px;height:18px;padding:0 4px;border-radius:var(--r-sm);border:1px solid var(--line-2);display:inline-grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);color:var(--muted);margin-top:1px}
+.opt:has(input:checked) .onum{border-color:var(--link);color:var(--link)}
+.opt.ans .onum{border-color:var(--ok);color:var(--ok)} .opt.miss .onum{border-color:var(--bad);color:var(--bad)}
+/* 힌트 토글 (빨간색 = Hint) */
+.hintwrap{margin:-2px 0 8px}
+.hintbtn{font:inherit;font-size:var(--fs-xs);font-weight:650;display:inline-flex;align-items:center;gap:4px;color:var(--bad);background:color-mix(in srgb,var(--bad) 7%,transparent);border:1px solid color-mix(in srgb,var(--bad) 40%,transparent);border-radius:var(--r-sm);padding:2px 9px;cursor:pointer;line-height:1.5}
+.hintbtn:hover{background:color-mix(in srgb,var(--bad) 13%,transparent)}
+.hintbtn .caret{font-size:.85em}
+.srcwrap{margin-top:8px}
+.srcbtn{font:inherit;font-size:var(--fs-xs);font-weight:600;display:inline-flex;align-items:center;gap:4px;color:var(--link);background:transparent;border:1px solid var(--line-2);border-radius:var(--r-sm);padding:1px 8px;cursor:pointer;line-height:1.5}
+.srcbtn:hover{border-color:var(--link)}
+.src{margin:6px 0 0;padding:6px 10px;border-left:3px solid var(--link);background:var(--soft);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:var(--fs-xs);color:var(--muted)}
+.src p{margin:0;white-space:pre-wrap;word-break:break-word}
+.src cite{display:block;margin-top:4px;font-style:normal;font-size:var(--fs-2xs);color:var(--faint)}
+.hint{margin-top:6px;padding:6px 10px;border-left:3px solid var(--bad);background:color-mix(in srgb,var(--bad) 6%,transparent);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:var(--fs-sm);color:var(--ink)}
+/* 해설 */
+.exp{margin-top:10px;padding:2px 0 2px 10px;border-left:3px solid var(--line-2);font-size:var(--fs-sm);color:var(--muted)}
+.correct .exp{border-left-color:color-mix(in srgb,var(--ok) 55%,var(--line))}
+.wrong .exp{border-left-color:color-mix(in srgb,var(--bad) 55%,var(--line))}
+.exp p{margin:0 0 3px}
+.exp b{color:var(--ink);font-weight:650;margin-right:4px}
+.an{font-family:var(--mono);color:var(--link);font-size:var(--fs-xs);margin:4px 0 0}
+.mine{color:var(--bad)}
+.onlywrong .q.correct{display:none}
+.warn{color:var(--bad);font-size:var(--fs-sm);min-height:1.3em;margin:4px 0 0}
+/* 결과 */
+.score{font-family:var(--mono);font-size:32px;font-weight:600;line-height:1.1;font-variant-numeric:tabular-nums;color:var(--title);letter-spacing:-.02em}
+.score small{font-family:var(--font);font-size:14px;color:var(--muted);font-weight:400;letter-spacing:0}
+.score.xl{font-size:44px}
+.msg{margin:6px 0 10px;color:var(--muted);font-size:var(--fs-sm)}
+.bd{display:grid;gap:7px;margin:6px 0}
+.bd div{display:grid;grid-template-columns:minmax(90px,190px) 1fr 44px;gap:10px;align-items:center;font-size:var(--fs-sm)}
+.bd .b{height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
+.bd .b i{display:block;height:100%;background:var(--tc,var(--link));border-radius:99px}
+.bd span:last-child{text-align:right;font-family:var(--mono);font-size:var(--fs-xs);color:var(--muted)}
+.rcode{font-family:var(--mono);font-size:16px;font-weight:600;letter-spacing:.06em;color:var(--accent);background:var(--soft);padding:2px 8px;border-radius:var(--r-sm)}
+/* 오답노트 · 해설지 */
+.ngroup{margin:18px 0 8px;font-size:14px;font-weight:650;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ngroup .ref{font-family:var(--mono);font-size:var(--fs-2xs);font-weight:400;color:var(--faint)}
+.note{background:var(--raised);border:1px solid var(--line);border-left:3px solid var(--bad);border-radius:var(--r-md);padding:12px 14px;margin-bottom:10px}
+.note.solved{border-left-color:var(--ok)}
+.note .qt{margin:0 0 8px}
+.note dl{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0;font-size:var(--fs-sm)}
+.note dt{color:var(--faint)}
+.note dd{margin:0}
+.note .foot{display:flex;justify-content:space-between;gap:10px;margin-top:8px;font-size:var(--fs-xs);color:var(--faint);font-family:var(--mono)}
+.note .foot span:first-child{color:var(--link)}
+details.more{margin-top:14px;font-size:var(--fs-sm)}
+details.more summary{cursor:pointer;color:var(--muted);padding:4px 0}
+.keyitem{padding:10px 0;border-bottom:1px solid var(--line)}
+.keyitem .kq{font-weight:500;font-size:14px}
+.keyitem .ka{margin:4px 0 2px;color:var(--ok);font-weight:600;font-size:var(--fs-sm)}
+.keyitem .kw{font-size:var(--fs-sm);color:var(--muted);margin:0}
+.keylock{padding:12px;border:1px dashed var(--line-2);border-radius:var(--r-md);color:var(--faint);text-align:center;margin:8px 0;font-size:var(--fs-sm)}
+.printhead{display:none}
+/* 게임 */
+.game{max-width:620px;margin:0 auto}
+.gpick{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.gcard{display:flex;flex-direction:column;gap:4px;min-height:120px;padding:14px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--panel);color:var(--ink);text-decoration:none;transition:border-color .15s,background .15s}
+a.gcard:hover{border-color:var(--link);background:color-mix(in srgb,var(--link) 6%,var(--panel))}
+.gcard .gn{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint);letter-spacing:.05em}
+.gcard b{font-size:15px}
+.gcard .gd{font-size:var(--fs-xs);color:var(--muted);line-height:1.5}
+.gcard.soon{border-style:dashed;opacity:.6;cursor:not-allowed}
+@media (max-width:560px){.gpick{gap:6px}.gcard{min-height:84px;padding:10px 8px;align-items:center;text-align:center;justify-content:center}.gcard b{font-size:13px;word-break:keep-all}.gcard .gd{display:none}}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 14px}
+.chip{font:inherit;font-size:var(--fs-btn);padding:6px 12px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);cursor:pointer;min-height:32px}
+.chip:hover{border-color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--link);color:var(--link);background:color-mix(in srgb,var(--link) 9%,var(--btn-bg));font-weight:600}
+.chip:disabled{opacity:.4;cursor:not-allowed}
+.rules{font-size:var(--fs-xs);color:var(--muted);border-left:3px solid var(--line-2);padding:2px 0 2px 10px;margin:4px 0 16px}
+.rules p{margin:0 0 2px}
+.play{display:flex;flex-direction:column;min-height:calc(100dvh - 130px)}
+.hud{display:flex;justify-content:space-between;align-items:center;gap:10px;font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:var(--fs-sm);color:var(--muted);margin-bottom:8px}
+.hud .pts{font-size:18px;font-weight:600;color:var(--title)}
+.combo{font-family:var(--font);font-size:var(--fs-xs);padding:2px 9px;border-radius:var(--r-sm);border:1px solid var(--line-2);color:var(--muted)}
+.combo.hot{border-color:var(--combo);color:var(--combo);background:color-mix(in srgb,var(--combo) 12%,transparent)}
+.timer{height:6px;background:var(--soft);border-radius:99px;overflow:hidden}
+.timer>div{height:100%;width:100%;background:var(--timer-hi);border-radius:99px}
+.timer.mid>div{background:var(--timer-mid)}
+.timer.lo>div{background:var(--timer-lo)}
+.timer.out{animation:shake .35s}
+@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+.tleft{font-family:var(--mono);font-size:var(--fs-xs);color:var(--faint);text-align:right;font-variant-numeric:tabular-nums;margin:4px 0 12px;min-height:1.2em}
+.gtype{font-size:var(--fs-2xs);color:var(--faint);margin-bottom:4px;letter-spacing:.02em}
+.gq{font-size:18px;font-weight:600;line-height:1.5;margin:0 0 16px;letter-spacing:-.01em}
+.gbottom{margin-top:4px}
+.gopts{display:grid;gap:8px}
+.gopt{font:inherit;font-size:var(--fs-opt);text-align:left;display:flex;gap:12px;align-items:center;padding:10px 14px;min-height:46px;border:1px solid var(--btn-line);border-radius:var(--r-md);background:var(--panel);color:var(--ink);cursor:pointer;transition:background .12s,border-color .12s;line-height:1.45}
+.gopt:hover{border-color:var(--muted)}
+.gopt kbd{flex:0 0 auto;width:22px;height:22px;border-radius:var(--r-sm);border:1px solid var(--line-2);display:grid;place-items:center;font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint)}
+.gopt[aria-pressed="true"]{border-color:var(--link);background:color-mix(in srgb,var(--link) 9%,var(--panel))}
+.gopt.ans{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 14%,var(--panel))}
+.gopt.miss{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--panel))}
+.gox{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gox .gopt{justify-content:center;font-size:28px;font-weight:700;min-height:76px}
+.gfloat{text-align:center;font-weight:650;font-size:16px;min-height:1.6em;margin-top:10px;font-family:var(--mono)}
+.gfloat.ok{color:var(--ok)} .gfloat.no{color:var(--bad)}
+.gfloat.pop{animation:pop .45s ease-out}
+@keyframes pop{from{transform:translateY(6px);opacity:0}to{transform:none;opacity:1}}
+.gsub{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:8px}
+.board{width:100%;border-collapse:collapse;font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
+.board th,.board td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+.board th{font-size:var(--fs-xs);color:var(--faint);font-weight:500}
+.board .r{text-align:right;font-family:var(--mono)}
+.board tr.me td{background:color-mix(in srgb,var(--combo) 12%,transparent);font-weight:600}
+.bignum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:12px 0 2px}
+.bignum div{border:1px solid var(--line);border-radius:var(--r);padding:8px 10px;text-align:left}
+.bignum b{display:block;font-family:var(--mono);font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+.bignum span{font-size:var(--fs-2xs);color:var(--faint)}
+/* 토스트 */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(16px);background:var(--panel);color:var(--ink);border:1px solid var(--line-2);
+  padding:8px 14px;border-radius:var(--r);font-size:var(--fs-sm);opacity:0;pointer-events:none;transition:opacity .2s,transform .2s;z-index:50;max-width:calc(100% - 32px);box-shadow:0 6px 24px rgb(0 0 0 / .18)}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+/* 문제풀이 페이지(학습·오답 재도전): 탭 제목(h2)을 뺀 모든 글자 10px — 사용자 지정 */
+/* 문제풀이·오답노트·해설지 공통: 제목(h1·h2·탭 묶음 제목)을 뺀 글자 10px, 문제 11px, 자간 +0.03em, 행간 1.7 */
+.sheet,.sheet :where(*:not(h1,h2,.ngroup,.ngroup *)){font-size:10px!important;letter-spacing:.03em!important}  /* :where = 명시도 0 → 아래 11px 규칙이 이김 */
+.sheet :is(.qt,.opt,.exp,.exp p,.guide,.mitem,.oitem .txt,.hint,.warn,.msg,.sub,.note dt,.note dd,.note .foot,.kq,.ka,.kw,.keylock){line-height:1.7!important}
+.sheet :is(.qt,.kq),.sheet :is(.qt,.kq) *{font-size:11px!important}  /* 문제 문장만 11px */
+/* 한글이 섞인 숫자 요소는 mono 대신 본문 글꼴 + 고정폭 숫자 (mono 한글 자간이 벌어짐) */
+.meta,.tcard .tn,.tcard .ts,.progress span,.homeprog span,.note .foot,.an,.hud,.tleft,.gfloat,.bignum b{font-family:var(--font);font-variant-numeric:tabular-nums;letter-spacing:0}
+/* ── 반응형 ─────────────────────────────────────── */
+@media (max-width:560px){
+  .wrap{padding:0 16px 48px}
+  .topbar{margin:0 -16px 18px;padding-left:16px;padding-right:16px}
+  /* 홈 탭 카드: 모바일에서도 한 줄 3개 (사용자 지정) */
+  .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .tcard{padding:8px 9px;gap:2px}
+  .tcard .tn{font-size:10px}
+  .tcard .tt{font-size:12px;line-height:1.35;word-break:keep-all}
+  .tcard .ts{flex-direction:column;align-items:flex-start;gap:0;padding-top:6px;font-size:10px}
+  .tabbar{grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+  .tabchip{padding:6px 8px;gap:4px}
+  .q{padding:12px}
+  .match{grid-template-columns:1fr}
+  .mright{margin-top:6px;padding-top:8px;border-top:1px dashed var(--line-2)}
+  .btn,.chip{min-height:40px}
+  .actions .btn{flex:1 1 calc(50% - 8px)}
+  .actions .btn.primary{flex-basis:100%}
+  .ox{max-width:none}
+  .ox button{min-height:48px}
+  .oitem{min-height:40px}
+  .bd div{grid-template-columns:96px 1fr 40px}
+  .bignum{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .field{max-width:none}
+  /* 게임: 보기를 엄지 영역(화면 아래)으로 */
+  .play .gtop{position:sticky;top:calc(52px + env(safe-area-inset-top,0px));background:var(--bg);padding:6px 0 0;z-index:4}
+  .play .gbottom{margin-top:auto;padding-top:12px}
+  .gq{font-size:17px}
+  .gopt{min-height:50px}
+  .board th:nth-child(6),.board td:nth-child(6){display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{
+  :root{--bg:#fff;--panel:#fff;--raised:#fff;--ink:#000;--muted:#333;--faint:#555;--line:#bbb;--line-2:#999;--soft:#f1f1f1;--title:#000;--link:#055}
+  body{background:#fff;color:#000;font-size:12.5px}
+  .noprint,.topbar,.actions,.tabbar,.progress,.toast{display:none!important}
+  .printhead{display:block;margin-bottom:12px;font-size:12px}
+  .q,.note,.keyitem{break-inside:avoid;box-shadow:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="topbar noprint">
+    <a class="brand" href="../index.html" title="전체 문제은행 목록">디지털노마드연구소 · <b>문제은행</b></a>
+    <button class="iconbtn" id="themeBtn" type="button" aria-label="라이트/다크 전환">🌓</button>
+  </header>
+  <main id="app"></main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="sr" id="live" aria-live="polite"></div>
+<script>
+(()=>{
+'use strict';
+const BANK={"id":"emb-python","code":"EPY","title":"임베디드 SW · Python 기초 (4일)","subtitle":"자료형·비트·제어 · 자료구조·클래스·파일 · NumPy·pandas","course":"08 · 임베디드 · 시스템 SW","source":"08-AI_CAMPUS-main/python-day1~4/*.ipynb + Python_Day2~4.pdf","salt":"emb-python","version":1,"updated":"2026-10-16","tabs":[{"id":"t1","title":"Day1 · Colab과 자료형","ref":"Day1 노트북 1–2교시","qs":[{"id":"t1-01","ty":"mc","lv":1,"game":true,"p":"Colab 셀에서 <code>!ls<\/code>처럼 맨 앞에 붙는 <code>!<\/code>는 무엇을 뜻합니까?","o":["라인 매직 명령","셀 매직 명령","리눅스 셸 명령","텍스트 셀 표시"],"a":2,"h":"Colab 셀에서 <code>!<\/code> 뒤에 적은 내용은 파이썬이 아니라 Colab 가상 머신의 운영체제 셸에 그대로 전달됩니다. 그래서 <code>!ls /content<\/code>, <code>!python --version<\/code>처럼 터미널에서 치던 명령을 셀 안에서 실행할 수 있습니다. 참고로 <code>%<\/code>는 노트북 매직 명령입니다.","w":"<code>!<\/code> 뒤는 리눅스 셸에 그대로 전달됩니다. <code>%<\/code>는 라인 매직, <code>%%<\/code>는 셀 매직으로 노트북 자체 명령입니다.","an":"Day1 노트북 1교시 예제 1-4·1-5, 괄호 넣기 1-3","src":"`!` 뒤는 리눅스 셸에 그대로 전달됩니다. Colab 가상 머신을 들여다봅니다.\n\n```python\n!python --version"},{"id":"t1-02","ty":"mc","lv":2,"game":false,"p":"<code>adc_raw = 512<\/code> 셀과 <code>voltage = adc_raw / 1023 * vref<\/code> 셀이 있습니다. 런타임을 다시 시작한 뒤 두 번째 셀만 실행하면 어떻게 됩니까?","o":["변수가 없어 오류가 난다","1.65가 출력된다","0.0이 출력된다","직전 결과가 다시 나온다"],"a":0,"h":"변수는 셀을 실행할 때 커널 메모리에 만들어지고, 런타임을 다시 시작하면 화면의 코드는 남지만 커널의 변수는 모두 사라집니다. 따라서 <code>adc_raw<\/code>를 정의한 첫 셀을 다시 실행하지 않고 두 번째 셀만 실행하면 그 이름을 찾을 수 없습니다.","w":"런타임을 다시 시작하면 화면의 코드는 남지만 커널의 변수는 사라집니다. 첫 셀을 실행하지 않았으므로 <code>adc_raw<\/code>가 없어 오류가 납니다. 셀 실행 순서가 변수를 만듭니다.","an":"Day1 노트북 1교시 예제 1-3, 괄호 넣기 1-3","src":"아래 두 셀을 **위에서 아래로** 실행한 뒤, 런타임 › 런타임 다시 시작을 하고 **두 번째 셀만** 실행해 보세요.\n\n```python\nadc_raw = 512\nvref = 3.3\n```\n\n```python\nvoltage = adc_raw / 1023 * vref\nprint(voltage)"},{"id":"t1-03","ty":"mc","lv":1,"game":true,"p":"Colab 세션이 끝나도 파일이 남도록 저장하려면 어느 경로에 써야 합니까?","o":["/content","/proc/cpuinfo","현재 셀의 출력 영역","/content/drive/MyDrive"],"a":3,"h":"Colab의 <code>/content<\/code> 폴더는 세션이 끝나면 함께 사라지는 임시 공간입니다. <code>drive.mount('/content/drive')<\/code>로 Google Drive를 연결한 뒤 그 아래 내 드라이브 폴더에 쓴 파일만 세션이 끝나도 남습니다.","w":"<code>/content<\/code>는 세션이 끝나면 사라지고, <code>/content/drive/MyDrive<\/code>의 파일은 남습니다. 남길 파일은 Drive 마운트 후 이 경로에 씁니다.","an":"Day1 노트북 1교시 예제 1-6, 괄호 넣기 1-3","src":"`/content` 는 세션이 끝나면 사라집니다. 남길 파일은 `/content/drive/MyDrive` 에 씁니다.\n\n```python\nfrom google.colab import drive\ndrive.mount('/content/drive')"},{"id":"t1-04","ty":"mc","lv":2,"game":true,"p":"<code>int(3.99)<\/code>와 <code>round(3.99)<\/code>의 결과로 옳은 것은?","o":["4 와 4","3 과 4","3 과 3","4 와 3"],"a":1,"h":"<code>int()<\/code>는 소수점 아래를 반올림하지 않고 그냥 버립니다(0 쪽으로 자름). 반면 <code>round()<\/code>는 가장 가까운 정수로 반올림합니다. 3.99를 각각 버림과 반올림했을 때의 값을 떠올려 보세요.","w":"<code>int()<\/code>는 소수점 아래를 버리므로 3, <code>round()<\/code>는 반올림하므로 4입니다. <code>int(-3.99)<\/code>도 버림이라 -3이 됩니다.","an":"Day1 노트북 2교시 예제 2-5, 괄호 넣기 2-5","src":"print(int(3.99), round(3.99), int(-3.99)) # int() 는 버림"},{"id":"t1-05","ty":"mc","lv":3,"game":true,"p":"<code>f'{200:#x}'<\/code>의 출력은?","o":["c8","0xc8","0x200","0b11001000"],"a":1,"h":"형식 지정자에서 <code>x<\/code>는 소문자 16진수, <code>#<\/code>은 진법 접두어(16진수는 0x)를 붙이라는 뜻입니다. 200을 16으로 나누면 몫 12(c), 나머지 8이므로 두 자리 16진수에 접두어를 붙인 모양이 출력됩니다.","w":"200은 16진수로 c8이고, <code>#<\/code>을 붙이면 <code>0x<\/code> 접두어가 붙어 0xc8이 됩니다. 접두어 없이 쓰려면 <code>{200:x}<\/code>입니다.","an":"Day1 노트북 2교시 예제 2-6, 8교시 퀴즈 3번","src":"print(f\"{n:b} | {n:016b} | {n:o} | {n:x} | {n:#x} | {n:#06X}\") # 진법"},{"id":"t1-06","ty":"ox","lv":2,"game":true,"p":"<code>0.1 + 0.2 == 0.3<\/code>은 True입니다.","a":false,"h":"float는 IEEE 754 2진 부동소수점이라 0.1, 0.2 같은 값을 2진수로 정확히 표현하지 못해 작은 오차가 생깁니다. 그래서 <code>0.1 + 0.2<\/code>는 0.30000000000000004가 되고, 실수 비교에는 <code>==<\/code> 대신 <code>math.isclose()<\/code>를 씁니다.","w":"0.1과 0.2는 2진수로 정확히 표현되지 않아 오차가 생기므로 False입니다. 오차를 허용해 비교하려면 <code>math.isclose()<\/code>를 씁니다.","an":"Day1 노트북 2교시 예제 2-4, 빈칸 2-4, 8교시 퀴즈 2번","src":"print(0.1 + 0.2)\nprint(0.1 + 0.2 == 0.3)\nprint(round(0.1 + 0.2, 2) == 0.3)\nprint(math.isclose(0.1 + 0.2, 0.3))"},{"id":"t1-07","ty":"ox","lv":1,"game":true,"p":"<code>a = 10; b = a; a = 20<\/code>을 실행하면 b는 여전히 10입니다.","a":true,"h":"파이썬 변수는 값을 담는 상자가 아니라 객체에 붙이는 이름표입니다. <code>b = a<\/code>는 같은 객체(10)에 이름표를 하나 더 붙이고, <code>a = 20<\/code>은 a 이름표만 새 객체로 옮기므로 b가 가리키던 객체는 그대로입니다.","w":"<code>b = a<\/code>는 같은 객체에 이름표를 하나 더 붙이고, <code>a = 20<\/code>은 a 이름표만 새 객체로 옮깁니다. 그래서 b는 10 그대로입니다.","an":"Day1 노트북 2교시 예제 2-1, 괄호 넣기 2-5","src":"b = a # 값 복사가 아니라 같은 객체에 이름표 하나 더\na = 20 # a 만 새 객체로 이동\nprint(a, b)"},{"id":"t1-08","ty":"match","lv":1,"game":false,"p":"f-string 형식 지정자와 그 의미를 연결하세요.","pairs":[[":.2f","소수점 아래 2자리"],[":>8","폭 8, 오른쪽 정렬"],[":08d","0으로 채운 8자리 정수"],[":,","천 단위 쉼표 구분"],[":b","2진수로 표시"]],"h":"f-string의 콜론 뒤 형식 지정자에서 <code>.2f<\/code>는 소수점 자리, <code>&gt;8<\/code>은 폭과 정렬, <code>08d<\/code>는 0 채움 자릿수, <code>,<\/code>는 천 단위 구분, <code>b<\/code>는 2진수 진법을 정합니다. 기호가 정렬·채움·자릿수·진법 중 무엇을 다루는지로 구분하면 됩니다.","w":"<code>.2f<\/code>는 소수점 자릿수, <code>&gt;8<\/code>은 폭과 정렬, <code>08d<\/code>는 0 채움, <code>,<\/code>는 천 단위 구분, <code>b<\/code>는 2진수입니다.","an":"Day1 노트북 2교시 예제 2-6, 빈칸 2-2","src":"print(f\"{v:.2f} | {v:.4f} | {v:8.1f}|\") # 소수점 자리, 폭\nprint(f\"{n:>8} | {n:<8} | {n:^8} |\") # 오른쪽/왼쪽/가운데 정렬\nprint(f\"{n:08d} | {n:,} | {big:,}\") # 0 채움, 천 단위 구분\nprint(f\"{n:b} | {n:016b} | {n:o} | {n:x} | {n:#x} | {n:#06X}\") # 진법"},{"id":"t1-09","ty":"order","lv":2,"game":false,"p":"Drive에 로그 파일을 남기고 확인하는 과정을 순서대로 놓으세요.","steps":["drive.mount로 Drive를 마운트한다","open(path, 'w')로 파일을 연다","f.write로 내용을 쓴다","!cat으로 파일 내용을 확인한다"],"h":"Drive에 파일을 남기려면 먼저 <code>drive.mount<\/code>로 저장 공간을 연결해야 그 경로가 생깁니다. 이후 <code>with open(path, \"w\")<\/code>로 파일을 열고 <code>f.write<\/code>로 쓴 다음, 셸 명령 <code>!cat<\/code>으로 내용을 확인합니다.","w":"Drive를 마운트해야 <code>/content/drive/MyDrive<\/code> 경로가 생깁니다. 그다음 파일을 열어 쓰고, 셸 명령 <code>!cat<\/code>으로 확인합니다.","an":"Day1 노트북 1교시 예제 1-6, 빈칸 1-2","src":"from google.colab import drive\ndrive.mount('/content/drive')\n```\n\n```python\npath = \"/content/drive/MyDrive/day1_test.txt\"\nwith open(path, \"w\") as f:\n f.write(\"Day 1 시작\\n\")\n!cat \"/content/drive/MyDrive/day1_test.txt\""},{"id":"t1-10","ty":"multi","lv":3,"game":true,"p":"<code>bool()<\/code> 결과가 <b>True<\/b>인 것을 모두 고르세요.","o":["bool('False')","bool('0')","bool(' ')","bool([])","bool('')"],"a":[0,1,2],"h":"<code>bool()<\/code>은 문자열의 내용(\"0\", \"False\")을 해석하지 않고 비어 있는지만 봅니다. 빈 문자열 <code>\"\"<\/code>만 False이고, 공백 한 칸이라도 들어 있으면 True입니다. 숫자 0, 빈 리스트, None은 False입니다.","w":"비어 있지 않은 문자열은 내용이 '0'이나 'False'여도, 공백 한 칸이어도 True입니다. 빈 문자열과 빈 리스트는 False입니다.","an":"Day1 노트북 2교시 예제 2-5, 괄호 넣기 2-5","src":"print(bool(0), bool(\"\"), bool([]), bool(None))\nprint(bool(\"0\"), bool(\"False\"), bool(\" \")) # 비어 있지 않으면 모두 True"}]},{"id":"t2","title":"Day1 · 연산자와 비트 연산","ref":"Day1 노트북 3교시","qs":[{"id":"t2-01","ty":"mc","lv":1,"game":true,"p":"8비트 레지스터에서 특정 비트를 <b>설정<\/b>(켜기)할 때 쓰는 연산자는?","o":["|","&","^","~"],"a":0,"h":"비트 마스크 4패턴 중 읽기는 AND, 해제는 반전 마스크와 AND, 토글은 XOR를 씁니다. 설정은 마스크에서 1인 자리를 원래 값과 '합쳐' 그 비트만 1로 만들고 나머지 비트는 그대로 두는 연산입니다.","w":"설정은 <code>PORT |= LED<\/code>처럼 OR를 씁니다. 읽기는 <code>&amp;<\/code>, 해제는 <code>&amp; ~mask<\/code>, 토글은 <code>^<\/code>입니다.","an":"Day1 노트북 3교시 예제 3-4, 괄호 넣기 3-5","src":"PORT = 0b0000_0000\nLED = 1 << 3 # 3번 핀\nBTN = 1 << 5 # 5번 핀\n\nPORT |= LED; print(f\"설정 PORT |= LED → {PORT:08b}\")\nPORT &= ~LED & 0xFF; print(f\"해제 PORT &= ~LED → {PORT:08b}\")\nPORT ^= LED; print(f\"토글 PORT ^= LED → {PORT:08b}\")"},{"id":"t2-02","ty":"mc","lv":2,"game":true,"p":"<code>LED = 1 &lt;&lt; 3<\/code>일 때 PORT의 3번 핀만 끄고 8비트로 자르는 식은?","o":["PORT | LED","PORT ^ LED","PORT & ~LED & 0xFF","PORT & LED"],"a":2,"h":"특정 비트를 끄려면 마스크를 <code>~<\/code>로 반전해 그 자리만 0인 값을 만든 뒤 원래 값과 AND합니다. 파이썬의 <code>~<\/code>는 음수를 만들기 때문에 마지막에 <code>&amp; 0xFF<\/code>를 한 번 더 붙여 8비트로 자릅니다.","w":"<code>~LED<\/code>로 3번 비트만 0인 마스크를 만들어 AND하면 그 비트만 꺼집니다. <code>&amp; 0xFF<\/code>로 8비트로 자릅니다. <code>^<\/code>는 토글, <code>|<\/code>는 설정입니다.","an":"Day1 노트북 3교시 예제 3-4, 빈칸 3-2","src":"PORT = 0b1111_1111\nLED = 1 << 3\nPORT = PORT ____ ~LED ____ 0xFF # 3번 핀만 끄기 (8비트로 자르기)"},{"id":"t2-03","ty":"mc","lv":2,"game":true,"p":"Python에서 <code>~a<\/code>가 음수로 나오는 이유는?","o":["8번 비트가 부호 비트라서","결과가 float로 바뀌어서","0xFF가 음수로 해석돼서","정수의 비트 폭 제한이 없어서"],"a":3,"h":"C의 int32는 32비트로 고정이지만 파이썬 int는 자릿수 제한이 없어 2**100도 그대로 표현합니다. 비트 폭이 정해져 있지 않으니 <code>~a<\/code>는 2의 보수 규칙대로 -(a+1)이 되어 음수로 보이며, 8비트 결과가 필요하면 <code>&amp; 0xFF<\/code>로 잘라야 합니다.","w":"Python 정수는 비트 폭 제한이 없어 <code>~a<\/code>가 음수로 나옵니다. 8비트 값으로 보려면 <code>~a &amp; 0xFF<\/code>처럼 잘라야 합니다.","an":"Day1 노트북 3교시 예제 3-3, 괄호 넣기 3-5","src":"### ▶ 예제 2-3 · int 는 자릿수 제한이 없다 (C 의 int32 와 다름)\n\n```python\nprint(2 ** 31 - 1) # C int32 최댓값\nprint(2 ** 31) # Python 에서는 문제 없음\nprint(2 ** 100)"},{"id":"t2-04","ty":"mc","lv":3,"game":true,"p":"<code>(0x12A5 &gt;&gt; 8) &amp; 0xFF<\/code>의 값은?","o":["0xA5","0x12","0x2A","0x125"],"a":1,"h":"<code>value &gt;&gt; 8<\/code>은 16비트 값을 오른쪽으로 8비트 밀어 하위 바이트를 버리고 상위 바이트를 아래로 내립니다. 16진수 한 자리는 4비트이므로 0x12A5에서 아래 두 자리가 밀려 나가고, <code>&amp; 0xFF<\/code>로 8비트만 남깁니다.","w":"<code>&gt;&gt; 8<\/code>은 하위 바이트를 밀어내므로 상위 바이트 0x12가 남습니다. 하위 바이트는 <code>0x12A5 &amp; 0xFF<\/code> = 0xA5입니다.","an":"Day1 노트북 3교시 예제 3-6, 괄호 넣기 3-5","src":"value = 0x12A5\nhigh = (value >> 8) & 0xFF\nlow = value & 0xFF"},{"id":"t2-05","ty":"mc","lv":1,"game":true,"p":"<code>x &lt;&lt; 3<\/code>은 x를 몇 배 한 값과 같습니까?","o":["3배","6배","9배","8배"],"a":3,"h":"왼쪽 시프트 <code>&lt;&lt;<\/code>는 비트를 한 칸 밀 때마다 값이 2배가 됩니다. 따라서 <code>x &lt;&lt; n<\/code>은 x에 2의 n제곱을 곱한 것과 같고, 3칸이면 2×2×2를 곱한 셈입니다.","w":"한 칸마다 2배이므로 세 칸이면 2의 3제곱인 8배입니다. 반대로 <code>x &gt;&gt; 1<\/code>은 2로 나눈 몫입니다.","an":"Day1 노트북 3교시 괄호 넣기 3-5","src":"3. `x << 3` 은 값을 ( )배 하고, `x >> 1` 은 ( )으로 나눈 몫이다."},{"id":"t2-06","ty":"ox","lv":2,"game":true,"p":"<code>6 and 3<\/code>과 <code>6 &amp; 3<\/code>의 결과는 같습니다.","a":false,"h":"<code>and<\/code>는 논리 연산자로 단축 평가 후 마지막에 평가한 값을 돌려주므로 <code>6 and 3<\/code>은 3입니다. <code>&amp;<\/code>는 비트 AND로 110과 011의 공통 비트만 남겨 010이 되므로 두 결과는 다릅니다.","w":"<code>6 and 3<\/code>은 마지막으로 평가한 값 3을, <code>6 &amp; 3<\/code>은 비트 AND인 2를 돌려줍니다. 둘은 다른 연산자입니다.","an":"Day1 노트북 3교시 예제 3-7","src":"print(6 and 3, 6 & 3) # and 는 마지막 평가값, & 는 비트 AND"},{"id":"t2-07","ty":"ox","lv":1,"game":true,"p":"<code>2 ** 3 ** 2<\/code>는 <code>**<\/code>가 오른쪽부터 계산되므로 512입니다.","a":true,"h":"거듭제곱 연산자 <code>**<\/code>는 다른 산술 연산자와 달리 오른쪽부터 결합합니다. 그래서 <code>2 ** 3 ** 2<\/code>는 <code>3 ** 2<\/code>를 먼저 계산해 9를 구한 뒤 2의 9제곱을 계산합니다.","w":"거듭제곱 <code>**<\/code>는 오른쪽부터 계산하므로 2 ** 9 = 512입니다. 왼쪽부터라면 8 ** 2 = 64가 되었을 것입니다.","an":"Day1 노트북 3교시 예제 3-1","src":"print((1 + 2) * 3, 1 + 2 * 3, 2 ** 3 ** 2) # 우선순위: ** 는 오른쪽부터"},{"id":"t2-08","ty":"match","lv":1,"game":false,"p":"비트 마스크 4패턴과 코드를 연결하세요. (LED·BTN은 <code>1 &lt;&lt; n<\/code> 마스크)","pairs":[["읽기","PORT & BTN"],["설정","PORT |= LED"],["해제","PORT &= ~LED & 0xFF"],["토글","PORT ^= LED"]],"h":"GPIO 레지스터 마스크 4패턴은 비트 확인은 AND, 켜기는 OR 대입, 끄기는 반전 마스크와 AND 대입 후 8비트 자르기, 뒤집기는 XOR 대입입니다. XOR는 같은 마스크를 두 번 적용하면 원래대로 돌아오는 성질이 있습니다.","w":"읽기는 AND로 해당 비트만 남기고, 설정은 OR, 해제는 반전 마스크와 AND, 토글은 XOR입니다.","an":"Day1 노트북 3교시 예제 3-4, 8교시 오늘의 핵심","src":"PORT |= LED; print(f\"설정 PORT |= LED → {PORT:08b}\")\nPORT &= ~LED & 0xFF; print(f\"해제 PORT &= ~LED → {PORT:08b}\")\nPORT ^= LED; print(f\"토글 PORT ^= LED → {PORT:08b}\")\nPORT ^= LED; print(f\"토글 다시 → {PORT:08b}\")\nPORT = 0b0010_0000\nprint(\"읽기 PORT & BTN →\", \"pressed\" if PORT & BTN else \"released\")"},{"id":"t2-09","ty":"order","lv":2,"game":false,"p":"I2C 센서의 16비트 값을 바이트로 나눴다가 다시 합치는 과정을 순서대로 놓으세요.","steps":["value >> 8 로 상위 바이트를 아래로 내린다","& 0xFF 로 8비트만 남긴다","high << 8 로 상위 바이트를 제자리로 올린다","| low 로 하위 바이트를 합친다"],"h":"16비트 값을 나눌 때는 오른쪽 시프트로 상위 바이트를 아래로 내리고 <code>&amp; 0xFF<\/code>로 8비트만 남깁니다. 다시 합칠 때는 상위 바이트를 왼쪽 시프트 8로 제자리에 올린 뒤 OR로 하위 바이트를 붙입니다.","w":"<code>(value &gt;&gt; 8) &amp; 0xFF<\/code>로 상위 바이트를 얻고, 결합은 <code>(high &lt;&lt; 8) | low<\/code>로 합니다.","an":"Day1 노트북 3교시 예제 3-6, 빈칸 3-3","src":"high = (value >> 8) & 0xFF\nlow = value & 0xFF\nprint(f\"{value:#06x} → high {high:#04x}, low {low:#04x}\")\nrestored = (high << 8) | low"},{"id":"t2-10","ty":"multi","lv":3,"game":true,"p":"n > 0일 때 <code>n &amp; (n - 1) == 0<\/code>이 참인 수를 모두 고르세요.","o":["1","12","64","6","8"],"a":[0,2,4],"h":"2의 거듭제곱은 켜진 비트가 딱 하나입니다. n에서 1을 빼면 그 비트가 꺼지고 아래 비트가 모두 켜지므로 <code>n &amp; (n-1)<\/code>이 0이 됩니다. 비트가 둘 이상 켜진 6(110)이나 12(1100)는 0이 되지 않습니다.","w":"이 식은 2의 거듭제곱(비트가 하나만 켜진 수)일 때 참입니다. 1, 8, 64가 해당하고 6(110)과 12(1100)는 비트가 두 개입니다.","an":"Day1 노트북 3교시 빈칸 3-4, 8교시 퀴즈 5번","src":"# 값이 2의 거듭제곱인지: 비트가 하나만 켜져 있으면 n & (n-1) == 0\nfor n in (1, 6, 8, 12, 64, 100):\n is_pow2 = n > 0 and (n ____ (n - 1)) == 0\n print(n, is_pow2)"}]},{"id":"t3","title":"Day1 · 조건·반복·문자열","ref":"Day1 노트북 4–6교시","qs":[{"id":"t3-01","ty":"mc","lv":2,"game":false,"p":"온도 판정기(0 미만 FREEZE, 20 미만 COLD, 30 미만 NORMAL, 40 미만 WARM, 그 외 ALERT)에서 temp = 30이면?","o":["WARM","NORMAL","ALERT","COLD"],"a":0,"h":"if-elif-else는 위에서부터 조건을 검사해 처음으로 참이 되는 블록 하나만 실행합니다. temp가 30이면 <code>temp &lt; 30<\/code>은 거짓(30은 30 미만이 아님)이므로 다음 조건 <code>temp &lt; 40<\/code>으로 넘어갑니다.","w":"30은 30 미만이 아니므로 NORMAL을 건너뛰고 40 미만인 WARM 블록이 실행됩니다. if-elif-else는 처음 참이 되는 블록 하나만 실행합니다.","an":"Day1 노트북 4교시 예제 4-1, 괄호 넣기 4-5","src":"if temp < 0:\n status = \"FREEZE\"\nelif temp < 20:\n status = \"COLD\"\nelif temp < 30:\n status = \"NORMAL\"\nelif temp < 40:\n status = \"WARM\"\nelse:\n status = \"ALERT\"\nprint(f\"{temp:5.1f} °C → {status}\")"},{"id":"t3-02","ty":"mc","lv":1,"game":true,"p":"<code>list(range(0, 256, 64))<\/code>의 마지막 값은?","o":["256","128","192","255"],"a":2,"h":"<code>range(start, stop, step)<\/code>는 start부터 step씩 더해 가되 stop 값 자체는 포함하지 않습니다. 0에서 64씩 더하면 0, 64, 128, …로 늘어나고 256에 닿기 직전 값에서 멈춥니다.","w":"값은 0, 64, 128, 192이고 stop인 256은 포함되지 않습니다.","an":"Day1 노트북 5교시 예제 5-1, 괄호 넣기 5-6","src":"print(list(range(0, 256, 64))) # 0, 64, 128, 192 — 256 미포함"},{"id":"t3-03","ty":"mc","lv":3,"game":true,"p":"<code>for i in range(2, 10, 3): print(i, end=' ')<\/code>의 출력은?","o":["2 5 8 11","2 5 8","3 6 9","2 4 6 8"],"a":1,"h":"<code>range(2, 10, 3)<\/code>은 2에서 시작해 3씩 증가하며 stop인 10은 포함하지 않습니다. <code>end=' '<\/code>는 줄바꿈 대신 공백을 붙여 한 줄에 이어서 출력하게 합니다.","w":"2, 5, 8 다음은 11인데 stop 10 이상이므로 멈춥니다. 출력은 2 5 8입니다.","an":"Day1 노트북 8교시 퀴즈 6번","src":"print(list(range(2, 8))) # 2~7\nprint(list(range(0, 256, 64))) # 0, 64, 128, 192 — 256 미포함\nprint(list(range(10, 0, -3)))"},{"id":"t3-04","ty":"mc","lv":1,"game":true,"p":"<code>'abc'[10:20]<\/code>의 결과는?","o":["IndexError","'c'","None","빈 문자열"],"a":3,"h":"슬라이스는 범위를 벗어나도 오류 없이 있는 만큼만 잘라 주고, 인덱스 하나로 접근할 때만 범위를 엄격히 검사해 IndexError를 냅니다. 'abc'는 길이 3이므로 10~20 구간에는 글자가 하나도 없습니다.","w":"범위를 넘은 슬라이스는 오류 없이 빈 문자열을 돌려줍니다. 반면 <code>'abc'[10]<\/code>처럼 인덱스로 접근하면 IndexError가 납니다.","an":"Day1 노트북 6교시 예제 6-1, 괄호 넣기 6-6","src":"print(s[10:20]) # 범위 초과 슬라이스 → 빈 문자열 (오류 없음)\ntry:\n s[10] # 범위 초과 인덱스 → IndexError"},{"id":"t3-05","ty":"mc","lv":2,"game":true,"p":"시리얼 프레임 <code>'$ABC*'[1:-1]<\/code>의 결과는?","o":["'ABC'","'$ABC'","'ABC*'","'BC'"],"a":0,"h":"<code>[1:-1]<\/code>은 인덱스 1부터 마지막 글자 직전까지 자르는 슬라이스로, 첫 글자와 마지막 글자를 벗겨 냅니다. 시리얼 프레임에서는 시작 표시 $와 끝 표시 *를 떼고 내용만 꺼낼 때 씁니다.","w":"<code>[1:-1]<\/code>은 인덱스 1부터 마지막 글자 앞까지이므로 $와 *가 빠진 'ABC'입니다.","an":"Day1 노트북 6교시 예제 6-6, 괄호 넣기 6-6","src":"if f.startswith(\"$\") and f.endswith(\"*\"):\n print(\"유효:\", f[1:-1])"},{"id":"t3-06","ty":"ox","lv":2,"game":true,"p":"<code>while<\/code> 문의 <code>else<\/code> 블록은 <code>break<\/code>로 반복을 빠져나왔을 때 실행됩니다.","a":false,"h":"반복문의 <code>else<\/code> 블록은 break 없이 반복이 끝까지 돌았을 때만 실행됩니다. 임계값을 넘는 샘플을 만나 break로 빠져나오면 else는 건너뛰므로 '초과 샘플 없음'은 출력되지 않습니다.","w":"반복문의 else는 break 없이 조건이 거짓이 되어 끝났을 때만 실행됩니다. break로 빠져나오면 else는 건너뜁니다.","an":"Day1 노트북 5교시 예제 5-4, 괄호 넣기 5-6","src":"while i < len(samples):\n if samples[i] > threshold:\n print(f\"index {i}: {samples[i]} 초과\")\n break\n i += 1\nelse:\n print(\"초과 샘플 없음\") # break 없이 끝났을 때만"},{"id":"t3-07","ty":"ox","lv":1,"game":true,"p":"<code>zip()<\/code>은 두 시퀀스의 길이가 다르면 짧은 쪽에서 멈춥니다.","a":true,"h":"<code>zip()<\/code>은 여러 시퀀스에서 같은 위치의 원소를 짝지어 튜플로 묶으며, 짝을 지을 원소가 하나라도 떨어지면 거기서 멈춥니다. 따라서 길이가 3과 2인 두 리스트를 묶으면 짧은 쪽 길이만큼만 짝이 생깁니다.","w":"zip은 짧은 쪽이 끝나면 멈추므로 결과는 [(1, 'a'), (2, 'b')]입니다.","an":"Day1 노트북 5교시 예제 5-5, 괄호 넣기 5-6","src":"print(list(zip([1, 2, 3], [\"a\", \"b\"]))) # 짧은 쪽에서 멈춤"},{"id":"t3-08","ty":"match","lv":1,"game":false,"p":"문자열 메서드와 역할을 연결하세요.","pairs":[["strip()","양 끝 공백·개행 제거"],["split(',')","쉼표로 나눠 리스트로"],["startswith('$')","시작 문자 검사"],["splitlines()","줄 단위로 나누기"],["'-'.join(lst)","리스트를 한 문자열로 잇기"]],"h":"문자열 메서드는 하는 일로 나누면 쉽습니다. strip은 양 끝을 다듬고, split·splitlines는 구분자나 줄 단위로 나눠 리스트를 만들고, startswith는 시작 글자를 검사하며, join은 리스트를 구분자로 이어 한 문자열을 만듭니다.","w":"<code>strip<\/code>은 양 끝만 지우고, <code>split<\/code>과 <code>splitlines<\/code>는 나누며, <code>startswith<\/code>는 검사, <code>join<\/code>은 잇기입니다.","an":"Day1 노트북 6교시 예제 6-3·6-4, 빈칸 6-4","src":"lines = raw.____() # 줄 단위로 나누기\nfor line in lines:\n t_field = line.split(\",\")[____] # 첫 조각 \"T=24.1\"\n total += float(t_field.split(\"=\")[____])"},{"id":"t3-09","ty":"order","lv":3,"game":false,"p":"시리얼로 받은 한 줄 <code>'  $T=25.3,H=60,D=120*  '<\/code>을 숫자로 바꾸는 파싱 순서를 놓으세요.","steps":["strip()으로 앞뒤 공백을 지운다","startswith·endswith로 $…* 형식을 검증한다","[1:-1]로 $와 *를 벗긴다","split(',')과 split('=')로 필드를 나눈다","float()·int()로 형변환한다"],"h":"시리얼 한 줄은 먼저 strip으로 앞뒤 공백을 지워야 첫 글자가 $인지 검사할 수 있습니다. 형식이 맞으면 [1:-1]로 $와 *를 벗기고, 쉼표와 등호로 필드를 나눈 뒤 마지막에 float·int로 숫자로 바꿉니다.","w":"공백 제거 → 프레임 검증 → 기호 벗기기 → 필드 분리 → 형변환 순입니다. 오늘의 핵심 'strip → split → 형변환'에 검증 단계가 더해진 형태입니다.","an":"Day1 노트북 6교시 예제 6-5·6-6, 빈칸 6-3","src":"f = frame.strip()\n if f.startswith(\"$\") and f.endswith(\"*\"):\n print(\"유효:\", f[1:-1])"},{"id":"t3-10","ty":"multi","lv":2,"game":true,"p":"조건문에서 <b>거짓<\/b>으로 평가되는 값을 모두 고르세요.","o":["None","[]","[0]","'0'","0"],"a":[0,1,4],"h":"조건문에서 숫자 0(0.0 포함), 빈 문자열, 빈 리스트, None은 거짓으로 평가됩니다. 반면 \"0\"이나 \" \"처럼 내용이 있는 문자열, [0]처럼 원소가 있는 리스트, -1 같은 0이 아닌 수는 모두 참입니다.","w":"0, 빈 리스트, None은 거짓입니다. 문자열 '0'과 원소가 하나 있는 [0]은 비어 있지 않으므로 참입니다.","an":"Day1 노트북 4교시 예제 4-2, 괄호 넣기 4-5","src":"for v in (0, 1, -1, 0.0, \"\", \"0\", \" \", [], [0], None):\n print(f\"{repr(v):6} → {'참' if v else '거짓'}\")"}]},{"id":"t4","title":"Day2 · 리스트·튜플·딕셔너리·집합","ref":"Day2 슬라이드 p.8–11 · 노트북 1–2교시","qs":[{"id":"t4-01","ty":"mc","lv":1,"game":true,"p":"<code>nums.sort()<\/code>의 반환값은?","o":["정렬된 새 리스트","None","원본 리스트","정렬 전 리스트"],"a":1,"h":"<code>sort()<\/code>는 원본 리스트를 그 자리에서 정렬하는 메서드라 새 값을 돌려주지 않습니다. 정렬된 새 리스트가 필요하면 <code>sorted()<\/code>를 쓰며, <code>a = a.sort()<\/code>처럼 쓰면 a가 결과값으로 덮여 버리는 함정이 있습니다.","w":"<code>sort()<\/code>는 원본을 정렬하고 None을 돌려주므로 <code>a = a.sort()<\/code>를 쓰면 a가 None이 됩니다. 새 리스트가 필요하면 <code>sorted()<\/code>를 씁니다.","an":"Day2 슬라이드 p.8 · 노트북 1교시 예제 1-4","src":"print(sorted(nums), nums) # 새 리스트, 원본 유지\nprint(nums.sort(), nums) # None, 원본이 정렬됨"},{"id":"t4-02","ty":"mc","lv":2,"game":true,"p":"<code>a = [1, 2, 3]; b = a; b.append(4)<\/code> 다음 a의 값은?","o":["[1, 2, 3]","[4]","오류가 난다","[1, 2, 3, 4]"],"a":3,"h":"<code>b = a<\/code>는 리스트를 복사하는 것이 아니라 같은 리스트 객체에 이름표를 하나 더 붙이는 것입니다. 그래서 b를 통해 append하면 a가 가리키는 같은 객체가 바뀌고, <code>a is b<\/code>도 True입니다.","w":"<code>b = a<\/code>는 같은 리스트에 이름표를 하나 더 붙일 뿐이라 b에 append하면 a도 [1, 2, 3, 4]가 됩니다. <code>a is b<\/code>도 True입니다.","an":"Day2 슬라이드 p.9 · 노트북 1교시 예제 1-1","src":"a = [1, 2, 3]\nb = a # 이름표 하나 더\nb.append(4)\nprint(\"a =\", a)\nprint(\"a is b:\", a is b)"},{"id":"t4-03","ty":"mc","lv":1,"game":true,"p":"중첩 리스트의 안쪽까지 모두 복제하려면 무엇을 써야 합니까?","o":["copy.deepcopy(a)","a.copy()","a[:]","list(a)"],"a":0,"h":"<code>copy()<\/code>, <code>a[:]<\/code> 같은 얕은 복사는 겉 리스트만 새로 만들고 안쪽 리스트는 여전히 공유합니다. 안쪽 리스트까지 모두 새로 만들어 완전히 독립시키려면 copy 모듈의 깊은 복사 함수를 씁니다.","w":"<code>copy()<\/code>, <code>a[:]<\/code>, <code>list(a)<\/code>는 얕은 복사라 안쪽 리스트는 여전히 공유됩니다. 안쪽까지 독립시키려면 <code>copy.deepcopy<\/code>를 씁니다.","an":"Day2 슬라이드 p.8 · 노트북 1교시 예제 1-3","src":"import copy\nouter = [[10, 20], 3]\nshallow = outer.copy()\ndeep = copy.deepcopy(outer)\nshallow[0].append(30)\nprint(\"outer :\", outer) # 안쪽이 함께 바뀜!\nprint(\"deep :\", deep) # 완전 독립"},{"id":"t4-04","ty":"mc","lv":2,"game":true,"p":"<code>pins<\/code>에 'SERVO' 키가 없을 때 KeyError 없이 -1을 돌려받는 식은?","o":["pins['SERVO']","'SERVO' in pins","pins.get('SERVO', -1)","del pins['SERVO']"],"a":2,"h":"<code>pins[\"SERVO\"]<\/code>처럼 대괄호로 없는 키를 조회하면 KeyError로 프로그램이 멈춥니다. 딕셔너리의 <code>get<\/code> 메서드는 키가 없으면 None을 돌려주고, 두 번째 인자로 준 기본값이 있으면 그 값을 돌려줍니다.","w":"<code>.get(키, 기본값)<\/code>은 없는 키에 기본값을 돌려줍니다. <code>pins['SERVO']<\/code>는 KeyError, <code>in<\/code>은 True/False만 알려 줍니다.","an":"Day2 슬라이드 p.10 · 노트북 2교시 예제 2-2","src":"pins = {\"LED\": 3, \"BTN\": 5}\nprint(pins.get(\"SERVO\")) # None\nprint(pins.get(\"SERVO\", -1)) # 기본값\nprint(\"SERVO\" in pins)"},{"id":"t4-05","ty":"mc","lv":3,"game":false,"p":"<code>a_ids = [101, 102, 103, 104, 103]<\/code>, <code>b_ids = [103, 104, 105]<\/code>일 때 <code>set(a_ids) - set(b_ids)<\/code>는?","o":["{103, 104}","{101, 102}","{105}","{101, 102, 105}"],"a":1,"h":"<code>set()<\/code>으로 바꾸면 중복된 103이 하나로 정리되고, 차집합 <code>-<\/code>는 앞 집합에만 있고 뒤 집합에는 없는 원소만 남깁니다. A 쪽 원소 중 B에도 있는 103, 104를 빼고 남는 것을 찾으면 됩니다.","w":"차집합은 A에만 있는 원소이므로 {101, 102}입니다. 공통 원소 {103, 104}는 <code>&amp;<\/code>로 구합니다. 집합이라 중복된 103은 하나로 합쳐집니다.","an":"Day2 슬라이드 p.11 · 노트북 2교시 빈칸 2-3","src":"print(a_ids | b_ids) # 합집합\nprint(a_ids & b_ids) # 교집합\nprint(a_ids - b_ids) # A에만"},{"id":"t4-06","ty":"ox","lv":2,"game":true,"p":"리스트는 딕셔너리의 키로 쓸 수 있습니다.","a":false,"h":"딕셔너리는 키를 해시해 나온 번호의 버킷으로 바로 찾아가므로 키는 해시할 수 있어야 합니다. 리스트는 내용이 바뀔 수 있어 해시할 수 없으므로 키가 될 수 없고, 불변인 튜플은 키로 쓸 수 있습니다.","w":"리스트는 내용이 바뀔 수 있어 해시할 수 없으므로 키가 될 수 없습니다. 불변인 튜플은 키가 될 수 있습니다.","an":"Day2 슬라이드 p.11·p.22 · 노트북 2교시 괄호 넣기 2-4","src":"딕셔너리 해시로 직행 · 없는 키는 .get() 방어 · 키는 불변만"},{"id":"t4-07","ty":"ox","lv":2,"game":true,"p":"튜플 <code>record<\/code>의 두 번째 칸이 리스트라면 <code>record[1].append(27.0)<\/code>은 성공합니다.","a":true,"h":"튜플이 불변이라는 말은 각 칸이 가리키는 객체(참조)를 다른 것으로 바꿀 수 없다는 뜻입니다. 칸에 담긴 것이 리스트라면 그 리스트 객체 자체는 가변이므로, 리스트의 메서드로 내용을 늘리는 것은 허용됩니다.","w":"튜플이 불변이라는 것은 칸에 담긴 참조가 불변이라는 뜻입니다. 안쪽 리스트의 내용은 바뀔 수 있습니다.","an":"Day2 슬라이드 p.9 TODO 1-4 · 노트북 1교시 괄호 넣기 1-4","src":"TODO 1-4 튜플 안 리스트 (심화)record[1].append(27.0) — 왜 되는지 설명"},{"id":"t4-08","ty":"match","lv":2,"game":false,"p":"집합 연산과 의미를 연결하세요.","pairs":[["a | b","합집합"],["a & b","공통 원소(교집합)"],["a - b","A에만 있는 원소"],["len(set(x))","중복을 뺀 개수"]],"h":"집합 연산자 <code>|<\/code>는 두 집합을 모두 합치고, <code>&amp;<\/code>는 양쪽에 공통인 원소만, <code>-<\/code>는 앞 집합에만 있는 원소만 남깁니다. 리스트를 <code>set()<\/code>으로 바꾸면 중복이 사라지므로 그 길이는 서로 다른 값의 개수가 됩니다.","w":"<code>|<\/code>는 합집합, <code>&amp;<\/code>는 교집합, <code>-<\/code>는 차집합입니다. 집합은 중복을 허용하지 않아 <code>set()<\/code>으로 중복을 제거합니다.","an":"Day2 슬라이드 p.10 · 노트북 2교시 예제 2-5","src":"print(a_ids | b_ids) # 합집합\nprint(a_ids & b_ids) # 교집합\nprint(a_ids - b_ids) # A에만\nprint(len(set([7, 7, 7, 3]))) # 중복 제거"},{"id":"t4-09","ty":"order","lv":3,"game":false,"p":"<code>NODES['ESP32-01']['readings'][0]['T']<\/code>가 한 층씩 내려가는 순서를 놓으세요.","steps":["dict 키 ESP32-01로 노드 선택","dict 키 readings로 측정 목록 선택","list 인덱스 0으로 첫 측정 선택","dict 키 T로 온도 선택"],"h":"중첩 구조에서는 대괄호 하나가 한 층이며, 각 층의 자료형에 맞는 대괄호를 씁니다. 바깥 딕셔너리에서 노드 이름 키로 들어가고, 그 안의 측정 목록(리스트)은 정수 인덱스로, 측정 하나(딕셔너리)는 다시 키로 접근합니다.","w":"dict 키 → dict 키 → list 인덱스 → dict 키 순으로 내려갑니다. 그 층의 자료형에 맞는 대괄호를 써야 합니다.","an":"Day2 슬라이드 p.10·p.22 · 노트북 2교시 예제 2-4","src":"print(NODES[\"ESP32-01\"][\"loc\"])\nprint(NODES[\"ESP32-01\"][\"readings\"][0][\"T\"])"},{"id":"t4-10","ty":"multi","lv":1,"game":true,"p":"겉 리스트를 새로 만드는 복사 방법을 모두 고르세요.","o":["a[:]","a.sort()","a.copy()","list(a)","b = a"],"a":[0,2,3],"h":"겉 리스트를 새로 만드는 얕은 복사 방법은 세 가지로, 메서드 호출, 전체 슬라이스, 리스트 생성자에 원본을 넣는 방식입니다. <code>b = a<\/code>는 새 리스트를 만들지 않고 이름표만 하나 더 붙이므로 복사가 아닙니다.","w":"<code>copy()<\/code>, <code>a[:]<\/code>, <code>list(a)<\/code>는 새 리스트를 만듭니다. <code>b = a<\/code>는 이름표만 하나 더 붙이고, <code>sort()<\/code>는 원본을 정렬합니다.","an":"Day2 슬라이드 p.8 · 노트북 1교시 예제 1-2","src":"`copy()` / `a[:]` / `list(a)` — 겉 리스트를 새로 만듭니다.\n\n```python\na = [1, 2, 3]\nc = a.copy()\nc.append(99)\nprint(a, c, a is c)"}]},{"id":"t5","title":"Day2 · 함수·람다·컴프리헨션","ref":"Day2 슬라이드 p.12–15 · 노트북 3–4교시","qs":[{"id":"t5-01","ty":"mc","lv":1,"game":true,"p":"return 문이 없는 함수를 호출하면 무엇이 반환됩니까?","o":["0","None","빈 문자열","마지막 print 값"],"a":1,"h":"함수 안에서 <code>print<\/code>로 화면에 출력하는 것과 <code>return<\/code>으로 값을 돌려주는 것은 다릅니다. return 문 없이 끝난 함수를 호출해 변수에 받으면, 파이썬이 '값 없음'을 뜻하는 특별한 객체를 자동으로 돌려줍니다.","w":"return이 없으면 None을 돌려줍니다. <code>greet()<\/code>처럼 안에서 print만 하면 화면에는 보이지만 결과값은 None입니다.","an":"Day2 슬라이드 p.12 · 노트북 3교시 예제 3-2","src":"def greet(name):\n print(\"hello\", name)\n\nresult = greet(\"ESP32\")\nprint(result) # None — print 와 return 은 다릅니다"},{"id":"t5-02","ty":"mc","lv":1,"game":true,"p":"<code>def stats(*values)<\/code>에서 values의 자료형은?","o":["리스트","딕셔너리","집합","튜플"],"a":3,"h":"<code>*args<\/code>처럼 별표 하나를 붙인 매개변수는 호출 때 넘긴 여러 위치 인자를 하나로 묶어 받습니다. 이렇게 모인 값은 변경할 수 없는 순서형 자료형이며, 별표 두 개 <code>**kwargs<\/code>는 이름=값 쌍을 딕셔너리로 받습니다.","w":"<code>*args<\/code>는 튜플, <code>**kwargs<\/code>는 딕셔너리로 들어옵니다.","an":"Day2 슬라이드 p.13 · 노트북 3교시 괄호 넣기 3-4","src":"• return 없는 함수 → None\n• *args 의 자료형 → 튜플"},{"id":"t5-03","ty":"mc","lv":2,"game":true,"p":"가변 기본값 함정을 피하려고 <code>def safe_log(v, acc=____)<\/code>에 넣는 기본값은?","o":["None","[]","()","0"],"a":0,"h":"<code>acc=[]<\/code>처럼 가변 객체를 기본값으로 쓰면 리스트가 함수 정의 때 한 번만 만들어져 호출 사이에 공유·누적됩니다. 그래서 '값 없음'을 뜻하는 객체를 기본값으로 두고, 함수 안에서 <code>is<\/code>로 검사한 뒤 새 리스트를 만듭니다.","w":"기본 리스트는 정의 때 한 번만 만들어져 호출 사이에 공유·누적됩니다. <code>acc=None<\/code>으로 두고 함수 안에서 새 리스트를 만드는 패턴을 씁니다.","an":"Day2 슬라이드 p.12 · 노트북 3교시 예제 3-5, 빈칸 3-3","src":"def bad_log(v, acc=[]): # 기본 리스트는 정의 때 1회 생성\n acc.append(v)\n return acc\nprint(bad_log(1), bad_log(2)) # [1] [1, 2] — 공유·누적!\n\ndef safe_log(v, acc=None):\n if acc is None:\n acc = []\n acc.append(v)\n return acc\nprint(safe_log(1), safe_log(2)) # [1] [2]"},{"id":"t5-04","ty":"mc","lv":2,"game":true,"p":"<code>max(records, key=lambda r: r['T'])<\/code>가 돌려주는 것은?","o":["가장 큰 T 값","그 레코드의 인덱스","T가 가장 큰 레코드 자체","T 순으로 정렬된 리스트"],"a":2,"h":"<code>max()<\/code>에 <code>key=lambda r: r['T']<\/code>를 주면 각 레코드의 T 값을 비교 기준으로만 쓰고, 돌려주는 것은 그 기준이 가장 큰 원소 자체입니다. 그래서 결과 뒤에 <code>['id']<\/code>를 붙여 그 레코드의 id를 꺼낼 수 있습니다.","w":"<code>max(key=...)<\/code>는 최고 '값'이 아니라 레코드 자체를 돌려줍니다. 그래서 <code>max(...)['id']<\/code>로 id를 꺼낼 수 있습니다.","an":"Day2 슬라이드 p.14–15 · 노트북 4교시 예제 4-1, 괄호 넣기 4-4","src":"• [x*2 for x in [1,2,3] if x>1] → [4, 6]\n• max(key=...) 반환 → 레코드 자체"},{"id":"t5-05","ty":"mc","lv":3,"game":true,"p":"<code>[x * 2 for x in [1, 2, 3] if x &gt; 1]<\/code>의 결과는?","o":["[2, 4, 6]","[2, 4]","[1, 4, 6]","[4, 6]"],"a":3,"h":"컴프리헨션은 for로 원소를 하나씩 꺼내고, if 조건을 통과한 원소만 맨 앞의 식으로 계산합니다. 1은 조건 <code>x &gt; 1<\/code>에서 탈락하므로 식이 계산되지 않고, 남은 2와 3에만 2를 곱합니다.","w":"1은 조건에서 탈락해 식을 계산하지 않고, 2와 3만 2배가 되어 [4, 6]입니다.","an":"Day2 슬라이드 p.15 자기 점검","src":"자기 점검 (예측 → 애니메이션 → 코드)\n• [x*2 for x in [1,2,3] if x>1] → [4, 6]"},{"id":"t5-06","ty":"ox","lv":2,"game":true,"p":"함수 안에서 <code>count = 1<\/code>을 대입하면 같은 이름의 전역 변수 count가 1로 바뀝니다.","a":false,"h":"함수 안에서 이름에 값을 대입하면 그 호출의 스택 프레임 안에 새 지역 변수가 생길 뿐, 바깥 전역 변수는 바뀌지 않습니다. 함수가 끝나면 지역 변수도 사라지므로, 값을 바꾸려면 반환값으로 주고받아야 합니다.","w":"함수 안의 대입은 새 지역 변수를 만들 뿐 전역을 바꾸지 않습니다. 값을 바꾸려면 반환값으로 주고받습니다(global 지양).","an":"Day2 슬라이드 p.12 · 노트북 3교시 예제 3-4","src":"count = 0\ndef tick():\n count = 1 # 새 지역 변수 (전역을 못 바꿈)\ntick()\nprint(count) # 0 — 바꾸려면 반환값으로 주고받으세요"},{"id":"t5-07","ty":"ox","lv":1,"game":true,"p":"컴프리헨션은 원본을 바꾸지 않고 새 리스트를 만듭니다.","a":true,"h":"컴프리헨션은 원본 시퀀스에서 원소를 꺼내 식을 계산한 결과를 새로 만든 리스트에 담습니다. 원본 리스트는 읽기만 하므로 그대로 남고, 결과는 별도의 새 객체가 됩니다.","w":"컴프리헨션의 결과는 항상 새 리스트이고 원본은 그대로입니다.","an":"Day2 슬라이드 p.14·p.22 · 노트북 4교시 괄호 넣기 4-4","src":"컴프리헨션 for → if → 식 순서로 읽고, 원본은 그대로"},{"id":"t5-08","ty":"match","lv":2,"game":false,"p":"함수 인자 형태와 설명을 연결하세요.","pairs":[["adc_to_volt(512)","위치 인자 + 기본값 사용"],["adc_to_volt(512, vref=5.0)","키워드 인자로 지정"],["*args","가변 위치 인자(튜플)"],["**kwargs","가변 키워드 인자(딕셔너리)"]],"h":"<code>adc_to_volt(raw, vref=3.3, bits=10)<\/code>처럼 기본값이 있는 매개변수는 생략하면 기본값이 쓰이고, <code>vref=5.0<\/code>처럼 이름=값으로 넘기면 키워드 인자가 됩니다. 별표 하나는 여러 위치 인자를 튜플로, 별표 둘은 여러 키워드 인자를 딕셔너리로 받습니다.","w":"<code>adc_to_volt(raw, vref=3.3, bits=10)<\/code>에서 값을 생략하면 기본값을 쓰고, <code>vref=5.0<\/code>처럼 이름으로 넘기면 키워드 인자입니다.","an":"Day2 슬라이드 p.12 · 노트북 3교시 예제 3-1, 괄호 넣기 3-4","src":"def adc_to_volt(raw, vref=3.3, bits=10):\n \"\"\"ADC 원시값 → 전압\"\"\"\n return raw / (2**bits - 1) * vref\n\nprint(adc_to_volt(512)) # 위치 인자 + 기본값\nprint(adc_to_volt(512, vref=5.0)) # 키워드 인자"},{"id":"t5-09","ty":"order","lv":1,"game":false,"p":"컴프리헨션 <code>[식 for 변수 in 시퀀스 if 조건]<\/code>의 실행(읽는) 순서를 놓으세요.","steps":["for 변수 in 시퀀스","if 조건","맨 앞의 식"],"h":"컴프리헨션을 for 문으로 되돌려 쓰면 가장 바깥이 반복(for)이고 그 안에 조건(if), 맨 안쪽에서 결과에 담을 값을 계산합니다. 맨 앞에 쓰인 식은 조건을 통과한 원소에 대해서만 마지막에 계산됩니다.","w":"for로 원소를 꺼내고, if로 거른 뒤, 통과한 원소만 맨 앞의 식을 계산합니다.","an":"Day2 슬라이드 p.14 · 노트북 4교시 괄호 넣기 4-4","src":"• [식 for 변수 in 시퀀스 if 조건]"},{"id":"t5-10","ty":"multi","lv":3,"game":true,"p":"함수 호출과 스택 프레임에 대한 설명으로 옳은 것을 모두 고르세요.","o":["프레임은 프로그램이 끝날 때까지 남는다","지역 변수는 프레임 안에서만 산다","호출마다 그 호출만의 프레임이 생긴다","함수 안 대입은 전역 변수를 바꾼다","return과 함께 프레임이 사라진다"],"a":[1,2,4],"h":"함수를 호출할 때마다 그 호출만의 변수 공간인 스택 프레임이 만들어지고, 지역 변수는 그 프레임 안에서만 존재합니다. return과 함께 프레임이 소멸하며, 지역 변수는 전역 변수와 별개라 전역을 바꾸지 못합니다.","w":"함수를 호출하면 프레임이 생기고 return과 함께 사라지며, 지역 변수는 그 안에서만 삽니다. 함수 안 대입은 지역 변수를 만들 뿐입니다.","an":"Day2 슬라이드 p.12·p.22 · 노트북 3교시 괄호 넣기 3-4","src":"• 변수 표에서 지역 변수가 생겼다 사라지는 순간\n• return 과 함께 프레임 소멸 → status 에 대입"}]},{"id":"t6","title":"Day2 · 모듈과 예외 처리","ref":"Day2 슬라이드 p.16–20 · 노트북 5–6교시","qs":[{"id":"t6-01","ty":"mc","lv":1,"game":true,"p":"Colab 셀 맨 위의 <code>%%writefile sensors.py<\/code>는 무엇을 합니까?","o":["셀을 즉시 실행","sensors 모듈을 import","셀 내용을 파일로 저장","파일을 다시 불러옴"],"a":2,"h":"Colab의 셀 매직 <code>%%writefile 파일명<\/code>을 셀 맨 위에 쓰면 그 셀의 코드를 실행하지 않고 지정한 이름의 파일로 디스크에 씁니다. 이렇게 만든 .py 파일을 나중에 import하거나 <code>!python<\/code>으로 실행합니다.","w":"<code>%%writefile<\/code>은 셀을 실행하지 않고 그 내용을 파일로 저장합니다. 저장한 뒤 <code>!python<\/code>으로 실행하거나 import합니다.","an":"Day2 슬라이드 p.16 · 노트북 5교시 예제 5-1, 괄호 넣기 5-3","src":"`%%writefile` 은 셀 내용을 실행하지 않고 파일로 저장합니다."},{"id":"t6-02","ty":"mc","lv":2,"game":true,"p":"<code>!python sensors.py<\/code>로 직접 실행할 때 파일 안의 <code>__name__<\/code> 값은?","o":["'sensors'","'__main__'","None","'sensors.py'"],"a":1,"h":"파이썬은 파일을 직접 실행하면 그 파일의 <code>__name__<\/code>에 특별한 문자열을 넣고, import하면 모듈 이름을 넣습니다. 그래서 <code>if __name__ == ...:<\/code> 블록은 직접 실행할 때만 돌고 import 때는 건너뜁니다.","w":"직접 실행하면 <code>__name__<\/code>이 '__main__'이 되어 자체 테스트 블록이 돕니다. import하면 모듈 이름 'sensors'가 되어 그 블록은 실행되지 않습니다.","an":"Day2 슬라이드 p.16 · 노트북 5교시 예제 5-2, 괄호 넣기 5-3","src":"직접 실행하면 `__main__` 블록이 돌고, import 하면 돌지 않습니다.\n\n```python\n!python sensors.py\n```\n\n```python\nimport sensors\nprint(sensors.judge(25.3)) # __main__ 블록은 실행되지 않음"},{"id":"t6-03","ty":"mc","lv":2,"game":true,"p":"sensors.py를 고친 뒤 <code>import sensors<\/code>를 다시 실행해도 반영되지 않습니다. 반영하는 방법은?","o":["importlib.reload(sensors)","import sensors 한 번 더","from sensors import *","%%writefile 다시 실행만"],"a":0,"h":"이미 import된 모듈은 캐시에 저장되어 있어 같은 import 문을 다시 실행해도 파일을 새로 읽지 않습니다. 수정한 내용을 반영하려면 importlib 모듈의 함수로 모듈 객체를 다시 불러와야 합니다.","w":"모듈은 캐시되므로 import를 다시 해도 바뀌지 않습니다. <code>importlib.reload<\/code>를 쓰거나 런타임을 다시 시작합니다.","an":"Day2 슬라이드 p.16·p.17 · 노트북 5교시 예제 5-3","src":"import importlib, sensors\nimportlib.reload(sensors) # sensors.py 를 고친 뒤에는 reload"},{"id":"t6-04","ty":"mc","lv":1,"game":true,"p":"판정 결과 목록에서 등급별 개수를 한 줄로 세는 표준 라이브러리는?","o":["datetime.now","importlib.reload","copy.deepcopy","collections.Counter"],"a":3,"h":"표준 라이브러리 collections에는 리스트를 넣으면 원소별 등장 횟수를 딕셔너리처럼 세어 주는 클래스가 있습니다. 판정 결과 리스트를 그대로 넘기면 NORMAL·ALERT 같은 등급별 개수를 한 줄로 얻을 수 있습니다.","w":"<code>Counter(statuses)<\/code>는 등급별 개수를 한 번에 집계합니다. <code>datetime<\/code>은 시각 문자열, <code>reload<\/code>는 모듈 재로딩에 씁니다.","an":"Day2 슬라이드 p.16 · 노트북 5교시 예제 5-4, 괄호 넣기 5-3","src":"from collections import Counter\nfrom datetime import datetime\n\nstatuses = [\"NORMAL\", \"ALERT\", \"NORMAL\", \"WARM\"]\nprint(Counter(statuses))"},{"id":"t6-05","ty":"mc","lv":3,"game":true,"p":"flaky()를 최대 3회 재시도하는 for 루프에서, try 안의 <code>result = flaky()<\/code> 바로 다음에 넣어야 할 문은?","o":["continue","pass","break","raise"],"a":2,"h":"재시도 루프는 try 안에서 호출이 예외 없이 성공하면 더 시도할 필요가 없으므로 반복을 즉시 끝내야 합니다. 실패하면 except로 가서 '재시도'를 출력하고 다음 회전으로 넘어갑니다.","w":"성공하면 <code>break<\/code>로 반복을 빠져나오고, 실패하면 except에서 메시지를 남긴 뒤 다음 회차로 갑니다. 결과는 result 42, 시도 3회입니다.","an":"Day2 슬라이드 p.19 TODO 6-4 · 노트북 6교시 빈칸 6-3","src":"for attempt in range(1, 4):\n try:\n result = flaky()\n ____ # 성공하면 반복 탈출"},{"id":"t6-06","ty":"ox","lv":1,"game":true,"p":"finally 블록은 성공·실패와 관계없이 항상 실행됩니다.","a":true,"h":"try 문에서 except는 실패했을 때, else는 성공했을 때만 실행되지만, finally는 성공·실패와 무관하게 항상 실행됩니다. 그래서 파일 닫기 같은 자원 정리 코드를 두는 자리로 씁니다.","w":"finally는 예외 여부와 상관없이 항상 실행됩니다. else는 성공했을 때만 실행됩니다.","an":"Day2 슬라이드 p.19 · 노트북 6교시 예제 6-3","src":"except ValueError:\n print(\"파싱 실패\")\nelse:\n print(\"성공했을 때만:\", t)\nfinally:\n print(\"항상 실행 — 자원 정리 자리\")"},{"id":"t6-07","ty":"ox","lv":2,"game":true,"p":"<code>except:<\/code>로 모든 예외를 한꺼번에 잡는 것이 가장 안전한 방법입니다.","a":false,"h":"except를 넓게 잡으면 의도한 오류뿐 아니라 오타(NameError) 같은 진짜 버그까지 조용히 삼켜 숨겨 버립니다. 그래서 ValueError·KeyError처럼 예상한 구체적인 예외만 좁게 잡고, 예외마다 다른 처방을 합니다.","w":"except는 구체적인 예외로 좁게 잡아야 오타 같은 버그가 숨지 않습니다. 원칙은 '전부 잡기 금지, 대처할 수 있는 곳에서 잡기'입니다.","an":"Day2 슬라이드 p.18 · 노트북 6교시 괄호 넣기 6-4","src":"• 구체적 예외로 잡기 · as e · 여러 except"},{"id":"t6-08","ty":"match","lv":2,"game":false,"p":"코드와 발생하는 예외를 연결하세요.","pairs":[["int('')","ValueError"],["{'a': 1}['b']","KeyError"],["[1, 2][10]","IndexError"],["raise FrameError('손상')","사용자 정의 예외"]],"h":"빈 문자열을 정수로 바꾸면 값이 잘못된 숫자 변환 실패, 딕셔너리에 없는 키를 조회하면 키 오류, 리스트 범위를 벗어난 인덱스는 인덱스 오류가 납니다. <code>class FrameError(Exception)<\/code>처럼 직접 정의한 예외는 raise로 일으킵니다.","w":"빈 문자열 변환은 ValueError, 없는 키는 KeyError, 범위 밖 인덱스는 IndexError입니다. FrameError는 <code>Exception<\/code>을 상속해 직접 만든 예외입니다.","an":"Day2 슬라이드 p.18–19 · 노트북 6교시 예제 6-2·6-4","src":"tests = [lambda: int(\"\"), lambda: {\"a\": 1}[\"b\"], lambda: [1, 2][10]]\nfor fn in tests:\n try:\n fn()\n except ValueError:\n print(\"숫자 변환 실패\")\n except KeyError:\n print(\"없는 키\")\n except IndexError:\n print(\"범위 밖 인덱스\")"},{"id":"t6-09","ty":"order","lv":1,"game":false,"p":"try 문의 블록을 작성 순서대로 놓으세요.","steps":["try: 시도할 코드","except: 실패했을 때 처리","else: 성공했을 때만 실행","finally: 항상 실행"],"h":"try 문은 먼저 시도할 코드를 쓰고, 이어서 실패 시 처리할 except, 예외 없이 성공했을 때만 도는 else, 마지막으로 결과와 무관하게 항상 실행되는 finally 순으로 씁니다.","w":"try → except → else → finally 순서입니다. else는 예외가 없을 때만, finally는 언제나 실행됩니다.","an":"Day2 슬라이드 p.18 · 노트북 6교시 예제 6-3","src":"line = \"$T=25.3,H=60,D=120*\"\ntry:\n t = float(line[1:-1].split(\",\")[0].split(\"=\")[1])\nexcept ValueError:\n print(\"파싱 실패\")\nelse:\n print(\"성공했을 때만:\", t)\nfinally:\n print(\"항상 실행 — 자원 정리 자리\")"},{"id":"t6-10","ty":"multi","lv":2,"game":true,"p":"강의에서 제시한 예외 처리 원칙으로 옳은 것을 모두 고르세요.","o":["잡지 않은 예외는 그 자리에서 사라진다","구체적인 예외로 좁게 잡는다","raise는 오류 상황을 알리는 문이다","깨진 줄은 세고 continue한다","except:로 전부 잡는다"],"a":[1,2,3],"h":"강의는 예외를 구체적으로 좁게 잡고, 깨진 데이터 줄은 개수를 센 뒤 continue로 건너뛰어 계속 진행하라고 정리합니다. raise는 오류를 만드는 것이 아니라 오류 상황을 호출자에게 알리는 문이며, 잡지 않은 예외는 호출한 곳으로 전파됩니다.","w":"예외는 구체적으로 잡고, 깨진 데이터는 세고 넘어가며, raise는 오류 상황을 알리는 문입니다. 잡지 않은 예외는 사라지지 않고 호출한 곳으로 전파됩니다.","an":"Day2 슬라이드 p.18·p.22 · 노트북 6교시 괄호 넣기 6-4","src":"예외 구체적으로 잡고, 깨진 줄은 세고 continue · raise 는 알리기"}]},{"id":"t7","title":"Day3 · 클래스 기초와 상속","ref":"Day3 슬라이드 p.8–11 · 노트북 1–2교시","qs":[{"id":"t7-01","ty":"mc","lv":1,"game":false,"p":"<code>r1.is_alert()<\/code>는 어떤 호출의 줄임입니까?","o":["r1.is_alert(self)","SensorReading.is_alert(r1)","is_alert(SensorReading)","SensorReading(r1).is_alert()"],"a":1,"h":"인스턴스에서 메서드를 호출하면 파이썬은 클래스에 정의된 함수를 찾아 호출한 인스턴스를 첫 번째 인자(self)로 자동으로 넘깁니다. 즉 점 앞의 객체가 self 자리로 들어가는, 클래스 이름을 통한 호출과 완전히 같은 동작입니다.","w":"<code>r1.is_alert()<\/code>는 <code>SensorReading.is_alert(r1)<\/code>와 완전히 같은 호출입니다. 호출한 인스턴스가 self로 들어갑니다.","an":"Day3 슬라이드 p.8 · 노트북 1교시 예제 1-3","src":"`r1.is_alert()` 는 `SensorReading.is_alert(r1)` 의 줄임입니다. 🎬 D3-1 ④\n\n```python\nprint(r1.is_alert(), SensorReading.is_alert(r1)) # 완전히 같은 호출"},{"id":"t7-02","ty":"mc","lv":1,"game":true,"p":"인스턴스에 없는 속성 <code>r1.tmp<\/code>를 읽으면 나는 예외는?","o":["KeyError","NameError","TypeError","AttributeError"],"a":3,"h":"딕셔너리에서 키를 잘못 쓰면 KeyError가 나듯, 인스턴스에 존재하지 않는 속성 이름을 점으로 읽으면 '속성 오류' 예외가 납니다. 이 메시지는 어떤 클래스에 어떤 속성이 없는지 즉시 알려 주어 오타를 바로 찾게 해 줍니다.","w":"없는 속성은 AttributeError로 즉시, 명확하게 알려 줍니다. dict의 <code>r['Temp']<\/code> 오타는 KeyError입니다.","an":"Day3 슬라이드 p.8 · 노트북 1교시 예제 1-4","src":"try:\n r1.tmp\nexcept AttributeError as e:\n print(\"AttributeError:\", e) # 어떤 클래스에 어떤 속성이 없는지 즉시 알려준다"},{"id":"t7-03","ty":"mc","lv":2,"game":true,"p":"클래스 변수 <code>ALERT_T = 35<\/code>를 <code>SensorReading.ALERT_T = 30<\/code>으로 바꾸면?","o":["모든 인스턴스에 전파된다","새 인스턴스만 바뀐다","어느 인스턴스도 안 바뀐다","첫 인스턴스만 바뀐다"],"a":0,"h":"클래스 변수는 설계도(클래스)에 한 부만 있고, 인스턴스는 자기에게 없는 속성을 클래스에서 찾아 씁니다. 그래서 클래스 이름으로 클래스 변수를 바꾸면 그 값을 조회하는 모든 인스턴스의 판정이 함께 달라집니다.","w":"조회가 인스턴스 → 클래스 순이므로 설계도의 값을 바꾸면 이미 만든 인스턴스에도 모두 전파됩니다. 실습에서는 확인 뒤 반드시 35로 복구합니다.","an":"Day3 슬라이드 p.10–11 · 노트북 2교시 예제 2-2","src":"a = SensorReading(\"A\", 32.0)\nb = SensorReading(\"B\", 33.0)\nprint(a.is_alert(), b.is_alert()) # False False (기준 35)\n\nSensorReading.ALERT_T = 30 # 설계도 한 곳을 바꾸면\nprint(a.is_alert(), b.is_alert()) # True True — 모두에게 전파"},{"id":"t7-04","ty":"mc","lv":2,"game":false,"p":"자식 클래스 <code>__init__<\/code>의 첫 줄에 들어가야 할 코드는?","o":["self.__init__(node_id, t)","return super()","super().__init__(node_id, t)","SensorReading = super()"],"a":2,"h":"자식 클래스가 <code>__init__<\/code>을 새로 정의하면 부모의 <code>__init__<\/code>은 자동으로 실행되지 않습니다. 그래서 첫 줄에서 부모 클래스의 초기화를 먼저 불러 node_id, t 같은 부모 속성을 만들어야 하며, 이를 빠뜨리면 속성이 없어 AttributeError가 납니다.","w":"<code>super().__init__(...)<\/code>로 부모 초기화를 먼저 실행합니다. 이를 빠뜨리면 부모가 만들던 t가 없어 AttributeError가 납니다.","an":"Day3 슬라이드 p.10 · 노트북 2교시 예제 2-3·2-4","src":"class CalibratedReading(SensorReading):\n def __init__(self, node_id, t, offset):\n super().__init__(node_id, t) # 부모의 초기화 먼저\n self.offset = offset"},{"id":"t7-05","ty":"mc","lv":3,"game":false,"p":"<code>CalibratedReading('ESP32-01', 34.0, 2.0).is_alert()<\/code>의 결과는? (ALERT_T = 35, 자식은 t + offset으로 판정)","o":["False, 부모 메서드 실행","True, 자식 메서드 실행","False, 34.0 ≤ 35","AttributeError"],"a":1,"h":"자식 클래스가 부모와 같은 이름의 메서드를 정의(오버라이드)하면 메서드 탐색이 자식에서 멈춰 자식 버전이 실행됩니다. 자식의 판정식은 t에 offset을 더한 값을 ALERT_T와 비교하므로 34.0 + 2.0과 35를 비교해 보면 됩니다.","w":"자식이 is_alert를 오버라이드했으므로 탐색이 자식에서 멈추고 34 + 2 = 36 > 35라 True입니다. 자식에 없는 <code>__repr__<\/code>는 부모에서 찾아 실행합니다.","an":"Day3 슬라이드 p.10 · 노트북 2교시 예제 2-3","src":"def is_alert(self): # 오버라이드\n return (self.t + self.offset) > self.ALERT_T\n\nc = CalibratedReading(\"ESP32-01\", 34.0, 2.0)\nprint(c) # __repr__ 는 부모에서 찾아 실행 (자식→부모 탐색)\nprint(c.is_alert()) # True — 자식 버전에서 멈춤 (34+2 > 35)"},{"id":"t7-06","ty":"ox","lv":2,"game":true,"p":"self는 Python의 예약 키워드라서 다른 이름으로 바꿀 수 없습니다.","a":false,"h":"self는 파이썬 예약어가 아니라 메서드의 첫 번째 매개변수에 붙이는 관례적인 이름일 뿐입니다. 메서드를 호출하면 지금 그 메서드를 호출한 인스턴스가 첫 번째 매개변수로 들어가므로, 이름은 문법상 다른 것으로 바꿔도 동작합니다.","w":"self는 특별한 키워드가 아니라 메서드 첫 번째 매개변수의 관례적 이름입니다. '지금 이 인스턴스'를 가리킵니다.","an":"Day3 노트북 1교시 괄호 넣기 1-3","src":"• self 는? → 지금 메서드를 호출한 인스턴스"},{"id":"t7-07","ty":"ox","lv":1,"game":true,"p":"<code>r2.t = 37.5<\/code>로 바꿔도 다른 인스턴스 r1의 t는 바뀌지 않습니다.","a":true,"h":"인스턴스 속성은 <code>__init__<\/code>에서 <code>self.t = t<\/code>처럼 인스턴스마다 따로 만들어지므로 서로 독립입니다. 한 인스턴스의 속성에 새 값을 대입해도 다른 인스턴스의 속성 상자에는 영향이 없으며, 이는 Day 2의 참조 공유와 대비됩니다.","w":"인스턴스 속성은 서로 독립이라 r1은 영향을 받지 않습니다. Day 2의 리스트 참조 공유와 대비되는 점입니다.","an":"Day3 슬라이드 p.8 · 노트북 1교시 예제 1-3","src":"r2.t = 37.5\nprint(r1.t, r2.t) # 인스턴스 속성은 서로 독립 (Day 2 참조 공유와 대비)"},{"id":"t7-08","ty":"match","lv":1,"game":false,"p":"클래스 용어와 설명을 연결하세요.","pairs":[["클래스","설계도"],["인스턴스","설계도로 찍어낸 실제 데이터"],["__init__","인스턴스 속성 초기화"],["__repr__","print 시 읽기 좋은 표현"],["오버라이드","자식이 같은 이름 메서드를 정의"]],"h":"클래스는 설계도이고 인스턴스는 그 설계도로 찍어낸 실제 데이터입니다. <code>__init__<\/code>은 인스턴스를 만들 때 속성을 초기화하고, <code>__repr__<\/code>은 print 등에서 객체를 읽기 좋은 문자열로 보여 주며, 자식이 같은 이름의 메서드를 다시 정의하는 것을 오버라이드라고 합니다.","w":"클래스는 설계도, 인스턴스는 데이터입니다. <code>__init__<\/code>은 속성을 저장하고, <code>__repr__<\/code>은 디버깅용 표현을, 오버라이드는 자식에서 탐색을 멈추게 합니다.","an":"Day3 슬라이드 p.8·p.10 · 노트북 1–2교시","src":"1. 클래스는 설계도, 인스턴스는 데이터"},{"id":"t7-09","ty":"order","lv":3,"game":false,"p":"CalibratedReading 인스턴스 c에서 <code>c.ALERT_T<\/code>를 찾을 때 탐색 순서를 놓으세요.","steps":["인스턴스 c","CalibratedReading(자식 클래스)","SensorReading(부모 클래스)"],"h":"속성 조회는 먼저 인스턴스 자신에서 찾고, 없으면 인스턴스의 클래스로, 거기에도 없으면 부모 클래스로 올라갑니다. 즉 '인스턴스 → 클래스' 순서와 '자식 → 부모' 탐색 순서를 이어 붙인 경로입니다.","w":"먼저 인스턴스에서 찾고, 없으면 자기 클래스, 그래도 없으면 부모 클래스로 올라갑니다. ALERT_T는 부모 클래스에서 찾아집니다.","an":"Day3 슬라이드 p.10·p.22 · 노트북 2교시 괄호 넣기 2-3","src":"상속 조회는 인스턴스→클래스, 탐색은 자식→부모"},{"id":"t7-10","ty":"multi","lv":2,"game":false,"p":"dict 레코드 대신 클래스를 쓸 때 얻는 점으로 옳은 것을 모두 고르세요.","o":["인스턴스를 json.dumps로 바로 저장한다","클래스 변수로 리스트를 두면 안전하다","데이터와 동작을 한 상자에 묶는다","속성 오타가 AttributeError로 바로 드러난다","인스턴스마다 속성이 독립적이다"],"a":[2,3,4],"h":"dict 레코드는 키 오타가 늦게 드러나고 데이터와 판정 같은 동작이 따로 떨어져 있다는 한계가 있습니다. 클래스는 데이터와 메서드를 한 상자에 묶고, 속성 오타는 즉시 AttributeError로 드러나며, 인스턴스마다 속성이 독립적입니다.","w":"클래스는 오타를 즉시 알려 주고, 판정 함수 같은 동작을 데이터와 함께 둡니다. 클래스 변수 리스트는 모든 인스턴스가 공유해 위험하고, 인스턴스는 JSON으로 바로 저장되지 않습니다.","an":"Day3 슬라이드 p.8·p.11 · 노트북 1교시 예제 1-1","src":"### ▶ 예제 1-2 · 첫 클래스 — 데이터와 동작을 한 상자에\n\n```python\nclass SensorReading:\n def __init__(self, node_id, t, h, d):\n self.node_id = node_id\n self.t = t\n self.h = h\n self.d = d\n\n def is_alert(self):\n return self.t > 35\n\nr1 = SensorReading(\"ESP32-01\", 25.3, 60, 120)\nr2 = SensorReading(\"ESP32-02\", 36.9, 70, 150)\nprint(r1.t, r1.is_alert())\nprint(r2.node_id, r2.is_alert())"}]},{"id":"t8","title":"Day3 · 파일 입출력과 JSON·CSV","ref":"Day3 슬라이드 p.12–15 · 노트북 3–4교시","qs":[{"id":"t8-01","ty":"mc","lv":1,"game":true,"p":"파일을 여는 순간 기존 내용을 지우는 모드는?","o":["'a'","'r'","'x'","'w'"],"a":3,"h":"파일 모드 중 'a'는 기존 내용 뒤에 이어 쓰는 로그 표준 모드이고, 'r'은 읽기 기본값입니다. 새로 쓰기 모드는 파일을 여는 순간 이미 기존 내용을 모두 지우므로 write 전에 빈 파일이 됩니다.","w":"<code>'w'<\/code>는 write 전에 이미 빈 파일로 만듭니다. <code>'a'<\/code>는 뒤에 이어쓰고, <code>'r'<\/code>은 기본값으로 파일이 없으면 FileNotFoundError가 납니다.","an":"Day3 슬라이드 p.12 · 노트북 3교시 예제 3-1","src":"w 는 여는 순간 기존 내용을 지웁니다. 이어쓰기는 a.\n\n```python\nwith open(\"sensor_log.txt\", \"w\", encoding=\"utf-8\") as f: # 새로 쓰기\n f.write(\"T=25.3,H=60\\n\")\nwith open(\"sensor_log.txt\", \"a\", encoding=\"utf-8\") as f: # 이어쓰기"},{"id":"t8-02","ty":"mc","lv":1,"game":true,"p":"파일을 다룰 때 <code>with open(...)<\/code>을 쓰는 가장 큰 이유는?","o":["블록이 끝나면 자동 close","파일을 자동으로 만든다","인코딩을 자동 지정한다","예외를 자동으로 막는다"],"a":0,"h":"파일에 쓴 내용은 바로 디스크로 가지 않고 버퍼에 머물다가 파일이 닫힐 때 디스크로 내려갑니다. with 블록은 블록이 끝나면(예외가 나더라도) 파일을 자동으로 닫아 주므로 버퍼 유실을 막아 줍니다.","w":"with 블록이 끝나면 자동으로 close되어 버퍼 내용이 디스크로 내려갑니다. close되지 않으면 버퍼에 남은 내용이 유실될 수 있습니다.","an":"Day3 슬라이드 p.12 · 노트북 3교시 괄호 넣기 3-3","src":"# with 블록 끝 → 자동 close → 버퍼→디스크"},{"id":"t8-03","ty":"mc","lv":2,"game":true,"p":"데이터를 파일이 아니라 <b>문자열<\/b>로 직렬화하는 함수는?","o":["json.dump","json.dumps","json.load","json.loads"],"a":1,"h":"json 모듈의 함수는 '저장/복원'과 '파일/문자열'의 2×2 표로 정리됩니다. 함수 이름 끝에 s가 붙은 것은 string, 즉 파일 객체가 아니라 문자열을 대상으로 하며, 저장 방향은 dump 계열입니다.","w":"<code>dumps<\/code>는 문자열로, <code>dump<\/code>는 파일로 내보냅니다. 복원할 때도 <code>loads<\/code>는 문자열, <code>load<\/code>는 파일입니다.","an":"Day3 슬라이드 p.14 · 노트북 4교시 예제 4-1","src":"s = json.dumps(sample, ensure_ascii=False)\nprint(type(s), s)"},{"id":"t8-04","ty":"mc","lv":2,"game":true,"p":"클래스 인스턴스를 그대로 <code>json.dumps(r)<\/code>하면 나는 예외는?","o":["ValueError","KeyError","TypeError","FileNotFoundError"],"a":2,"h":"JSON이 아는 타입은 dict, list, str, 숫자, bool, None뿐입니다. 직접 만든 클래스의 인스턴스는 JSON이 표현 방법을 몰라 직렬화할 수 없다는 '타입' 예외가 나며, 그래서 to_dict로 딕셔너리로 바꾼 뒤 저장합니다.","w":"인스턴스는 JSON이 모르는 타입이라 TypeError가 납니다. 해법은 <code>to_dict()<\/code>로 dict로 바꾼 뒤 저장하는 것입니다.","an":"Day3 슬라이드 p.14 · 노트북 4교시 예제 4-3","src":"r = SensorReading(\"ESP32-01\", 25.3)\ntry:\n json.dumps(r)\nexcept TypeError as e:\n print(\"TypeError:\", e) # JSON 이 아는 타입: dict/list/str/숫자/bool/None 뿐"},{"id":"t8-05","ty":"mc","lv":3,"game":true,"p":"<code>json.dumps({'loc': '정문'})<\/code>이 유니코드 이스케이프로 저장됩니다. 한글을 그대로 남기려면 어떤 옵션을 줍니까?","o":["ensure_ascii=False","indent=2","encoding='utf-8'","newline=''"],"a":0,"h":"json.dumps는 기본적으로 출력이 ASCII 문자만 되도록 보장해서 한글을 정 같은 유니코드 이스케이프로 바꿉니다. 이 'ASCII 보장' 옵션을 False로 끄면 한글이 그대로 저장됩니다.","w":"<code>ensure_ascii=False<\/code>를 주면 '정문'이 그대로 저장됩니다. <code>indent<\/code>는 들여쓰기, <code>newline=''<\/code>은 CSV 쓰기용 옵션입니다.","an":"Day3 슬라이드 p.14–15 · 노트북 4교시 빈칸 4-2","src":"s1 = json.dumps({\"loc\": \"정문\"})\ns2 = json.dumps({\"loc\": \"정문\"}, ____=False)\nprint(s1) # {\"loc\": \"\\uc815\\ubb38\"}\nprint(s2) # {\"loc\": \"정문\"}"},{"id":"t8-06","ty":"ox","lv":1,"game":true,"p":"<code>f.write()<\/code>는 줄 끝에 개행 문자를 자동으로 붙입니다.","a":false,"h":"<code>f.write()<\/code>는 받은 문자열을 그대로 쓸 뿐 줄 끝에 개행을 자동으로 붙이지 않습니다. 그래서 로그를 줄 단위로 남기려면 <code>line + \"\n\"<\/code>처럼 개행 문자를 직접 더해야 하며, 빼먹으면 모든 기록이 한 줄로 붙습니다.","w":"write는 개행을 자동으로 붙이지 않아 <code>line + '\\n'<\/code>처럼 직접 넣어야 합니다. 빼먹으면 여러 줄이 한 줄로 붙습니다.","an":"Day3 슬라이드 p.12–13 · 노트북 3교시 빈칸 3-1","src":"# 로그 이어쓰기 함수 — write 는 개행을 자동으로 붙이지 않는다"},{"id":"t8-07","ty":"ox","lv":2,"game":true,"p":"JSON에서 복원한 값 26.4는 float로 돌아옵니다.","a":true,"h":"split으로 파싱한 값은 모두 문자열이라 float()로 바꿔야 했지만, JSON은 숫자를 숫자 타입으로 저장합니다. 그래서 json.loads로 복원하면 26.4 같은 실수 값이 원래 자료형 그대로 돌아와 바로 계산할 수 있습니다.","w":"JSON은 복원하면 타입이 돌아오므로 26.4는 float입니다. 그래서 복원본으로 평균을 바로 계산할 수 있습니다.","an":"Day3 슬라이드 p.14 · 노트북 4교시 예제 4-1, 괄호 넣기 4-3","src":"back = json.loads(s)\nprint(back == sample, type(back[\"avg_T\"])) # True <class 'float'> — 타입이 돌아온다!"},{"id":"t8-08","ty":"match","lv":1,"game":false,"p":"JSON 함수와 역할(2×2 표)을 연결하세요.","pairs":[["json.dumps","저장 · 문자열로"],["json.dump","저장 · 파일로"],["json.loads","복원 · 문자열에서"],["json.load","복원 · 파일에서"]],"h":"json 함수 이름에서 s는 string을 뜻하므로 s가 붙은 함수는 문자열, 붙지 않은 함수는 파일 객체를 다룹니다. dump 계열은 저장(직렬화), load 계열은 복원(역직렬화)이므로 두 기준을 조합해 2×2 표를 채우면 됩니다.","w":"dump 계열은 저장, load 계열은 복원이고, 이름 끝의 s는 문자열을 뜻합니다.","an":"Day3 슬라이드 p.14 2×2 표","src":"JSON dump/load 파일 · dumps/loads 문자열 — 복원하면 타입이 돌아온다"},{"id":"t8-09","ty":"order","lv":2,"game":false,"p":"로그 한 줄을 파일에 안전하게 쓰는 '쓰기 3박자' 흐름을 순서대로 놓으세요.","steps":["with open(p, 'a', encoding='utf-8') as f 로 연다","f.write(line + '\\n') 로 쓴다","with 블록이 끝나 자동으로 close된다","버퍼 내용이 디스크로 내려간다"],"h":"쓰기 3박자는 with open으로 모드('a')와 encoding을 지정해 열고, f.write로 개행을 직접 붙여 쓴 다음, with 블록이 끝나며 자동 close가 일어나는 흐름입니다. close가 일어나는 순간 버퍼에 있던 내용이 디스크로 내려갑니다.","w":"with로 열고 개행을 직접 붙여 쓰면, 블록이 끝날 때 close되며 버퍼가 디스크로 내려갑니다.","an":"Day3 슬라이드 p.12 · 노트북 3교시 예제 3-1","src":"with open(\"sensor_log.txt\", \"w\", encoding=\"utf-8\") as f: # 새로 쓰기\n f.write(\"T=25.3,H=60\\n\")\nwith open(\"sensor_log.txt\", \"a\", encoding=\"utf-8\") as f: # 이어쓰기\n f.write(\"T=26.1,H=58\\n\")\nprint(open(\"sensor_log.txt\", encoding=\"utf-8\").read())"},{"id":"t8-10","ty":"multi","lv":1,"game":true,"p":"JSON으로 바로 저장할 수 있는 타입을 모두 고르세요.","o":["dict","str","list","bool","클래스 인스턴스"],"a":[0,1,2,3],"h":"JSON이 표현할 수 있는 타입은 dict, list, str, 숫자, bool, None으로 정해져 있습니다. 직접 만든 클래스의 인스턴스는 이 목록에 없어 TypeError가 나므로 to_dict로 바꿔 저장해야 합니다.","w":"JSON이 아는 타입은 dict·list·str·숫자·bool·None입니다. 클래스 인스턴스는 TypeError가 나므로 to_dict를 거칩니다.","an":"Day3 슬라이드 p.14 · 노트북 4교시 예제 4-3","src":"except TypeError as e:\n print(\"TypeError:\", e) # JSON 이 아는 타입: dict/list/str/숫자/bool/None 뿐"}]},{"id":"t9","title":"Day3 · 시스템 연동과 SensorLogger","ref":"Day3 슬라이드 p.16–20 · 노트북 5–6교시","qs":[{"id":"t9-01","ty":"mc","lv":1,"game":true,"p":"pathlib에서 <code>Path('data')<\/code>와 'log.txt'를 이어 경로를 만들 때 쓰는 연산자는?","o":["+","/","&","%"],"a":1,"h":"pathlib의 Path 객체는 나눗셈 기호를 경로 결합 연산자로 재정의해 폴더와 파일 이름을 이어 붙입니다. 문자열 덧셈으로 경로를 만들면 구분자를 빼먹기 쉬우므로 강의는 문자열 덧셈 대신 이 연산자를 쓰라고 합니다.","w":"<code>Path('data') / 'log.txt'<\/code>처럼 <code>/<\/code> 연산자로 경로를 잇습니다. 경로를 문자열 덧셈으로 만들지 않습니다.","an":"Day3 슬라이드 p.16 · 노트북 5교시 예제 5-1","src":"p = Path(\"data\") / \"log.txt\" # 문자열 덧셈 대신 / 연산자"},{"id":"t9-02","ty":"mc","lv":2,"game":true,"p":"시리얼 <code>ser.readline()<\/code>이 한 줄을 자르는 기준은?","o":["'$' 기호","'*' 기호","개행 문자 \\n","쉼표 ,"],"a":2,"h":"<code>ser.readline()<\/code>은 $나 * 같은 프레임 기호를 보고 자르는 것이 아니라, 줄바꿈 문자가 들어올 때까지 읽고 거기서 자를 뿐입니다. 그래서 잘라낸 한 줄이 온전한 프레임인지는 $…* 검증으로 따로 확인해야 합니다.","w":"readline은 개행 문자에서 자를 뿐이라 경계가 어긋난 조각이 들어올 수 있습니다. 그래서 $…* 검증이 필수입니다.","an":"Day3 슬라이드 p.16–17 · 노트북 5교시 괄호 넣기 5-2","src":"• readline 은 \\n 에서 자를 뿐 — 검증 필수"},{"id":"t9-03","ty":"mc","lv":2,"game":true,"p":"수집 루프에서 timeout으로 빈 문자열이 들어왔을 때 올바른 처리는?","o":["continue로 건너뛴다","FrameError로 센다","break로 종료한다","raise로 알린다"],"a":0,"h":"timeout으로 아무 데이터 없이 돌아온 빈 문자열은 오류가 아니므로 예외 처리 대상이 아닙니다. <code>if not line.strip():<\/code>으로 확인해 빈 줄 개수만 세고, 이번 회전의 나머지를 건너뛰어 다음 줄을 기다리면 됩니다.","w":"timeout 빈 줄은 오류가 아니므로 <code>if not line: continue<\/code>로 건너뜁니다. 빈 줄을 except로 처리하는 것은 오류와 구분하지 못한 것입니다.","an":"Day3 슬라이드 p.16–17 · 노트북 5교시 예제 5-3","src":"if not line.strip():\n skip += 1\n continue # timeout 빈 줄 — 오류 아님"},{"id":"t9-04","ty":"mc","lv":1,"game":true,"p":"수집 루프를 Ctrl-C로 멈출 때 잡아서 안전 종료하는 예외는?","o":["FrameError","FileNotFoundError","ValueError","KeyboardInterrupt"],"a":3,"h":"사용자가 Ctrl-C를 누르면 파이썬은 키보드 인터럽트 예외를 일으킵니다. 수집 루프에서 이 예외를 except로 잡아 break하면 루프만 빠져나오고 프로그램은 처리한 줄 수를 출력하는 등 정상적으로 마무리할 수 있습니다.","w":"<code>except KeyboardInterrupt: break<\/code>로 루프만 빠져나오면 프로그램은 정상 진행됩니다.","an":"Day3 슬라이드 p.16 · 노트북 5교시 예제 5-4","src":"except KeyboardInterrupt:\n break # 루프만 탈출 — 프로그램은 정상 진행"},{"id":"t9-05","ty":"mc","lv":3,"game":false,"p":"STREAM = ['$T=25.3,H=60,D=120*', '', 'T=99.9,H=0', '$T=36.9,H=70,D=150*', '$T=2', '$T=26.1,H=58,D=118*']를 리플레이하면 정상·손상·빈 줄 개수는?","o":["4 · 1 · 1","3 · 2 · 1","3 · 3 · 0","2 · 3 · 1"],"a":1,"h":"리플레이 루프는 빈 문자열은 skip, parse_line에서 FrameError·ValueError가 나는 줄은 bad, 나머지는 good으로 셉니다. $로 시작하고 *로 끝나는 완전한 프레임, 형식이 깨진 줄(T=99.9,H=0과 조각 $T=2), 빈 문자열을 각각 세어 보세요.","w":"$…* 형식을 갖춘 3줄이 정상, 'T=99.9,H=0'과 '$T=2' 조각이 손상, '' 하나가 빈 줄입니다.","an":"Day3 슬라이드 p.17 TODO 5-3 · 노트북 5교시 예제 5-3","src":"good = bad = skip = 0\nfor line in STREAM: # 실제로는 ser.readline() 자리\n time.sleep(0.05) # 샘플링 간격\n if not line.strip():\n skip += 1\n continue # timeout 빈 줄 — 오류 아님\n try:\n t, h, d = parse_line(line)\n except (FrameError, ValueError):\n bad += 1\n continue # 손상·조각 — 세고 계속\n good += 1\nprint(f\"정상 {good} · 손상 {bad} · 빈 줄 {skip}\") # 3 · 2 · 1"},{"id":"t9-06","ty":"ox","lv":2,"game":true,"p":"<code>from_dict<\/code>는 복원 시점에 인스턴스가 없으므로 classmethod로 만들고 cls로 설계도를 받습니다.","a":true,"h":"from_dict는 파일에서 읽은 딕셔너리로 새 인스턴스를 만드는 메서드인데, 복원 시점에는 아직 인스턴스가 없어 self를 쓸 수 없습니다. 그래서 <code>@classmethod<\/code>로 만들어 첫 인자로 클래스(설계도)를 받고, 그것을 호출해 인스턴스를 찍어 냅니다.","w":"복원할 때는 아직 객체가 없으므로 <code>@classmethod<\/code>로 만들어 <code>cls(...)<\/code>로 찍어냅니다. from_dict 안에서 self를 쓰면 안 됩니다.","an":"Day3 슬라이드 p.18–19 · 노트북 6교시 예제 6-1, 빈칸 6-1","src":"• from_dict 가 classmethod 인 이유 → 인스턴스가 없어 cls 로"},{"id":"t9-07","ty":"ox","lv":2,"game":true,"p":"<code>subprocess.run(..., capture_output=True, text=True)<\/code>의 출력 문자열은 <code>r.returncode<\/code>에 담깁니다.","a":false,"h":"<code>capture_output=True, text=True<\/code>로 실행하면 자식 프로세스가 화면에 출력한 내용이 문자열로 결과 객체의 표준 출력 속성에 담깁니다. <code>returncode<\/code>는 출력이 아니라 프로세스의 종료 코드(정상이면 0)입니다.","w":"출력은 <code>r.stdout<\/code>에 담기고, <code>r.returncode<\/code>는 종료 코드입니다.","an":"Day3 슬라이드 p.16 · 노트북 5교시 예제 5-2","src":"r = subprocess.run([sys.executable, \"-c\", \"print(6*7)\"], capture_output=True, text=True)\nprint(r.stdout.strip(), \"| returncode:\", r.returncode)"},{"id":"t9-08","ty":"match","lv":2,"game":false,"p":"SensorLogger 메서드와 역할을 연결하세요.","pairs":[["add","측정 하나를 readings에 추가"],["save","to_dict 목록을 JSON 파일로 dump"],["load","파일을 읽어 from_dict로 복원"],["stats_by_node","노드별 통계 계산"]],"h":"SensorLogger의 요구사항은 '측정을 모으고, 파일로 남기고, 다시 불러와 이어서 모은다'입니다. 모으기는 목록에 하나씩 추가, 남기기는 to_dict 목록을 JSON으로 dump, 불러오기는 파일을 읽어 from_dict로 복원, 통계는 노드별로 계산하는 메서드가 맡습니다.","w":"add는 모으기, save는 남기기, load는 불러오기입니다. stats_by_node는 Day 2 함수를 메서드로 옮긴 것입니다.","an":"Day3 슬라이드 p.18–19 · 노트북 6교시 예제 6-2","src":"요구사항: **\"측정을 모으고, 파일로 남기고, 다시 불러와 이어서 모을 수 있는 로거\"**\n메서드 목록: `add / save / load / stats_by_node / report`"},{"id":"t9-09","ty":"order","lv":2,"game":false,"p":"과제 A의 영속성 시나리오를 순서대로 놓으세요.","steps":["로거에 측정 6개를 add한다","save로 siteA.json에 저장한다","새 로거를 만들어 load한다","2개를 더 add해 총 8개가 된다"],"h":"영속성 시나리오는 로거에 측정을 모은 뒤 파일로 저장하고, 기억이 없는 새 로거를 만들어 파일에서 복원한 다음 이어서 추가하는 흐름입니다. 저장해 둔 6개 위에 새로 2개가 더해지므로 세션을 넘어 데이터가 이어지는지 확인할 수 있습니다.","w":"저장한 뒤 기억이 없는 새 로거로 불러와 이어서 쌓아야 영속성을 확인할 수 있습니다.","an":"Day3 슬라이드 p.20 과제 A · 노트북 6교시 예제 6-3","src":"• 시나리오: siteA.json — 6개 add → save → 새 로거 load → 2개 추가 →"},{"id":"t9-10","ty":"multi","lv":3,"game":false,"p":"견고한 시리얼 수집 루프에 들어갈 코드로 알맞은 것을 모두 고르세요.","o":["except: pass","빈 줄이면 raise FrameError","except KeyboardInterrupt: break","except (FrameError, ValueError): bad += 1; continue","if not line: continue"],"a":[2,3,4],"h":"견고한 수집 루프는 빈 줄은 오류가 아니므로 건너뛰고(continue), 손상·조각 프레임은 FrameError·ValueError로 잡아 개수를 센 뒤 계속하며, Ctrl-C는 KeyboardInterrupt로 잡아 루프만 빠져나옵니다. 빈 줄을 except로 처리하거나 예외를 잡지 않고 멈추는 것은 잘못된 처리입니다.","w":"빈 줄은 건너뛰고, 손상·조각은 세고 계속하며, Ctrl-C는 안전 종료합니다. 전부 잡아 무시하거나 빈 줄을 오류로 다루는 것은 잘못입니다.","an":"Day3 슬라이드 p.16·p.22 · 노트북 5교시 예제 5-3·5-4","src":"if not line.strip():\n skip += 1\n continue # timeout 빈 줄 — 오류 아님\n try:\n t, h, d = parse_line(line)\n except (FrameError, ValueError):\n bad += 1\n continue # 손상·조각 — 세고 계속"}]},{"id":"t10","title":"Day4 · NumPy 벡터 연산과 마스크","ref":"Day4 슬라이드 p.8–11 · 노트북 1–2교시","qs":[{"id":"t10-01","ty":"mc","lv":1,"game":true,"p":"파이썬 리스트에서 <code>[1, 2] * 2<\/code>의 결과는?","o":["[2, 4]","[1, 4]","[1, 2, 1, 2]","TypeError"],"a":2,"h":"같은 <code>*<\/code> 기호라도 자료형에 따라 의미가 다릅니다. NumPy 배열에서는 원소마다 곱하는 벡터 연산이지만, 파이썬 리스트에서는 리스트를 정수 횟수만큼 반복해 이어 붙이는 연산입니다.","w":"리스트의 <code>* 2<\/code>는 이어 붙이기라 [1, 2, 1, 2]이고, 배열 <code>np.array([1, 2]) * 2<\/code>는 원소별 곱이라 [2, 4]입니다.","an":"Day4 슬라이드 p.8 · 노트북 1교시 예제 1-3","src":"print([1, 2] * 2) # 리스트: 이어 붙이기\nprint(np.array([1, 2]) * 2) # 배열: 원소별 곱"},{"id":"t10-02","ty":"mc","lv":1,"game":true,"p":"배열을 받으면 가장 먼저 확인하라고 한 두 가지는?","o":["shape와 dtype","len과 sum","min과 max","head와 info"],"a":0,"h":"NumPy 배열을 받으면 먼저 배열의 모양(각 축의 길이)과 원소 자료형부터 읽는 습관을 들이라고 합니다. 예를 들어 <code>a.shape<\/code>가 (3,)이고 <code>a.dtype<\/code>이 int64인지 확인하면 이후 연산과 브로드캐스팅 오류를 예측할 수 있습니다.","w":"<code>print(a.shape, a.dtype)<\/code>부터 보는 습관을 들입니다. head와 info는 pandas DataFrame에서 쓰는 메서드입니다.","an":"Day4 슬라이드 p.8 · 노트북 1교시 괄호 넣기 1-3","src":"a = np.array([512, 723, 1023])\nprint(a.shape, a.dtype, a.ndim) # (3,) int64 1"},{"id":"t10-03","ty":"mc","lv":2,"game":true,"p":"<code>np.array([1, 2, 3]) + np.array([1, 2, 3, 4])<\/code>를 실행하면?","o":["[2, 4, 6, 4]","[2, 4, 6]","TypeError","ValueError"],"a":3,"h":"브로드캐스팅은 작은 쪽 배열을 늘려 모양을 맞출 수 있을 때만 동작합니다. (2,3)과 (3,)은 행마다 늘려 맞출 수 있지만, 길이 3과 길이 4인 1차원 배열은 어느 쪽도 늘려 맞출 수 없어 모양 불일치 예외가 납니다.","w":"(3,)과 (4,)는 모양이 맞지 않아 ValueError가 나고, 메시지에 shapes가 표시됩니다. 오류 메시지에서 모양을 읽는 습관이 중요합니다.","an":"Day4 슬라이드 p.8–9 · 노트북 1교시 예제 1-4","src":"print(M + v) # (2,3)+(3,) — v 가 행마다 늘어남\n\ntry:\n np.array([1, 2, 3]) + np.array([1, 2, 3, 4])\nexcept ValueError as e:\n print(\"ValueError:\", e) # shapes (3,) (4,) — 메시지에서 모양을 읽자"},{"id":"t10-04","ty":"mc","lv":2,"game":true,"p":"<code>BT.argmax()<\/code>가 돌려주는 것은?","o":["최댓값 자체","최댓값의 위치(인덱스)","최댓값의 개수","정렬된 배열"],"a":1,"h":"불리언 마스크의 합 <code>(BT &gt; 35).sum()<\/code>은 '몇 건이'를, <code>max()<\/code>는 최고 값을 알려 줍니다. <code>argmax()<\/code>는 값 자체가 아니라 최고 값이 배열의 몇 번째에 있는지를 돌려주므로 '언제 최고였나'를 답합니다.","w":"argmax는 최댓값의 위치를 돌려줘 '언제 최고였나'를 찾게 합니다. 값 자체는 <code>BT.max()<\/code>입니다.","an":"Day4 슬라이드 p.10 · 노트북 2교시 예제 2-3, 괄호 넣기 2-2","src":"print(BT.argmax(), BT.max()) # 위치와 값 — \"언제 최고였나\""},{"id":"t10-05","ty":"mc","lv":3,"game":true,"p":"<code>M2 = BT[:24].reshape(4, 6)<\/code>(4일 × 6회)에서 <code>M2.mean(axis=1)<\/code>의 결과는?","o":["길이 4, 일별 평균","길이 6, 회차별 평균","길이 24, 원소 그대로","값 하나, 전체 평균"],"a":0,"h":"axis 인자는 '사라지는 방향'입니다. (4, 6) 배열에서 axis=1로 평균을 내면 열 방향(6회)이 사라지고 행 개수만큼의 결과가 남으며, 행이 하루를 뜻하므로 하루 단위 평균이 됩니다.","w":"axis=1이면 열이 사라져 행(일)마다 하나씩, 길이 4의 일별 평균이 됩니다. axis=0이면 행이 사라져 회차별 평균 6개가 나옵니다.","an":"Day4 슬라이드 p.10 · 노트북 2교시 예제 2-3","src":"M2 = BT[:24].reshape(4, 6) # 4일 × 6회라고 가정\nprint(np.round(M2.mean(axis=1), 2)) # axis=1: 열이 사라짐 → 일별 평균"},{"id":"t10-06","ty":"ox","lv":2,"game":true,"p":"NumPy에서 <code>b = a[2:5]<\/code>는 리스트처럼 독립된 복사본입니다.","a":false,"h":"파이썬 리스트의 슬라이스는 새 리스트(복사본)를 만들지만, NumPy 배열의 슬라이스는 원본 데이터를 그대로 가리키는 뷰입니다. 그래서 <code>b[0] = 999<\/code>처럼 슬라이스를 수정하면 원본 a도 함께 바뀌며, 독립 사본이 필요하면 <code>.copy()<\/code>를 붙여야 합니다.","w":"NumPy 슬라이스는 뷰라서 b를 수정하면 a도 바뀝니다. 독립 사본이 필요하면 <code>a[2:5].copy()<\/code>를 씁니다.","an":"Day4 슬라이드 p.10 · 노트북 2교시 예제 2-1","src":"b = a[2:5] # 리스트라면 복사본, NumPy 는 뷰(참조)!\nb[0] = 999\nprint(a) # a 도 바뀌었다 — 02 참조 모델 그대로"},{"id":"t10-07","ty":"ox","lv":1,"game":true,"p":"<code>(BT &gt; 35).sum()<\/code>이 ALERT 건수가 되는 것은 True가 1로 계산되기 때문입니다.","a":true,"h":"<code>BT &gt; 35<\/code>는 각 원소가 조건을 만족하는지를 담은 True/False 배열(마스크)이 됩니다. 파이썬에서 bool은 int의 일종이라 True는 1, False는 0으로 계산되므로, 이 배열을 더하면 조건을 만족한 개수가 나옵니다.","w":"True는 1, False는 0으로 계산되므로 마스크의 합이 조건을 만족한 건수가 됩니다.","an":"Day4 슬라이드 p.10 · 노트북 2교시 괄호 넣기 2-2","src":"print((BT > 35).sum()) # 건수 — True 는 1"},{"id":"t10-08","ty":"match","lv":1,"game":false,"p":"NumPy 식과 결과를 연결하세요.","pairs":[["BT > 35","True/False 불리언 배열"],["BT[mask]","True 자리 값만 골라낸 배열"],["IMG[::-1]","이미지 상하 반전"],["IMG * 0.5","이미지를 어둡게"]],"h":"비교식 <code>BT &gt; 35<\/code>는 조건을 데이터로 바꾼 불리언 배열이 되고, 그 마스크로 인덱싱하면 True 자리 값만 골라낸 새 배열이 됩니다. 이미지도 H×W 숫자 배열이라 <code>[::-1]<\/code>로 행 순서를 뒤집으면 위아래가 바뀌고, 0.5를 곱하면 밝기 값이 절반이 됩니다.","w":"비교는 마스크를 만들고, 마스크 인덱싱은 골라냅니다. 이미지는 배열이라 <code>[::-1]<\/code>로 뒤집고 곱셈으로 밝기를 바꿉니다.","an":"Day4 슬라이드 p.10–11 · 노트북 2교시 예제 2-2·2-4","src":"for a_, im, t in zip(ax, [IMG, IMG[::-1], IMG * 0.5], [\"원본\", \"[::-1] 상하 반전\", \"* 0.5 어둡게\"]):"},{"id":"t10-09","ty":"order","lv":2,"game":false,"p":"D4-1 애니메이션 ⑤~⑦의 마스크 활용 흐름을 순서대로 놓으세요.","steps":["조건으로 True/False 마스크를 만든다","마스크로 True 자리만 골라낸다","sum·mean 등으로 집계한다"],"h":"D4-1 애니메이션의 ⑤는 조건식이 True/False 배열이 되는 순간, ⑥은 True 자리만 통과해 새 배열로 걸러지는 장면, ⑦은 마스크의 합으로 건수를 세고 argmax로 시점을 찾는 장면입니다. 즉 마스크를 만들고, 고르고, 집계하는 흐름입니다.","w":"⑤ 마스크 생성, ⑥ 골라내기, ⑦ 집계 순입니다. 조건이 데이터가 되는 흐름입니다.","an":"Day4 슬라이드 p.10·p.21 · 노트북 2교시","src":"• ⑤ 조건 → True/False 배열이 되는 순간\n• ⑥ True 자리만 통과해 새 배열로 — ALERT 필터\n• ⑦ mask.sum() = 건수 · argmax = 시점"},{"id":"t10-10","ty":"multi","lv":2,"game":true,"p":"브로드캐스팅으로 계산이 <b>되는<\/b> 경우를 모두 고르세요.","o":["(2,3) 배열 + (3,) 배열","(3,) 배열 + (4,) 배열","(3,4) 배열 + (4,) 배열","배열 * 2 (스칼라)","(4,) 배열 + (3,) 배열"],"a":[0,2,3],"h":"브로드캐스팅은 작은 쪽을 늘려 모양을 맞출 수 있을 때 동작합니다. 스칼라는 모든 칸으로 복제되어 퍼지고, (2,3)+(3,)이나 (3,4)+(4,)처럼 마지막 축 길이가 같으면 1차원 배열이 행마다 늘어납니다. 반면 (3,)+(4,)는 길이가 달라 ValueError가 납니다.","w":"스칼라는 모든 칸으로 퍼지고, (3,)·(4,) 벡터는 끝 차원이 같은 2차원 배열의 행마다 늘어납니다. (3,)과 (4,)는 길이가 달라 ValueError입니다.","an":"Day4 슬라이드 p.8–9 · 노트북 1교시 예제 1-4","src":"M = np.array([[10, 20, 30], [40, 50, 60]])\nv = np.array([1, 2, 3])\nprint(M + v) # (2,3)+(3,) — v 가 행마다 늘어남\n\ntry:\n np.array([1, 2, 3]) + np.array([1, 2, 3, 4])\nexcept ValueError as e:\n print(\"ValueError:\", e) # shapes (3,) (4,) — 메시지에서 모양을 읽자"}]},{"id":"t11","title":"Day4 · 그래프·pandas·제너레이터","ref":"Day4 슬라이드 p.12–17 · 노트북 3–5교시","qs":[{"id":"t11-01","ty":"mc","lv":1,"game":true,"p":"읽히는 그래프의 4요소는 title, xlabel, ylabel과 무엇입니까?","o":["figsize","marker","dpi","grid"],"a":3,"h":"읽히는 그래프의 4요소는 제목(title), x축 이름(xlabel), y축 이름(ylabel), 그리고 값을 눈으로 읽기 쉽게 해 주는 격자선입니다. 여기에 범례(legend)를 더하면 여러 선을 구분할 수 있습니다.","w":"읽히는 그래프 4요소는 title / xlabel / ylabel / grid이고, 여기에 범례를 더합니다.","an":"Day4 슬라이드 p.12 · 노트북 3교시 괄호 넣기 3-2","src":"읽히는 그래프 4요소: **title / xlabel / ylabel / grid** (+범례)."},{"id":"t11-02","ty":"mc","lv":2,"game":true,"p":"저장한 png가 0바이트가 되는 흔한 원인은?","o":["savefig를 show 뒤에 호출","dpi를 너무 낮게 지정","title을 빠뜨림","bins를 12로 지정"],"a":0,"h":"<code>plt.show()<\/code>는 그림을 화면에 표시한 뒤 현재 figure를 비워 버립니다. 그래서 파일 저장 함수를 그 뒤에 부르면 빈 그림이 저장되어 png가 0바이트가 되므로, 저장을 먼저 하고 표시는 그 다음에 해야 합니다.","w":"show가 그림을 비운 뒤 savefig를 부르면 빈 그림이 저장됩니다. savefig를 show 앞에 씁니다.","an":"Day4 슬라이드 p.12–13 · 노트북 3교시 예제 3-4","src":"plt.savefig(\"out/demo_hist.png\", dpi=150) # ← 먼저 저장\nplt.show() # ← 그 다음 표시 (순서 바꾸면 0바이트!)"},{"id":"t11-03","ty":"mc","lv":2,"game":true,"p":"<code>df.to_csv(path, index=False)<\/code>에서 index=False를 주는 이유는?","o":["결측 행을 지우려고","dtype을 지키려고","유령 열이 생기지 않게","헤더를 빼려고"],"a":2,"h":"<code>to_csv<\/code>는 기본적으로 DataFrame의 행 번호(index)도 한 열로 함께 저장합니다. 그 파일을 <code>read_csv<\/code>로 다시 읽으면 이름 없는 열이 하나 더 생기므로, index=False로 행 번호를 저장하지 않게 합니다.","w":"index=False를 빼면 인덱스가 열로 저장되어 왕복 시 유령 열이 생깁니다.","an":"Day4 슬라이드 p.14–15 · 노트북 4교시 예제 4-4","src":"df.to_csv(\"out/readings_boot.csv\", index=False) # index=False — 유령 열 방지"},{"id":"t11-04","ty":"mc","lv":1,"game":true,"p":"ALERT 기준선(35도)을 그래프에 수평선으로 긋는 함수는?","o":["plt.hist","plt.axhline","plt.scatter","plt.grid"],"a":1,"h":"matplotlib에서 그래프 전체를 가로지르는 수평 기준선은 'ax + horizontal + line' 이름의 함수로 긋습니다. 첫 인자로 y값 35를 주고 color와 linestyle로 빨간 점선을 지정해 ALERT 기준을 표시합니다.","w":"<code>plt.axhline(35, color='red', linestyle='--')<\/code>로 임계선을 긋고, ALERT 점은 마스크와 <code>plt.scatter<\/code>로 표시합니다.","an":"Day4 슬라이드 p.12 · 노트북 3교시 예제 3-2","src":"plt.axhline(35, color=\"red\", linestyle=\"--\", label=\"ALERT 35C\")"},{"id":"t11-05","ty":"mc","lv":3,"game":true,"p":"<code>df['T'] &gt; 35<\/code>가 실제 고온 데이터가 있는데도 전부 False입니다. 가장 먼저 의심할 원인은?","o":["T가 float64 dtype","groupby를 안 함","index=False를 안 줌","T가 문자열(object) dtype"],"a":3,"h":"CSV에서 읽은 열이 숫자처럼 보여도 실제로는 문자열(object) 자료형이면 숫자 비교가 기대대로 동작하지 않습니다. 그래서 <code>df.info()<\/code>로 T 열의 dtype이 float인지부터 확인하라고 강조합니다.","w":"T가 문자열(object)로 읽혔을 가능성이 큽니다. <code>df.info()<\/code>로 dtype부터 확인하는 습관이 필요합니다.","an":"Day4 슬라이드 p.15 · 노트북 4교시 괄호 넣기 4-3","src":"• 전부 False → T 가 문자열(object)"},{"id":"t11-06","ty":"ox","lv":2,"game":true,"p":"한 번 소모한 제너레이터를 다시 반복하면 처음부터 다시 값이 나옵니다.","a":false,"h":"이터레이터와 제너레이터는 값을 한 번 흘려보내면 끝나는 '한 번 소모' 성질이 있습니다. 첫 번째 반복에서 모든 값을 꺼내 쓰고 나면 같은 객체를 다시 돌려도 더 나올 값이 없어, 다시 세면 0이 됩니다.","w":"제너레이터와 이터레이터는 한 번 소모되면 끝이라 다시 돌리면 아무것도 나오지 않습니다(두 번째 sum은 0). 스트림과 같은 성질입니다.","an":"Day4 슬라이드 p.16–17 · 노트북 5교시 예제 5-2·5-3","src":"m = map(str, [1, 2])\nprint(list(m)) # ['1', '2']\nprint(list(m)) # [] — 이미 흘러갔다. 스트림과 같은 성질"},{"id":"t11-07","ty":"ox","lv":1,"game":true,"p":"함수 안에 yield가 있으면 그 함수를 호출했을 때 제너레이터가 됩니다.","a":true,"h":"함수 본문에 yield가 하나라도 있으면 그 함수를 호출했을 때 본문이 바로 실행되지 않고 제너레이터 객체가 반환됩니다. <code>type(frames)<\/code>를 출력하면 generator로 나오며, for나 next로 값을 요청할 때 비로소 실행됩니다.","w":"yield가 있는 함수는 호출해도 바로 돌지 않고 제너레이터를 돌려줍니다. for나 next가 꺼낼 때 실행됩니다.","an":"Day4 슬라이드 p.16 · 노트북 5교시 예제 5-3, 괄호 넣기 5-2","src":"frames = read_frames(\"data/stream_boot.txt\")\nprint(type(frames)) # generator — 호출해도 아직 안 돌았다"},{"id":"t11-08","ty":"match","lv":1,"game":false,"p":"pandas 메서드와 용도를 연결하세요.","pairs":[["df.head()","앞쪽 몇 행 보기"],["df.info()","열별 dtype 확인"],["df.describe()","요약 통계"],["df.dropna()","결측 행 제거"]],"h":"pandas의 3종 세트는 앞쪽 몇 행을 보여 주는 head, 열별 자료형과 결측 개수를 보여 주는 info, 숫자 열의 요약 통계를 내는 describe입니다. 결측값이 있는 행은 dropna로 제거하고, isna().sum()으로 결측 개수를 셉니다.","w":"head·info·describe는 DataFrame을 받으면 먼저 보는 3종 세트이고, <code>isna().sum()<\/code>으로 결측을 센 뒤 <code>dropna()<\/code>로 지웁니다.","an":"Day4 슬라이드 p.14 · 노트북 4교시 예제 4-1·4-4","src":"df = pd.DataFrame(RECORDS_BOOT) # Day 2 의 list of dict 가 그대로 표로\nprint(df.head())\ndf.info() # dtype 확인 — T 가 float 인지!\nprint(df.describe().round(2))"},{"id":"t11-09","ty":"order","lv":2,"game":false,"p":"<code>df.groupby('node')['T'].agg([...])<\/code>가 처리하는 3단계를 순서대로 놓으세요.","steps":["분할(노드별로 나눈다)","집계(mean·max·count 계산)","결합(한 표로 합친다)"],"h":"groupby는 먼저 기준 열(node) 값별로 행을 나누고(분할), 각 그룹에서 mean·max·count 같은 집계를 계산한 뒤, 그 결과를 하나의 표로 다시 합칩니다(결합). D4-2 ⑤ 3단 애니메이션이 이 흐름을 보여 줍니다.","w":"groupby는 분할 → 집계 → 결합입니다. Day 2의 for 문과 Day 3의 stats_by_node가 한 줄로 진화한 형태입니다.","an":"Day4 슬라이드 p.14·p.21 · 노트북 4교시 예제 4-3","src":"groupby 분할→집계→결합 — stats_by_node 3일의 진화가 한 줄로"},{"id":"t11-10","ty":"multi","lv":2,"game":false,"p":"제너레이터 <code>read_frames<\/code>에 대한 설명으로 옳은 것을 모두 고르세요.","o":["여러 번 반복해 재사용할 수 있다","리스트를 만들지 않아 메모리 부담이 적다","yield는 return처럼 함수를 끝낸다","호출만 해서는 아직 실행되지 않는다","yield에서 멈췄다가 다음 요청에 이어서 실행된다"],"a":[1,3,4],"h":"제너레이터는 리스트를 미리 만들지 않고 요청이 올 때마다 한 건씩 만들어 내므로 큰 파일도 메모리 걱정이 없습니다. 호출만 해서는 본문이 돌지 않고, yield에서 값을 내놓고 멈췄다가 다음 요청에 이어서 실행되며, 한 번 소모하면 다시 처음부터 나오지 않습니다.","w":"제너레이터는 리스트 없이 한 건씩 내놓아 100만 줄도 메모리 걱정이 없고, yield에서 멈췄다 이어서 실행됩니다. 한 번 소모하면 끝이고, return과 달리 함수를 끝내지 않습니다.","an":"Day4 슬라이드 p.16–17 · 노트북 5교시 예제 5-3","src":"yield parse_frame(line) # 여기서 멈췄다가, 다음 요청에 이어서\n except (FrameError, ValueError):\n continue\n\nframes = read_frames(\"data/stream_boot.txt\")\nprint(type(frames)) # generator — 호출해도 아직 안 돌았다\nprint(next(frames)) # 첫 요청에 첫 건\nprint(sum(1 for _ in frames)) # 나머지 25 — 리스트 없이 셌다\nprint(sum(1 for _ in frames)) # 0 — 한 번 소모되면 끝"}]}]};
+const app=document.getElementById('app');
+if(!BANK){app.innerHTML='<p>문제은행 데이터가 없습니다. <code>python develop/build.py</code>로 빌드한 파일을 여세요.</p>';return;}
+
+/* ── 상수 · 인덱스 ─────────────────────── */
+const TYPES={mc:['객관식','--ty-mc'],multi:['복수 선택','--ty-multi'],ox:['O / X','--ty-ox'],match:['짝 맞추기','--ty-match'],order:['순서 맞추기','--ty-order'],num:['계산','--ty-num']};
+const GUIDE={mc:'알맞은 답을 하나 고르세요.',multi:'알맞은 것을 모두 고르세요.',ox:'맞으면 O, 틀리면 X를 고르세요.',
+  match:'왼쪽 항목을 누른 뒤 짝이 되는 오른쪽 항목을 누르세요. 연결된 항목을 다시 누르면 풀립니다.',
+  order:'첫 번째부터 순서대로 클릭하세요. 번호가 붙은 항목을 다시 누르면 그 번호부터 뒤 번호가 지워집니다.',num:'숫자만 입력하세요.'};
+/* 게임 모드 목록 — 새 게임은 여기에 항목을 추가한다 (설정·출제 유형·규칙 문구를 모드별로) */
+const GAME_MODES={
+  timeattack:{title:'⚡ 타임어택',desc:'제한시간 안에 풀수록 점수가 커집니다. 시간이 다 되면 오답!',
+    types:['mc','ox','multi'],times:[5,7,10,15],defaultTime:10},
+};
+// 게임 선택 화면의 버튼 3칸: 모드 id 또는 null(준비 중). 새 게임을 만들면 null 자리에 id를 넣는다.
+const GAME_SLOTS=['timeattack',null,null];
+const PAL=['--ty-mc','--ty-order','--ty-match','--ty-num','--ty-multi'];
+const LETTER='ABCDEFGH';
+const TABS=BANK.tabs, QMAP={}, QTAB={};
+TABS.forEach((t,ti)=>{t.idx=ti;t.qs.forEach(q=>{QMAP[q.id]=q;QTAB[q.id]=t;});});
+const ALLQ=TABS.flatMap(t=>t.qs);
+const RM=matchMedia('(prefers-reduced-motion: reduce)');
+
+/* ── 저장소 (실패해도 동작) ─────────────── */
+const KEY='qb:'+BANK.id+':v1';
+const blank=()=>({name:'',tabs:{},wrong:{},board:[],drafts:{}});  // drafts: 채점 전 탭별 풀던 답
+let S=blank();
+try{const raw=localStorage.getItem(KEY);if(raw)S=Object.assign(blank(),JSON.parse(raw));}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
+const gameUnlocked=()=>Object.keys(S.tabs).length>0;
+const allGraded=()=>TABS.every(t=>S.tabs[t.id]);
+
+/* 순위 저장소 — 공유 순위로 바꿀 때 이 객체만 교체 */
+// 순위는 같은 조건(게임 모드 + 풀이 시간)끼리만 비교한다. key = 'timeattack:10'
+const boardKey=r=>`${r.mode||'timeattack'}:${r.time||'-'}`;
+const Leaderboard={
+  load(key){return S.board.filter(r=>boardKey(r)===key).sort((a,b)=>b.score-a.score||b.rate-a.rate||a.at-b.at);},
+  add(rec){S.board.push(rec);
+    const list=this.load(boardKey(rec)), rank=list.findIndex(r=>r.id===rec.id)+1;
+    // 조건별 상위 50개만 보관
+    const keep=new Set(Object.values(S.board.reduce((m,r)=>{(m[boardKey(r)]=m[boardKey(r)]||[]).push(r);return m;},{}))
+      .flatMap(l=>l.sort((a,b)=>b.score-a.score||b.rate-a.rate||a.at-b.at).slice(0,50)).map(r=>r.id));
+    S.board=S.board.filter(r=>keep.has(r.id));save();return rank;}
+};
+
+/* ── 유틸 ──────────────────────────────── */
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const strip=s=>String(s??'').replace(/<[^>]+>/g,'');
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]];}return a;};
+const range=n=>[...Array(n).keys()];
+const derange=n=>{if(n<2)return range(n);let s;do{s=shuffle(range(n));}while(s.every((v,i)=>v===i));return s;};
+const sortN=a=>a.slice().sort((x,y)=>x-y);
+const today=()=>new Date().toLocaleDateString('ko-KR');
+const pct=(a,b)=>b?Math.round(a/b*100):0;
+function hash(s){let h=5381;for(const c of s)h=((h<<5)+h+c.codePointAt(0))>>>0;return h.toString(36).toUpperCase().padStart(6,'0').slice(-6);}
+function letter(p){return p>=90?'A':p>=80?'B':p>=70?'C':p>=60?'D':'F';}
+let toastT;
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2200);}
+function say(msg){const l=document.getElementById('live');l.textContent='';setTimeout(()=>l.textContent=msg,30);}
+async function copy(text){
+  try{await navigator.clipboard.writeText(text);toast('📋 클립보드에 복사했습니다');return;}catch(e){}
+  const ta=document.createElement('textarea');ta.value=text;ta.style.cssText='position:fixed;opacity:0;top:0';document.body.appendChild(ta);ta.select();
+  let ok=false;try{ok=document.execCommand('copy');}catch(e){}ta.remove();
+  toast(ok?'📋 클립보드에 복사했습니다':'복사하지 못했습니다. 인쇄 기능을 이용하세요.');
+}
+
+/* ── 채점 · 답 표시 ───────────────────── */
+function isCorrect(q,a){
+  if(a==null)return false;
+  switch(q.ty){
+    case 'mc':case 'ox':return a===q.a;
+    case 'multi':{if(!Array.isArray(a)||a.length!==q.a.length)return false;const x=sortN(a),y=sortN(q.a);return x.every((v,i)=>v===y[i]);}
+    case 'match':return q.pairs.every((_,i)=>a[i]===i);
+    case 'order':return a.length===q.steps.length&&a.every((v,i)=>v===i);
+    case 'num':return String(a).trim()!==''&&Math.abs(Number(a)-q.a)<=(q.tol??1e-6);
+  }
+  return false;
+}
+function correctText(q){
+  switch(q.ty){
+    case 'mc':return q.o[q.a];
+    case 'multi':return q.a.map(i=>q.o[i]).join(', ');
+    case 'ox':return q.a?'O':'X';
+    case 'match':return q.pairs.map(p=>p[0]+' → '+p[1]).join(' / ');
+    case 'order':return q.steps.join(' → ');
+    case 'num':return q.a+(q.unit||'');
+  }
+}
+function answerText(q,a){
+  if(a==null)return '(미응답)';
+  switch(q.ty){
+    case 'mc':return q.o[a]??'(미응답)';
+    case 'multi':return a.length?sortN(a).map(i=>q.o[i]).join(', '):'(미응답)';
+    case 'ox':return a?'O':'X';
+    case 'match':return q.pairs.map((p,i)=>p[0]+' → '+(a[i]!=null?q.pairs[a[i]][1]:'?')).join(' / ');
+    case 'order':return a.map(i=>q.steps[i]).join(' → ');
+    case 'num':return a+(q.unit||'');
+  }
+}
+
+/* ── 오답노트 ──────────────────────────── */
+function addWrong(id,ans){const w=S.wrong[id]||{n:0};w.n++;w.last=ans;w.at=Date.now();w.solved=false;S.wrong[id]=w;}
+function markSolved(id){if(S.wrong[id]&&!S.wrong[id].solved){S.wrong[id].solved=true;S.wrong[id].at=Date.now();}}
+const wrongList=solved=>Object.keys(S.wrong).filter(id=>QMAP[id]&&!!S.wrong[id].solved===solved)
+  .sort((a,b)=>QTAB[a].idx-QTAB[b].idx||ALLQ.indexOf(QMAP[a])-ALLQ.indexOf(QMAP[b]));
+
+/* ── 문항 풀이 상태(학습·재도전 공용) ───── */
+let cur=null;  // {mode,list,ans,touched,msel,shuf,graded,armed,tab}
+function newSheet(mode,list,tab){
+  const c={mode,list,tab,ans:{},touched:new Set(),msel:{},shuf:{},hints:new Set(),srcs:new Set(),graded:false,armed:false,onlyWrong:false};
+  list.forEach(q=>{
+    if(q.ty==='match')c.shuf[q.id]=derange(q.pairs.length);
+    if(q.ty==='order')c.shuf[q.id]=derange(q.steps.length);  // 화면 배치(고정). 답 = 클릭한 순서의 단계 인덱스 배열
+  });
+  return c;
+}
+const answered=q=>isAnswered(q,cur.ans[q.id]);
+function isAnswered(q,a){
+  switch(q.ty){
+    case 'mc':return Number.isInteger(a);
+    case 'ox':return typeof a==='boolean';
+    case 'multi':return Array.isArray(a)&&a.length>0;
+    case 'match':return !!a&&Object.keys(a).length===q.pairs.length;
+    case 'order':return Array.isArray(a)&&a.length===q.steps.length;
+    case 'num':return a!=null&&String(a).trim()!==''&&!isNaN(Number(a));
+  }
+}
+const finalAns=q=>answered(q)?cur.ans[q.id]:null;
+
+function cardHTML(q,n){
+  const [label,color]=TYPES[q.ty];
+  const g=cur.graded, a=cur.ans[q.id], fa=finalAns(q), ok=g&&isCorrect(q,fa);
+  const lock=g?' disabled':'';
+  let body='';
+  if(q.ty==='mc'||q.ty==='multi'){
+    const multi=q.ty==='multi', mine=multi?(a||[]):[a];
+    body='<div class="opts">'+q.o.map((o,i)=>{
+      const right=multi?q.a.includes(i):q.a===i, picked=mine.includes(i);
+      const cls=g?(right?' ans':picked?' miss':''):'';
+      return `<label class="opt${cls}"><span class="onum">${i+1}</span><input type="${multi?'checkbox':'radio'}" name="r-${q.id}" data-act="${multi?'tick':'pick'}" data-q="${q.id}" data-i="${i}"${picked?' checked':''}${lock}><span>${esc(o)}</span></label>`;
+    }).join('')+'</div>';
+  }else if(q.ty==='ox'){
+    body='<div class="ox">'+[true,false].map(v=>{
+      const cls=g?(q.a===v?' ans':a===v?' miss':''):'';
+      return `<button type="button" class="${cls.trim()}" data-act="ox" data-q="${q.id}" data-v="${v?1:0}" data-fk="${q.id}-ox${v?1:0}" aria-pressed="${a===v}" aria-label="${v?'맞다 O':'틀리다 X'}"${lock}>${v?'O':'X'}</button>`;
+    }).join('')+'</div>';
+  }else if(q.ty==='match'){
+    const m=a||{}, sel=cur.msel[q.id], linkedBy={};
+    Object.entries(m).forEach(([l,r])=>linkedBy[r]=+l);
+    const left=q.pairs.map((p,i)=>{
+      const linked=m[i]!=null, cls=(linked?' linked':'')+(sel===i?' sel':'')+(g?(m[i]===i?' okm':' nom'):'');
+      return `<button type="button" class="mitem${cls}" style="--pc:var(${PAL[i%PAL.length]})" data-act="ml" data-q="${q.id}" data-i="${i}" data-fk="${q.id}-l${i}"${lock}><span class="tag">${LETTER[i]}</span>${esc(p[0])}</button>`;
+    }).join('');
+    const right=cur.shuf[q.id].map(j=>{
+      const by=linkedBy[j], linked=by!=null, cls=(linked?' linked':'')+(g&&linked?(by===j?' okm':' nom'):'');
+      return `<button type="button" class="mitem${cls}" style="--pc:var(${linked?PAL[by%PAL.length]:'--line'})" data-act="mr" data-q="${q.id}" data-j="${j}" data-fk="${q.id}-r${j}"${lock}><span class="tag">${linked?LETTER[by]:''}</span>${esc(q.pairs[j][1])}</button>`;
+    }).join('');
+    body=`<div class="match"><div class="mcol mleft">${left}</div><div class="mcol mright">${right}</div></div>`;
+  }else if(q.ty==='order'){
+    const seq=a||[], full=seq.length===q.steps.length;
+    body='<div class="olist">'+(cur.shuf[q.id]||range(q.steps.length)).map(si=>{
+      const pos=seq.indexOf(si), on=pos>=0;
+      const cls=(on?' on':'')+(g?(pos===si?' ok':' no'):'');
+      const fix=g&&pos!==si?`<span class="ofix">정답 ${si+1}</span>`:'';
+      return `<button type="button" class="oitem${cls}" data-act="ord" data-q="${q.id}" data-s="${si}" data-fk="${q.id}-o${si}" aria-pressed="${on}"${lock}>`+
+        `<span class="num">${on?pos+1:''}</span><span class="txt">${esc(q.steps[si])}</span>${fix}</button>`;
+    }).join('')+'</div>'+(g&&!full?'<p class="guide">(순서를 끝까지 매기지 않아 미응답 처리)</p>':'');
+  }else if(q.ty==='num'){
+    const cls=g?(ok?'ans':'miss'):'';
+    body=`<div class="numrow"><input class="${cls}" type="text" inputmode="decimal" data-act="num" data-q="${q.id}" value="${esc(a??'')}" aria-label="숫자 답"${lock}><span>${esc(q.unit||'')}</span></div>`;
+  }
+  const numAns=q.ty==='mc'?`${q.a+1}번 · `:q.ty==='multi'?q.a.map(i=>i+1).join('·')+'번 · ':'';
+  const exp=g?`<div class="exp"><p><b>정답</b> ${numAns}${esc(correctText(q))}</p>${ok?'':`<p class="mine">내 답: ${esc(answerText(q,fa))}</p>`}<p>${q.w}</p><p class="an">📖 자료 위치: ${esc(q.an)}</p></div>`:'';
+  const src=cur.mode==='retry'?`<span class="qsrc">${QTAB[q.id].idx+1}. ${esc(QTAB[q.id].title)}</span>`:'';
+  return `<article class="q${g?(ok?' correct':' wrong')+' locked':''}" id="card-${q.id}" data-n="${n}" style="--tc:var(${color})">`+
+    `<div class="qhead"><span class="qn">Q${n}</span><span class="tbadge">${label}</span>${lvHTML(q.lv)}${src}${g?`<span class="verdict">${ok?'✓ 정답':'✗ 오답'}</span>`:''}</div>`+
+    `<div class="qt">${q.p}</div>${hintHTML(q)}${g?'':`<p class="guide">${GUIDE[q.ty]}</p>`}${body}${exp}</article>`;
+}
+const LV_NAME=['쉬움','보통','어려움'];
+function lvHTML(lv){
+  lv=lv||1;
+  const dots=[1,2,3].map(k=>k<=lv?`<i class="d${k}">●</i>`:'<i class="off">○</i>').join('');
+  return `<span class="lv lv${lv}" title="난이도 ${LV_NAME[lv-1]}"><span class="dots" aria-hidden="true">${dots}</span><em>${LV_NAME[lv-1]}</em></span>`;
+}
+// 자료 발췌: 이스케이프 후 마크다운 기호만 가볍게 서식으로 (**굵게**, `코드`, 머리 #)
+const srcText=t=>esc(t).replace(/^#{1,6}\s*/gm,'').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`([^`\n]+)`/g,'<code>$1</code>');
+function hintHTML(q){
+  if(!q.h)return '';
+  const open=cur.hints.has(q.id), label=q.ty==='num'?'Hint · 계산식':'Hint';
+  // 2단계: ① 자세한 힌트(h) ② 자료 보기 — 자료 원문 발췌(src) + 위치(an)
+  const sopen=cur.srcs.has(q.id);
+  const src=q.src?`<div class="srcwrap"><button type="button" class="srcbtn" data-act="src" data-q="${q.id}" data-fk="${q.id}-src" aria-expanded="${sopen}" aria-controls="src-${q.id}">`+
+    `<span class="caret" aria-hidden="true">${sopen?'▾':'▸'}</span>📖 자료 보기</button>`+
+    (sopen?`<blockquote class="src" id="src-${q.id}"><p>${srcText(q.src)}</p>${q.an?`<cite>${esc(q.an)}</cite>`:''}</blockquote>`:'')+`</div>`:'';
+  return `<div class="hintwrap"><button type="button" class="hintbtn" data-act="hint" data-q="${q.id}" data-fk="${q.id}-hint" aria-expanded="${open}" aria-controls="hint-${q.id}">`+
+    `<span class="caret" aria-hidden="true">${open?'▾':'▸'}</span>${label}</button>`+
+    (open?`<div class="hint" id="hint-${q.id}">${q.h}${src}</div>`:'')+`</div>`;
+}
+function refreshCard(q){
+  const el=document.getElementById('card-'+q.id);if(!el)return;
+  const fk=document.activeElement&&document.activeElement.dataset?document.activeElement.dataset.fk:null;
+  el.outerHTML=cardHTML(q,el.dataset.n);
+  if(fk){const f=app.querySelector(`[data-fk="${fk}"]`);if(f&&!f.disabled)f.focus();}
+  updateProgress();
+}
+const pad2=n=>String(n).padStart(2,'0');
+const fmtCnt=(n,t)=>`(${pad2(n)}/${pad2(t)})`;
+// 탭별 푼 문항 수: 지금 보는 탭 → 화면 상태, 그 외 → 풀던 답(drafts) → 채점 기록
+function tabAnswered(t){
+  const src=cur&&cur.mode==='study'&&cur.tab===t?cur.ans:(S.drafts[t.id]||(S.tabs[t.id]&&S.tabs[t.id].answers)||{});
+  return t.qs.filter(q=>isAnswered(q,src[q.id])).length;
+}
+function updateProgress(){
+  const p=document.getElementById('pbar');if(!p||!cur)return;
+  const n=cur.list.filter(answered).length, cnt=fmtCnt(n,cur.list.length);
+  p.style.width=pct(n,cur.list.length)+'%';
+  document.getElementById('ptxt').textContent=`${n} / ${cur.list.length} 응답`;
+  const g=document.getElementById('gradeCnt');if(g)g.textContent=cnt;
+  if(cur.mode==='study'){
+    const c=document.getElementById('qc-'+cur.tab.id);if(c)c.textContent=cnt;
+    if(!cur.graded){  // 풀던 답 저장 → 탭을 옮겨도 유지
+      if(n||Object.keys(cur.ans).some(k=>{const v=cur.ans[k];return Array.isArray(v)?v.length:v&&typeof v==='object'?Object.keys(v).length:v!=null&&v!=='';}))
+        S.drafts[cur.tab.id]=JSON.parse(JSON.stringify(cur.ans));
+      else delete S.drafts[cur.tab.id];
+      save();
+    }
+  }
+}
+
+/* 학습 화면 상호작용 */
+function onSheetClick(el){
+  const q=QMAP[el.dataset.q];if(!q)return;
+  if(el.dataset.act==='hint'){cur.hints.has(q.id)?cur.hints.delete(q.id):cur.hints.add(q.id);refreshCard(q);return;}  // 채점 후에도 열고 닫기 가능
+  if(el.dataset.act==='src'){cur.srcs.has(q.id)?cur.srcs.delete(q.id):cur.srcs.add(q.id);refreshCard(q);return;}  // 채점 후에도 열고 닫기 가능
+  if(cur.graded)return;
+  const act=el.dataset.act;
+  if(act==='ox'){cur.ans[q.id]=el.dataset.v==='1';}
+  else if(act==='ml'){
+    const i=+el.dataset.i, m=cur.ans[q.id]||(cur.ans[q.id]={});
+    if(m[i]!=null){delete m[i];cur.msel[q.id]=null;}
+    else cur.msel[q.id]=cur.msel[q.id]===i?null:i;
+  }else if(act==='mr'){
+    const j=+el.dataset.j, m=cur.ans[q.id]||(cur.ans[q.id]={}), sel=cur.msel[q.id];
+    const by=Object.keys(m).find(l=>m[l]===j);
+    if(by!=null)delete m[by];
+    if(sel!=null){m[sel]=j;cur.msel[q.id]=null;}
+  }else if(act==='ord'){
+    const si=+el.dataset.s, seq=cur.ans[q.id]||(cur.ans[q.id]=[]), pos=seq.indexOf(si);
+    if(pos>=0)seq.length=pos;  // 1번을 누르면 전부 리셋, 2번을 누르면 1번은 남고 2번부터 삭제
+    else seq.push(si);
+  }else return;
+  cur.armed=false;
+  refreshCard(q);
+}
+function onSheetChange(el){
+  const q=QMAP[el.dataset.q];if(!q||cur.graded)return;
+  if(el.dataset.act==='pick')cur.ans[q.id]=+el.dataset.i;
+  else if(el.dataset.act==='tick'){
+    cur.ans[q.id]=[...app.querySelectorAll(`input[data-act="tick"][data-q="${q.id}"]:checked`)].map(x=>+x.dataset.i);
+  }
+  cur.armed=false;updateProgress();
+}
+function onSheetInput(el){
+  if(el.dataset.act==='num'&&!cur.graded){cur.ans[el.dataset.q]=el.value;cur.armed=false;updateProgress();}
+}
+
+/* ── 화면: 홈 ──────────────────────────── */
+function viewHome(){
+  const done=TABS.filter(t=>S.tabs[t.id]).length, open=wrongList(false).length, unlocked=gameUnlocked();
+  const firstTodo=(TABS.find(t=>!S.tabs[t.id])||TABS[0]).id;
+  app.innerHTML=`
+  <nav class="crumbs"><a href="../index.html#08">← 과정 목록</a></nav>
+  <h1>${esc(BANK.title)}</h1>
+  ${BANK.subtitle?`<p class="sub">${esc(BANK.subtitle)}</p>`:''}
+  <p class="meta">${ALLQ.length}문항 · ${TABS.length}탭 · 출처 ${esc(BANK.course||BANK.source)}${BANK.updated?' · '+esc(BANK.updated):''}</p>
+  <div class="field"><label for="nm">이름 (결과 코드·순위에 사용)</label><input id="nm" data-act="name" autocomplete="nickname" maxlength="20" value="${esc(S.name)}" placeholder="이름 또는 닉네임"></div>
+  <div class="homeprog"><div class="bar"><div style="width:${pct(done,TABS.length)}%"></div></div><span>${done} / ${TABS.length} 탭 채점 완료</span></div>
+  <div class="grid">${TABS.map((t,i)=>{const r=S.tabs[t.id];
+    return `<a class="tcard${r?' done':''}${r&&r.score===r.total?' perfect':''}" href="#study/${t.id}">
+      <span class="tn">탭 ${i+1} · ${esc(t.ref||'')}</span><span class="tt">${esc(t.title)}</span>
+      <span class="ts">${t.qs.length}문항 ${r?`<b>✓ ${r.score}/${r.total}${r.score===r.total?' ⭐':''}</b>`:'<span>미응시</span>'}</span></a>`;}).join('')}
+  </div>
+  <div class="actions">
+    <a class="btn primary" href="#study/${firstTodo}">📘 학습 시작</a>
+    <a class="btn${unlocked?'':' locked'}" href="#game">⚡ 게임 모드${unlocked?'':' 🔒'}</a>
+    <a class="btn" href="#notes">📒 오답노트${open?` <span class="cnt">${open}</span>`:''}</a>
+    <a class="btn${unlocked?'':' locked'}" href="#key">📄 해설지${unlocked?'':' 🔒'}</a>
+    ${allGraded()?'<a class="btn" href="#summary">★ 종합 결과</a>':''}
+  </div>
+  ${unlocked?'':'<p class="lockmsg">🔒 게임 모드와 해설지는 탭 하나를 채점하면 열립니다.</p>'}
+  <details class="more noprint"><summary>기록 관리</summary>
+    <p class="note-sm">진행 기록·오답노트·순위는 이 브라우저에만 저장됩니다. 다른 기기와 공유되지 않습니다.</p>
+    <button class="btn danger" type="button" data-act="reset">이 문제은행 기록 모두 지우기</button>
+  </details>`;
+}
+
+/* ── 화면: 학습 ────────────────────────── */
+function viewStudy(tid,fresh){
+  const tab=TABS.find(t=>t.id===tid)||TABS[0];
+  cur=newSheet('study',tab.qs,tab);
+  const rec=S.tabs[tab.id], draft=S.drafts[tab.id];
+  if(fresh){delete S.drafts[tab.id];save();}
+  else if(draft){Object.assign(cur.ans,JSON.parse(JSON.stringify(draft)));}  // 풀던 중이면 이어서
+  else if(rec&&rec.answers){
+    Object.assign(cur.ans,JSON.parse(JSON.stringify(rec.answers)));
+    (rec.touched||[]).forEach(id=>cur.touched.add(id));
+    cur.graded=true;
+  }
+  renderSheet();
+}
+function renderSheet(){
+  const study=cur.mode==='study', tab=cur.tab;
+  const tabbar=study?`<nav class="tabbar noprint" role="tablist" aria-label="탭">${TABS.map((t,i)=>{const r=S.tabs[t.id];
+      return `<a class="tabchip" role="tab" href="#study/${t.id}" aria-selected="${t===tab}"><b>${i+1}</b><span class="tl">${esc(t.title)}</span><span class="qc" id="qc-${t.id}">${fmtCnt(tabAnswered(t),t.qs.length)}</span>${r?`<span class="sc" title="채점 점수">✓${r.score}</span>`:''}</a>`;}).join('')}
+      ${allGraded()?'<a class="tabchip sum" href="#summary">★ 종합</a>':''}</nav>`:'';
+  const head=study?`<div class="tabhead"><h2>${tab.idx+1}. ${esc(tab.title)}</h2>${tab.ref?`<span class="part">${esc(tab.ref)}</span>`:''}</div>`
+                  :`<div class="tabhead"><h2>🔁 오답 다시 풀기</h2><span class="part">${cur.list.length}문항</span></div>`;
+  const next=study?(tab.idx+1<TABS.length?`<a class="btn" href="#study/${TABS[tab.idx+1].id}">다음 탭 →</a>`:(allGraded()?'<a class="btn" href="#summary">★ 종합 결과</a>':'')):'<a class="btn" href="#notes">오답노트로</a>';
+  app.innerHTML=`<div class="sheet">
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>${study?'학습 모드':'오답노트'}</span></nav>
+  ${tabbar}${head}
+  <div class="progress"><div class="bar"><div id="pbar"></div></div><span id="ptxt"></span></div>
+  <div id="sheetResult">${cur.graded?sheetResultHTML():''}</div>
+  <div id="cards" class="${cur.onlyWrong?'onlywrong':''}">${cur.list.map((q,i)=>cardHTML(q,i+1)).join('')}</div>
+  <p class="warn" id="warn" role="status"></p>
+  <div class="actions">
+    ${cur.graded?'':`<button class="btn primary" type="button" data-act="grade">${study?'이 탭 채점하기':'채점하기'} <span class="qc" id="gradeCnt"></span></button>`}
+    ${cur.graded?`<button class="btn" type="button" data-act="onlywrong">${cur.onlyWrong?'전체 보기':'오답만 보기'}</button>`:''}
+    ${study?'<button class="btn" type="button" data-act="retab">다시 풀기</button>':''}
+    ${next}
+  </div></div>`;
+  const on=app.querySelector('.tabchip[aria-selected="true"]');
+  if(on)on.parentElement.scrollLeft=on.offsetLeft-on.parentElement.offsetLeft-16;
+  updateProgress();
+}
+function sheetResultHTML(){
+  const n=cur.list.length, score=cur.list.filter(q=>isCorrect(q,finalAns(q))).length, p=pct(score,n);
+  const msg=p===100?'만점입니다! 🎉':p>=80?'잘했어요. 틀린 문항의 해설과 자료 위치를 확인하세요.':p>=60?'절반 이상 이해했어요. 오답노트로 다시 풀어 보세요.':'자료를 한 번 더 읽고 다시 풀어 보세요.';
+  return `<div class="panel"><div class="score">${score}<small> / ${n} · ${p}%</small></div><p class="msg">${msg}</p>
+    ${cur.mode==='study'&&gameUnlocked()?'<a class="btn" href="#game">⚡ 게임 모드 도전</a>':''}</div>`;
+}
+function gradeSheet(){
+  const miss=cur.list.map((q,i)=>answered(q)?0:i+1).filter(Boolean);
+  if(miss.length&&!cur.armed){
+    cur.armed=true;
+    document.getElementById('warn').textContent=`미응답 ${miss.length}문항 (Q${miss.join(', Q')}). 한 번 더 누르면 미응답은 오답으로 채점합니다.`;
+    return;
+  }
+  const firstUnlock=!gameUnlocked();
+  cur.graded=true;
+  const snap={};let score=0;
+  cur.list.forEach(q=>{
+    const a=finalAns(q);
+    if(a!=null)snap[q.id]=a;
+    if(isCorrect(q,a)){score++;markSolved(q.id);}
+    else addWrong(q.id,answerText(q,a));
+  });
+  if(cur.mode==='study'){
+    S.tabs[cur.tab.id]={score,total:cur.list.length,answers:snap,touched:[...cur.touched],at:Date.now()};
+    delete S.drafts[cur.tab.id];
+  }
+  save();
+  renderSheet();
+  window.scrollTo({top:0,behavior:RM.matches?'auto':'smooth'});
+  say(`채점 결과 ${score}점, ${cur.list.length}문항 중`);
+  if(cur.mode==='study'&&firstUnlock)setTimeout(()=>toast('⚡ 게임 모드와 해설지가 열렸습니다!'),300);
+  else if(cur.mode==='study'&&allGraded())setTimeout(()=>toast('★ 모든 탭 완료! 종합 결과를 확인하세요.'),300);
+}
+
+/* ── 화면: 종합 결과 ───────────────────── */
+function summaryStats(){
+  let score=0,total=0;const byType={},byTab=[];
+  TABS.forEach(t=>{const r=S.tabs[t.id];if(!r)return;let s=0;
+    t.qs.forEach(q=>{const ok=isCorrect(q,r.answers?r.answers[q.id]:null);if(ok)s++;
+      const b=byType[q.ty]||(byType[q.ty]=[0,0]);b[1]++;if(ok)b[0]++;});
+    byTab.push([t,s,t.qs.length]);score+=s;total+=t.qs.length;});
+  return {score,total,byType,byTab};
+}
+function resultCode(score,total){return `${BANK.code||'QB'}-${letter(pct(score,total))}-${hash([S.name.trim(),score,total,BANK.salt].join('|'))}`;}
+function viewSummary(){
+  if(!allGraded()){location.hash='#home';return;}
+  const st=summaryStats(), p=pct(st.score,st.total), code=resultCode(st.score,st.total);
+  app.innerHTML=`
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>종합 결과</span></nav>
+  <div class="printhead">${esc(BANK.title)} · ${esc(S.name||'이름 없음')} · ${today()}</div>
+  <div class="panel">
+    <h2 class="ph">★ 종합 결과</h2>
+    <div class="score">${st.score}<small> / ${st.total} · ${p}%</small></div>
+    <p class="msg">${esc(S.name||'이름 없음')} · 결과 코드 <span class="rcode">${code}</span></p>
+    <h3 class="sh">탭별</h3>
+    <div class="bd">${st.byTab.map(([t,s,n])=>`<div><span>${t.idx+1}. ${esc(t.title)}</span><span class="b"><i style="width:${pct(s,n)}%"></i></span><span>${s}/${n}</span></div>`).join('')}</div>
+    <h3 class="sh">유형별</h3>
+    <div class="bd">${Object.entries(st.byType).map(([ty,[s,n]])=>`<div style="--tc:var(${TYPES[ty][1]})"><span>${TYPES[ty][0]}</span><span class="b"><i style="width:${pct(s,n)}%"></i></span><span>${s}/${n}</span></div>`).join('')}</div>
+  </div>
+  <div class="actions">
+    <button class="btn primary" type="button" data-act="copyreport">📋 결과 리포트 복사</button>
+    <a class="btn" href="#notes">📒 오답노트</a>
+    <a class="btn" href="#game">⚡ 게임 모드</a>
+    <button class="btn" type="button" data-act="print">🖨 인쇄</button>
+  </div>`;
+}
+function reportMD(){
+  const st=summaryStats();
+  let md=`# ${BANK.title} 결과\n\n- 이름: ${S.name||'-'}\n- 날짜: ${today()}\n- 점수: ${st.score}/${st.total} (${pct(st.score,st.total)}%)\n- 결과 코드: ${resultCode(st.score,st.total)}\n\n| 탭 | 점수 |\n|---|---|\n`;
+  st.byTab.forEach(([t,s,n])=>md+=`| ${t.idx+1}. ${t.title} | ${s}/${n} |\n`);
+  md+='\n'+notesMD(true);
+  return md;
+}
+
+/* ── 화면: 오답노트 ────────────────────── */
+function noteHTML(id){
+  const q=QMAP[id], w=S.wrong[id];
+  return `<div class="note${w.solved?' solved':''}"><div class="qt">${q.p}</div><dl>
+    <dt>내 답</dt><dd>${esc(w.last||'-')}</dd><dt>정답</dt><dd><b>${esc(correctText(q))}</b></dd><dt>해설</dt><dd>${q.w}</dd></dl>
+    <div class="foot"><span>📖 ${esc(q.an)}</span><span>${w.solved?'✓ 극복':'틀린 횟수 '+w.n}</span></div></div>`;
+}
+function groupByTab(ids){
+  const out=[];let last=null;
+  ids.forEach(id=>{const t=QTAB[id];if(t!==last){out.push(`<h3 class="ngroup"><span class="part">탭 ${t.idx+1}</span>${esc(t.title)}</h3>`);last=t;}out.push(noteHTML(id));});
+  return out.join('');
+}
+function viewNotes(){
+  const open=wrongList(false), solved=wrongList(true);
+  app.classList.add('sheet');
+  app.innerHTML=`
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>오답노트</span></nav>
+  <div class="printhead">${esc(BANK.title)} 오답노트 · ${esc(S.name||'')} · ${today()}</div>
+  <h1>📒 오답노트</h1>
+  <p class="sub">남은 오답 ${open.length} · 극복 ${solved.length}. 학습 모드와 게임 모드에서 틀린 문항이 모입니다.</p>
+  <div class="actions">
+    <a class="btn primary${open.length?'':' locked'}" href="#retry"${open.length?'':' aria-disabled="true"'}>🔁 오답만 다시 풀기</a>
+    <button class="btn" type="button" data-act="copynotes"${open.length+solved.length?'':' disabled'}>📋 마크다운 복사</button>
+    <button class="btn" type="button" data-act="print">🖨 인쇄</button>
+  </div>
+  ${open.length?groupByTab(open):'<div class="keylock">남은 오답이 없습니다. 👏</div>'}
+  ${solved.length?`<details class="more"><summary>✓ 극복한 문항 ${solved.length}개</summary>${groupByTab(solved)}
+    <button class="btn danger noprint" type="button" data-act="clearsolved">극복한 항목 비우기</button></details>`:''}`;
+}
+function notesMD(onlyOpen){
+  const ids=onlyOpen?wrongList(false):wrongList(false).concat(wrongList(true));
+  let md=`## 오답노트 (${ids.length}문항)\n`;let last=null;
+  ids.forEach(id=>{const q=QMAP[id],w=S.wrong[id],t=QTAB[id];
+    if(t!==last){md+=`\n### 탭 ${t.idx+1}. ${t.title}\n`;last=t;}
+    md+=`\n- **Q. ${strip(q.p)}**${w.solved?' ✓극복':''}\n  - 내 답: ${w.last||'-'}\n  - 정답: ${correctText(q)}\n  - 해설: ${strip(q.w)}\n  - 자료 위치: ${q.an} · 틀린 횟수 ${w.n}\n`;});
+  return md;
+}
+function viewRetry(){
+  const ids=wrongList(false);
+  if(!ids.length){location.hash='#notes';return;}
+  cur=newSheet('retry',ids.map(id=>QMAP[id]),null);
+  renderSheet();
+}
+
+/* ── 화면: 해설지 ──────────────────────── */
+function viewKey(){
+  if(!gameUnlocked()){
+    app.innerHTML=`<nav class="crumbs"><a href="#home">← 홈</a></nav><h1>📄 해설지 🔒</h1><div class="keylock">탭 하나를 채점하면 그 탭의 해설지가 열립니다.<br><br><a class="btn primary" href="#study/${TABS[0].id}">학습 시작</a></div>`;return;
+  }
+  app.classList.add('sheet');
+  app.innerHTML=`
+  <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>해설지</span></nav>
+  <div class="printhead">${esc(BANK.title)} 해설지 · ${esc(S.name||'')} · ${today()}</div>
+  <h1>📄 해설지</h1>
+  <p class="sub">채점한 탭의 정답과 해설입니다. 아직 풀지 않은 탭은 채점 후 공개됩니다.</p>
+  <div class="actions"><button class="btn primary" type="button" data-act="print">🖨 인쇄 / PDF 저장</button></div>
+  ${TABS.map(t=>`<h3 class="ngroup"><span class="part">탭 ${t.idx+1}</span>${esc(t.title)}${t.ref?` <span class="ref">${esc(t.ref)}</span>`:''}</h3>`+
+    (S.tabs[t.id]?t.qs.map((q,i)=>`<div class="keyitem"><div class="kq">${i+1}. ${q.p} <span class="part">${TYPES[q.ty][0]}</span></div>
+      <p class="ka">정답: ${esc(correctText(q))}</p><p class="kw">${q.w}</p><span class="an">📖 ${esc(q.an)}</span></div>`).join('')
+      :`<div class="keylock">🔒 채점 후 공개 · <a href="#study/${t.id}">이 탭 풀기</a></div>`)).join('')}`;
+}
+
+/* ── 화면: 게임 ────────────────────────── */
+let G=null;
+const gameSetup={mode:'timeattack',count:10,scope:'all',time:GAME_MODES.timeattack.defaultTime};
+function gamePool(scope){
+  const M=GAME_MODES[gameSetup.mode];
+  const base=ALLQ.filter(q=>q.game&&M.types.includes(q.ty));
+  if(scope==='played')return shuffle(base.filter(q=>S.tabs[QTAB[q.id].id]));
+  if(scope==='wrong'){const w=new Set(wrongList(false));return shuffle(base.filter(q=>w.has(q.id))).concat(shuffle(base.filter(q=>!w.has(q.id))));}
+  return shuffle(base);
+}
+function viewGamePick(){
+  stopGame();
+  if(!gameUnlocked())return viewGameSetup();
+  app.innerHTML=`
+  <nav class="crumbs"><a href="#home">← 홈</a><span>/</span><span>게임 모드</span></nav>
+  <div class="game">
+    <h1>🎮 게임 모드</h1>
+    <p class="sub">플레이할 게임을 고르세요.</p>
+    <div class="gpick">${GAME_SLOTS.map((id,i)=>{const m=id&&GAME_MODES[id];
+      return m?`<a class="gcard" href="#game/${id}"><span class="gn">GAME ${i+1}</span><b>${m.title}</b><span class="gd">${m.desc}</span></a>`
+              :`<div class="gcard soon" aria-disabled="true"><span class="gn">GAME ${i+1}</span><b>🔒 준비 중</b><span class="gd">새 게임이 추가될 자리입니다.</span></div>`;}).join('')}
+    </div>
+  </div>`;
+}
+function viewGameSetup(modeId){
+  stopGame();
+  if(modeId&&GAME_MODES[modeId])gameSetup.mode=modeId;
+  if(!gameUnlocked()){
+    app.innerHTML=`<nav class="crumbs"><a href="#home">← 홈</a></nav><div class="game"><h1>⚡ 게임 모드 🔒</h1>
+      <div class="keylock">학습 모드에서 <b>탭 하나</b>를 먼저 채점하면 열립니다.<br><br><a class="btn primary" href="#study/${TABS[0].id}">학습 시작</a></div></div>`;return;
+  }
+  const poolN=gamePool(gameSetup.scope).length;
+  const counts=[10,20,30].filter(n=>n<poolN).concat([poolN]);
+  if(!counts.includes(gameSetup.count))gameSetup.count=counts.includes(10)?10:counts[0];
+  const M=GAME_MODES[gameSetup.mode];
+  if(!M.times.includes(gameSetup.time))gameSetup.time=M.defaultTime;
+  const chip=(grp,v,label,dis)=>`<button type="button" class="chip" data-act="gset" data-g="${grp}" data-v="${v}" aria-pressed="${gameSetup[grp]==v}"${dis?' disabled':''}>${label}</button>`;
+  app.innerHTML=`
+  <nav class="crumbs"><a href="#home">← 홈</a><span>/</span><a href="#game">게임 모드</a><span>/</span><span>${M.title.replace(/^\S+\s/,'')}</span></nav>
+  <div class="game">
+    <h1>${M.title}</h1>
+    <p class="sub">${M.desc}</p>
+    <div class="panel">
+      ${Object.keys(GAME_MODES).length>1?`<span class="lbl">게임 종류</span>
+      <div class="chips">${Object.entries(GAME_MODES).map(([id,m])=>chip('mode',id,m.title)).join('')}</div>`:''}
+      <span class="lbl">풀이 시간 (문항당)</span>
+      <div class="chips">${M.times.map(t=>chip('time',t,t+'초')).join('')}</div>
+      <span class="lbl">문항 수</span>
+      <div class="chips">${counts.map(n=>chip('count',n,n===poolN&&!([10,20,30].includes(n))?`전체 ${n}`:String(n))).join('')}</div>
+      <span class="lbl">출제 범위</span>
+      <div class="chips">${chip('scope','all','전체 탭')}${chip('scope','played','풀어본 탭만')}${chip('scope','wrong','오답 우선',!wrongList(false).length)}</div>
+      <div class="field"><label for="gnm">닉네임</label><input id="gnm" data-act="name" maxlength="20" value="${esc(S.name)}" placeholder="순위표에 표시"></div>
+      <div class="rules"><p>⏱ 모든 문항 ${gameSetup.time}초 · 순위는 같은 풀이 시간끼리 비교</p><p>🎯 정답 100점 + 남은 1초당 10점 · 🔥 3연속 ×1.2, 5연속 ×1.5</p><p>⌨ 숫자 1~5로 선택, O/X 키, 복수 선택은 Enter로 제출</p></div>
+      <button class="btn primary block" type="button" data-act="gstart">시작하기</button>
+    </div>
+  </div>`;
+}
+function startGame(){
+  const pool=gamePool(gameSetup.scope).slice(0,gameSetup.count);
+  if(!pool.length){toast('출제할 문항이 없습니다.');return;}
+  G={qs:pool,i:0,score:0,combo:0,maxCombo:0,results:[],locked:false,mode:gameSetup.mode,time:gameSetup.time};
+  renderGameQ();
+}
+function renderGameQ(){
+  const q=G.qs[G.i];
+  G.locked=false;G.elapsed=0;G.last=performance.now();G.limit=G.time*1000;G.warned=false;G.pick=[];
+  G.view=q.ty==='ox'?[true,false]:shuffle(range(q.o.length));
+  const opts=q.ty==='ox'
+    ?`<div class="gox">${G.view.map((v,k)=>`<button type="button" class="gopt" data-act="gans" data-k="${k}" aria-label="${v?'O 맞다':'X 틀리다'}">${v?'O':'X'}</button>`).join('')}</div>`
+    :`<div class="gopts">${G.view.map((oi,k)=>`<button type="button" class="gopt" data-act="gans" data-k="${k}"${q.ty==='multi'?' aria-pressed="false"':''}><kbd>${k+1}</kbd><span>${esc(q.o[oi])}</span></button>`).join('')}</div>`;
+  app.innerHTML=`
+  <div class="game play">
+    <div class="gtop"><div class="hud"><span>${G.i+1} / ${G.qs.length}</span><span class="combo${G.combo>=3?' hot':''}">🔥 콤보 ${G.combo}</span><span class="pts">${G.score.toLocaleString()}점</span></div>
+    <div class="timer" id="timer"><div id="tbar"></div></div><div class="tleft" id="tleft"></div></div>
+    <div class="gtype">${TYPES[q.ty][0]}${q.ty==='multi'?' · 모두 고른 뒤 제출':''}</div>
+    <div class="gq">${q.p}</div>
+    <div class="gbottom">${opts}
+    <div class="gfloat" id="gfloat" aria-live="polite"></div>
+    <div class="gsub"><button class="btn" type="button" data-act="gquit">그만하기</button>
+      ${q.ty==='multi'?'<button class="btn primary" type="button" data-act="gsubmit">제출 (Enter)</button>':''}</div></div>
+  </div>`;
+  G.raf=requestAnimationFrame(tick);
+}
+function tick(now){
+  if(!G||G.locked)return;
+  G.elapsed+=now-G.last;G.last=now;
+  const rem=Math.max(0,G.limit-G.elapsed), ratio=rem/G.limit;
+  const shown=RM.matches?Math.ceil(rem/1000)*1000/G.limit:ratio;
+  const bar=document.getElementById('tbar'), tm=document.getElementById('timer');
+  if(bar){bar.style.width=(Math.min(1,shown)*100)+'%';tm.className='timer'+(ratio<.25?' lo':ratio<.5?' mid':'');
+    document.getElementById('tleft').textContent=(rem/1000).toFixed(1)+'초';}
+  if(!G.warned&&rem<=5000){G.warned=true;say('5초 남았습니다');}
+  if(rem<=0){judge(null,true);return;}
+  G.raf=requestAnimationFrame(tick);
+}
+function judge(ans,timeout){
+  if(!G||G.locked)return;
+  G.locked=true;cancelAnimationFrame(G.raf);
+  const q=G.qs[G.i], used=Math.min(G.elapsed,G.limit), ok=!timeout&&isCorrect(q,ans);
+  let gain=0;
+  if(ok){G.combo++;G.maxCombo=Math.max(G.maxCombo,G.combo);
+    const mult=G.combo>=5?1.5:G.combo>=3?1.2:1;
+    gain=Math.round((100+Math.floor((G.limit-used)/100))*mult);G.score+=gain;}
+  else G.combo=0;
+  G.results.push({id:q.id,ok,ans,timeout,ms:used,gain});
+  // 판정 표시
+  app.querySelectorAll('[data-act="gans"]').forEach(b=>{
+    const k=+b.dataset.k, v=G.view[k];
+    const right=q.ty==='ox'?q.a===v:q.ty==='mc'?q.a===v:q.a.includes(v);
+    const picked=q.ty==='ox'||q.ty==='mc'?ans===v:(ans||[]).includes(v);
+    if(right)b.classList.add('ans');else if(picked)b.classList.add('miss');
+    b.disabled=true;
+  });
+  const f=document.getElementById('gfloat');
+  f.className='gfloat pop '+(ok?'ok':'no');
+  f.textContent=ok?`+${gain}${G.combo>=3?` 🔥×${G.combo>=5?'1.5':'1.2'}`:''}`:timeout?'⏰ 시간 초과':'✗ 오답';
+  if(timeout){const tm=document.getElementById('timer');tm&&tm.classList.add('out');}
+  const sb=app.querySelector('[data-act="gsubmit"]');if(sb)sb.disabled=true;
+  app.querySelector('.pts').textContent=G.score.toLocaleString()+'점';
+  const c=app.querySelector('.combo');c.textContent='🔥 콤보 '+G.combo;c.classList.toggle('hot',G.combo>=3);
+  G.next=setTimeout(()=>{if(!G)return;G.i++;G.i<G.qs.length?renderGameQ():finishGame();},ok?900:1400);
+}
+function gameAnswer(k){
+  if(!G||G.locked)return;
+  const q=G.qs[G.i];if(k<0||k>=G.view.length)return;
+  if(q.ty==='multi'){
+    const v=G.view[k], i=G.pick.indexOf(v);
+    i<0?G.pick.push(v):G.pick.splice(i,1);
+    const b=app.querySelector(`[data-act="gans"][data-k="${k}"]`);b&&b.setAttribute('aria-pressed',i<0);
+  }else judge(G.view[k],false);
+}
+function gameSubmit(){if(G&&!G.locked&&G.qs[G.i].ty==='multi')judge(G.pick.slice(),false);}
+function stopGame(){if(G){cancelAnimationFrame(G.raf);clearTimeout(G.next);G=null;}}
+function finishGame(){
+  const R=G.results, correct=R.filter(r=>r.ok).length, M=GAME_MODES[G.mode];
+  R.forEach(r=>{const q=QMAP[r.id];if(r.ok)markSolved(r.id);else addWrong(r.id,r.timeout?'(시간 초과)':answerText(q,r.ans));});
+  const rec={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:(S.name||'').trim()||'익명',score:G.score,
+    correct,total:R.length,rate:pct(correct,R.length),avg:Math.round(R.reduce((s,r)=>s+r.ms,0)/R.length/100)/10,combo:G.maxCombo,mode:G.mode,time:G.time,at:Date.now()};
+  const rank=Leaderboard.add(rec);
+  save();
+  const board=Leaderboard.load(boardKey(rec)), top=board.slice(0,10), mine=board.find(r=>r.id===rec.id);
+  const medal=i=>i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1;
+  const row=(r,i)=>`<tr class="${r.id===rec.id?'me':''}"><td>${medal(i)}</td><td>${esc(r.name)}</td><td class="r">${r.score.toLocaleString()}</td><td class="r">${r.rate}%</td><td class="r">${r.correct}/${r.total}</td><td class="r">${new Date(r.at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})}</td></tr>`;
+  const wrong=R.filter(r=>!r.ok);
+  G=null;
+  app.innerHTML=`
+  <div class="game">
+    <div class="panel center">
+      <p class="note-sm" style="margin:0">최종 점수</p>
+      <div class="score xl">${rec.score.toLocaleString()}</div>
+      <p class="msg">${M.title} · ${rec.time}초 — ${rank===1?'🏆 이 조건 최고 기록!':`이 조건 순위 ${rank}위`}</p>
+      <div class="bignum"><div><b>${correct}/${rec.total}</b><span>정답</span></div><div><b>${rec.rate}%</b><span>정답률</span></div><div><b>${rec.avg}초</b><span>평균 응답</span></div><div><b>${rec.combo}</b><span>최고 콤보</span></div></div>
+    </div>
+    <div class="panel"><h2 class="ph">🏆 순위 · ${M.title.replace(/^\S+\s/,'')} ${rec.time}초 · 이 브라우저 기록</h2>
+      <table class="board"><thead><tr><th>#</th><th>이름</th><th class="r">점수</th><th class="r">정답률</th><th class="r">정답</th><th class="r">날짜</th></tr></thead>
+      <tbody>${top.map(row).join('')}${rank>10&&mine?row(mine,rank-1):''}</tbody></table></div>
+    ${wrong.length?`<details class="more panel"><summary>틀린 문항 ${wrong.length}개 · 해설 보기 (오답노트에 저장됨)</summary>
+      ${wrong.map(r=>{const q=QMAP[r.id];return `<div class="keyitem"><div class="kq">${q.p}</div><p class="mine" style="margin:4px 0">내 답: ${esc(r.timeout?'(시간 초과)':answerText(q,r.ans))}</p><p class="ka">정답: ${esc(correctText(q))}</p><p class="kw">${q.w}</p><span class="an">📖 ${esc(q.an)}</span></div>`;}).join('')}</details>`:''}
+    <div class="actions"><button class="btn primary" type="button" data-act="gagain">↻ 다시 하기</button><a class="btn" href="#notes">📒 오답노트</a><a class="btn" href="#home">홈</a></div>
+  </div>`;
+}
+
+/* ── 라우터 · 이벤트 ───────────────────── */
+function route(){
+  stopGame();cur=null;app.classList.remove('sheet');
+  const [v,arg]=(location.hash.slice(1)||'home').split('/');
+  ({study:()=>viewStudy(arg),notes:viewNotes,retry:viewRetry,key:viewKey,game:()=>arg?viewGameSetup(arg):viewGamePick(),summary:viewSummary}[v]||viewHome)();
+  window.scrollTo(0,0);
+}
+let resetArmed=false;
+app.addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el||el.disabled)return;
+  const act=el.dataset.act;
+  if(cur&&['ox','ml','mr','ord','hint','src'].includes(act))return onSheetClick(el);
+  switch(act){
+    case 'grade':gradeSheet();break;
+    case 'retab':viewStudy(cur.tab.id,true);window.scrollTo(0,0);break;  // 이전 점수는 다시 채점할 때까지 유지
+    case 'onlywrong':cur.onlyWrong=!cur.onlyWrong;document.getElementById('cards').classList.toggle('onlywrong',cur.onlyWrong);el.textContent=cur.onlyWrong?'전체 보기':'오답만 보기';break;
+    case 'copyreport':copy(reportMD());break;
+    case 'copynotes':copy(`# ${BANK.title}\n\n- 이름: ${S.name||'-'} · ${today()}\n\n`+notesMD(false));break;
+    case 'clearsolved':wrongList(true).forEach(id=>delete S.wrong[id]);save();viewNotes();break;
+    case 'print':window.print();break;
+    case 'reset':
+      if(!resetArmed){resetArmed=true;el.textContent='정말 지울까요? 한 번 더 누르세요';setTimeout(()=>{resetArmed=false;if(el.isConnected)el.textContent='이 문제은행 기록 모두 지우기';},4000);break;}
+      resetArmed=false;const nm=S.name;S=blank();S.name=nm;save();toast('기록을 지웠습니다');viewHome();break;
+    case 'gset':gameSetup[el.dataset.g]=['count','time'].includes(el.dataset.g)?+el.dataset.v:el.dataset.v;viewGameSetup();break;
+    case 'gstart':startGame();break;
+    case 'gans':gameAnswer(+el.dataset.k);break;
+    case 'gsubmit':gameSubmit();break;
+    case 'gquit':stopGame();viewGameSetup(gameSetup.mode);break;
+    case 'gagain':startGame();break;
+  }
+});
+app.addEventListener('change',e=>{const el=e.target;if(cur&&el.dataset&&(el.dataset.act==='pick'||el.dataset.act==='tick'))onSheetChange(el);});
+app.addEventListener('input',e=>{
+  const el=e.target;if(!el.dataset)return;
+  if(el.dataset.act==='name'){S.name=el.value;save();}
+  else if(cur)onSheetInput(el);
+});
+document.addEventListener('keydown',e=>{
+  if(!G||G.locked||e.altKey||e.ctrlKey||e.metaKey)return;
+  if(e.target.matches&&e.target.matches('input,textarea'))return;
+  const q=G.qs[G.i], k=e.key.toLowerCase();
+  if(q.ty==='ox'){if(k==='o'||k==='1'){e.preventDefault();gameAnswer(0);}else if(k==='x'||k==='2'){e.preventDefault();gameAnswer(1);}return;}
+  if(/^[1-9]$/.test(k)){e.preventDefault();gameAnswer(+k-1);}
+  else if(k==='enter'&&q.ty==='multi'){e.preventDefault();gameSubmit();}
+});
+document.addEventListener('visibilitychange',()=>{if(G&&!document.hidden)G.last=performance.now();});
+// 탭 바 좌우 화살표
+app.addEventListener('keydown',e=>{
+  const t=e.target.closest&&e.target.closest('.tabchip');if(!t||(e.key!=='ArrowRight'&&e.key!=='ArrowLeft'))return;
+  const n=e.key==='ArrowRight'?t.nextElementSibling:t.previousElementSibling;if(n){e.preventDefault();n.focus();}
+});
+/* 테마 */
+let theme=null;try{theme=localStorage.getItem('qb:theme');}catch(e){}
+const applyTheme=()=>{if(theme)document.documentElement.dataset.theme=theme;else delete document.documentElement.dataset.theme;};
+applyTheme();
+document.getElementById('themeBtn').addEventListener('click',()=>{
+  const dark=theme?theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  theme=dark?'light':'dark';try{localStorage.setItem('qb:theme',theme);}catch(e){}applyTheme();
+});
+document.title=BANK.title+' · 문제은행';
+window.addEventListener('hashchange',route);
+route();
+})();
+</script>
+</body>
+</html>

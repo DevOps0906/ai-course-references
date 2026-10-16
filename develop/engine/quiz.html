@@ -163,6 +163,12 @@ button:focus-visible,a:focus-visible,input:focus-visible,.opt:focus-within{outli
 .hintbtn{font:inherit;font-size:var(--fs-xs);font-weight:650;display:inline-flex;align-items:center;gap:4px;color:var(--bad);background:color-mix(in srgb,var(--bad) 7%,transparent);border:1px solid color-mix(in srgb,var(--bad) 40%,transparent);border-radius:var(--r-sm);padding:2px 9px;cursor:pointer;line-height:1.5}
 .hintbtn:hover{background:color-mix(in srgb,var(--bad) 13%,transparent)}
 .hintbtn .caret{font-size:.85em}
+.srcwrap{margin-top:8px}
+.srcbtn{font:inherit;font-size:var(--fs-xs);font-weight:600;display:inline-flex;align-items:center;gap:4px;color:var(--link);background:transparent;border:1px solid var(--line-2);border-radius:var(--r-sm);padding:1px 8px;cursor:pointer;line-height:1.5}
+.srcbtn:hover{border-color:var(--link)}
+.src{margin:6px 0 0;padding:6px 10px;border-left:3px solid var(--link);background:var(--soft);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:var(--fs-xs);color:var(--muted)}
+.src p{margin:0;white-space:pre-wrap;word-break:break-word}
+.src cite{display:block;margin-top:4px;font-style:normal;font-size:var(--fs-2xs);color:var(--faint)}
 .hint{margin-top:6px;padding:6px 10px;border-left:3px solid var(--bad);background:color-mix(in srgb,var(--bad) 6%,transparent);border-radius:0 var(--r-sm) var(--r-sm) 0;font-size:var(--fs-sm);color:var(--ink)}
 /* 해설 */
 .exp{margin-top:10px;padding:2px 0 2px 10px;border-left:3px solid var(--line-2);font-size:var(--fs-sm);color:var(--muted)}
@@ -434,7 +440,7 @@ const wrongList=solved=>Object.keys(S.wrong).filter(id=>QMAP[id]&&!!S.wrong[id].
 /* ── 문항 풀이 상태(학습·재도전 공용) ───── */
 let cur=null;  // {mode,list,ans,touched,msel,shuf,graded,armed,tab}
 function newSheet(mode,list,tab){
-  const c={mode,list,tab,ans:{},touched:new Set(),msel:{},shuf:{},hints:new Set(),graded:false,armed:false,onlyWrong:false};
+  const c={mode,list,tab,ans:{},touched:new Set(),msel:{},shuf:{},hints:new Set(),srcs:new Set(),graded:false,armed:false,onlyWrong:false};
   list.forEach(q=>{
     if(q.ty==='match')c.shuf[q.id]=derange(q.pairs.length);
     if(q.ty==='order')c.shuf[q.id]=derange(q.steps.length);  // 화면 배치(고정). 답 = 클릭한 순서의 단계 인덱스 배열
@@ -509,12 +515,19 @@ function lvHTML(lv){
   const dots=[1,2,3].map(k=>k<=lv?`<i class="d${k}">●</i>`:'<i class="off">○</i>').join('');
   return `<span class="lv lv${lv}" title="난이도 ${LV_NAME[lv-1]}"><span class="dots" aria-hidden="true">${dots}</span><em>${LV_NAME[lv-1]}</em></span>`;
 }
+// 자료 발췌: 이스케이프 후 마크다운 기호만 가볍게 서식으로 (**굵게**, `코드`, 머리 #)
+const srcText=t=>esc(t).replace(/^#{1,6}\s*/gm,'').replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/`([^`\n]+)`/g,'<code>$1</code>');
 function hintHTML(q){
   if(!q.h)return '';
   const open=cur.hints.has(q.id), label=q.ty==='num'?'Hint · 계산식':'Hint';
+  // 2단계: ① 자세한 힌트(h) ② 자료 보기 — 자료 원문 발췌(src) + 위치(an)
+  const sopen=cur.srcs.has(q.id);
+  const src=q.src?`<div class="srcwrap"><button type="button" class="srcbtn" data-act="src" data-q="${q.id}" data-fk="${q.id}-src" aria-expanded="${sopen}" aria-controls="src-${q.id}">`+
+    `<span class="caret" aria-hidden="true">${sopen?'▾':'▸'}</span>📖 자료 보기</button>`+
+    (sopen?`<blockquote class="src" id="src-${q.id}"><p>${srcText(q.src)}</p>${q.an?`<cite>${esc(q.an)}</cite>`:''}</blockquote>`:'')+`</div>`:'';
   return `<div class="hintwrap"><button type="button" class="hintbtn" data-act="hint" data-q="${q.id}" data-fk="${q.id}-hint" aria-expanded="${open}" aria-controls="hint-${q.id}">`+
     `<span class="caret" aria-hidden="true">${open?'▾':'▸'}</span>${label}</button>`+
-    (open?`<div class="hint" id="hint-${q.id}">${q.h}</div>`:'')+`</div>`;
+    (open?`<div class="hint" id="hint-${q.id}">${q.h}${src}</div>`:'')+`</div>`;
 }
 function refreshCard(q){
   const el=document.getElementById('card-'+q.id);if(!el)return;
@@ -551,6 +564,7 @@ function updateProgress(){
 function onSheetClick(el){
   const q=QMAP[el.dataset.q];if(!q)return;
   if(el.dataset.act==='hint'){cur.hints.has(q.id)?cur.hints.delete(q.id):cur.hints.add(q.id);refreshCard(q);return;}  // 채점 후에도 열고 닫기 가능
+  if(el.dataset.act==='src'){cur.srcs.has(q.id)?cur.srcs.delete(q.id):cur.srcs.add(q.id);refreshCard(q);return;}  // 채점 후에도 열고 닫기 가능
   if(cur.graded)return;
   const act=el.dataset.act;
   if(act==='ox'){cur.ans[q.id]=el.dataset.v==='1';}
@@ -588,7 +602,7 @@ function viewHome(){
   const done=TABS.filter(t=>S.tabs[t.id]).length, open=wrongList(false).length, unlocked=gameUnlocked();
   const firstTodo=(TABS.find(t=>!S.tabs[t.id])||TABS[0]).id;
   app.innerHTML=`
-  <nav class="crumbs"><a href="__HUB__">← 전체 문제은행</a></nav>
+  <nav class="crumbs"><a href="__HUBSTAGE__">← 과정 목록</a></nav>
   <h1>${esc(BANK.title)}</h1>
   ${BANK.subtitle?`<p class="sub">${esc(BANK.subtitle)}</p>`:''}
   <p class="meta">${ALLQ.length}문항 · ${TABS.length}탭 · 출처 ${esc(BANK.course||BANK.source)}${BANK.updated?' · '+esc(BANK.updated):''}</p>
@@ -961,7 +975,7 @@ let resetArmed=false;
 app.addEventListener('click',e=>{
   const el=e.target.closest('[data-act]');if(!el||el.disabled)return;
   const act=el.dataset.act;
-  if(cur&&['ox','ml','mr','ord','hint'].includes(act))return onSheetClick(el);
+  if(cur&&['ox','ml','mr','ord','hint','src'].includes(act))return onSheetClick(el);
   switch(act){
     case 'grade':gradeSheet();break;
     case 'retab':viewStudy(cur.tab.id,true);window.scrollTo(0,0);break;  // 이전 점수는 다시 채점할 때까지 유지

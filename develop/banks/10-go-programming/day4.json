@@ -1,0 +1,1694 @@
+{
+  "id": "go-d4",
+  "code": "GO4",
+  "title": "Go 언어 4일차 · 동시성 심화 (select·Context·Worker Pool·Pipeline)",
+  "subtitle": "select·타임아웃 · Context 취소 전파 · Worker Pool·Pipeline",
+  "course": "10 · Go 언어 프로그래밍",
+  "source": "10-go_programming-main/Go언어프로그래밍_4일차.md + 솔루션 + day4/",
+  "salt": "go-d4",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "select 심화 · nil 채널",
+      "ref": "1교시 §1.1–1.6",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>select</code>에서 준비된 case가 여러 개일 때의 동작은?",
+          "o": [
+            "먼저 작성된 case 실행",
+            "무작위로 하나 선택",
+            "마지막 case 실행",
+            "모든 case를 차례로 실행"
+          ],
+          "a": 1,
+          "h": "4일차 §1.1 동작 규칙 표는 select가 준비된 case 수에 따라 어떻게 동작하는지 정리합니다. 준비된 case가 여러 개일 때는 특정 case가 계속 뽑히는 편향을 막기 위해 순서나 우선순위로 고르지 않습니다.",
+          "w": "준비된 case가 여러 개면 <code>select</code>는 무작위로 하나를 고릅니다. 작성 순서에 따라 우선순위가 생기지 않으므로 특정 채널만 처리되는 편향을 막습니다.",
+          "an": "Go언어프로그래밍_4일차.md §1.1 동작 규칙 재정리",
+          "src": "### 동작 규칙 재정리\n\n| 상황 | 동작 |\n|---|---|\n| 준비된 case 1개 | 그것 실행 |\n| 준비된 case 여러 개 | **무작위** 선택 (편향 방지) |\n| 준비된 case 없음 + default 있음 | default 실행 (non-blocking) |\n| 준비된 case 없음 + default 없음 | 블록 |\n| 모든 case가 nil 채널 + default 없음 | **영원히 블록** (데드락) |"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>select</code> 안에서 nil 채널을 대상으로 한 case는 어떻게 동작합니까?",
+          "o": [
+            "패닉이 발생한다",
+            "즉시 0값을 받는다",
+            "default처럼 동작한다",
+            "영원히 블록돼 뽑히지 않는다"
+          ],
+          "a": 3,
+          "h": "select에서 nil 채널을 대상으로 한 송수신은 절대 준비 상태가 되지 않습니다. 교안은 이 성질을 역으로 이용해 채널 변수를 nil로 두면 해당 case가 꺼지고, make로 채널을 넣으면 다시 켜진다고 설명합니다.",
+          "w": "nil 채널은 영원히 블록되므로 그 case는 절대 선택되지 않습니다. 그래서 채널 변수를 nil로 두면 case를 동적으로 비활성화할 수 있습니다.",
+          "an": "Go언어프로그래밍_4일차.md §1.3 nil 채널 활용",
+          "src": "`select`에서 **nil 채널은 영원히 블록**됩니다. 이걸 역으로 이용하면 case를 켜고 끌 수 있습니다.\n\n```go\nvar inCh = make(chan int)\nvar outCh chan int // nil 시작\n\n// 어떤 조건에서 outCh를 활성화\nif needForward {\n outCh = make(chan int)\n}\n\nselect {\ncase v := <-inCh:\n fmt.Println(\"input:\", v)\ncase outCh <- 42: // outCh가 nil이면 이 case는 영원히 안 뽑힘"
+        },
+        {
+          "id": "t1-03",
+          "ty": "num",
+          "lv": 3,
+          "game": false,
+          "p": "다음 코드에서 '알림 큐잉됨'은 몇 번 출력됩니까? <code>notify := make(chan struct{}, 1)</code> <code>for i := 0; i &lt; 10; i++ { select { case notify &lt;- struct{}{}: fmt.Println('알림 큐잉됨') default: fmt.Println('이미 대기 중 — 드롭') } }</code>",
+          "a": 1,
+          "unit": "번",
+          "h": "notify는 버퍼가 1인 채널이라 처음 한 번은 비어 있는 버퍼에 값이 들어갑니다. 이후 시도는 버퍼가 가득 차 송신 case가 준비되지 않으므로 모두 default로 빠지며, 출력 횟수는 '버퍼 크기 − 이미 들어 있던 값 수'로 계산합니다.",
+          "w": "버퍼가 1인 채널은 첫 송신만 성공하고, 소비 전까지 나머지 9번은 <code>default</code>로 빠져 드롭됩니다. 이것이 이벤트 결합(coalescing) 패턴입니다.",
+          "an": "Go언어프로그래밍_4일차.md §1.6 select_patterns.go 패턴 1",
+          "src": "// 패턴 1: 이벤트 결합 (Coalescing)\nfunc coalesceDemo() {\n fmt.Println(\"\\n=== Pattern 1: Event Coalescing ===\")\n notify := make(chan struct{}, 1)\n // 빠르게 10번 트리거 — 하나만 큐에 남음\n for i := 0; i < 10; i++ {\n select {\n case notify <- struct{}{}:\n fmt.Println(\"알림 큐잉됨\")\n default:\n fmt.Println(\"이미 대기 중 — 드롭\")\n }\n }\n // 소비\n <-notify\n fmt.Println(\"알림 소비\")"
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>for-select</code> 루프에 <code>default</code>를 넣으면 생기는 문제는?",
+          "o": [
+            "CPU를 100% 점유한다",
+            "데드락이 발생한다",
+            "채널이 자동으로 닫힌다",
+            "컴파일 오류가 난다"
+          ],
+          "a": 0,
+          "h": "for-select 루프에 default를 두면 준비된 case가 없을 때마다 기다리지 않고 곧장 default로 빠져 다시 루프를 돕니다. 교안은 이를 '바쁜 루프' 안티 패턴이라 부르며 CPU가 폭주한다고 경고합니다.",
+          "w": "<code>default</code>가 있으면 매 반복마다 즉시 그쪽으로 빠져 바쁜 루프가 되고 CPU가 폭주합니다. <code>default</code>는 확인만 하고 다른 일을 할 때만 씁니다.",
+          "an": "Go언어프로그래밍_4일차.md §1.4 안티 패턴 ②",
+          "src": "### 안티 패턴 ② — `default`로 바쁜 루프\n\n```go\n// ❌ CPU 100% 점유\nfor {\n select {\n case job := <-jobs:\n process(job)\n default:\n // 매 사이클마다 여기로 — CPU 폭주\n }\n}\n```\n\n`default`는 **정말 비동기적으로 확인만 하고 다른 일을 할 때**만 씁니다."
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "런타임에 개수가 달라지는 채널들을 동적으로 select하려면 무엇을 씁니까?",
+          "o": [
+            "time.After",
+            "sync.WaitGroup",
+            "reflect.Select",
+            "context.WithCancel"
+          ],
+          "a": 2,
+          "h": "일반 select의 case 개수는 컴파일 시점에 고정됩니다. 런타임에 개수가 바뀌는 채널들을 다루려면 reflect 패키지의 SelectCase 슬라이스를 만들어 넘기는 함수를 쓰며, 교안은 대안으로 fan-in 패턴도 소개합니다.",
+          "w": "<code>reflect.Select</code>는 <code>SelectCase</code> 슬라이스로 가변 개수 채널을 다룹니다. 다만 일반 select보다 10~100배 느려서 보통은 fan-in 패턴을 더 자주 씁니다.",
+          "an": "Go언어프로그래밍_4일차.md §1.5 reflect.Select",
+          "src": "`select`의 case 개수는 **컴파일 시점에 고정**됩니다. 런타임에 가변 개수의 채널을 다루려면 `reflect.Select`를 씁니다.\n\n```go\nimport \"reflect\"\n\nfunc dynamicSelect(channels []chan int) {\n cases := make([]reflect.SelectCase, len(channels))\n for i, ch := range channels {\n cases[i] = reflect.SelectCase{\n Dir: reflect.SelectRecv,\n Chan: reflect.ValueOf(ch),\n }\n }\n chosen, value, ok := reflect.Select(cases)"
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "모든 case가 nil 채널이고 default도 없으면 <code>select</code>는 영원히 블록됩니다.",
+          "a": true,
+          "h": "동작 규칙 표의 마지막 줄은 모든 case가 nil 채널이고 default도 없는 경우입니다. nil 채널은 영원히 준비되지 않으므로 select가 어떤 case도 실행하지 못하며, 교안은 이를 데드락으로 표시합니다.",
+          "w": "맞습니다. 모든 case가 nil 채널이고 default가 없으면 영원히 블록되어 데드락이 됩니다.",
+          "an": "Go언어프로그래밍_4일차.md §1.1 동작 규칙 재정리",
+          "src": "### 동작 규칙 재정리\n\n| 상황 | 동작 |\n|---|---|\n| 준비된 case 1개 | 그것 실행 |\n| 준비된 case 여러 개 | **무작위** 선택 (편향 방지) |\n| 준비된 case 없음 + default 있음 | default 실행 (non-blocking) |\n| 준비된 case 없음 + default 없음 | 블록 |\n| 모든 case가 nil 채널 + default 없음 | **영원히 블록** (데드락) |"
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>reflect.Select</code>는 일반 <code>select</code>보다 빠르므로 가능한 한 자주 쓰는 것이 좋습니다.",
+          "a": false,
+          "h": "교안은 reflect.Select에 '주의' 표시를 달아 일반 select보다 10~100배 느리다고 경고합니다. 정말 필요할 때만 쓰고, 보통은 여러 채널을 하나로 합치는 fan-in 패턴을 더 자주 쓴다고 설명합니다.",
+          "w": "틀렸습니다. <code>reflect.Select</code>는 일반 select의 10~100배 느리므로 정말 필요할 때만 씁니다. 대안으로 fan-in 패턴을 더 자주 씁니다.",
+          "an": "Go언어프로그래밍_4일차.md §1.5 reflect.Select",
+          "src": "**주의**: 매우 느립니다(일반 `select`의 10~100배). 정말 필요할 때만 사용하세요. 대안으로 fan-in 패턴(여러 채널 → 하나로 합치기)을 더 자주 씁니다."
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "select 활용 패턴과 그 목적을 연결하세요.",
+          "pairs": [
+            [
+              "select + default 송신",
+              "Non-blocking 송신"
+            ],
+            [
+              "nil 채널 변수",
+              "case 동적 비활성화"
+            ],
+            [
+              "for-select + done case",
+              "종료 가능한 워커 루프"
+            ],
+            [
+              "버퍼 1 알림 채널",
+              "이벤트 결합(coalescing)"
+            ]
+          ],
+          "h": "select + default 송신은 블록 없이 보내 보는 Non-blocking 송신, nil 채널 변수는 case를 켜고 끄는 장치입니다. for-select에 done case를 넣으면 종료 가능한 워커가 되고, 버퍼 1 알림 채널은 여러 알림을 하나로 합치는 coalescing입니다.",
+          "w": "default는 블록 없이 송수신을 시도하고, nil 채널은 case를 끄며, done case는 워커를 종료시킵니다. 버퍼 1 채널에 select+default로 보내면 중복 알림이 하나로 합쳐집니다.",
+          "an": "Go언어프로그래밍_4일차.md §1.2–1.4",
+          "src": "### 활용 예 — 드롭 가능한 알림\n\n```go\n// 알림 채널 - 가득 차면 그냥 버림 (overload 방지)\nnotify := make(chan struct{}, 1)\n\nfunc notifyOnce() {\n select {\n case notify <- struct{}{}:\n // 알림 전송됨\n default:\n // 이미 알림이 큐에 있음 - 무시\n }\n}\n```\n\n이 패턴은 **이벤트 결합(coalescing)**이라 불립니다. C에서는 직접 구현하기 번거롭지만 Go는 한 블록으로 끝납니다."
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 3,
+          "game": false,
+          "p": "nil 채널로 송수신을 동시 처리하는 producer 루프의 한 사이클을 순서대로 놓으세요.",
+          "steps": [
+            "send 변수를 nil로 초기화",
+            "pending이 있으면 send = out, first = pending[0]",
+            "select로 송신 또는 타이머 대기",
+            "송신 성공 시 pending = pending[1:]"
+          ],
+          "h": "producer 루프는 매 사이클 send 변수를 nil로 시작합니다. pending에 데이터가 있을 때만 send = out, first = pending[0]으로 송신 case를 켜고, select로 송신 또는 타이머를 기다리며, 송신에 성공하면 pending에서 첫 항목을 제거합니다.",
+          "w": "매 반복 send를 nil로 두고, pending이 있을 때만 out을 대입해 송신 case를 켭니다. select에서 송신이 성공하면 큐에서 첫 항목을 제거합니다.",
+          "an": "Go언어프로그래밍_4일차.md §1.3 실전 패턴 — 송수신 동시 처리",
+          "src": "func producer(out chan<- int) {\n var pending []int\n var nextValue int\n\n for {\n var send chan<- int // nil 시작\n var first int\n\n // pending이 있을 때만 send를 활성화\n if len(pending) > 0 {\n send = out\n first = pending[0]\n }\n\n select {\n case send <- first:\n // 첫 항목 송신 성공 → 큐에서 제거\n pending = pending[1:]"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "<code>for-select</code> 워커 작성에 대한 설명으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "종료 신호 done case를 넣는다",
+            "done이 없으면 종료할 방법이 없다",
+            "default는 바쁜 루프를 만든다",
+            "case 개수를 런타임에 늘린다",
+            "nil 채널 case도 가끔 뽑힌다"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "교안의 안티 패턴 ①은 for-select에 done case가 없어 루프를 끝낼 방법이 없는 경우이고, 안티 패턴 ②는 default를 넣어 CPU를 점유하는 바쁜 루프입니다. 워커는 종료 신호 case를 넣고 default는 피해야 합니다.",
+          "w": "for-select 워커는 done case로 누수를 막고, default 남용은 CPU 폭주를 부릅니다. case 수는 컴파일 시점에 고정되고, nil 채널 case는 절대 선택되지 않습니다.",
+          "an": "Go언어프로그래밍_4일차.md §1.3–1.5",
+          "src": "### 안티 패턴 ① — `done` 누락\n\n```go\n// ❌ 종료할 방법이 없음\nfor {\n select {\n case job := <-jobs:\n process(job)\n }\n}\n```"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "타임아웃 · Timer · Ticker",
+      "ref": "2교시 §2.1–2.7",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>time.After(d)</code>가 반환하는 것은?",
+          "o": [
+            "d 후 값이 들어오는 채널",
+            "d 동안 블록하는 함수",
+            "취소 가능한 Context",
+            "반복 신호를 주는 Ticker"
+          ],
+          "a": 0,
+          "h": "time.After(d)의 반환값은 select의 case에 <-time.After(2 * time.Second)처럼 바로 넣어 수신합니다. 교안은 이 함수가 d 시간이 지나면 값이 들어오는 무언가를 돌려준다고 설명하므로, 수신 연산이 가능한 타입을 떠올려 보세요.",
+          "w": "<code>time.After(d)</code>는 d 시간 뒤에 값이 들어오는 채널을 반환하므로 select의 타임아웃 case로 씁니다. 반복 신호는 Ticker의 역할입니다.",
+          "an": "Go언어프로그래밍_4일차.md §2.2 time.After",
+          "src": "## 2.2 `time.After` — 일회성 타임아웃\n\n```go\nimport \"time\"\n\nselect {\ncase v := <-ch:\n fmt.Println(\"받음:\", v)\ncase <-time.After(2 * time.Second):\n fmt.Println(\"타임아웃!\")\n}\n```\n\n`time.After(d)`는 **`d` 시간 후에 값이 들어오는 채널**을 반환합니다."
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>timer.Stop()</code>이 <code>false</code>를 반환했을 때 해야 할 일은?",
+          "o": [
+            "아무것도 하지 않는다",
+            "<-timer.C로 채널을 비운다",
+            "새 Timer를 만든다",
+            "ticker.Stop()을 호출한다"
+          ],
+          "a": 1,
+          "h": "timer.Stop()은 아직 발화하지 않았으면 true, 이미 발화했거나 정지된 경우 false를 반환합니다. 발화한 타이머는 채널 timer.C에 값이 남아 있을 수 있으므로, Reset 전에 그 값을 수신해 비워야 합니다.",
+          "w": "Stop이 false면 이미 발화했거나 정지된 것이고, 채널에 값이 남아 있을 수 있으므로 <code>&lt;-timer.C</code>로 비워야 합니다. 그래야 Reset 후 오동작하지 않습니다.",
+          "an": "Go언어프로그래밍_4일차.md §2.3 Stop과 Reset의 정확한 사용",
+          "src": "### 🔥 주의 — `Stop`과 `Reset`의 정확한 사용\n\n`timer.Stop()`은:\n- 타이머가 아직 발화 안 했으면 `true` 반환, 타이머 취소\n- 이미 발화했거나 정지된 경우 `false` 반환\n\n발화 후 채널에 값이 남아있을 수 있으므로, **`Stop`이 `false`면 채널을 비워야** 합니다. 이건 Go 1.23부터 단순해졌지만 호환성을 위해 패턴을 알아두세요."
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>time.Tick</code>을 단기 스크립트에서만 쓰라는 이유는?",
+          "o": [
+            "정확도가 낮아서",
+            "1초 단위만 지원해서",
+            "취소(Stop)가 불가능해서",
+            "채널을 반환하지 않아서"
+          ],
+          "a": 2,
+          "h": "time.Tick은 time.Ticker의 채널만 돌려주는 간편 함수라서 Ticker 객체에 접근할 수 없습니다. 그래서 멈추게 할 방법이 없으므로, 교안은 장기 실행 코드에서는 Stop할 수 있는 NewTicker를 쓰라고 합니다.",
+          "w": "<code>time.Tick</code>은 Ticker의 채널만 돌려주는 간편 함수라 Stop할 수 없습니다. 장기 실행 코드는 <code>NewTicker</code>와 <code>defer ticker.Stop()</code>을 씁니다.",
+          "an": "Go언어프로그래밍_4일차.md §2.5 패턴 ③ Rate Limiting",
+          "src": "`time.Tick`은 `time.Ticker`의 채널만 반환하는 간편 함수입니다. **취소 불가**이므로 단기 스크립트에서만 사용하세요. 장기 실행은 `NewTicker`."
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>go func() { result &lt;- slowOperation() }()</code> 후 <code>select</code>에서 <code>time.After</code>가 먼저 오면 백그라운드 고루틴은?",
+          "o": [
+            "즉시 자동 종료된다",
+            "패닉으로 종료된다",
+            "다음 호출에 재사용된다",
+            "계속 실행되어 누수된다"
+          ],
+          "a": 3,
+          "h": "callWithTimeout의 select에서 time.After가 먼저 오면 호출자는 에러를 반환하며 기다리기를 그만둘 뿐입니다. 교안은 slowOperation을 실행하던 백그라운드 고루틴은 멈추지 않으므로 context로 취소 가능하게 만들어야 한다고 설명합니다.",
+          "w": "타임아웃이 나도 slowOperation을 실행하는 고루틴은 계속 돌아 자원을 씁니다. 진짜 해결은 작업 자체를 취소 가능하게 만드는 것이고, 이를 3교시 context가 다룹니다.",
+          "an": "Go언어프로그래밍_4일차.md §2.5 패턴 ① 함수 호출에 타임아웃 걸기",
+          "src": "**주의**: 타임아웃이 나도 백그라운드 고루틴은 계속 실행됩니다(누수). `slowOperation`이 취소 가능해야 진짜 해결됩니다 → 3교시 `context`에서 다룹니다."
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "<code>limit := time.Tick(200 * time.Millisecond)</code>로 요청마다 <code>&lt;-limit</code>하면 초당 최대 몇 번 처리됩니까?",
+          "o": [
+            "2번",
+            "5번",
+            "10번",
+            "20번"
+          ],
+          "a": 1,
+          "h": "Rate Limiting 예제는 요청마다 <-limit로 다음 틱을 기다리므로 처리 간격이 최소 200ms로 보장됩니다. 1초(1000ms)를 틱 간격으로 나누면 초당 최대 처리 횟수가 나오며, 코드 주석도 그 상한을 적어 두었습니다.",
+          "w": "200ms 간격이 보장되므로 1초에 5번까지 처리됩니다. 자료는 이를 '1초에 5번 이상 호출 안 되게'라고 설명합니다.",
+          "an": "Go언어프로그래밍_4일차.md §2.5 패턴 ③ Rate Limiting",
+          "src": "```go\n// 1초에 5번 이상 호출 안 되게\nlimit := time.Tick(200 * time.Millisecond)\n\nfor req := range requests {\n <-limit // 200ms 간격 보장\n process(req)\n}"
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Ticker를 만들고 <code>Stop</code>을 잊어도 GC가 정리하므로 문제가 없습니다.",
+          "a": false,
+          "h": "교안의 '❌ 함정' 예제는 NewTicker로 만든 ticker를 멈추지 않고 for 루프에서 <-ticker.C만 받습니다. 그러면 ticker가 영원히 동작하고 고루틴도 누수되므로, 교안은 반드시 defer ticker.Stop()을 쓰라고 강조합니다.",
+          "w": "틀렸습니다. Stop을 잊으면 ticker가 영원히 동작하고 고루틴도 누수됩니다. 반드시 <code>defer ticker.Stop()</code>을 씁니다.",
+          "an": "Go언어프로그래밍_4일차.md §2.4 함정 — Stop 잊으면 누수",
+          "src": "### ❌ 함정 — `Stop` 잊으면 누수\n\n```go\n// ❌ 잘못 - ticker가 영원히 동작 + 고루틴 누수\ngo func() {\n ticker := time.NewTicker(time.Second)\n for {\n <-ticker.C\n // ...\n }\n}()\n```\n\n**반드시 `defer ticker.Stop()`**."
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>time.After</code>를 짧은 주기로 자주 호출하면 매번 새 타이머가 만들어져 GC 부담이 생깁니다.",
+          "a": true,
+          "h": "time.After는 내부적으로 호출할 때마다 버퍼 1 채널과 AfterFunc 타이머를 새로 만듭니다. 교안은 그래서 반복 사용 시 GC 부담이 있으며, 짧은 주기로 자주 쓰면 time.Timer나 time.Ticker를 직접 만드는 편이 효율적이라고 설명합니다.",
+          "w": "맞습니다. time.After는 호출마다 새 타이머를 만들므로 반복 사용 시 GC 부담이 있습니다. 자주 호출한다면 Timer나 Ticker를 직접 만들어 재사용하는 편이 효율적입니다.",
+          "an": "Go언어프로그래밍_4일차.md §2.2 동작 원리",
+          "src": "### 동작 원리\n\n```go\n// 내부적으로 대략 이런 의미\nfunc After(d Duration) <-chan Time {\n ch := make(chan Time, 1)\n AfterFunc(d, func() { ch <- time.Now() })\n return ch\n}\n```\n\n새 타이머가 만들어지므로 **반복 사용 시 GC 부담**이 있습니다. 짧은 주기로 자주 호출하면 `time.Timer`나 `time.Ticker`를 직접 만드는 게 효율적입니다."
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "time 패키지 도구와 용도를 연결하세요.",
+          "pairs": [
+            [
+              "time.After",
+              "일회성 타임아웃"
+            ],
+            [
+              "time.Timer",
+              "Reset으로 재사용하는 타이머"
+            ],
+            [
+              "time.Ticker",
+              "주기적 신호"
+            ],
+            [
+              "time.Tick",
+              "취소 불가 간편 Ticker 채널"
+            ]
+          ],
+          "h": "time.After는 한 번만 값이 오는 일회성 타임아웃, time.Timer는 Stop·Reset으로 다시 쓸 수 있는 타이머입니다. time.Ticker는 주기적으로 신호를 보내고, time.Tick은 Ticker의 채널만 돌려주는 간편 함수라 멈출 수 없습니다.",
+          "w": "After는 일회성, Timer는 Stop/Reset으로 재사용, Ticker는 주기 신호를 줍니다. Tick은 Ticker 채널만 돌려주므로 취소할 수 없습니다.",
+          "an": "Go언어프로그래밍_4일차.md §2.2–2.5",
+          "src": "`time.Tick`은 `time.Ticker`의 채널만 반환하는 간편 함수입니다. **취소 불가**이므로 단기 스크립트에서만 사용하세요. 장기 실행은 `NewTicker`."
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 3,
+          "game": false,
+          "p": "Timer를 재사용해 'idle 1초'를 감지하는 루프의 흐름을 순서대로 놓으세요.",
+          "steps": [
+            "time.NewTimer(time.Second)로 생성",
+            "select로 ch 수신과 timer.C를 대기",
+            "ch를 받으면 Stop이 false일 때 <-timer.C로 비움",
+            "timer.Reset(time.Second)로 다시 카운트"
+          ],
+          "h": "idle 감지 루프는 time.NewTimer로 타이머를 만든 뒤 select로 ch 수신과 timer.C를 함께 기다립니다. ch에서 값을 받으면 Stop이 false일 때 timer.C를 비우고, Reset으로 다시 1초를 셉니다.",
+          "w": "타이머를 만든 뒤 select로 대기하고, 데이터가 오면 Stop 결과를 확인해 채널을 비운 다음 Reset으로 다시 1초를 셉니다.",
+          "an": "Go언어프로그래밍_4일차.md §2.3 Reset으로 재사용",
+          "src": "### `Reset`으로 재사용\n\n```go\ntimer := time.NewTimer(time.Second)\ndefer timer.Stop()\n\nfor {\n select {\n case <-ch:\n if !timer.Stop() {\n <-timer.C\n }\n timer.Reset(time.Second) // 다시 1초 카운트\n case <-timer.C:\n fmt.Println(\"idle 1초\")\n timer.Reset(time.Second)\n }\n}\n```"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "C의 <code>alarm()</code> + SIGALRM과 비교한 Go <code>time.After</code>의 특징을 모두 고르세요.",
+          "o": [
+            "시그널 핸들러가 필요 없다",
+            "비동기 안전 함수 제약이 없다",
+            "여러 타이머를 자유롭게 쓴다",
+            "데이터가 전역 변수로 흐른다",
+            "취소 메커니즘이 따로 없다"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "교안 §2.6 비교표에서 C의 alarm()+SIGALRM은 시그널 핸들러 작성, 비동기 안전 함수만 사용, 여러 타이머 직접 큐 관리가 필요합니다. Go time.After는 이 칸들이 모두 반대이며, 채널로 지역적으로 데이터를 주고받습니다.",
+          "w": "Go는 핸들러 없이 채널로 신호를 받고, 비동기 안전 제약 없이 여러 타이머를 쓸 수 있습니다. 데이터는 채널로 지역적으로 흐르며, 취소는 <code>Stop()</code>으로 합니다.",
+          "an": "Go언어프로그래밍_4일차.md §2.6 C 시그널 기반 타이머와의 비교",
+          "src": "## 2.6 C 시그널 기반 타이머와의 비교\n\n| 항목 | C `alarm()` + SIGALRM | Go `time.After` |\n|---|---|---|\n| 시그널 핸들러 작성 필요 | ✅ | ❌ |\n| 비동기 안전 함수만 사용 가능 | ✅ (제약 많음) | ❌ (제약 없음) |\n| 여러 타이머 동시 사용 | 복잡함 (큐 직접 관리) | 자유로움 |\n| 정확도 | OS 의존 | nanosecond 수준 |\n| 데이터 흐름 | 전역 변수 + 시그널 | 채널 (지역적) |\n| 취소 | 별도 메커니즘 | `Stop()` |\n\nGo의 방식이 압도적으로 깔끔합니다."
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "Context I · 취소 전파",
+      "ref": "3교시 §3.1–3.8",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Context 메서드 중 취소 신호 채널을 반환해 가장 자주 쓰는 것은?",
+          "o": [
+            "Err()",
+            "Value()",
+            "Done()",
+            "Deadline()"
+          ],
+          "a": 2,
+          "h": "Context 인터페이스는 Deadline, Done, Err, Value 네 메서드를 가집니다. 그중 '닫히면 취소된 것'을 뜻하는 채널을 반환하는 메서드를 select의 case에 넣어 감시하는 패턴이 핵심이라고 교안은 강조합니다.",
+          "w": "<code>Done()</code>은 취소되면 닫히는 채널을 반환하며 select로 감시하는 것이 핵심 패턴입니다. Err()는 취소 사유, Deadline()은 시각, Value()는 요청 스코프 값을 돌려줍니다.",
+          "an": "Go언어프로그래밍_4일차.md §3.2 Context 인터페이스",
+          "src": "| 메서드 | 역할 |\n|---|---|\n| `Done()` | 취소 신호 채널 — 닫히면 취소된 것 |\n| `Err()` | 취소 사유 (`Canceled`, `DeadlineExceeded`) |\n| `Deadline()` | 데드라인 시각 (있다면) |\n| `Value()` | 요청 스코프 값 조회 |\n\n**가장 자주 쓰는 메서드는 `Done()`** 입니다. 채널을 받아서 `select`로 감시하는 패턴이 핵심입니다."
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "'아직 어떤 ctx를 쓸지 모를 때' 임시로 쓰는 루트 Context는?",
+          "o": [
+            "context.TODO()",
+            "context.Background()",
+            "context.WithCancel()",
+            "context.WithValue()"
+          ],
+          "a": 0,
+          "h": "모든 Context는 루트에서 파생되며 루트는 두 가지입니다. Background()는 main·init·테스트 같은 정상 진입점용이고, 다른 하나는 '나중에 정하겠다'는 표시로 코드 리뷰에서 고쳐야 할 곳으로 읽히는 이름을 가집니다.",
+          "w": "<code>context.TODO()</code>는 '나중에 정하겠다'는 의도 표시용 루트입니다. 정상 진입점(main, init, 테스트)에서는 <code>Background()</code>를 씁니다.",
+          "an": "Go언어프로그래밍_4일차.md §3.3 두 가지 루트 Context",
+          "src": "## 3.3 두 가지 루트 Context\n\n모든 `Context`는 루트에서 파생됩니다.\n\n```go\nctx := context.Background() // 일반적인 루트\nctx := context.TODO() // 아직 어떤 ctx를 쓸지 모를 때 임시\n```\n\n| | `Background()` | `TODO()` |\n|---|---|---|\n| 용도 | 정상 진입점 (main, init, 테스트) | \"나중에 정하겠다\"는 표시 |\n| 동작 차이 | 없음 | 없음 (의도 표시일 뿐) |\n\n코드 리뷰에서 `context.TODO()`를 보면 \"여기는 적절한 ctx를 받아오게 고쳐야 한다\"는 의미로 읽힙니다."
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "ctxA → ctxB → ctxC 순으로 <code>WithCancel</code>을 중첩한 뒤 <code>cancelA()</code>를 호출하면?",
+          "o": [
+            "ctxA만 취소된다",
+            "ctxA·ctxB·ctxC 모두 취소된다",
+            "ctxB·ctxC만 취소된다",
+            "아무것도 취소되지 않는다"
+          ],
+          "a": 1,
+          "h": "WithCancel은 부모 ctx와 연결된 자식 ctx를 만들며, 교안은 부모가 취소되면 자식도 자동 취소된다고 설명합니다. ctxA → ctxB → ctxC로 이어진 트리에서 맨 위를 취소하면 Done 채널이 어디까지 닫히는지 따라가 보세요.",
+          "w": "부모가 취소되면 자식도 자동으로 취소되므로 ctxA, ctxB, ctxC의 Done이 모두 닫힙니다. 이것이 '호출 사슬을 따라 흐르는 취소 신호'입니다.",
+          "an": "Go언어프로그래밍_4일차.md §3.5 전파 — Context 트리",
+          "src": "// cancelA() 호출 시:\n// - ctxA.Done() 닫힘\n// - ctxB.Done() 닫힘 (자동 전파)\n// - ctxC.Done() 닫힘 (자동 전파)\n```\n\n이게 바로 \"**호출 사슬을 따라 흐르는 취소 신호**\"입니다."
+        },
+        {
+          "id": "t3-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>defer cancel()</code>을 빠뜨린 실수를 'context not released'로 알려 주는 도구는?",
+          "o": [
+            "go fmt",
+            "go build",
+            "go mod tidy",
+            "go vet"
+          ],
+          "a": 3,
+          "h": "WithCancel로 만든 cancel을 호출하지 않으면 작업이 끝나도 ctx가 부모가 죽을 때까지 자원을 점유합니다. 교안은 Go 툴체인의 정적 검사 명령이 이 실수를 'context not released'로 잡아 준다고 소개합니다.",
+          "w": "<code>go vet ./...</code>이 cancel 누락을 잡아냅니다. go fmt는 서식, go build는 컴파일, go mod tidy는 의존성 정리용입니다.",
+          "an": "Go언어프로그래밍_4일차.md §3.7 cancel 함수를 잊으면? — 누수",
+          "src": "## 3.7 cancel 함수를 잊으면? — 누수\n\n```go\nctx, cancel := context.WithCancel(parent)\n// defer cancel() 빠뜨림!\n\n// 작업이 끝나도 ctx는 살아있음\n// → 부모가 죽을 때까지 자원 점유\n```\n\n**`go vet`이 이런 실수를 잡습니다**:\n\n```bash\ngo vet ./..."
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "context_cancel.go에서 main이 1초 뒤 <code>cancel()</code>을 호출하면 워커의 <code>ctx.Err()</code> 출력은?",
+          "o": [
+            "context canceled",
+            "context deadline exceeded",
+            "nil",
+            "timeout"
+          ],
+          "a": 0,
+          "h": "워커는 select로 ctx.Done()을 감시하다가 닫히면 ctx.Err()를 출력합니다. 교안에 따르면 Err()는 수동 취소면 context.Canceled, 시간 초과면 context.DeadlineExceeded를 반환하며, main은 cancel()을 직접 호출했습니다.",
+          "w": "WithCancel의 cancel()로 수동 취소하면 <code>context.Canceled</code>, 즉 'context canceled'가 나옵니다. 'deadline exceeded'는 WithTimeout·WithDeadline의 시간 초과일 때입니다.",
+          "an": "Go언어프로그래밍_4일차.md §3.4 Worker 측 코드 · §3.8 context_cancel.go",
+          "src": "`ctx.Err()`은 `context.Canceled` (수동 취소) 또는 `context.DeadlineExceeded` (시간 초과)를 반환합니다."
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "<code>context.Background()</code>와 <code>context.TODO()</code>는 실제 동작이 다릅니다.",
+          "a": false,
+          "h": "교안 §3.3 비교표는 Background()와 TODO()의 용도를 정상 진입점과 '나중에 정하겠다'는 표시로 구분합니다. 같은 표의 '동작 차이' 행에는 두 함수 모두 차이가 없고 의도 표시일 뿐이라고 적혀 있습니다.",
+          "w": "틀렸습니다. 두 루트는 동작 차이가 없고, TODO()는 '나중에 정하겠다'는 의도 표시일 뿐입니다.",
+          "an": "Go언어프로그래밍_4일차.md §3.3 두 가지 루트 Context",
+          "src": "| | `Background()` | `TODO()` |\n|---|---|---|\n| 용도 | 정상 진입점 (main, init, 테스트) | \"나중에 정하겠다\"는 표시 |\n| 동작 차이 | 없음 | 없음 (의도 표시일 뿐) |"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Go에서 ctx는 함수의 마지막 인자로 두는 것이 표준 컨벤션입니다.",
+          "a": false,
+          "h": "교안 §3.6은 ctx를 함수 인자 중 어느 위치에 두는지에 대한 강력한 컨벤션을 소개합니다. func DoSomething(ctx context.Context, arg1 string, arg2 int)가 표준이고, net/http·database/sql 같은 표준 라이브러리가 모두 이를 따릅니다.",
+          "w": "틀렸습니다. ctx는 함수의 첫 번째 인자로 두는 것이 강력한 컨벤션이며 표준 라이브러리도 모두 이를 따릅니다.",
+          "an": "Go언어프로그래밍_4일차.md §3.6 함수 시그니처 컨벤션",
+          "src": "## 3.6 함수 시그니처 컨벤션\n\n**ctx는 함수의 첫 번째 인자**라는 강력한 컨벤션이 있습니다.\n\n```go\n// ✅ 표준 컨벤션\nfunc DoSomething(ctx context.Context, arg1 string, arg2 int) error\n\n// ❌ 비추천\nfunc DoSomething(arg1 string, ctx context.Context) error\n```\n\n표준 라이브러리(`net/http`, `database/sql`, ...)가 모두 이 컨벤션을 따릅니다."
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "Context 인터페이스 메서드와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "Done()",
+              "취소 신호 채널"
+            ],
+            [
+              "Err()",
+              "취소 사유"
+            ],
+            [
+              "Deadline()",
+              "데드라인 시각"
+            ],
+            [
+              "Value()",
+              "요청 스코프 값 조회"
+            ]
+          ],
+          "h": "Context 메서드 이름을 그대로 옮기면 역할이 보입니다. Done()은 취소 신호 채널, Err()는 취소 사유(Canceled·DeadlineExceeded), Deadline()은 데드라인 시각, Value()는 요청 스코프 값 조회입니다.",
+          "w": "Done()은 닫히면 취소된 채널, Err()는 Canceled·DeadlineExceeded 같은 사유, Deadline()은 데드라인 시각, Value()는 요청 스코프 값을 돌려줍니다.",
+          "an": "Go언어프로그래밍_4일차.md §3.2 Context 인터페이스",
+          "src": "| 메서드 | 역할 |\n|---|---|\n| `Done()` | 취소 신호 채널 — 닫히면 취소된 것 |\n| `Err()` | 취소 사유 (`Canceled`, `DeadlineExceeded`) |\n| `Deadline()` | 데드라인 시각 (있다면) |\n| `Value()` | 요청 스코프 값 조회 |"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "<code>WithCancel</code> 취소의 동작 흐름을 순서대로 놓으세요.",
+          "steps": [
+            "WithCancel로 child ctx 생성",
+            "worker가 ctx.Done()을 감시",
+            "cancel() 호출",
+            "ctx.Done() 채널이 닫힘",
+            "worker가 루프를 빠져나옴"
+          ],
+          "h": "교안의 동작 흐름 그림은 parent에서 WithCancel로 child ctx를 만들고, worker가 그 ctx.Done()을 감시합니다. cancel()이 호출되면 ctx.Done() 채널이 닫히고, 이를 감지한 worker가 루프를 빠져나옵니다.",
+          "w": "부모에서 child ctx를 만들고 worker가 Done을 감시합니다. cancel()을 부르면 Done 채널이 닫히고 select가 이를 감지해 worker가 빠져나옵니다.",
+          "an": "Go언어프로그래밍_4일차.md §3.4 동작 흐름",
+          "src": "### 동작 흐름\n\n```text\nparent ─────┐\n ↓\n WithCancel\n ↓\n child ctx\n │\n ↓\n worker가 ctx.Done() 감시\n │\n ↓\n cancel() 호출 시\n ↓\n ctx.Done() 채널이 닫힘\n ↓\n worker 빠져나옴\n```"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "Context가 필요한 이유로 자료가 설명한 것을 모두 고르세요.",
+          "o": [
+            "호출자가 포기해도 작업이 계속 자원을 쓴다",
+            "취소 신호가 깊은 호출까지 전파돼야 한다",
+            "연결이 끊기면 모든 계층이 멈춰야 한다",
+            "고루틴 개수를 자동으로 제한한다",
+            "프로세스 단위 시그널을 보낸다"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "교안 §3.1은 time.After 타임아웃 패턴의 한계에서 출발합니다. 호출자가 포기해도 slowOperation은 계속 자원을 쓰고, 그 안의 깊은 호출까지 취소 신호가 전파되지 않으며, 클라이언트가 연결을 끊으면 모든 계층이 즉시 멈춰야 한다는 요구가 생깁니다.",
+          "w": "time.After 패턴은 호출자만 포기할 뿐 작업은 계속 돌고, 취소가 깊은 함수까지 전파되지 않습니다. Context는 호출 사슬을 따라 취소를 흘려보내는 표준이며, 고루틴 수 제한이나 프로세스 시그널과는 무관합니다.",
+          "an": "Go언어프로그래밍_4일차.md §3.1 왜 Context인가?",
+          "src": "**핵심 문제**: 호출자가 포기해도 `slowOperation`은 계속 자원을 씁니다. 만약 `slowOperation`이 다시 다른 함수들을 호출한다면, **취소 신호가 그 깊은 곳까지 전파되지 않습니다.**"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "title": "Context II · Deadline·Value",
+      "ref": "4교시 §4.1–4.7",
+      "qs": [
+        {
+          "id": "t4-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "특정 '시각'을 지정해 그때 자동으로 취소되게 하는 함수는?",
+          "o": [
+            "WithTimeout",
+            "WithDeadline",
+            "WithCancel",
+            "WithValue"
+          ],
+          "a": 1,
+          "h": "WithTimeout은 '지금부터 얼마 동안'이라는 기간을 받습니다. 그와 짝을 이루는 함수는 time.Now().Add(5 * time.Second)처럼 특정 마감 시각을 직접 받으며, WithTimeout(parent, d)는 이 함수에 time.Now().Add(d)를 넘긴 것과 같습니다.",
+          "w": "<code>WithDeadline</code>은 특정 시각(time.Time)을 받습니다. WithTimeout은 기간(Duration)을 받으며 <code>WithDeadline(parent, time.Now().Add(d))</code>와 거의 같습니다.",
+          "an": "Go언어프로그래밍_4일차.md §4.1 WithDeadline / WithTimeout",
+          "src": "`WithDeadline`은 특정 시각을 지정합니다.\n\n```go\ndeadline := time.Now().Add(5 * time.Second)\nctx, cancel := context.WithDeadline(parent, deadline)\ndefer cancel()\n```\n\n`WithTimeout(parent, d)` ≈ `WithDeadline(parent, time.Now().Add(d))`."
+        },
+        {
+          "id": "t4-02",
+          "ty": "num",
+          "lv": 3,
+          "game": false,
+          "p": "부모를 <code>WithTimeout(context.Background(), 5*time.Second)</code>, 자식을 <code>WithTimeout(parent, 10*time.Second)</code>로 만들었습니다. 자식의 실제 데드라인은 몇 초입니까?",
+          "a": 5,
+          "unit": "초",
+          "h": "자식 ctx는 부모와 연결되어 부모가 먼저 만료되면 함께 취소됩니다. 교안은 자식의 데드라인이 부모를 넘어설 수 없다고 설명하므로, 실제 데드라인은 min(부모 제한, 자식 제한)으로 구합니다.",
+          "w": "자식의 데드라인은 부모를 넘어설 수 없으므로 더 짧은 부모의 5초가 적용됩니다. 부모가 먼저 만료되면 자식도 자동 취소됩니다.",
+          "an": "Go언어프로그래밍_4일차.md §4.2 더 짧은 데드라인이 우선",
+          "src": "## 4.2 더 짧은 데드라인이 우선\n\n```go\nparent, _ := context.WithTimeout(context.Background(), 5*time.Second)\nchild, _ := context.WithTimeout(parent, 10*time.Second) // 부모보다 김\n\n// child의 실제 데드라인은 5초 (부모 제한이 더 짧음)\n```\n\n부모가 먼저 만료되면 자식도 자동 취소됩니다. **자식의 데드라인은 부모를 넘어설 수 없습니다.**"
+        },
+        {
+          "id": "t4-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>WithValue</code>의 키로 문자열 대신 사용자 정의 타입을 쓰는 이유는?",
+          "o": [
+            "조회 속도를 높이려고",
+            "다른 패키지 키와 충돌을 막으려고",
+            "메모리를 아끼려고",
+            "값을 나중에 바꾸려고"
+          ],
+          "a": 1,
+          "h": "WithValue에 \"user\" 같은 문자열 키를 쓰면 다른 패키지가 같은 이름의 키를 써서 값이 섞일 위험이 있습니다. type contextKey string처럼 패키지 전용 타입을 만들면 키 비교 시 타입까지 일치해야 하므로 이 문제를 피할 수 있습니다.",
+          "w": "키는 타입까지 일치해야 하므로 <code>type contextKey string</code>으로 만들면 다른 패키지의 같은 이름 키와 충돌하지 않습니다. 속도·메모리와는 관계없습니다.",
+          "an": "Go언어프로그래밍_4일차.md §4.3 키 충돌 방지 — 사용자 정의 타입",
+          "src": "### 키 충돌 방지 — 사용자 정의 타입\n\n```go\n// 문자열 키는 다른 패키지와 충돌 위험!\nctx := context.WithValue(ctx, \"user\", u) // ❌\n\n// 사용자 정의 타입으로 키 만들기\ntype contextKey string\n\nconst userKey contextKey = \"user\"\n\nctx := context.WithValue(ctx, userKey, u) // ✅\nu := ctx.Value(userKey).(*User)\n```\n\n타입까지 일치해야 하므로 다른 패키지의 같은 이름 키와 충돌하지 않습니다."
+        },
+        {
+          "id": "t4-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "다음 중 <code>WithValue</code>의 적절한 사용은?",
+          "o": [
+            "옵션 설정값 전달",
+            "함수 매개변수 대용",
+            "비즈니스 핵심 데이터",
+            "추적용 requestID"
+          ],
+          "a": 3,
+          "h": "교안은 WithValue가 안티 패턴이 되기 쉽다고 경고합니다. 적절한 사용은 추적용 ID(requestID·traceID), 인증 정보, 로깅 메타데이터뿐이고, 함수 매개변수 대용·비즈니스 핵심 데이터·옵션 설정값은 부적절합니다.",
+          "w": "WithValue는 requestID·traceID 같은 추적 ID, 인증 정보, 로깅 메타데이터에만 씁니다. 매개변수 대용, 핵심 데이터, 옵션 설정값은 명시적 인자로 넘겨야 합니다.",
+          "an": "Go언어프로그래밍_4일차.md §4.3 주의 — 매우 제한된 용도로만 사용",
+          "src": "### 🔥 주의 — 매우 제한된 용도로만 사용\n\n**`WithValue`는 안티 패턴이 되기 쉽습니다.** 다음 경우에만 사용:\n\n✅ **적절한 사용**:\n- 추적용 ID (`requestID`, `traceID`)\n- 인증 정보 (`userID`, `token`)\n- 로깅 메타데이터\n\n❌ **부적절한 사용**:\n- 함수 매개변수 대용 (명시적 인자가 항상 우선)\n- 비즈니스 로직에 필요한 핵심 데이터\n- 옵션 설정값"
+        },
+        {
+          "id": "t4-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "context_advanced.go의 req-001은 handler가 1초 타임아웃을 걸고 dbQuery가 2초 걸립니다. dbQuery는 어떻게 끝납니까?",
+          "o": [
+            "'DB 쿼리 완료'를 출력",
+            "context canceled로 중단",
+            "deadline exceeded로 중단",
+            "끝나지 않고 대기"
+          ],
+          "a": 2,
+          "h": "req-001은 handler가 WithTimeout으로 1초 데드라인을 걸었는데 dbQuery는 2초가 걸립니다. dbQuery의 select에서 ctx.Done()이 먼저 닫히고, 이때 Err()는 시간 초과에 해당하는 값을 돌려주어 504 응답으로 이어집니다.",
+          "w": "1초 데드라인이 2초 쿼리보다 먼저 만료되어 'context deadline exceeded'로 중단되고, main은 이를 보고 504 응답을 출력합니다. 'context canceled'는 수동 취소한 req-002의 결과입니다.",
+          "an": "Go언어프로그래밍_4일차.md §4.7 context_advanced.go 기대 출력",
+          "src": "기대 출력:\n```\n[req-001] 서비스 호출\n[req-001] DB 쿼리 시작\n[req-001] DB 쿼리 중단: context deadline exceeded\n→ 응답: 504 Gateway Timeout\n[req-002] 서비스 호출\n[req-002] DB 쿼리 시작\n[req-002] DB 쿼리 중단: context canceled\n종료: context canceled\n```"
+        },
+        {
+          "id": "t4-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "ctx는 구조체 필드에 저장해 두고 여러 메서드에서 꺼내 쓰는 것이 권장됩니다.",
+          "a": false,
+          "h": "교안 §4.4의 DON'T 목록 첫 항목은 ctx를 어디에 두지 말라는 규칙입니다. ctx는 요청마다 달라지는 값이라 함수 인자로만 전달해야 하며, 구조체에 담아 여러 메서드가 공유하면 취소 범위가 흐려집니다.",
+          "w": "틀렸습니다. 구조체 필드로 ctx를 저장하는 것은 금지 사항이며, ctx는 함수 인자로만 전달합니다.",
+          "an": "Go언어프로그래밍_4일차.md §4.4 DON'T",
+          "src": "### ❌ DON'T\n\n1. **구조체 필드로 ctx 저장 금지** — ctx는 함수 인자로만\n2. **nil ctx 전달 금지** — 의심스러우면 `context.TODO()`\n3. **`WithValue`로 옵션 전달 금지** — 명시적 매개변수 사용\n4. **ctx 없이 외부 호출 금지** — HTTP, DB 등은 항상 ctx 받음"
+        },
+        {
+          "id": "t4-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "<code>WithTimeout(parent, d)</code>는 <code>WithDeadline(parent, time.Now().Add(d))</code>와 거의 같습니다.",
+          "a": true,
+          "h": "WithTimeout은 기간 d를 받고, WithDeadline은 마감 시각을 받습니다. 교안은 '현재 시각 + 기간'으로 마감 시각을 만들면 두 호출이 같은 의미가 된다고 기호로 정리해 두었습니다.",
+          "w": "맞습니다. WithTimeout은 현재 시각에 d를 더한 데드라인을 거는 것과 같습니다.",
+          "an": "Go언어프로그래밍_4일차.md §4.1 WithDeadline / WithTimeout",
+          "src": "`WithTimeout(parent, d)` ≈ `WithDeadline(parent, time.Now().Add(d))`."
+        },
+        {
+          "id": "t4-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "Context 모범 사례(DO)를 연결하세요.",
+          "pairs": [
+            [
+              "ctx의 위치",
+              "첫 번째 매개변수"
+            ],
+            [
+              "cancel 함수",
+              "defer로 반드시 호출"
+            ],
+            [
+              "외부 호출",
+              "타임아웃 무조건 설정"
+            ],
+            [
+              "main·test·init의 루트",
+              "Background()"
+            ]
+          ],
+          "h": "교안의 DO 목록은 ctx를 함수의 첫 번째 매개변수로, cancel은 defer로 반드시 호출, 고루틴에 ctx 전달, 외부 호출에는 무조건 타임아웃 설정, main·test·init의 루트는 Background()로 하라는 다섯 항목입니다.",
+          "w": "ctx는 첫 번째 매개변수, cancel은 defer로 반드시 호출, 외부 호출에는 타임아웃 설정, 루트는 Background()를 씁니다.",
+          "an": "Go언어프로그래밍_4일차.md §4.4 DO",
+          "src": "### ✅ DO\n\n1. **ctx는 첫 번째 매개변수로**\n2. **`cancel`은 반드시 호출** (defer 권장)\n3. **고루틴에 ctx 전달** — 취소 가능하게\n4. **타임아웃 설정** — 외부 호출은 무조건\n5. **루트는 `Background()`** — main/test/init에서"
+        },
+        {
+          "id": "t4-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "ctx로 HTTP 요청에 타임아웃을 거는 fetch 함수의 흐름을 순서대로 놓으세요.",
+          "steps": [
+            "WithTimeout으로 ctx 생성",
+            "defer cancel() 등록",
+            "http.NewRequestWithContext로 요청 생성",
+            "http.DefaultClient.Do(req) 호출",
+            "defer resp.Body.Close() 후 io.ReadAll"
+          ],
+          "h": "fetch 함수는 먼저 WithTimeout으로 ctx를 만들고 defer cancel()을 등록합니다. 그 ctx를 http.NewRequestWithContext로 요청에 실어 http.DefaultClient.Do로 보내고, 응답 Body를 defer로 닫은 뒤 io.ReadAll로 읽습니다.",
+          "w": "타임아웃 ctx와 cancel 정리를 먼저 준비하고, ctx를 담은 요청을 만들어 Do로 보냅니다. 타임아웃이면 Do가 에러를 돌려주고, 성공하면 Body를 닫도록 예약한 뒤 읽습니다.",
+          "an": "Go언어프로그래밍_4일차.md §4.1 실전 예 — HTTP 요청 타임아웃",
+          "src": "func fetch(url string, timeout time.Duration) ([]byte, error) {\n ctx, cancel := context.WithTimeout(context.Background(), timeout)\n defer cancel()\n\n req, err := http.NewRequestWithContext(ctx, \"GET\", url, nil)\n if err != nil {\n return nil, err\n }\n\n resp, err := http.DefaultClient.Do(req)\n if err != nil {\n return nil, err // 타임아웃이면 ctx.Err() = DeadlineExceeded\n }\n defer resp.Body.Close()"
+        },
+        {
+          "id": "t4-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "Context 모범 사례에서 '하지 말 것(DON'T)'에 해당하는 것을 모두 고르세요.",
+          "o": [
+            "구조체 필드에 ctx 저장",
+            "nil ctx 전달",
+            "WithValue로 옵션 전달",
+            "고루틴에 ctx 전달",
+            "외부 호출에 타임아웃 설정"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "교안의 DON'T 목록은 구조체 필드에 ctx 저장, nil ctx 전달(의심스러우면 TODO()), WithValue로 옵션 전달, ctx 없이 외부 호출하기입니다. ctx를 첫 번째 매개변수로 두거나 cancel을 defer로 호출하는 것은 DO 목록에 있습니다.",
+          "w": "구조체 필드 저장, nil ctx 전달, WithValue로 옵션 전달은 DON'T입니다. 고루틴에 ctx 전달과 외부 호출 타임아웃 설정은 DO에 속합니다.",
+          "an": "Go언어프로그래밍_4일차.md §4.4 Context 모범 사례 정리",
+          "src": "### ❌ DON'T\n\n1. **구조체 필드로 ctx 저장 금지** — ctx는 함수 인자로만\n2. **nil ctx 전달 금지** — 의심스러우면 `context.TODO()`\n3. **`WithValue`로 옵션 전달 금지** — 명시적 매개변수 사용\n4. **ctx 없이 외부 호출 금지** — HTTP, DB 등은 항상 ctx 받음"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "title": "Worker Pool 패턴",
+      "ref": "5교시 §5.1–5.7",
+      "qs": [
+        {
+          "id": "t5-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Worker Pool 패턴을 가장 잘 설명한 것은?",
+          "o": [
+            "작업마다 고루틴을 새로 만든다",
+            "고정 수 워커가 jobs 채널을 공유한다",
+            "워커마다 전용 채널을 둔다",
+            "고루틴 하나가 모두 처리한다"
+          ],
+          "a": 1,
+          "h": "교안은 고루틴을 무제한으로 만들면 외부 자원 한계와 부하 분산 문제가 생긴다고 설명합니다. Worker Pool은 고정된 수의 워커가 하나의 jobs 채널에서 일감을 가져가 처리하고 결과를 results 채널로 보내는 패턴입니다.",
+          "w": "Worker Pool은 고정된 수의 워커가 하나의 jobs 채널을 공유하며 일감을 가져가는 패턴입니다. 채널을 공유하므로 부하 분산이 자동으로 이뤄집니다.",
+          "an": "Go언어프로그래밍_4일차.md §5.1 왜 워커 풀인가? · §5.2 핵심 포인트",
+          "src": "**Worker Pool**은 **고정된 수의 워커**가 작업 채널에서 일감을 가져가 처리하는 패턴입니다."
+        },
+        {
+          "id": "t5-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "기본형 워커 풀에서 <code>close(results)</code>는 언제 호출합니까?",
+          "o": [
+            "작업 송신 직후",
+            "워커 시작 전",
+            "wg.Wait()로 워커가 끝난 뒤",
+            "첫 결과를 받은 직후"
+          ],
+          "a": 2,
+          "h": "기본형 핵심 포인트는 세 가지입니다. jobs 채널을 여러 워커가 공유하고, close(jobs)로 작업 종료를 알리며, 결과 채널은 결과를 보낼 워커들이 모두 끝났음을 WaitGroup으로 확인한 뒤에 닫습니다.",
+          "w": "모든 워커가 끝나야 더 이상 results에 송신할 쪽이 없으므로, 별도 고루틴에서 <code>wg.Wait()</code> 후 <code>close(results)</code>를 호출합니다. 일찍 닫으면 닫힌 채널에 송신해 패닉이 납니다.",
+          "an": "Go언어프로그래밍_4일차.md §5.2 핵심 포인트",
+          "src": "### 핵심 포인트\n\n1. **`jobs` 채널 하나를 여러 워커가 공유** → 자동 부하 분산\n2. **`close(jobs)`로 작업 종료 신호** → 워커들이 `range`에서 자연스럽게 빠져나옴\n3. **`wg.Wait()` 후 `close(results)`** → 결과 채널도 깔끔하게 마감"
+        },
+        {
+          "id": "t5-03",
+          "ty": "num",
+          "lv": 3,
+          "game": false,
+          "p": "다음 코드에서 동시에 실행될 수 있는 <code>process</code>의 최대 개수는? <code>sem := make(chan struct{}, 10)</code> <code>for _, item := range items { wg.Add(1); sem &lt;- struct{}{}; go func(it Item) { defer wg.Done(); defer func() { &lt;-sem }(); process(it) }(item) }</code>",
+          "a": 10,
+          "unit": "개",
+          "h": "세마포어 패턴은 루프에서 sem <- struct{}{}로 슬롯을 얻고, 작업이 끝나면 defer로 <-sem 해 슬롯을 반환합니다. 버퍼가 가득 차면 다음 송신이 블록되므로, 동시에 실행될 수 있는 process 수는 sem 채널의 용량과 같습니다.",
+          "w": "버퍼 10짜리 채널이 세마포어 역할을 해서 슬롯이 가득 차면 송신이 블록됩니다. 따라서 동시에 최대 10개만 실행됩니다.",
+          "an": "Go언어프로그래밍_4일차.md §5.5 Bounded Concurrency — 세마포어 패턴",
+          "src": "```go\nsem := make(chan struct{}, 10) // 동시 10개 제한\n\nvar wg sync.WaitGroup\nfor _, item := range items {\n wg.Add(1)\n sem <- struct{}{} // 슬롯 획득 (가득 차면 블록)\n go func(it Item) {\n defer wg.Done()\n defer func() { <-sem }() // 슬롯 반환\n process(it)\n }(item)\n}\nwg.Wait()\n```"
+        },
+        {
+          "id": "t5-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "결과 순서 보존 해결책 ②(작업마다 Reply 채널 동봉)의 단점은?",
+          "o": [
+            "결과 정렬 코드가 필요하다",
+            "워커 수를 늘릴 수 없다",
+            "채널을 닫을 수 없다",
+            "동시성 효과가 줄어든다"
+          ],
+          "a": 3,
+          "h": "해결책 ②는 Job마다 Reply 채널을 만들어 jobs <- Job{...} 직후 <-reply로 그 결과를 바로 받습니다. 호출 측이 작업 하나의 응답을 동기적으로 기다린 뒤에야 다음 작업을 보내므로, 여러 워커가 동시에 일하는 이점이 약해집니다.",
+          "w": "호출 측이 작업마다 응답을 동기적으로 기다리므로 순서는 보존되지만 동시성 효과가 줄어듭니다. 정렬 코드가 필요한 것은 인덱스를 쓰는 해결책 ①입니다.",
+          "an": "Go언어프로그래밍_4일차.md §5.4 결과 순서 보존 문제",
+          "src": "### 해결책 ② — 각 작업마다 응답 채널을 동봉\n\n```go\ntype Job struct {\n ID int\n Data string\n Reply chan Result // 본인용 응답 채널\n}\n\nfunc main() {\n for j := 1; j <= numJobs; j++ {\n reply := make(chan Result, 1)\n jobs <- Job{ID: j, Reply: reply}\n results = append(results, <-reply) // 순서 보존\n }\n}\n```\n\n다만 이 방식은 호출 측이 **동기적으로 기다리므로** 동시성 효과가 줄어듭니다."
+        },
+        {
+          "id": "t5-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "여러 워커가 진행 카운터(Completed, Failed)를 안전하게 올리는 방법은?",
+          "o": [
+            "atomic.AddInt64",
+            "count++ 직접 증가",
+            "time.Ticker",
+            "close(채널)"
+          ],
+          "a": 0,
+          "h": "여러 워커가 같은 카운터를 동시에 올리면 race가 생깁니다. §5.6 모니터링 예제는 PoolStats의 int64 필드를 sync/atomic의 '더하기' 함수로 올리고, 모니터 고루틴은 LoadInt64로 읽어 출력합니다.",
+          "w": "여러 고루틴이 같은 카운터를 바꾸므로 <code>atomic.AddInt64</code>로 올리고 <code>atomic.LoadInt64</code>로 읽습니다. 일반 ++는 경쟁 상태를 만듭니다.",
+          "an": "Go언어프로그래밍_4일차.md §5.6 진행 상황 모니터링",
+          "src": "func worker(ctx context.Context, jobs <-chan Job) {\n for job := range jobs {\n atomic.AddInt64(&stats.Submitted, 1)\n if err := process(ctx, job); err != nil {\n atomic.AddInt64(&stats.Failed, 1)\n } else {\n atomic.AddInt64(&stats.Completed, 1)"
+        },
+        {
+          "id": "t5-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "고정 Worker Pool은 일회성 batch 작업에, Bounded Concurrency는 작업이 끊임없이 들어오는 서버에 적합합니다.",
+          "a": false,
+          "h": "교안 §5.5 비교표는 두 패턴의 적합한 상황을 정리합니다. 고정 Worker Pool은 작업이 끊임없이 들어오는 서버에, Bounded Concurrency(세마포어)는 일회성 batch 작업(스크립트)에 적합하다고 되어 있으니 문장과 비교해 보세요.",
+          "w": "틀렸습니다. 반대입니다. 고정 Worker Pool은 작업이 끊임없이 들어오는 서버에, Bounded Concurrency는 일회성 batch 스크립트에 적합합니다.",
+          "an": "Go언어프로그래밍_4일차.md §5.5 패턴 비교표",
+          "src": "| 패턴 | 적합한 상황 |\n|---|---|\n| Worker Pool (고정) | 작업이 끊임없이 들어옴 (서버) |\n| Bounded Concurrency | 일회성 batch 작업 (스크립트) |"
+        },
+        {
+          "id": "t5-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "워커 풀에서 결과는 항상 작업을 보낸 순서대로 도착합니다.",
+          "a": false,
+          "h": "워커 풀에서는 빠른 워커가 먼저 끝난 결과를 먼저 보냅니다. 교안 §5.4는 그래서 결과 순서가 작업 순서와 다를 수 있다고 지적하고, 인덱스 포함·Reply 채널 동봉이라는 두 해결책을 제시합니다.",
+          "w": "틀렸습니다. 빠른 워커가 먼저 응답하므로 결과 순서는 작업 순서와 다를 수 있습니다. 그래서 인덱스 포함이나 응답 채널 동봉 같은 보존 방법이 필요합니다.",
+          "an": "Go언어프로그래밍_4일차.md §5.4 결과 순서 보존 문제",
+          "src": "## 5.4 결과 순서 보존 문제\n\n위 패턴의 문제: **결과 순서가 작업 순서와 다를 수 있습니다.** 빠른 워커가 먼저 응답하기 때문입니다."
+        },
+        {
+          "id": "t5-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "패턴·기법과 특징을 연결하세요.",
+          "pairs": [
+            [
+              "고정 Worker Pool",
+              "작업이 끊임없이 들어오는 서버"
+            ],
+            [
+              "Bounded Concurrency",
+              "일회성 batch 스크립트"
+            ],
+            [
+              "결과에 Index 포함",
+              "호출 측이 정렬해 순서 보존"
+            ],
+            [
+              "작업에 Reply 채널 동봉",
+              "작업별 응답으로 순서 보존"
+            ]
+          ],
+          "h": "§5.5 비교표에서 고정 Worker Pool은 서버처럼 작업이 계속 들어오는 상황에, Bounded Concurrency는 일회성 batch 스크립트에 맞습니다. 순서 보존 방법은 결과에 Index를 넣어 호출 측이 정렬하는 방법과 작업마다 Reply 채널을 동봉하는 방법입니다.",
+          "w": "Worker Pool은 서버, 세마포어 방식은 batch에 맞습니다. 순서 보존은 인덱스를 넣어 나중에 정렬하거나, 작업마다 응답 채널을 동봉하는 두 방법이 있습니다.",
+          "an": "Go언어프로그래밍_4일차.md §5.4–5.5",
+          "src": "| 패턴 | 적합한 상황 |\n|---|---|\n| Worker Pool (고정) | 작업이 끊임없이 들어옴 (서버) |\n| Bounded Concurrency | 일회성 batch 작업 (스크립트) |"
+        },
+        {
+          "id": "t5-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "기본형 고정 크기 워커 풀 main의 흐름을 순서대로 놓으세요.",
+          "steps": [
+            "jobs·results 채널 생성",
+            "wg.Add 후 워커 고루틴 시작",
+            "작업을 송신한 뒤 close(jobs)",
+            "wg.Wait() 후 close(results)",
+            "range results로 결과 수집"
+          ],
+          "h": "기본형 main은 jobs·results 채널을 만들고, wg.Add와 함께 워커 고루틴을 시작합니다. 별도 고루틴이 작업을 모두 보낸 뒤 close(jobs)하고, wg.Wait() 후 close(results)하면 main은 range results로 결과를 수집합니다.",
+          "w": "채널을 만들고 워커를 띄운 뒤 작업을 보내고 jobs를 닫습니다. 워커가 모두 끝나면 results를 닫고, 호출 측은 range로 결과를 모읍니다.",
+          "an": "Go언어프로그래밍_4일차.md §5.2 기본형 — 고정 크기 풀",
+          "src": "func main() {\n const numWorkers = 5\n const numJobs = 20\n jobs := make(chan Job)\n results := make(chan Result, numJobs)\n // 워커 시작\n var wg sync.WaitGroup\n for i := 1; i <= numWorkers; i++ {\n wg.Add(1)\n go func(id int) {\n defer wg.Done()\n worker(id, jobs, results)\n }(i)\n }\n // 작업 송신\n go func() {\n for j := 1; j <= numJobs; j++ {\n jobs <- Job{ID: j, Data: fmt.Sprintf(\"data-%d\", j)}\n }\n close(jobs)"
+        },
+        {
+          "id": "t5-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "고루틴을 무제한으로 만들지 않고 워커 풀을 쓰는 이유를 모두 고르세요.",
+          "o": [
+            "DB 연결·fd 등 자원에 한계가 있다",
+            "과도한 동시 호출이 외부를 죽인다",
+            "고루틴은 1000개까지만 된다",
+            "무제한 생성은 부하 분산이 어색하다",
+            "워커 풀은 채널 없이 구현한다"
+          ],
+          "a": [
+            0,
+            1,
+            3
+          ],
+          "h": "교안 §5.1은 Go가 백만 개 고루틴도 만들 수 있지만 무제한 생성이 좋은 것은 아니라고 합니다. 그 이유로 DB 연결·파일 디스크립터 같은 외부 자원 한계, 과도한 동시 호출로 인한 외부 시스템 장애, 부자연스러운 부하 분산을 듭니다.",
+          "w": "외부 자원의 한계, 외부 시스템 과부하, 부하 분산이 이유입니다. Go는 백만 개 고루틴도 만들 수 있으므로 1000개 제한은 틀렸고, 워커 풀은 채널로 구현합니다.",
+          "an": "Go언어프로그래밍_4일차.md §5.1 왜 워커 풀인가?",
+          "src": "## 5.1 왜 워커 풀인가?\n\n3일차에서 봤듯이 Go는 백만 개 고루틴도 만들 수 있습니다. 그렇다고 **무제한으로 만드는 게 좋은 건 아닙니다.**\n\n- 외부 자원(DB 연결, 파일 디스크립터)에는 한계가 있음\n- 너무 많은 동시 호출은 외부 시스템을 죽일 수 있음\n- 부하 분산이 자연스럽지 않음"
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "title": "Pipeline · Fan-out/in",
+      "ref": "6교시 §6.1–6.7",
+      "qs": [
+        {
+          "id": "t6-01",
+          "ty": "num",
+          "lv": 3,
+          "game": false,
+          "p": "다음 코드가 마지막으로 출력하는 값은? <code>for v := range runningSum(square(generate(1, 2, 3, 4, 5))) { fmt.Println(v) }</code>",
+          "a": 55,
+          "unit": "",
+          "h": "파이프라인은 generate가 1~5를 내보내고, square가 각 값을 제곱하며, runningSum이 제곱값을 누적해 매번 현재 합계를 출력합니다. 마지막 출력은 1²부터 5²까지 모두 더한 누적 합입니다.",
+          "w": "square가 1, 4, 9, 16, 25를 만들고 runningSum이 누적해 1, 5, 14, 30, 55를 출력합니다. 마지막 값은 55입니다.",
+          "an": "Go언어프로그래밍_4일차.md §6.2 기본형 — 3단계 파이프라인",
+          "src": "// Stage 3: 합계 누적 출력\nfunc runningSum(in <-chan int) <-chan int {\n out := make(chan int)\n go func() {\n defer close(out)\n sum := 0\n for n := range in {\n sum += n\n out <- sum\n }\n }()\n return out\n}\n\nfunc main() {\n for v := range runningSum(square(generate(1, 2, 3, 4, 5))) {\n fmt.Println(v)\n }\n // 1, 5, 14, 30, 55\n}\n```"
+        },
+        {
+          "id": "t6-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Fan-out에서 c1, c2, c3가 같은 입력 채널 <code>in</code>을 공유할 때 각 값은?",
+          "o": [
+            "딱 한 수신자만 받는다",
+            "모든 수신자가 복사본을 받는다",
+            "첫 워커만 받는다",
+            "두 수신자에게 전달된다"
+          ],
+          "a": 0,
+          "h": "Fan-out 예제에서 c1, c2, c3 세 square 워커가 같은 입력 채널 in을 공유합니다. 채널은 방송(broadcast)이 아니라 값 하나를 한 수신자에게만 전달하므로, 교안 주석대로 값이 워커들 사이에 자동으로 나뉘어 부하가 분산됩니다.",
+          "w": "채널은 여러 수신자가 안전하게 공유할 수 있고 각 값은 딱 하나의 수신자만 받습니다. 그래서 같은 in을 공유하면 자동으로 부하가 분산됩니다.",
+          "an": "Go언어프로그래밍_4일차.md §6.3 Fan-out / Fan-in 심화",
+          "src": "func main() {\n in := generate(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)\n\n // Fan-out: 3개 워커가 동시에 square\n c1 := square(in)\n c2 := square(in) // 같은 in을 공유 — 자동 부하 분산\n c3 := square(in)"
+        },
+        {
+          "id": "t6-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "파이프라인에서 '백프레셔(Backpressure)'란?",
+          "o": [
+            "에러가 앞 단계로 전파됨",
+            "생산자가 소비자 속도에 맞춰 멈춤",
+            "채널 버퍼가 자동으로 커짐",
+            "워커 수가 자동 조절됨"
+          ],
+          "a": 1,
+          "h": "백프레셔는 생산자가 소비자보다 빠를 때 자연스럽게 속도가 맞춰지는 현상입니다. 각 단계 채널이 unbuffered거나 버퍼가 작으면, 다음 단계가 느릴 때 채널이 차서 이전 단계의 송신이 블록되어 명시적 속도 제어 없이 균형이 잡힙니다.",
+          "w": "unbuffered나 작은 버퍼 채널에서는 다음 단계가 느리면 이전 단계의 송신이 블록되어 자연스럽게 속도가 맞춰집니다. 명시적인 속도 제어 없이 부하 균형이 이뤄집니다.",
+          "an": "Go언어프로그래밍_4일차.md §6.4 백프레셔",
+          "src": "## 6.4 백프레셔 (Backpressure)\n\n생산자가 소비자보다 빠를 때, **자연스럽게 속도가 맞춰지는 현상**.\n\n```go\nin := generate(1, 2, 3, ..., 1000000) // 빠르게 생성\nsq := square(in) // 채널이 가득 차면 generate가 블록!\n```\n\n각 단계의 채널이 unbuffered거나 작은 버퍼라면, 다음 단계가 느리면 이전 단계도 자동으로 멈춥니다. **명시적인 속도 제어 없이 부하 균형**이 이뤄집니다."
+        },
+        {
+          "id": "t6-04",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "단계 간 채널에 <code>make(chan int, 10000)</code>처럼 큰 버퍼를 줄 때의 위험은?",
+          "o": [
+            "데드락이 자주 난다",
+            "값 순서가 뒤섞인다",
+            "메모리가 폭증할 수 있다",
+            "컴파일 오류가 난다"
+          ],
+          "a": 2,
+          "h": "교안은 단계 간 채널 버퍼를 세 단계로 비교합니다. 버퍼가 없으면 1대1 페이스, 100 정도면 burst 흡수, 10000처럼 크면 거의 비동기가 되어 소비가 늦을 때 값이 계속 쌓이므로, 기본은 unbuffered나 작은 버퍼로 두라고 합니다.",
+          "w": "큰 버퍼는 거의 비동기로 동작해 처리되지 않은 값이 쌓이면서 메모리가 폭증할 수 있습니다. 기본은 unbuffered나 작은 버퍼입니다.",
+          "an": "Go언어프로그래밍_4일차.md §6.4 버퍼 크기의 영향",
+          "src": "### 버퍼 크기의 영향\n\n```go\nout := make(chan int) // 강한 결합 — 1대1 페이스\nout := make(chan int, 100) // 약간의 버퍼 — burst 흡수\nout := make(chan int, 10000) // 큰 버퍼 — 거의 비동기\n```\n\n기본은 unbuffered나 작은 버퍼. **큰 버퍼는 메모리 폭증 위험**."
+        },
+        {
+          "id": "t6-05",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "ctx를 통합한 파이프라인 단계에서 모든 송신에 쓰는 관용구는?",
+          "o": [
+            "time.Sleep 후 송신",
+            "default로 송신 포기",
+            "reflect.Select로 송신",
+            "송신과 ctx.Done()을 select"
+          ],
+          "a": 3,
+          "h": "ctx를 통합한 gen·sq 단계는 값을 보낼 때 out <- v만 쓰지 않습니다. 취소되면 송신을 기다리지 않고 바로 return해야 누수가 없으므로, 송신 case와 ctx.Done() case를 함께 두는 구문을 모든 송신에 씁니다.",
+          "w": "<code>select { case out &lt;- v: case &lt;-ctx.Done(): return }</code>로 송신하면 ctx 취소 시 누수 없이 즉시 종료됩니다. default로 포기하면 값이 유실됩니다.",
+          "an": "Go언어프로그래밍_4일차.md §6.6 파이프라인 + Context 통합 예제",
+          "src": "**관용구**: 모든 송신에 `select { case out <- v: case <-ctx.Done(): return }`.\n\nctx 취소 시 **누수 없이 즉시 종료**됩니다."
+        },
+        {
+          "id": "t6-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "파이프라인의 각 단계는 고루틴과 채널로 구현되며 UNIX 파이프와 같은 사고방식입니다.",
+          "a": true,
+          "h": "교안은 파이프라인을 데이터가 여러 단계를 거치며 변환되는 패턴으로 정의하고, 각 단계를 고루틴 + 채널로 구현한다고 설명합니다. cat file | grep foo | sort | uniq 같은 UNIX 파이프와 구조가 같고, 차이는 메모리 내 고루틴으로 실행된다는 점입니다.",
+          "w": "맞습니다. 각 단계가 고루틴+채널로 연결되며 UNIX 파이프와 같은 구조입니다. 차이는 각 단계가 메모리 안에서 고루틴으로 실행된다는 점입니다.",
+          "an": "Go언어프로그래밍_4일차.md §6.1 Pipeline이란?",
+          "src": "## 6.1 Pipeline이란?\n\n**파이프라인**은 데이터가 여러 단계를 거치며 변환되는 패턴입니다.\n\n```text\ngenerator → stage1 → stage2 → stage3 → consumer\n```\n\n각 단계는 **고루틴 + 채널**로 구현됩니다. UNIX의 파이프(`cat file | grep foo | sort | uniq`)와 같은 사고방식입니다.\n\n```bash"
+        },
+        {
+          "id": "t6-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "단순한 경우의 에러 전파에는 별도 에러 채널(방법 ②)이 권장됩니다.",
+          "a": false,
+          "h": "교안 §6.5는 에러 전파 방법 세 가지를 소개합니다. 방법 ②는 out과 별도의 errCh를 함께 반환하는데, 교안은 이 방식이 복잡하므로 단순한 경우에는 결과 타입에 Err 필드를 넣는 방법 ①을 권장한다고 정리합니다.",
+          "w": "틀렸습니다. 별도 에러 채널은 복잡하므로 단순한 경우엔 결과 타입에 에러를 포함하는 방법 ①이 권장됩니다.",
+          "an": "Go언어프로그래밍_4일차.md §6.5 에러 전파",
+          "src": "return out, errCh\n}\n```\n\n복잡하므로 단순한 경우엔 방법 ①이 권장됩니다."
+        },
+        {
+          "id": "t6-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "파이프라인 에러 처리 방법과 동작을 연결하세요.",
+          "pairs": [
+            [
+              "결과 타입에 Err 포함",
+              "다음 단계가 보고 분기"
+            ],
+            [
+              "별도 에러 채널",
+              "out과 errCh를 함께 반환"
+            ],
+            [
+              "Context 취소",
+              "cancel()로 모든 단계 중단"
+            ]
+          ],
+          "h": "방법 ①은 Result 구조체에 Err를 실어 다음 단계가 보고 분기하고, 방법 ②는 out과 errCh를 함께 반환해 에러 길을 따로 냅니다. 방법 ③은 에러가 나면 ctx의 cancel()을 호출해 모든 단계를 동시에 멈춥니다.",
+          "w": "방법 ①은 Result{Value, Err}로 흘려보내고, 방법 ②는 별도 에러 채널을 반환하며, 방법 ③은 에러 시 ctx를 cancel해 모든 단계를 동시에 멈춥니다.",
+          "an": "Go언어프로그래밍_4일차.md §6.5 에러 전파",
+          "src": "```go\ntype Result struct {\n Value int\n Err error\n}\n\nfunc parse(in <-chan string) <-chan Result {\n out := make(chan Result)\n go func() {\n defer close(out)\n for s := range in {\n n, err := strconv.Atoi(s)\n out <- Result{Value: n, Err: err}\n }\n }()\n return out\n}\n```\n\n다음 단계가 에러를 보고 분기 처리합니다."
+        },
+        {
+          "id": "t6-09",
+          "ty": "order",
+          "lv": 3,
+          "game": false,
+          "p": "pipeline_demo.go의 Fan-out/Fan-in 흐름을 순서대로 놓으세요.",
+          "steps": [
+            "gen(ctx, 20)으로 입력 생성",
+            "4개 square 워커가 같은 input 소비",
+            "merge로 출력 채널을 하나로 합침",
+            "range out으로 개수와 합계 계산"
+          ],
+          "h": "pipeline_demo.go의 main은 gen(ctx, 20)으로 입력 채널을 만든 뒤 square 워커 4개가 같은 input을 소비하게 합니다(Fan-out). 그 출력 채널들을 merge로 하나로 합치고(Fan-in), range out으로 개수와 합계를 계산합니다.",
+          "w": "gen이 1~20을 만들고 4개 square가 같은 입력을 나눠 처리합니다. merge가 이를 하나로 합치고 main이 range로 개수와 합계를 셉니다.",
+          "an": "Go언어프로그래밍_4일차.md §6.7 pipeline_demo.go",
+          "src": "// 입력\n input := gen(ctx, 20)\n // Fan-out: 4개 워커로 square 처리\n workers := make([]<-chan int, 4)\n for i := range workers {\n workers[i] = square(ctx, input)\n }\n // Fan-in\n out := merge(ctx, workers...)\n // 결과\n total := 0\n count := 0\n for v := range out {\n total += v\n count++\n }\n fmt.Printf(\"처리한 개수: %d, 합계: %d\\n\", count, total)"
+        },
+        {
+          "id": "t6-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "자료가 꼽은 '파이프라인의 미덕'에 해당하는 것을 모두 고르세요.",
+          "o": [
+            "각 단계가 작고 독립적이다",
+            "square를 다른 스트림에 재사용",
+            "각 단계가 동시에 진행된다",
+            "전역 변수로 단계 간 공유",
+            "데이터를 메모리에 모두 올림"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "교안이 꼽은 파이프라인의 미덕은 네 가지입니다. 각 단계가 작고 독립적인 단순함, square를 다른 정수 스트림에도 쓰는 재사용, 각 단계가 동시에 진행되는 자연스러운 동시성, 한 번에 하나씩 흘러가는 메모리 효율입니다.",
+          "w": "단순함, 재사용, 자연스러운 동시성, 메모리 효율이 미덕입니다. 단계는 채널로 통신하며, 값이 하나씩 흘러가므로 데이터를 한꺼번에 올리지 않습니다.",
+          "an": "Go언어프로그래밍_4일차.md §6.2 파이프라인의 미덕",
+          "src": "### 파이프라인의 미덕\n\n1. **단순함** — 각 단계가 작고 독립적\n2. **재사용** — `square`는 어떤 정수 스트림에도 적용 가능\n3. **자연스러운 동시성** — 각 단계가 동시에 진행\n4. **메모리 효율** — 한 번에 하나씩 흘러가므로 큰 데이터도 OK"
+        }
+      ]
+    },
+    {
+      "id": "t7",
+      "title": "실습① URL 헬스 체커",
+      "ref": "7교시 §7.1–7.8 · 솔루션 도전 ①~④",
+      "qs": [
+        {
+          "id": "t7-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "healthcheck 프로젝트에서 Pool과 Check 코드를 두는 디렉터리는?",
+          "o": [
+            "cmd/healthcheck",
+            "internal/checker",
+            "bin",
+            "pkg/pool"
+          ],
+          "a": 1,
+          "h": "healthcheck 프로젝트는 CLI 진입점 main.go를 cmd/healthcheck/에 두고, 검사 로직(checker.go)과 워커 풀(pool.go)은 별도 디렉터리에 둡니다. 그 디렉터리는 2일차에서 배운, 외부 모듈이 import할 수 없는 특수 디렉터리 아래에 있습니다.",
+          "w": "checker.go와 pool.go는 <code>internal/checker/</code>에 둡니다. <code>cmd/healthcheck/main.go</code>는 CLI이고, <code>bin/</code>은 빌드 결과물 위치입니다.",
+          "an": "Go언어프로그래밍_4일차.md §7.2 Step 1 — 프로젝트 셋업",
+          "src": "## 7.2 Step 1 — 프로젝트 셋업\n\n```bash\nmkdir -p ~/go-class/day4/healthcheck\ncd ~/go-class/day4/healthcheck\ngo mod init healthcheck\nmkdir -p cmd/healthcheck\nmkdir -p internal/checker\n```\n\n```\nhealthcheck/\n├── go.mod\n├── Makefile\n├── cmd/healthcheck/main.go\n└── internal/checker/\n ├── checker.go\n └── pool.go\n```"
+        },
+        {
+          "id": "t7-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>NewPool(numWorkers)</code>가 만드는 results 채널의 버퍼 크기는?",
+          "o": [
+            "0 (unbuffered)",
+            "numWorkers",
+            "numWorkers*2",
+            "100"
+          ],
+          "a": 2,
+          "h": "pool.go의 NewPool은 targets 채널은 버퍼 없이, results 채널은 make(chan Result, ...)로 버퍼를 줍니다. 버퍼 크기는 인자로 받은 워커 수에 일정한 배수를 곱한 값입니다.",
+          "w": "<code>results: make(chan Result, numWorkers*2)</code>로 워커 수의 2배 버퍼를 둡니다. targets 채널은 unbuffered로 만듭니다.",
+          "an": "Go언어프로그래밍_4일차.md §7.4 Step 3 — Worker Pool 구현",
+          "src": "// NewPool은 새 풀을 만든다\nfunc NewPool(numWorkers int) *Pool {\n return &Pool{\n NumWorkers: numWorkers,\n targets: make(chan Target),\n results: make(chan Result, numWorkers*2),\n }\n}"
+        },
+        {
+          "id": "t7-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "healthcheck main은 Ctrl+C를 어떻게 graceful shutdown으로 처리합니까?",
+          "o": [
+            "signal.Notify 후 cancel() 호출",
+            "os.Exit(1)로 즉시 종료",
+            "panic으로 중단",
+            "results 채널을 직접 닫음"
+          ],
+          "a": 0,
+          "h": "healthcheck main은 signal.Notify로 SIGINT·SIGTERM을 sigs 채널로 받습니다. 별도 고루틴이 <-sigs로 신호를 기다리다 '중단 신호' 메시지를 찍고 WithTimeout ctx의 취소 함수를 호출하면, ctx를 받은 풀 전체가 정리됩니다.",
+          "w": "<code>signal.Notify</code>로 SIGINT·SIGTERM을 받아 <code>cancel()</code>을 호출하면 ctx를 감시하던 워커들이 정리하고 빠져나옵니다. 그래서 중단 후에도 요약이 출력됩니다.",
+          "an": "Go언어프로그래밍_4일차.md §7.5 Step 4 — main.go",
+          "src": "// 시그널 핸들링 포함 ctx\n ctx, cancel := context.WithTimeout(context.Background(), *timeout)\n defer cancel()\n sigs := make(chan os.Signal, 1)\n signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)\n go func() {\n <-sigs\n fmt.Println(\"\\n중단 신호 — 정리 중...\")\n cancel()\n }()"
+        },
+        {
+          "id": "t7-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "도전 ①의 <code>CheckWithRetry</code>에서 응답이 404처럼 4xx이면?",
+          "o": [
+            "최대 3회까지 재시도한다",
+            "재시도 없이 바로 반환한다",
+            "delay만 두 배로 늘린다",
+            "ctx를 취소한다"
+          ],
+          "a": 1,
+          "h": "CheckWithRetry는 Check 결과가 성공이면 바로 반환하고, 상태 코드가 400 이상 500 미만이면 '재시도 의미 없음' 주석과 함께 처리합니다. 클라이언트 오류는 다시 보내도 결과가 같기 때문입니다.",
+          "w": "<code>StatusCode &gt;= 400 &amp;&amp; &lt; 500</code>이면 재시도해도 결과가 같으므로 바로 반환합니다. 네트워크 에러 같은 실패만 지수 백오프로 재시도합니다.",
+          "an": "Go언어프로그래밍_4일차_솔루션.md 도전 과제 ① 헬스체커 재시도 + 지수 백오프",
+          "src": "for attempt := 1; attempt <= cfg.MaxAttempts; attempt++ {\n result = Check(ctx, url)\n result.Attempts = attempt\n\n // 성공\n if result.Err == nil {\n return result\n }\n\n // 4xx는 재시도 의미 없음\n if result.StatusCode >= 400 && result.StatusCode < 500 {\n return result\n }\n\n // 마지막 시도였으면 종료"
+        },
+        {
+          "id": "t7-05",
+          "ty": "num",
+          "lv": 3,
+          "game": false,
+          "p": "도전 ①의 <code>DefaultRetry</code>(MaxAttempts 3, InitialDelay 200ms)로 3번 모두 실패하면 백오프 대기 시간의 합은 몇 ms입니까?",
+          "a": 600,
+          "unit": "ms",
+          "h": "CheckWithRetry는 delay를 InitialDelay(200ms)로 시작해 실패할 때마다 대기 후 두 배로 늘립니다. 마지막(3번째) 시도 뒤에는 바로 반환하므로, 대기는 1번째·2번째 실패 뒤 두 번만 일어나며 합은 200 + 200×2로 계산합니다.",
+          "w": "1회 실패 후 200ms, 2회 실패 후 400ms를 기다리고, 3회째는 마지막 시도라 대기 없이 반환합니다. 합계는 600ms입니다.",
+          "an": "Go언어프로그래밍_4일차_솔루션.md 도전 과제 ① 헬스체커 재시도 + 지수 백오프",
+          "src": "for attempt := 1; attempt <= cfg.MaxAttempts; attempt++ {\n result = Check(ctx, url)\n result.Attempts = attempt\n\n // 성공\n if result.Err == nil {\n return result\n }\n\n // 4xx는 재시도 의미 없음\n if result.StatusCode >= 400 && result.StatusCode < 500 {\n return result\n }\n\n // 마지막 시도였으면 종료\n if attempt == cfg.MaxAttempts {\n return result\n }\n\n // 백오프 대기\n select {\n case <-time.After(delay):\n case <-ctx.Done():"
+        },
+        {
+          "id": "t7-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "도전 ④에서 <code>-w 10 -rps 5</code>로 실행하면 워커 10개가 각각 초당 5회씩 요청합니다.",
+          "a": false,
+          "h": "도전 ④는 복습 ②의 RateLimiter를 Pool에 하나 두고 모든 워커가 공유하게 합니다. 솔루션은 -w 10 -rps 5로 실행하면 워커 10개가 동시 처리하되 전체 합계가 초당 5회 이내로 제한된다고 설명합니다.",
+          "w": "틀렸습니다. 워커는 10개가 동시에 처리하지만 하나의 limiter를 공유하므로 전체 합계가 초당 5회 이내로 제한됩니다.",
+          "an": "Go언어프로그래밍_4일차_솔루션.md 도전 과제 ④ Rate Limit",
+          "src": "# 100개 URL을 초당 5개로 제한\n./bin/healthcheck -w 10 -rps 5 url1 url2 ... url100\n```\n\n워커는 10개로 동시 처리하되, **전체 합계가 초당 5회 이내**로 제한됩니다.\n\n---"
+        },
+        {
+          "id": "t7-07",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "healthcheck Makefile의 test 타깃은 <code>go test -race ./...</code>를 실행합니다.",
+          "a": true,
+          "h": "healthcheck Makefile에는 all, build, run, test, clean 타깃이 있습니다. test 타깃은 동시성 코드의 경쟁 상태를 찾는 플래그를 붙여 모든 패키지를 테스트하는 명령을 실행합니다.",
+          "w": "맞습니다. test 타깃은 <code>-race</code>로 경쟁 상태를 검사하며 테스트합니다.",
+          "an": "Go언어프로그래밍_4일차.md §7.6 Step 5 — Makefile",
+          "src": "## 7.6 Step 5 — Makefile\n\n```makefile\nBINARY := healthcheck\n\n.PHONY: all build run test clean\n\nall: build\n\nbuild:\n go build -o bin/$(BINARY) ./cmd/$(BINARY)\n\nrun: build\n ./bin/$(BINARY) -w 5 -t 10s\n\ntest:\n go test -race ./...\n\nclean:\n rm -rf bin/\n```"
+        },
+        {
+          "id": "t7-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "healthcheck CLI 플래그와 의미를 연결하세요.",
+          "pairs": [
+            [
+              "-w",
+              "동시 워커 수"
+            ],
+            [
+              "-t",
+              "전체 타임아웃"
+            ],
+            [
+              "-json",
+              "JSON 형식 출력"
+            ],
+            [
+              "-rps",
+              "초당 요청 제한"
+            ]
+          ],
+          "h": "main.go는 flag.Int(\"w\", 5, \"동시 워커 수\"), flag.Duration(\"t\", 30*time.Second, \"전체 타임아웃\")로 플래그를 정의합니다. 도전 과제에서는 -json으로 JSON 형식 출력, -rps로 초당 요청 수 제한 옵션을 추가합니다.",
+          "w": "-w는 workers, -t는 timeout, -json은 JSON 출력(도전 ②), -rps는 requests per second 제한(도전 ④)입니다.",
+          "an": "Go언어프로그래밍_4일차.md §7.5 · Go언어프로그래밍_4일차_솔루션.md 도전 ②·④",
+          "src": "var (\n workers = flag.Int(\"w\", 5, \"동시 워커 수\")\n timeout = flag.Duration(\"t\", 30*time.Second, \"전체 타임아웃\")\n jsonOut = flag.Bool(\"json\", false, \"JSON 형식 출력\")\n)"
+        },
+        {
+          "id": "t7-09",
+          "ty": "order",
+          "lv": 2,
+          "game": false,
+          "p": "healthcheck main의 실행 흐름을 순서대로 놓으세요.",
+          "steps": [
+            "flag 파싱 후 WithTimeout ctx 생성",
+            "signal.Notify로 Ctrl+C 감시",
+            "NewPool 후 pool.Run(ctx)",
+            "Submit 후 pool.Close()",
+            "Results 출력 후 Stats 요약"
+          ],
+          "h": "healthcheck main은 flag를 파싱하고 WithTimeout ctx를 만든 뒤, signal.Notify로 Ctrl+C를 감시합니다. 이어 NewPool로 풀을 만들고 pool.Run(ctx)로 워커를 시작하며, URL을 Submit한 뒤 Close하고 Results를 출력한 다음 Stats로 요약합니다.",
+          "w": "플래그와 ctx를 준비하고 시그널 처리를 건 뒤 풀을 띄웁니다. 대상을 Submit하고 Close로 끝을 알린 다음, 결과를 출력하고 완료·실패 수를 요약합니다.",
+          "an": "Go언어프로그래밍_4일차.md §7.5 Step 4 — main.go",
+          "src": "// 시그널 핸들링 포함 ctx\n ctx, cancel := context.WithTimeout(context.Background(), *timeout)\n defer cancel()\n sigs := make(chan os.Signal, 1)\n signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)\n go func() {\n <-sigs\n fmt.Println(\"\\n중단 신호 — 정리 중...\")\n cancel()\n }()\n pool := checker.NewPool(*workers)\n pool.Run(ctx)"
+        },
+        {
+          "id": "t7-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": false,
+          "p": "healthcheck의 Pool 설계에 대한 설명으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "completed·failed를 atomic으로 갱신",
+            "Submit은 ctx.Done()도 select",
+            "Close()는 targets 채널을 닫음",
+            "Close()가 results도 직접 닫음",
+            "Check은 ctx 없이 요청을 보냄"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Pool은 completed·failed 카운터를 sync/atomic으로 갱신하고, Submit은 targets 송신과 ctx.Done()을 select로 함께 기다립니다. Close()는 더 이상 작업이 없음을 알리려고 targets 채널을 닫고, results는 모든 워커가 끝난 뒤 Run 쪽에서 닫습니다.",
+          "w": "카운터는 atomic으로 갱신하고, Submit은 ctx 취소를 함께 감시하며, Close는 targets만 닫습니다. results는 Run 안에서 wg.Wait() 뒤에 닫고, Check은 <code>NewRequestWithContext</code>로 ctx를 씁니다.",
+          "an": "Go언어프로그래밍_4일차.md §7.3–7.4",
+          "src": "// Stats는 현재까지 통계\nfunc (p *Pool) Stats() (completed, failed int64) {\n return atomic.LoadInt64(&p.completed),\n atomic.LoadInt64(&p.failed)\n}\n// Submit은 검사 대상을 큐에 넣는다\nfunc (p *Pool) Submit(ctx context.Context, t Target) error {\n select {\n case p.targets <- t:\n return nil\n case <-ctx.Done():\n return ctx.Err()\n }\n}\n// Run은 워커들을 시작한다. 호출자는 Submit 후 Close를 호출해야 한다."
+        }
+      ]
+    },
+    {
+      "id": "t8",
+      "title": "실습② 로그 분석 파이프라인",
+      "ref": "8교시 §8.1–8.11 · 솔루션 도전 ⑤",
+      "qs": [
+        {
+          "id": "t8-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "로그 분석기에서 여러 워커로 Fan-out되는 단계는?",
+          "o": [
+            "파일 읽기",
+            "파싱",
+            "ERROR 필터",
+            "시간대별 집계"
+          ],
+          "a": 1,
+          "h": "로그 분석기는 readFiles → parseStage → filterErrors → bucketize 순으로 단계를 잇습니다. 그중 정규식으로 한 줄씩 해석하는 단계가 numWorkers만큼 고루틴을 띄우며, main에서 (ctx, lines, 4)처럼 워커 수를 받습니다.",
+          "w": "<code>parseStage(ctx, lines, 4)</code>가 4개 파서로 Fan-out됩니다. 부하 테스트에서도 파싱 단계의 fan-out 효과가 크다고 설명합니다.",
+          "an": "Go언어프로그래밍_4일차.md §8.5 Stage 2: 파싱 (Fan-out)",
+          "src": "func parseStage(ctx context.Context, in <-chan LogLine, numWorkers int) <-chan ParseResult {\n out := make(chan ParseResult, 100)\n var wg sync.WaitGroup\n for i := 0; i < numWorkers; i++ {\n wg.Add(1)\n go func() {\n defer wg.Done()\n for ll := range in {\n result := parseOne(ll)\n select {\n case out <- result:\n case <-ctx.Done():\n return\n }\n }\n }()\n }\n go func() {\n wg.Wait()\n close(out)\n }()\n return out"
+        },
+        {
+          "id": "t8-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>readFiles</code>에서 경로가 <code>'-'</code>이면 어떻게 동작합니까?",
+          "o": [
+            "해당 경로를 건너뛴다",
+            "에러를 내고 종료한다",
+            "모든 .log 파일을 읽는다",
+            "표준 입력(stdin)을 읽는다"
+          ],
+          "a": 3,
+          "h": "readFiles는 paths를 돌며 각 경로마다 io.ReadCloser를 준비합니다. 경로가 \"-\"인 경우는 파일을 열지 않고 io.NopCloser로 감싼 os 패키지의 표준 스트림을 reader로 쓰며, main도 인자가 없으면 이 값을 기본 경로로 넣습니다.",
+          "w": "'-'이면 <code>io.NopCloser(os.Stdin)</code>을 reader로 써서 표준 입력을 읽습니다. main도 인자가 없으면 paths를 '-'로 둡니다.",
+          "an": "Go언어프로그래밍_4일차.md §8.4 Stage 1: 파일 읽기",
+          "src": "var reader io.ReadCloser\n if path == \"-\" {\n reader = io.NopCloser(os.Stdin)\n } else {\n f, err := os.Open(path)\n if err != nil {\n fmt.Fprintf(os.Stderr, \"파일 열기 실패: %s: %v\\n\", path, err)\n continue\n }\n reader = f\n }"
+        },
+        {
+          "id": "t8-03",
+          "ty": "mc",
+          "lv": 3,
+          "game": false,
+          "p": "<code>bucketize</code>는 <code>e.Timestamp.Format('2006-01-02T15')</code>로 키를 만듭니다. 2024-01-15T10:30:11Z의 키는?",
+          "o": [
+            "2024-01-15T10",
+            "2024-01-15T10:30",
+            "2024-01-15",
+            "10:30"
+          ],
+          "a": 0,
+          "h": "Go의 시간 포맷은 참조 시각 2006-01-02 15:04:05를 기준으로, 레이아웃에 적힌 부분만 출력합니다. \"2006-01-02T15\"는 연-월-일 뒤에 T와 '시'까지만 있고 분·초 자리가 없으므로, 그 아래 단위는 잘려 나갑니다.",
+          "w": "레이아웃 '2006-01-02T15'는 날짜와 시(hour)까지만 남기므로 '2024-01-15T10'이 됩니다. 이렇게 시간 단위로 절삭해 시간대별로 셉니다.",
+          "an": "Go언어프로그래밍_4일차.md §8.6 시간대별 키 변환",
+          "src": "func bucketize(ctx context.Context, in <-chan LogEntry) <-chan HourEntry {\n out := make(chan HourEntry, 100)\n go func() {\n defer close(out)\n for e := range in {\n key := HourKey{Hour: e.Timestamp.Format(\"2006-01-02T15\")}\n select {\n case out <- HourEntry{Key: key, Entry: e}:\n case <-ctx.Done():\n return\n }\n }\n }()\n return out\n}\n```"
+        },
+        {
+          "id": "t8-04",
+          "ty": "num",
+          "lv": 2,
+          "game": false,
+          "p": "8.9의 sample.log(9줄)를 분석하면 '총 ERROR'는 몇 건입니까? (10시 2건, 11시 2건, 12시 1건으로 집계됨)",
+          "a": 5,
+          "unit": "건",
+          "h": "sample.log에는 INFO·WARN·ERROR가 섞여 있고, filterErrors는 ERROR 레벨만 통과시킵니다. 기대 출력은 시간대별 ERROR 건수를 보여 주므로, 총 ERROR는 10시대 + 11시대 + 12시대 건수의 합입니다.",
+          "w": "시간대별 집계 2 + 2 + 1을 더해 총 5건입니다. INFO·WARN 줄은 filterErrors에서 걸러집니다.",
+          "an": "Go언어프로그래밍_4일차.md §8.9 테스트 데이터 기대 출력",
+          "src": "기대 출력:\n```\n=== ERROR 로그 시간대별 집계 ===\n2024-01-15T10 : 2건\n2024-01-15T11 : 2건\n2024-01-15T12 : 1건\n\n총 ERROR: 5건 (소요: 12.3ms)\n```"
+        },
+        {
+          "id": "t8-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>filterErrors</code>는 <code>r.Err != nil</code>인 파싱 결과를 어떻게 처리합니까?",
+          "o": [
+            "ERROR로 집계한다",
+            "파이프라인을 종료한다",
+            "continue로 건너뛴다",
+            "패닉을 일으킨다"
+          ],
+          "a": 2,
+          "h": "filterErrors는 파싱 결과 r을 받으면 먼저 r.Err을 검사하고, 이어서 Level이 \"ERROR\"인지 확인합니다. 파싱 실패한 결과는 다음 단계로 보내지 않고 루프의 다음 반복으로 넘어가며, 주석은 대안으로 '별도 에러 채널'을 언급합니다.",
+          "w": "파싱 실패 결과는 <code>continue</code>로 건너뛰고, Level이 'ERROR'인 항목만 다음 단계로 보냅니다. 실패한 줄을 따로 보고 싶으면 도전 ⑤처럼 에러 채널을 분리합니다.",
+          "an": "Go언어프로그래밍_4일차.md §8.6 Stage 3: 필터",
+          "src": "func filterErrors(ctx context.Context, in <-chan ParseResult) <-chan LogEntry {\n out := make(chan LogEntry, 100)\n go func() {\n defer close(out)\n for r := range in {\n if r.Err != nil {\n continue // 또는 별도 에러 채널\n }\n if r.Entry.Level != \"ERROR\" {\n continue\n }\n select {\n case out <- r.Entry:\n case <-ctx.Done():\n return\n }\n }\n }()\n return out\n}"
+        },
+        {
+          "id": "t8-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "로그 파이프라인의 각 단계는 별도 고루틴과 채널이며, 자기 출력 채널을 닫을 책임을 각자 가집니다.",
+          "a": true,
+          "h": "교안 §8.1은 로그 분석기의 읽기·파싱·필터링·변환·집계 각 단계가 별도 고루틴 + 채널이라고 설명합니다. 각 stage 함수는 출력 채널을 만들고 defer close(out)으로 직접 닫으며, 8교시 체크포인트도 '채널 닫기 책임'을 묻습니다.",
+          "w": "맞습니다. 각 단계가 고루틴 안에서 <code>defer close(out)</code>로 자기 출력 채널을 닫으므로 다음 단계의 range가 자연스럽게 끝납니다.",
+          "an": "Go언어프로그래밍_4일차.md §8.1 · 8교시 체크포인트",
+          "src": "### ✅ 8교시 체크포인트\n\n- [ ] 5단계 파이프라인을 구성할 수 있는가?\n- [ ] 한 단계를 Fan-out으로 병렬화할 수 있는가?\n- [ ] ctx로 모든 단계를 동시에 중단할 수 있는가?\n- [ ] 채널 닫기 책임을 각 단계가 명확히 가지고 있는가?\n\n---"
+        },
+        {
+          "id": "t8-07",
+          "ty": "ox",
+          "lv": 3,
+          "game": true,
+          "p": "도전 ⑤에서 out과 errCh는 서로 다른 WaitGroup을 기다린 뒤 각각 다른 시점에 닫습니다.",
+          "a": false,
+          "h": "도전 ⑤는 parseStage에서 out과 errCh 두 채널을 만들어 파싱 실패를 분리합니다. 솔루션 학습 포인트는 두 채널을 언제 닫는지 정리하는데, 워커들을 기다리는 WaitGroup이 하나뿐이라는 점에 주목하세요.",
+          "w": "틀렸습니다. 두 채널 모두 같은 <code>wg.Wait()</code> 이후 함께 닫습니다. 그래야 어느 워커도 닫힌 채널에 송신하지 않습니다.",
+          "an": "Go언어프로그래밍_4일차_솔루션.md 도전 과제 ⑤ 로그 분석 에러 채널 분리",
+          "src": "## 학습 포인트\n\n- **에러를 정상 흐름에서 분리** → 깨끗한 데이터 경로\n- 에러 채널은 보통 더 작은 버퍼 (자주 발생 안 함 가정)\n- 두 채널 모두 같은 `wg.Wait()` 이후 닫음\n\n---"
+        },
+        {
+          "id": "t8-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "로그 분석기 파일과 역할을 연결하세요.",
+          "pairs": [
+            [
+              "stage_read.go",
+              "파일에서 줄 읽기"
+            ],
+            [
+              "stage_parse.go",
+              "줄을 LogEntry로 파싱"
+            ],
+            [
+              "stage_filter.go",
+              "ERROR 필터와 시간대 키 변환"
+            ],
+            [
+              "stage_aggregate.go",
+              "시간대별 건수 집계"
+            ]
+          ],
+          "h": "로그 분석기 파일 이름이 단계를 말해 줍니다. stage_read.go는 파일에서 줄 읽기, stage_parse.go는 LogEntry로 파싱, stage_filter.go는 ERROR 필터와 시간대 키 변환, stage_aggregate.go는 시간대별 건수 집계를 맡습니다.",
+          "w": "read는 줄 읽기, parse는 정규식과 RFC3339로 LogEntry 변환, filter는 ERROR 필터와 bucketize, aggregate는 map으로 시간대별 건수를 셉니다.",
+          "an": "Go언어프로그래밍_4일차.md §8.4–8.7",
+          "src": "## 8.1 시나리오: 로그 파일 분석기\n\n- 입력: 다수의 로그 파일 (또는 stdin)\n- 단계:\n 1. **읽기**: 파일에서 줄 읽기\n 2. **파싱**: 각 줄을 LogEntry로 변환\n 3. **필터링**: ERROR 레벨만\n 4. **변환**: 시간대별로 카운트\n 5. **집계**: 최종 통계 출력\n\n```text\nfiles → [read] → lines → [parse] → entries → [filter] → errors → [count] → stats\n```\n\n각 단계는 별도 고루틴 + 채널."
+        },
+        {
+          "id": "t8-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "main에서 조립하는 로그 분석 파이프라인 단계를 순서대로 놓으세요.",
+          "steps": [
+            "readFiles",
+            "parseStage",
+            "filterErrors",
+            "bucketize",
+            "aggregate"
+          ],
+          "h": "main은 lines := readFiles(...)에서 시작해 각 단계의 출력 채널을 다음 단계의 입력으로 넘깁니다. 교안 §8.1의 흐름 files → lines → entries → errors → stats처럼 읽기, 파싱, 필터, 시간대 변환, 집계 순서로 조립합니다.",
+          "w": "파일을 읽어 줄을 만들고, 파싱해 LogEntry로 바꾼 뒤, ERROR만 남기고 시간대 키를 붙여 마지막에 집계합니다.",
+          "an": "Go언어프로그래밍_4일차.md §8.1 시나리오 · §8.8 main.go",
+          "src": "// 파이프라인 조립\n lines := readFiles(ctx, paths)\n parsed := parseStage(ctx, lines, 4) // 4개 파서\n errors := filterErrors(ctx, parsed)\n bucketed := bucketize(ctx, errors)\n stats := aggregate(ctx, bucketed)"
+        },
+        {
+          "id": "t8-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": false,
+          "p": "로그 분석기 main.go에 대한 설명으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "인자가 없으면 '-'(stdin)를 쓴다",
+            "SIGINT면 cancel()로 부분 결과 출력",
+            "파서 워커는 4개다",
+            "시간대는 정렬 없이 출력한다",
+            "WithTimeout으로 전체를 제한한다"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "로그 분석기 main은 인자가 없으면 paths에 \"-\"를 넣고, WithCancel ctx를 만든 뒤 SIGINT·SIGTERM을 받으면 cancel()로 부분 결과를 출력합니다. parseStage에는 워커 수로 4를 넘깁니다.",
+          "w": "인자가 없으면 stdin을 읽고, 시그널이 오면 cancel()로 멈추고 부분 결과를 출력하며, 파서는 4개입니다. 시간대는 sort.Strings로 정렬하고, ctx는 WithTimeout이 아니라 WithCancel로 만듭니다.",
+          "an": "Go언어프로그래밍_4일차.md §8.8 Step 7 — main.go (조립)",
+          "src": "func main() {\n paths := os.Args[1:]\n if len(paths) == 0 {\n paths = []string{\"-\"} // stdin\n }\n ctx, cancel := context.WithCancel(context.Background())\n defer cancel()\n sigs := make(chan os.Signal, 1)\n signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)\n go func() {\n <-sigs\n fmt.Fprintln(os.Stderr, \"\\n중단 — 부분 결과 출력\")\n cancel()\n }()\n start := time.Now()\n // 파이프라인 조립\n lines := readFiles(ctx, paths)"
+        }
+      ]
+    },
+    {
+      "id": "t9",
+      "title": "복습 솔루션 · Rate Limiter·제네릭",
+      "ref": "솔루션 복습 ①~④ · 도전 ③",
+      "qs": [
+        {
+          "id": "t9-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "복습 ② RateLimiter가 구현한 알고리즘은?",
+          "o": [
+            "토큰 버킷",
+            "리키 버킷",
+            "슬라이딩 윈도",
+            "라운드 로빈"
+          ],
+          "a": 0,
+          "h": "복습 ② RateLimiter는 버퍼 채널을 '버킷'으로, ticker로 주기적으로 토큰을 보충하는 '리필', 요청마다 토큰 하나를 꺼내는 '소비'로 구성됩니다. 버킷이 가득 차 있으면 일시적 폭증(burst)도 허용하는 유명한 알고리즘입니다.",
+          "w": "채널 버퍼를 버킷으로, ticker를 리필로, 요청마다 토큰 1개 소비, 가득 차면 burst를 허용하는 token bucket 알고리즘입니다.",
+          "an": "Go언어프로그래밍_4일차_솔루션.md 복습 과제 ② 토큰 버킷 알고리즘",
+          "src": "## 토큰 버킷 알고리즘\n\n이 구현은 **token bucket** 알고리즘입니다.\n\n- **버킷**: 토큰을 담는 컨테이너 (채널 buffer)\n- **리필**: 일정 주기로 토큰 추가 (ticker)\n- **소비**: 요청마다 토큰 1개 소비\n- **버스트**: 버킷 가득 차면 일시적 폭증 허용"
+        },
+        {
+          "id": "t9-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>NewRateLimiter(3)</code>의 리필 간격 <code>time.Second / time.Duration(perSecond)</code>은 약 얼마입니까?",
+          "o": [
+            "100ms",
+            "333ms",
+            "1s",
+            "3s"
+          ],
+          "a": 1,
+          "h": "NewRateLimiter는 interval을 time.Second / time.Duration(perSecond)로 계산합니다. perSecond에 3을 넣으면 1초를 3으로 나눈 간격마다 토큰이 리필되며, 실행 결과의 요청 4·5 처리 시각에서도 그 간격을 확인할 수 있습니다.",
+          "w": "1초 ÷ 3 ≈ 333ms마다 토큰을 하나씩 리필합니다. 실행 결과에서도 초기 burst 3개 이후 333ms 간격으로 처리됩니다.",
+          "an": "Go언어프로그래밍_4일차_솔루션.md 복습 과제 ② 실행 결과",
+          "src": "## 실행 결과\n\n```\n[0s] 요청 1 처리\n[0s] 요청 2 처리\n[0s] 요청 3 처리 ← 초기 burst 3개 즉시\n[333ms] 요청 4 처리 ← 333ms마다 리필\n[666ms] 요청 5 처리\n[1s] 요청 6 처리\n[1.333s] 요청 7 처리\n[1.666s] 요청 8 처리\n[2s] 요청 9 처리\n[2.333s] 요청 10 처리\n```\n\n10개 요청을 약 2.3초에 걸쳐 처리 — **초당 3개 이내 보장**."
+        },
+        {
+          "id": "t9-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "RateLimiter의 <code>Allow()</code>가 토큰이 없을 때 기다리지 않고 false를 돌려주는 이유는?",
+          "o": [
+            "ctx를 인자로 받아서",
+            "Ticker로 리필해서",
+            "select에 default가 있어서",
+            "sync.Once로 감싸서"
+          ],
+          "a": 2,
+          "h": "Wait는 select에서 <-rl.bucket과 ctx.Done()을 함께 기다리지만, Allow의 select는 <-rl.bucket case 외에 다른 절이 하나 더 있습니다. 1교시의 non-blocking 수신처럼 토큰이 없으면 그 절로 빠져 즉시 false를 반환합니다.",
+          "w": "Allow는 <code>select { case &lt;-rl.bucket: return true default: return false }</code>로 non-blocking 수신합니다. 기다리는 쪽은 ctx를 받는 <code>Wait</code>이고, sync.Once는 Stop의 중복 close를 막습니다.",
+          "an": "Go언어프로그래밍_4일차_솔루션.md 복습 과제 ② rate_limit.go",
+          "src": "// Allow는 즉시 토큰 시도 (non-blocking)\nfunc (rl *RateLimiter) Allow() bool {\n select {\n case <-rl.bucket:\n return true\n default:\n return false\n }\n}"
+        },
+        {
+          "id": "t9-04",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "Context Tree 데모에서 Worker(3s)가 만료되면 자식 WorkerChild1의 <code>ctx.Err()</code>는?",
+          "o": [
+            "nil",
+            "context deadline exceeded",
+            "timeout",
+            "context canceled"
+          ],
+          "a": 3,
+          "h": "Context Tree에서 WorkerChild1·2는 Worker(3s)를 부모로 WithCancel로 만든 자식입니다. 부모가 시간 초과로 만료되면 자식은 자기 데드라인 때문이 아니라 부모 취소가 전파되어 취소되므로, Err()는 수동 취소와 같은 값을 돌려줍니다.",
+          "w": "부모 Worker는 시간 초과로 'deadline exceeded'지만, Branch로 만든 자식은 부모 취소가 전파되어 'context canceled'로 끝납니다. 명시적 cancel 없이도 자동 취소됩니다.",
+          "an": "Go언어프로그래밍_4일차_솔루션.md 복습 과제 ③ Context Tree 실행 결과",
+          "src": "[3s ] Worker(3s) 취소됨: context deadline exceeded\n [3s ] WorkerChild1 취소됨: context canceled\n [3s ] WorkerChild2 취소됨: context canceled"
+        },
+        {
+          "id": "t9-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "제네릭 파이프라인의 <code>FanOut</code>은 입력을 N개 채널에 어떻게 분배합니까?",
+          "o": [
+            "무작위로 고른다",
+            "라운드 로빈 (i+1)%n",
+            "값의 해시로 고른다",
+            "가장 한가한 채널"
+          ],
+          "a": 1,
+          "h": "제네릭 파이프라인의 학습 포인트 표는 FanOut의 분배 방식을 '간단한 부하 분산'으로 소개합니다. 입력 값을 0번 채널부터 차례로 보내고, 인덱스를 (i+1)%n으로 늘려 n에 도달하면 다시 0번으로 돌아가는 방식입니다.",
+          "w": "<code>i = (i + 1) % n</code>으로 차례대로 돌아가며 보내는 round-robin 방식이며, 각 항목은 한 채널만 받습니다. 자료는 이를 간단한 부하 분산 방식이라고 설명합니다.",
+          "an": "Go언어프로그래밍_4일차_솔루션.md 복습 과제 ④ 학습 포인트",
+          "src": "## 학습 포인트\n\n| 요소 | 효과 |\n|---|---|\n| `[T any]` | 모든 타입 지원 |\n| `[In, Out any]` | 입출력 타입 분리 (`Stage`) |\n| ctx 통합 | 모든 단계가 동시에 취소 가능 |\n| `FanOut`이 round-robin | 부하 분산 (간단한 방식) |"
+        },
+        {
+          "id": "t9-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Rate Limiter는 학습 목적이면 직접 구현, 운영 환경이면 <code>golang.org/x/time/rate</code> 같은 라이브러리를 권장합니다.",
+          "a": true,
+          "h": "복습 ②의 변형 절은 실무에서 표준 보조 패키지 golang.org/x/time/rate의 NewLimiter를 쓰는 예를 보여 줍니다. 마지막 문장은 직접 구현과 라이브러리 중 무엇을 고를지를 학습 목적과 운영 환경으로 나눠 권장합니다.",
+          "w": "맞습니다. 학습에는 직접 구현이 좋지만 운영 환경에서는 <code>rate.NewLimiter</code> 같은 표준 보조 패키지를 권장합니다.",
+          "an": "Go언어프로그래밍_4일차_솔루션.md 복습 과제 ② 변형 — golang.org/x/time/rate",
+          "src": "직접 구현 vs 라이브러리는 학습 목적이면 직접, 운영 환경이면 라이브러리를 권장합니다.\n\n---"
+        },
+        {
+          "id": "t9-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Go에서는 <code>Compose</code> 같은 함수 합성 구조가 명시적 단계 조합보다 더 읽기 쉬워 권장됩니다.",
+          "a": false,
+          "h": "복습 ④의 변형 절은 StageFunc와 Compose로 함수를 합성하는 함수형 스타일을 보여 줍니다. 하지만 솔루션은 Go가 함수형 언어가 아니어서 명시적 단계 조합이 더 읽기 쉽다며 평면적 구조를 권장합니다.",
+          "w": "틀렸습니다. Go는 함수형 언어가 아니어서 명시적 단계 조합이 더 읽기 쉽고, 평면적 구조가 권장됩니다.",
+          "an": "Go언어프로그래밍_4일차_솔루션.md 복습 과제 ④ 변형 — 함수 합성",
+          "src": "다만 Go는 함수형 언어가 아니어서 **명시적 단계 조합이 더 읽기 쉽습니다**. 위의 평면적 구조를 권장합니다.\n\n---"
+        },
+        {
+          "id": "t9-08",
+          "ty": "match",
+          "lv": 1,
+          "game": false,
+          "p": "제네릭 파이프라인 헬퍼와 역할을 연결하세요.",
+          "pairs": [
+            [
+              "Source",
+              "슬라이스를 채널로 흘려보냄"
+            ],
+            [
+              "Filter",
+              "조건을 만족한 항목만 통과"
+            ],
+            [
+              "FanIn",
+              "여러 채널을 하나로 합침"
+            ],
+            [
+              "Sink",
+              "채널을 슬라이스로 수집"
+            ]
+          ],
+          "h": "pipeline_generic.go의 헬퍼는 물길에 빗댈 수 있습니다. Source는 슬라이스를 채널로 흘려보내는 수원, Filter는 조건(pred)을 만족한 항목만 통과시키는 거름망, FanIn은 여러 채널을 합치는 합류점, Sink는 채널을 슬라이스로 모으는 배수구입니다.",
+          "w": "Source는 시작점, Filter는 pred가 참인 항목만 통과, FanIn은 여러 채널을 합류, Sink는 끝에서 슬라이스로 모읍니다.",
+          "an": "Go언어프로그래밍_4일차_솔루션.md 복습 과제 ④ pipeline_generic.go",
+          "src": "// Sink: 채널을 슬라이스로 수집\nfunc Sink[T any](in <-chan T) []T {\n out := make([]T, 0)\n for v := range in {\n out = append(out, v)\n }\n return out\n}"
+        },
+        {
+          "id": "t9-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "<code>NewRateLimiter</code>의 초기화 순서를 놓으세요.",
+          "steps": [
+            "interval = 1초 / perSecond 계산",
+            "버퍼가 perSecond인 bucket 채널 생성",
+            "버킷을 토큰으로 가득 채움(burst)",
+            "go rl.refill()로 ticker 리필 시작"
+          ],
+          "h": "NewRateLimiter는 먼저 interval을 1초 / perSecond로 계산하고, 버퍼 크기가 perSecond인 bucket 채널을 만듭니다. 이어 for 루프로 버킷을 토큰으로 가득 채워 초기 burst를 허용한 뒤, go rl.refill()로 ticker 리필을 시작합니다.",
+          "w": "간격을 계산하고 perSecond 크기 버킷을 만든 뒤 초기 burst만큼 채우고, 마지막으로 refill 고루틴을 띄워 주기적으로 토큰을 보충합니다.",
+          "an": "Go언어프로그래밍_4일차_솔루션.md 복습 과제 ② rate_limit.go",
+          "src": "func NewRateLimiter(perSecond int) *RateLimiter {\n if perSecond <= 0 {\n perSecond = 1\n }\n rl := &RateLimiter{\n interval: time.Second / time.Duration(perSecond),\n bucket: make(chan struct{}, perSecond), // burst 허용\n stop: make(chan struct{}),\n }\n // 초기 버킷 채우기 (burst)\n for i := 0; i < perSecond; i++ {\n rl.bucket <- struct{}{}\n }\n go rl.refill()"
+        },
+        {
+          "id": "t9-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "도전 ③ 응답시간 통계 <code>Calculate</code>에 대한 설명으로 옳은 것을 모두 고르세요.",
+          "o": [
+            "원본을 복사한 뒤 정렬한다",
+            "idx = ceil(p×n) − 1",
+            "P99≫P50이면 일부 요청이 느리다",
+            "실패한 요청 지연도 포함한다",
+            "Mean은 중앙값을 뜻한다"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "stats.go의 percentile은 정렬된 슬라이스에서 idx := int(math.Ceil(p*float64(len(sorted)))) - 1 위치를 고릅니다. Calculate는 원본을 복사해 정렬하고, 출력 예시는 P99가 P50보다 훨씬 크면 일부 요청이 매우 느리다는 신호라고 설명합니다.",
+          "w": "Calculate는 copy 후 정렬하고 <code>math.Ceil(p*n)-1</code>로 위치를 구합니다. P99가 P50보다 훨씬 크면 일부 요청이 매우 느리다는 신호입니다. 성공한 요청만 모으며, Mean은 평균이고 중앙값은 P50입니다.",
+          "an": "Go언어프로그래밍_4일차_솔루션.md 도전 과제 ③ 응답시간 통계",
+          "src": "func percentile(sorted []time.Duration, p float64) time.Duration {\n if len(sorted) == 0 {\n return 0\n }\n if p <= 0 {\n return sorted[0]\n }\n if p >= 1 {\n return sorted[len(sorted)-1]\n }\n idx := int(math.Ceil(p*float64(len(sorted)))) - 1\n if idx < 0 {\n idx = 0\n }\n return sorted[idx]\n}"
+        }
+      ]
+    }
+  ]
+}

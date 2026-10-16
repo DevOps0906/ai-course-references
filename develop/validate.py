@@ -39,6 +39,16 @@ def check_q(q, where, err, warn):
         return
     if not q.get("h"):
         warn(f"{where}: 힌트(h) 없음")
+    elif len(TAG.sub("", q["h"])) < 40:
+        warn(f"{where}: 힌트가 짧음 — 자료 내용을 담아 2~3문장으로")
+    src = q.get("src")
+    if src is not None:
+        if not isinstance(src, str) or not src.strip():
+            err(f"{where}: src는 자료 원문 발췌 문자열")
+        elif HTML_TAG.search(src):
+            err(f"{where}: src에 HTML 태그 — 원문 그대로의 일반 글자로")
+        elif len(src) > 600:
+            warn(f"{where}: src 발췌 {len(src)}자 (권장 400자 이내)")
     if q.get("lv") not in (1, 2, 3):
         warn(f"{where}: lv(1~3) 없음")
     a = q.get("a")
