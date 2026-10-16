@@ -98,6 +98,9 @@ def load_chunks(path):
     if ext == ".pdf":
         pages = _cached_text(path, ingest._pdf_pages)
         return [c for i, t in enumerate(pages, 1) for c in _split_long(f"{name} p.{i}", t or "")]
+    if ext == ".pptx":
+        slides = _cached_text(path, ingest._pptx_slides)
+        return [c for i, t in enumerate(slides, 1) for c in _split_long(f"{name} 슬라이드 {i}", t or "")]
     if ext == ".ipynb":
         text = _cached_text(path, ingest.from_ipynb)
     elif ext in (".html", ".htm"):

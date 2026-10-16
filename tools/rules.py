@@ -74,6 +74,9 @@ TEXT_RULES = [
     (r"imguru\.co\.kr", BRAND),
     (r"(강사명\s*:\s*)김정인", r"\g<1>" + BRAND),
     (r"김정인", "홍길동"),
+    # 공동·보조 강사 실명 → 예시 이름 (같은 글자 수: PDF 배치 유지)
+    (r"박웅근", "이몽룡"),
+    (r"김구수", "성춘향"),
     (r"C:\\Users\\jikim", r"C:\\Users\\nomad"),
     (r"(?i)jungin\s?kim", BRAND),
     (r"AI Education Center", BRAND),
@@ -109,6 +112,7 @@ TEXT_RULES = [
     (r"(?:동신대학교|디지털노마드연구소) 자연이공 계열", BRAND),
     (r"계명문화대학교", BRAND),
     (r"동신대학교", BRAND),
+    (r"한국표준협회 x 서울시 일자리센터", BRAND),
     (r"교수자를 위한 ", ""),
     # 안전망: 위 규칙에서 빠진 표기
     (r"(?i)imguru", BRAND),
@@ -121,7 +125,7 @@ FORBIDDEN = re.compile(
     r"|docs\.google\.com/spreadsheets/d/(?!<)[\w-]{20,}"
     r"|sk-(?:proj-|ant-api\d\d-)?(?![\w-]*[Xx]{8})[A-Za-z0-9_-]{32,}|\bhf_[A-Za-z0-9]{30,}|\bAIza(?![\w-]*[Xx]{8})[0-9A-Za-z_-]{35}"
     r"|\b(?:lsv2_(?:pt|sk)_|tvly-|ghp_|github_pat_)[A-Za-z0-9_]{20,}"
-    r"|계명문화대학교|동신대학교|교수자를 위한"
+    r"|계명문화대학교|동신대학교|교수자를 위한|박웅근|김구수|한국표준협회|서울시 일자리센터"
 )
 
 

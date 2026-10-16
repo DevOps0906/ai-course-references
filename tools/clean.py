@@ -158,7 +158,17 @@ def clean_pdf(path, repo_path):
         for l in keep:
             if (tuple(pymupdf.Rect(l["from"])), l.get("uri") or l.get("file")) not in have:
                 page.insert_link(l)
+    meta = dict(doc.metadata or {})
+    for k, v in meta.items():
+        if isinstance(v, str) and v:
+            nv, n = clean_text(v, repo_path, display=True)
+            if n and nv != v:
+                meta[k] = nv
+                total += 1
     if total:
+        doc.set_metadata({k: v for k, v in meta.items() if k in (
+            "author", "producer", "creator", "title", "format", "encryption", "creationDate", "modDate",
+            "subject", "keywords", "trapped")})
         fd, tmp = tempfile.mkstemp(suffix=".pdf")
         os.close(fd)
         doc.save(tmp, garbage=3, deflate=True)

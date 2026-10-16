@@ -20,7 +20,7 @@ AI 업무 활용, 바이브코딩, n8n 자동화, 음성 AI, LangChain 에이전
 | 2 | [`02-dev-basics/vibe-coding`](02-dev-basics/vibe-coding) | 비개발자 바이브코딩 20H + Colab 노트북 8개 | pptx, md, ipynb | 15 |
 | 3 | [`03-n8n-automation/n8n-edu-agent`](03-n8n-automation/n8n-edu-agent) | n8n + AI로 교육 업무 자동화 (7교시, 실습 1~19) | md, json | 20 |
 | 3 | [`03-n8n-automation/n8n-blog`](03-n8n-automation/n8n-blog) | 셀프호스팅 n8n + WordPress 블로그 자동 발행 | md, json | 5 |
-| 4 | [`04-voice-ai`](04-voice-ai) | 음성 AI: 오디오 기초 → 주파수 → 전처리 → KWS → ASR → Whisper (Day 1~7) | pptx/pdf, ipynb, html | 37 |
+| 4 | [`04-voice-ai`](04-voice-ai) | 음성 AI: 오디오 기초 → 주파수 → 전처리 → KWS → ASR → Whisper → 추론 최적화·스트리밍 (Day 1~8) | pptx/pdf, ipynb, html | 43 |
 | 5 | [`05-langchain-agent`](05-langchain-agent) | LangChain LCEL → RAG → Gradio 챗봇 → Whisper 음성 RAG → LangGraph (14일차) | ipynb, mp3 | 56 |
 | 6 | [`06-ai-openVino`](06-ai-openVino) | 엣지 AI 비전: 리눅스 → 파이썬 → OpenCV → OpenVINO 추론·최적화·디바이스 비교 | pdf | 8 |
 | 7 | [`07-NEPES_physicalAI_자율주행자동차`](07-NEPES_physicalAI_자율주행자동차) | Physical AI 5일: Jetson → LLM·VLM → OpenCV·MediaPipe·ROS 2 → Pseudo-VLA → VLA | pdf, ipynb | 108 |
@@ -69,6 +69,8 @@ AI 업무 활용, 바이브코딩, n8n 자동화, 음성 AI, LangChain 에이전
 | 02 | 바이브코딩 | 바이브코딩 Day 4 · 결과물 공유 & 업무 활용 전략 | 6탭 · 60 | [`day4.html`](develop/dist/02-dev-basics/vibe-coding/day4.html) |
 | 02 | 바이브코딩 | 바이브코딩 기본 노트북 · 세션 0~4 | 5탭 · 50 | [`nb-basic.html`](develop/dist/02-dev-basics/vibe-coding/nb-basic.html) |
 | 02 | 바이브코딩 | 바이브코딩 중급 노트북 · Claude Code·시뮬레이터·사다리게임 | 4탭 · 40 | [`nb-intermediate.html`](develop/dist/02-dev-basics/vibe-coding/nb-intermediate.html) |
+| 02 | 바이브코딩 | 바이브코딩 교재 · AI 바이브 코딩 실전 과정 20H | 7탭 · 70 | [`textbook.html`](develop/dist/02-dev-basics/vibe-coding/textbook.html) |
+| 02 | 바이브코딩 | Transformer 완전 해부 | 3탭 · 30 | [`transformer.html`](develop/dist/02-dev-basics/vibe-coding/transformer.html) |
 | 03 | n8n 교육 자동화 | n8n 교육 자동화 1교시 · n8n 소개와 환경 구축 | 4탭 · 40 | [`period1.html`](develop/dist/03-n8n-automation/n8n-edu-agent/period1.html) |
 | 03 | n8n 교육 자동화 | n8n 교육 자동화 2교시 · 핵심 노드와 데이터 연동 | 5탭 · 50 | [`period2.html`](develop/dist/03-n8n-automation/n8n-edu-agent/period2.html) |
 | 03 | n8n 교육 자동화 | n8n 교육 자동화 3교시 · 교육서비스업 자동화 ① | 4탭 · 40 | [`period3.html`](develop/dist/03-n8n-automation/n8n-edu-agent/period3.html) |
@@ -84,6 +86,7 @@ AI 업무 활용, 바이브코딩, n8n 자동화, 음성 AI, LangChain 에이전
 | 04 | 음성 AI | 음성 AI Day 5 · 딥러닝 오디오 분류 | 4탭 · 40 | [`day05.html`](develop/dist/04-voice-ai/day05.html) |
 | 04 | 음성 AI | 음성 AI Day 6 · ASR 원리 | 4탭 · 40 | [`day06.html`](develop/dist/04-voice-ai/day06.html) |
 | 04 | 음성 AI | 음성 AI Day 7 · Whisper 심층 분석 | 4탭 · 40 | [`day07.html`](develop/dist/04-voice-ai/day07.html) |
+| 04 | 음성 AI | 음성 AI Day 8 · 추론 최적화 & 스트리밍 | 4탭 · 40 | [`day08.html`](develop/dist/04-voice-ai/day08.html) |
 | 06 | AI 비전 · OpenVINO | 리눅스 실습 노트 · 우분투로 배우는 리눅스 기본 | 6탭 · 60 | [`01-linux.html`](develop/dist/06-ai-openVino/01-linux.html) |
 | 06 | AI 비전 · OpenVINO | 파이썬 기초부터 이미지처리까지 | 10탭 · 100 | [`02-python.html`](develop/dist/06-ai-openVino/02-python.html) |
 | 06 | AI 비전 · OpenVINO | 우분투 개발 환경 구축 · Python 3.11 · VS Code · OpenVINO | 4탭 · 40 | [`03-dev-env.html`](develop/dist/06-ai-openVino/03-dev-env.html) |
@@ -102,7 +105,7 @@ AI 업무 활용, 바이브코딩, n8n 자동화, 음성 AI, LangChain 에이전
 | 07 | Physical AI | Physical AI 4일차 · 좌표 기반 Pseudo-VLA | 9탭 · 90 | [`09-pseudo-vla.html`](develop/dist/07-physical-ai/09-pseudo-vla.html) |
 | 07 | Physical AI | Physical AI 5일차 · 학습된 VLA 정책과 시뮬레이션 | 10탭 · 100 | [`10-vla.html`](develop/dist/07-physical-ai/10-vla.html) |
 
-합계 **46개 · 268탭 · 2,685문항**. 04-voice-ai는 기존 워크시트 구성(Day1 15문항, Day2~7 4교시×10)을 그대로 옮겼습니다. 05-langchain-agent는 준비 중입니다.
+합계 **79개 · 518탭 · 5,185문항** (05·08·09·10 과정 은행은 허브에서 볼 수 있습니다). 04-voice-ai는 기존 워크시트 구성(Day1 15문항, Day2~8 4교시×10)을 그대로 옮겼습니다.
 
 - **학습 모드**: 탭별 10문항 채점, 해설과 자료 위치, 종합 결과와 결과 코드.
 - **게임 모드**: 탭 하나를 채점하면 열립니다. 문항마다 10~15초 타이머가 있고 콤보 점수와 순위표가 있습니다.

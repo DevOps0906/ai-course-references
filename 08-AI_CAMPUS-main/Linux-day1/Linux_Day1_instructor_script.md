@@ -1,6 +1,6 @@
 # Linux & Shell Day 1 강사 스크립트 (강사용 · 수강생 배포 금지)
 
-- 일시: 2026-10-02(금), 8교시 × 50분 · 주강사 김정인 · 보조강사 김구수
+- 일시: 2026-10-02(금), 8교시 × 50분 · 주강사 홍길동 · 보조강사 성춘향
 - 환경: Ubuntu 24.04 / 커널 6.8 / x86_64 · 자료: `linux-day1/` (lecture.html, anim/, src/, 슬라이드)
 - 오늘의 도착점: strace로 시스템 콜을 관찰하고 fork-exec-wait 루프로 `myshell`을 만든다
 
@@ -8,7 +8,7 @@
 
 - [ ] 강사 PC에서 `src/`의 `make` → 경고 0개 확인, `./myshell`·`./07_zombie &` 시연 리허설
 - [ ] `strace`, `valgrind`, `gdb` 설치 확인 (오후 시연에 필요)
-- [ ] 수강생 배포 경로 확인: `http://imguru-mooc.github.io/AI_CAMPUS/linux-day1/`
+- [ ] 수강생 배포 경로 확인: `http://devops0906.github.io/AI_CAMPUS/linux-day1/`
 - [ ] Jetson Orin Nano 지급 여부 확정 — 지급한다면 1교시 마지막 5분에 보관 안내만 (이번 과목에서는 사용하지 않음)
 
 ## 교시별 진행표

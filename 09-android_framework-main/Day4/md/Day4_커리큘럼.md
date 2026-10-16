@@ -2,7 +2,7 @@
 
 **과정:** Android Framework 16 심화 교육 (4일 / 32시간)
 **환경:** Ubuntu 24 빌드 서버 (`~/android`, AOSP `sdk_car_x86_64`, 호스트 JDK) + Windows 11 (Android Studio, WinSCP, adb, `aapt`) + 커스텀 Emulator (userdebug, permissive, `-writable-system`)
-**소스 저장소:** https://github.com/imguru-mooc/android/tree/main/04_day — `apex_build_tutorial_android16.md` · `RRO_example_android16.md` · `SRO_product_flavors_android16.md` · `systemui_customizing_lab_android16.md`(실습 1~5) · `RRO_test/overlay_list`(ListOverlays) · `FloatingOverlayDemo.zip` · `SplitScreenDemo.zip` · `HvacSimulator.zip` · `MemoAppJava.zip`
+**소스 저장소:** https://github.com/DevOps0906/android/tree/main/04_day — `apex_build_tutorial_android16.md` · `RRO_example_android16.md` · `SRO_product_flavors_android16.md` · `systemui_customizing_lab_android16.md`(실습 1~5) · `RRO_test/overlay_list`(ListOverlays) · `FloatingOverlayDemo.zip` · `SplitScreenDemo.zip` · `HvacSimulator.zip` · `MemoAppJava.zip`
 **범위:** 시스템 이미지를 바꾸는 세 가지 방법(APEX 모듈 · RRO 런타임 오버레이 · AOSP 소스 수정) + 빌드 변형(SRO) → SystemUI 분석·커스터마이징(RRO · QS 타일 · 상태바 커스텀 뷰 · Perfetto) → WindowManager 창 타입(오버레이 · 분할 화면) → Android Automotive 계층 (CarService → CarPropertyManager → VHAL) 로 HVAC 시뮬레이터를 실제 차량 속성에 연결
 **총 소요시간:** 8시간 (환경·등록 실습 15m / 강의 1h 30m / 실습 5h 35m / 총정리·Worksheet 40m) — 데모·선택 과제 없이 **전원이 실습 1~13 을 직접 수행**
 **설계 원칙 (현장 반영):** ① "내 변경이 왜 안 먹는가" 를 스스로 진단할 수 있는 절차를 모든 실습에 넣는다 ② 실무에서 매일 쓰는 명령(`dumpsys` · `cmd overlay` · `cmd car_service` · VHAL `--set`) 을 손에 익힌다 ③ 이론보다 "바꾸고 → 눈으로 확인" 의 왕복 횟수를 늘린다 ④ App 개발 성격이 강한 항목(SRO · 분할 화면) 은 짧게, Framework·Automotive 항목은 길게

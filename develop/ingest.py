@@ -11,6 +11,7 @@
 - TXT  : utf-8 → cp949 순으로 해석
 - MD   : 그대로 복사
 - IPYNB: 마크다운 셀은 그대로, 코드 셀은 ```python 블록
+- PPTX : 슬라이드별 텍스트(`## 슬라이드 N` 머리말). ppt/slides/slideN.xml을 직접 읽음, 표는 칸을 ' | '로 이음
 """
 import argparse
 import json
@@ -23,6 +24,7 @@ import xml.etree.ElementTree as ET
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
 
 
 def read_text_file(path):
@@ -120,6 +122,31 @@ def from_ipynb(path):
     return "\n\n".join(out)
 
 
+def _pptx_slides(path):
+    """슬라이드별 텍스트. 문단(a:p)마다 한 줄, 표는 행마다 칸을 ' | '로 잇습니다."""
+    with zipfile.ZipFile(path) as z:
+        names = [n for n in z.namelist() if re.fullmatch(r"ppt/slides/slide\d+\.xml", n)]
+        names.sort(key=lambda n: int(re.search(r"(\d+)", n.rsplit("/", 1)[1]).group(1)))
+        slides = []
+        for n in names:
+            root = ET.fromstring(z.read(n))
+            lines = []
+            for tr in root.iter(A + "tr"):
+                cells = [" ".join("".join(t.text or "" for t in p.iter(A + "t")) for p in tc.iter(A + "p")).strip()
+                         for tc in tr.iter(A + "tc")]
+                lines.append(" | ".join(cells))
+            # 표 밖 문단
+            in_tbl = {id(p) for tbl in root.iter(A + "tbl") for p in tbl.iter(A + "p")}
+            body = ["".join(t.text or "" for t in p.iter(A + "t")).strip()
+                    for p in root.iter(A + "p") if id(p) not in in_tbl]
+            slides.append("\n".join([b for b in body if b] + lines))
+        return slides
+
+
+def from_pptx(path):
+    return "\n\n".join(f"## 슬라이드 {i}\n\n{t}" for i, t in enumerate(_pptx_slides(path), 1))
+
+
 def ingest(path):
     ext = os.path.splitext(path)[1].lower()
     if ext == ".pdf":
@@ -128,10 +155,12 @@ def ingest(path):
         body = from_docx(path)
     elif ext == ".ipynb":
         body = from_ipynb(path)
+    elif ext == ".pptx":
+        body = from_pptx(path)
     elif ext in (".txt", ".md", ".markdown"):
         body = read_text_file(path)
     else:
-        sys.exit(f"지원하지 않는 형식: {ext} (pdf, docx, txt, md, ipynb)")
+        sys.exit(f"지원하지 않는 형식: {ext} (pdf, docx, pptx, txt, md, ipynb)")
     body = re.sub(r"\n{3,}", "\n\n", body).strip()
     head = f"<!-- source: {os.path.basename(path)} · ingest.py -->\n\n"
     return head + body + "\n"

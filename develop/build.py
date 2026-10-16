@@ -37,7 +37,7 @@ STAGES = [
         ("n8n-blog", "n8n 블로그 자동 발행"),
     ]),
     ("04", "음성 AI", "04-voice-ai", [
-        ("", "음성 AI 전문가 과정 Day 1~7"),
+        ("", "음성 AI 전문가 과정 Day 1~8"),
     ]),
     ("05", "LangChain · RAG · Agent", "05-langchain-agent", [
         ("", "LangChain LCEL → RAG → Gradio → 음성 RAG → LangGraph (14일)"),

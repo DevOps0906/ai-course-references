@@ -1,0 +1,573 @@
+{
+  "id": "vibe-transformer",
+  "code": "TF",
+  "title": "Transformer 완전 해부",
+  "subtitle": "Self-Attention·Multi-Head · Encoder·Decoder 구조 · 학습 전략과 현대 LLM",
+  "course": "02-dev-basics / vibe-coding",
+  "source": "02-dev-basics/vibe-coding/transformer.pdf",
+  "salt": "vibe-transformer",
+  "version": 1,
+  "updated": "2026-10-16",
+  "tabs": [
+    {
+      "id": "t1",
+      "title": "탄생 배경과 입력 표현",
+      "ref": "p.2~5 · p.13",
+      "qs": [
+        {
+          "id": "t1-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Seq2Seq 모델의 한계로 자료가 꼽은 것은?",
+          "o": [
+            "순차 처리로 병렬화 불가",
+            "고정 길이 벡터 병목",
+            "장기 의존성 부분 해결",
+            "RNN 구조에 의존"
+          ],
+          "a": 1,
+          "h": "기존 모델의 한계 목록은 RNN, LSTM/GRU, Seq2Seq, Attention 추가 순으로 정리되어 있습니다. Seq2Seq는 입력 문장 전체를 하나의 벡터로 압축하기 때문에 그 과정에서 정보가 사라지는 문제가 있습니다.",
+          "w": "Seq2Seq의 한계는 고정 길이 벡터 병목(정보 손실)입니다. 병렬화 불가는 RNN, RNN 구조 의존은 Attention 추가 모델의 한계입니다.",
+          "an": "p.3 · Transformer 탄생 배경",
+          "src": "기존 모델의 한계\nRNN: 순차 처리 → 병렬화 불가, 학습 속도 느림\nLSTM/GRU: 장기 의존성 부분 해결, 여전히 순차적\nSeq2Seq: 고정 길이 벡터 병목 (정보 손실)\nAttention 추가: 개선되었으나 RNN 구조 의존"
+        },
+        {
+          "id": "t1-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "원본 Transformer의 Encoder와 Decoder는 각각 몇 개의 레이어를 쌓았나요?",
+          "o": [
+            "4개",
+            "8개",
+            "12개",
+            "6개"
+          ],
+          "a": 3,
+          "h": "전체 아키텍처 그림에서 Encoder와 Decoder 옆에는 모두 N× 표기가 붙어 있습니다. 두 블록 모두 같은 숫자의 동일 레이어를 반복해서 쌓은 구조입니다.",
+          "w": "Encoder와 Decoder 모두 N=6, 즉 6개 레이어를 쌓습니다. 8은 헤드 수와 혼동하기 쉬운 숫자입니다.",
+          "an": "p.4 · 전체 아키텍처 개요",
+          "src": "Encoder (N× 6)\nMulti-Head Self-Attention\nAdd & Layer Normalization\nFeed-Forward Network (FFN)\nAdd & Layer Normalization\n→\nDecoder (N× 6)"
+        },
+        {
+          "id": "t1-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Encoder 한 레이어의 서브레이어 구성에 <b>없는</b> 것은?",
+          "o": [
+            "Multi-Head Self-Attention",
+            "Feed-Forward Network",
+            "Masked Self-Attention",
+            "Add & Layer Normalization"
+          ],
+          "a": 2,
+          "h": "Encoder 레이어는 Self-Attention, Add & Layer Normalization, FFN, Add & Layer Normalization으로 구성됩니다. 미래 토큰을 가리는 Attention과 Encoder 출력을 참조하는 Attention은 Decoder 쪽에만 있습니다.",
+          "w": "Masked Self-Attention은 Decoder의 첫 서브레이어입니다. Encoder는 Multi-Head Self-Attention과 FFN, 각각 뒤의 Add & Layer Normalization으로 이루어집니다.",
+          "an": "p.4 · 전체 아키텍처 개요",
+          "src": "Encoder (N× 6)\nMulti-Head Self-Attention\nAdd & Layer Normalization\nFeed-Forward Network (FFN)\nAdd & Layer Normalization\n→\nDecoder (N× 6)\nMasked Multi-Head Self-Attention\nAdd & Layer Normalization\nMulti-Head Cross-Attention\nAdd & Layer Normalization\nFeed-Forward Network (FFN)\nAdd & Layer Normalization"
+        },
+        {
+          "id": "t1-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "Transformer에 들어가는 최종 입력은 어떻게 만들어지나요?",
+          "o": [
+            "Token Embedding × Positional Encoding",
+            "Token Embedding + Positional Encoding",
+            "Positional Encoding만 사용",
+            "Token Embedding에 LayerNorm 적용"
+          ],
+          "a": 1,
+          "h": "Token Embedding은 각 토큰을 d_model 차원 벡터로 바꾸고, Positional Encoding은 순서 정보가 없는 Attention에 위치를 알려 줍니다. 두 벡터는 같은 차원이므로 원소별로 합쳐서 하나의 입력으로 씁니다.",
+          "w": "최종 입력 = Token Embedding + Positional Encoding입니다. 곱하거나 위치 정보만 쓰는 방식이 아닙니다.",
+          "an": "p.5 · 입력 표현: 임베딩과 위치 인코딩",
+          "src": "03  입력 표현: 임베딩과 위치 인코딩\nToken Embedding\n각 토큰을 d_model 차원 벡터로 변환\nVocabulary → 학습 가능한 임베딩 행렬\n예: \"나는\" → [0.12, -0.34, 0.56, ...]\nPositional Encoding\n순서 정보가 없는 Attention에 위치 부여\n사인/코사인 함수의 주기적 패턴 활용\n학습 가능한 위치 임베딩도 사용 가능\n위치 인코딩 수식\nPE(pos, 2i)  = sin( pos / 10000^(2i/d_model) )\nPE(pos, 2i+1) = cos( pos / 10000^(2i/d_model) )\n최종 입력 = Token Embedding + Positional \nEncoding"
+        },
+        {
+          "id": "t1-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "RNN/LSTM과 비교했을 때 Transformer의 시간 복잡도(시퀀스 길이 n 기준)는?",
+          "o": [
+            "O(n²)",
+            "O(n)",
+            "O(n log n)",
+            "O(1)"
+          ],
+          "a": 0,
+          "h": "비교표에서 RNN/LSTM은 시퀀스 길이에 비례하는 복잡도를 가집니다. Transformer는 모든 토큰 쌍 사이의 attention을 계산하므로 길이의 제곱에 비례하고, 그래서 메모리 사용량도 높습니다.",
+          "w": "Transformer는 O(n²), RNN/LSTM은 O(n)입니다. 이 O(n²) 비용은 스케일링 법칙에 의해 상쇄된다고 설명합니다.",
+          "an": "p.13 · Transformer vs RNN/LSTM",
+          "src": "비교 항목 RNN / LSTM Transformer\n처리 방식 순차적(Sequential) 병렬(Parallel)\n장거리 의존성 제한적 (기울기 소실) 직접 참조 (Self-Attention)\n학습 속도 느림 매우 빠름 (GPU 활용)\n시간 복잡도 O(n) O(n² ) (시퀀스 길이)\n메모리 효율적 높음 (n²  attention)\n양방향 문맥 BiLSTM 필요 기본 지원 (Encoder)\n확장성 제한적 뛰어남 (스케일링 법칙)\n핵심: Transformer의 O(n²) 비용은 스케일링 법칙에 의해 상쇄되며, 큰 모델일수록 성능 향상이 예측 가능합니다."
+        },
+        {
+          "id": "t1-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Transformer의 O(n²) 비용은 스케일링 법칙에 의해 상쇄되며, 큰 모델일수록 성능 향상이 예측 가능하다.",
+          "a": true,
+          "h": "비교표 아래의 핵심 문장은 Transformer의 계산 비용과 확장성을 함께 설명합니다. 확장성 항목에서 Transformer는 스케일링 법칙 덕분에 뛰어나다고 평가됩니다.",
+          "w": "맞습니다. 자료는 O(n²) 비용이 스케일링 법칙으로 상쇄되고 큰 모델일수록 성능 향상이 예측 가능하다고 정리합니다.",
+          "an": "p.13 · Transformer vs RNN/LSTM",
+          "src": "확장성 제한적 뛰어남 (스케일링 법칙)\n핵심: Transformer의 O(n²) 비용은 스케일링 법칙에 의해 상쇄되며, 큰 모델일수록 성능 향상이 예측 가능합니다."
+        },
+        {
+          "id": "t1-07",
+          "ty": "ox",
+          "lv": 3,
+          "game": true,
+          "p": "위치 인코딩 수식에서 짝수 차원(2i)에는 cos, 홀수 차원(2i+1)에는 sin을 쓴다.",
+          "a": false,
+          "h": "위치 인코딩 수식은 두 줄입니다. PE(pos, 2i) 줄과 PE(pos, 2i+1) 줄에 각각 어떤 삼각함수가 쓰였는지 확인하세요. 괄호 안의 pos / 10000^(2i/d_model) 부분은 두 줄이 같습니다.",
+          "w": "틀렸습니다. 짝수 차원 PE(pos, 2i)는 sin, 홀수 차원 PE(pos, 2i+1)는 cos입니다.",
+          "an": "p.5 · 위치 인코딩 수식",
+          "src": "위치 인코딩 수식\nPE(pos, 2i)  = sin( pos / 10000^(2i/d_model) )\nPE(pos, 2i+1) = cos( pos / 10000^(2i/d_model) )"
+        },
+        {
+          "id": "t1-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "비교 항목과 Transformer의 특징을 연결하세요.",
+          "pairs": [
+            [
+              "처리 방식",
+              "병렬(Parallel)"
+            ],
+            [
+              "장거리 의존성",
+              "직접 참조(Self-Attention)"
+            ],
+            [
+              "메모리",
+              "높음(n² attention)"
+            ],
+            [
+              "양방향 문맥",
+              "기본 지원(Encoder)"
+            ]
+          ],
+          "h": "비교표에서 Transformer는 순차가 아닌 동시 처리 방식을 쓰고, 먼 토큰도 Self-Attention으로 바로 참조합니다. 대신 n² 크기의 attention 때문에 메모리 사용은 많고, 양방향 문맥은 Encoder가 기본으로 지원합니다.",
+          "w": "처리 방식은 병렬, 장거리 의존성은 직접 참조, 메모리는 높음(n² attention), 양방향 문맥은 기본 지원(Encoder)입니다. RNN/LSTM은 양방향 문맥을 위해 BiLSTM이 필요합니다.",
+          "an": "p.13 · Transformer vs RNN/LSTM 비교표",
+          "src": "비교 항목 RNN / LSTM Transformer\n처리 방식 순차적(Sequential) 병렬(Parallel)\n장거리 의존성 제한적 (기울기 소실) 직접 참조 (Self-Attention)\n학습 속도 느림 매우 빠름 (GPU 활용)\n시간 복잡도 O(n) O(n² ) (시퀀스 길이)\n메모리 효율적 높음 (n²  attention)\n양방향 문맥 BiLSTM 필요 기본 지원 (Encoder)"
+        },
+        {
+          "id": "t1-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "Decoder 한 레이어의 핵심 서브레이어를 처리 순서대로 정렬하세요.",
+          "steps": [
+            "Masked Multi-Head Self-Attention",
+            "Multi-Head Cross-Attention",
+            "Feed-Forward Network (FFN)"
+          ],
+          "h": "Decoder는 먼저 자기 자신의 이전 토큰만 보도록 가린 Self-Attention을 거칩니다. 이어서 Encoder 출력을 참조하는 Attention을 거치고, 마지막에 위치별 신경망을 통과합니다. 각 서브레이어 뒤에는 Add & Layer Normalization이 붙습니다.",
+          "w": "Masked Multi-Head Self-Attention → Multi-Head Cross-Attention → Feed-Forward Network 순서입니다.",
+          "an": "p.4 · 전체 아키텍처 개요",
+          "src": "Decoder (N× 6)\nMasked Multi-Head Self-Attention\nAdd & Layer Normalization\nMulti-Head Cross-Attention\nAdd & Layer Normalization\nFeed-Forward Network (FFN)\nAdd & Layer Normalization"
+        },
+        {
+          "id": "t1-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": false,
+          "p": "자료가 꼽은 Transformer의 혁신을 <b>모두</b> 고르세요.",
+          "o": [
+            "RNN 완전 제거",
+            "완전한 병렬 처리",
+            "Self-Attention으로 장거리 의존성 포착",
+            "고정 길이 벡터로 문장 압축",
+            "BiLSTM으로 양방향 문맥 확보"
+          ],
+          "a": [
+            0,
+            1,
+            2
+          ],
+          "h": "Transformer는 순환 구조를 아예 없애고 Attention만으로 모델을 만들었습니다. 그 결과 모든 위치를 동시에 계산해 학습이 빨라졌고, 먼 거리의 토큰 관계도 한 번에 잡아냅니다. 문장을 하나의 벡터로 압축하는 방식은 Seq2Seq의 한계였습니다.",
+          "w": "RNN 완전 제거, 완전한 병렬 처리, Self-Attention으로 장거리 의존성 직접 포착이 혁신입니다. 고정 길이 벡터 압축은 Seq2Seq의 병목이고, BiLSTM은 RNN 계열이 양방향 문맥을 얻는 방법입니다.",
+          "an": "p.3 · Transformer의 혁신",
+          "src": "Transformer의 혁신\nRNN 완전 제거 → 순수 Attention 기반\n완전한 병렬 처리로 학습 속도 혁신\nSelf-Attention으로 장거리 의존성 직접 포착"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "title": "Attention과 레이어 구조",
+      "ref": "p.6~11",
+      "qs": [
+        {
+          "id": "t2-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Self-Attention에서 각 토큰이 자신을 설명하는 '이름표' 역할을 하는 것은?",
+          "o": [
+            "Query",
+            "Value",
+            "Key",
+            "Weight"
+          ],
+          "a": 2,
+          "h": "Self-Attention에는 세 가지 벡터가 있습니다. 하나는 현재 토큰이 무엇을 찾는지 묻고, 하나는 실제 전달할 정보를 담으며, 나머지 하나가 다른 토큰의 질의와 비교되는 표식 역할을 합니다.",
+          "w": "Key가 이름표 역할입니다. Query는 무엇을 찾고 있는지 묻는 질의, Value는 실제 전달할 정보 내용입니다.",
+          "an": "p.6 · Self-Attention 메커니즘",
+          "src": "Q (Query)\n현재 토큰이 다른 토큰에게\n'무엇을 찾고 있는지' 질의\nK (Key)\n각 토큰이 자신을 설명하는\n'이름표' 역할\nV (Value)\n실제 전달할 정보 내용을\n담고 있는 벡터"
+        },
+        {
+          "id": "t2-02",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "<code>Q·K^T</code> 결과를 <code>√d_k</code>로 나누는 목적은?",
+          "o": [
+            "그래디언트 안정화",
+            "미래 토큰 마스킹",
+            "확률 분포로 변환",
+            "위치 정보 부여"
+          ],
+          "a": 0,
+          "h": "Attention Score 계산 과정의 세 번째 단계가 스케일링입니다. 내적 값이 커지면 softmax 이후 학습 신호가 불안정해지므로, 차원 크기의 제곱근으로 나눠 학습 중 기울기 흐름을 고르게 만듭니다.",
+          "w": "√d_k로 나누는 것은 그래디언트 안정화를 위해서입니다. 확률 분포 변환은 다음 단계인 소프트맥스, 미래 토큰 마스킹은 Decoder의 Masked Self-Attention이 맡습니다.",
+          "an": "p.11 · Attention Score 계산 과정",
+          "src": "3\n스케일링\n√d_k로 나누어\n그래디언트 안정화"
+        },
+        {
+          "id": "t2-03",
+          "ty": "mc",
+          "lv": 1,
+          "game": false,
+          "p": "Multi-Head Attention에서 여러 헤드의 출력을 최종 출력으로 만드는 흐름은?",
+          "o": [
+            "Sum → Softmax → Output",
+            "Concat → Linear → Output",
+            "Average → LayerNorm → Output",
+            "Concat → ReLU → Output"
+          ],
+          "a": 1,
+          "h": "여러 헤드는 문법 관계, 의미 유사도, 위치 패턴 등 서로 다른 관점에서 정보를 뽑습니다. 이 결과들을 나란히 이어 붙인 다음, 선형 변환 한 번을 거쳐 하나의 출력으로 만듭니다.",
+          "w": "Concat(head₁ … head₈) → Linear Projection → MultiHead Output입니다. 헤드 출력을 더하거나 평균 내지 않습니다.",
+          "an": "p.7 · Multi-Head Attention",
+          "src": "하나의 Attention이 아닌, 여러 개의 헤드가 각각 다른 관점에서 정보를 추출\nHead 1\n문법 관계\nHead 2\n의미 유사도\nHead 3\n위치 패턴\nHead 4\n문맥 참조\nHead 5\n감성 관계\nHead 6\n구문 구조\nHead 7\n동의어 매핑\nHead 8\n지시어 연결\nConcat(head₁, head₂, ... head₈) → Linear Projection → MultiHead Output"
+        },
+        {
+          "id": "t2-04",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "원본 Transformer의 Position-wise FFN에서 차원은 어떻게 변하나요?",
+          "o": [
+            "512 → 1024 → 512",
+            "512 → 64 → 512",
+            "2048 → 512 → 2048",
+            "512 → 2048 → 512"
+          ],
+          "a": 3,
+          "h": "FFN은 두 개의 선형 변환 사이에 ReLU를 둔 구조입니다. 첫 번째 변환은 d_model을 그 4배인 d_ff로 넓히고, 두 번째 변환은 다시 d_model로 되돌립니다.",
+          "w": "d_model(512) → d_ff(2048) → d_model(512)입니다. 64는 헤드 하나의 d_k 차원입니다.",
+          "an": "p.8 · Position-wise FFN",
+          "src": "Position-wise FFN\nFFN(x) = max(0, xW₁ + b₁)W₂ + b₂\n두 개의 선형 변환 사이에 ReLU 활성화 함수\nd_model(512) → d_ff(2048) → d_model(512)\n각 위치(position)에 독립적으로 동일 적용\n비선형성을 추가하여 표현력 강화"
+        },
+        {
+          "id": "t2-05",
+          "ty": "mc",
+          "lv": 3,
+          "game": true,
+          "p": "Decoder의 Cross-Attention에서 Query(Q)는 어디에서 오나요?",
+          "o": [
+            "Encoder의 출력",
+            "Decoder의 현재 상태",
+            "Positional Encoding",
+            "입력 임베딩 행렬"
+          ],
+          "a": 1,
+          "h": "Cross-Attention은 Encoder와 Decoder를 잇는 다리입니다. Encoder가 만든 출력은 참조 대상이 되는 K와 V로 쓰이고, 질문을 던지는 쪽은 지금 디코딩 중인 쪽입니다.",
+          "w": "Q는 Decoder의 현재 상태에서, K와 V는 Encoder의 출력에서 옵니다. 그래서 디코딩 중에 입력 시퀀스의 관련 정보를 참조할 수 있습니다.",
+          "an": "p.10 · Decoder 구조 상세",
+          "src": "Cross-Attention\nEncoder의 출력(K, V)과 Decoder의 현재 상태(Q)를 연결합니다. 디\n코딩 시 입력 시퀀스의 관련 정보를 참조할 수 있게 합니다."
+        },
+        {
+          "id": "t2-06",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "Attention Matrix에서 각 행의 값을 모두 더하면 1.0이 된다.",
+          "a": true,
+          "h": "'나는 학교에 간다' 예시에서 '나는' 행은 0.65, 0.20, 0.15입니다. 각 행은 softmax를 거친 확률 분포이므로, 한 토큰이 모든 토큰에 나눠 주는 attention의 총합이 정해져 있습니다.",
+          "w": "맞습니다. softmax를 거치므로 각 행의 합은 1.0입니다. 예시에서는 대각선 값이 높아 자기 자신을 참조하는 경향도 보입니다.",
+          "an": "p.11 · Attention Matrix 예시",
+          "src": "Attention Matrix 예시 (문장: '나는 학교에 간다')\n나는 학교에 간다\n나는 0.65 0.20 0.15\n학교에 0.15 0.55 0.30\n간다 0.25 0.35 0.40\n각 행의 합 = 1.0 (softmax)\n높은 값 = 강한 attention (노란색)\n대각선이 높음 = 자기 자신 참조 경향"
+        },
+        {
+          "id": "t2-07",
+          "ty": "ox",
+          "lv": 3,
+          "game": true,
+          "p": "Masked Self-Attention은 미래 토큰의 Attention 점수를 0으로 바꾼 뒤 softmax를 적용한다.",
+          "a": false,
+          "h": "Masked Self-Attention은 자기회귀 생성을 보장하려고 미래 토큰을 가립니다. 점수 단계에서 0을 넣으면 softmax 후에도 확률이 남으므로, 자료는 softmax 전에 매우 작은 값을 넣어 결과가 0이 되게 한다고 설명합니다.",
+          "w": "틀렸습니다. 점수에 -∞를 설정하고 softmax를 거친 뒤에 0이 됩니다. 점수를 0으로 두면 softmax 후 0이 아닌 확률이 남습니다.",
+          "an": "p.10 · Masked Self-Attention",
+          "src": "Masked Self-Attention\n미래 토큰을 마스킹하여 자기회귀(auto-regressive) 생성을 보장합\n니다. Attention 점수에 -∞를 설정하여 softmax 후 0으로 만듭니다."
+        },
+        {
+          "id": "t2-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "구성 요소와 그 역할을 연결하세요.",
+          "pairs": [
+            [
+              "ReLU 활성화 (FFN)",
+              "비선형성 추가로 표현력 강화"
+            ],
+            [
+              "Residual Connection",
+              "기울기 소실 방지"
+            ],
+            [
+              "Layer Normalization",
+              "학습 안정화, 수렴 속도 향상"
+            ],
+            [
+              "Dropout(0.1)",
+              "과적합 방지"
+            ]
+          ],
+          "h": "FFN의 두 선형 변환 사이에는 활성화 함수가 들어가 표현력을 키웁니다. 입력을 출력에 그대로 더하는 연결은 깊은 네트워크의 기울기 문제를, 정규화는 학습 안정과 수렴을, 0.1 비율의 무작위 제거는 과적합을 다룹니다.",
+          "w": "ReLU는 비선형성 추가, Residual Connection은 기울기 소실 방지, Layer Normalization은 학습 안정화·수렴 속도 향상, Dropout(0.1)은 과적합 방지입니다.",
+          "an": "p.8 · FFN & 정규화",
+          "src": "Position-wise FFN\nFFN(x) = max(0, xW₁ + b₁)W₂ + b₂\n두 개의 선형 변환 사이에 ReLU 활성화 함수\nd_model(512) → d_ff(2048) → d_model(512)\n각 위치(position)에 독립적으로 동일 적용\n비선형성을 추가하여 표현력 강화\nLayer Norm & Residual\nOutput = LayerNorm(x + SubLayer(x))\nResidual Connection: 입력을 출력에 직접 더함\n→ 기울기 소실 방지, 깊은 네트워크 학습 가능\nLayer Normalization: 각 레이어 출력 정규화\n→ 학습 안정화, 수렴 속도 향상\nDropout(0.1)이 각 서브레이어와 임베딩에 적용되어 과적합을 방지합니다."
+        },
+        {
+          "id": "t2-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "Scaled Dot-Product Attention의 계산 단계를 순서대로 정렬하세요.",
+          "steps": [
+            "Q·K^T 유사도 계산",
+            "√d_k로 스케일링",
+            "Softmax로 확률 변환",
+            "V에 가중합 적용"
+          ],
+          "h": "수식 <code>softmax(QK^T/√d_k)V</code>를 안쪽부터 읽으면 순서가 보입니다. 먼저 Q와 K의 내적으로 유사도를 구하고, 차원 크기로 나눠 조정한 뒤, 확률로 바꾸고, 마지막에 그 가중치로 V를 합칩니다.",
+          "w": "① Q·K^T 유사도 계산 → ② √d_k로 스케일링 → ③ Softmax로 확률 변환 → ④ V에 가중합 적용입니다.",
+          "an": "p.6 · Scaled Dot-Product Attention 계산",
+          "src": "Scaled Dot-Product Attention 계산\nAttention(Q, K, V) = softmax( Q·K^T / √d_k ) · V\n① Q· K^T  유사도 계산 ② √d_k로 스케일링 ③ Softmax로 확률 변환 ④ V에 가중합 적용"
+        },
+        {
+          "id": "t2-10",
+          "ty": "multi",
+          "lv": 2,
+          "game": true,
+          "p": "자료가 설명한 Encoder의 핵심 특징을 <b>모두</b> 고르세요.",
+          "o": [
+            "양방향 문맥 이해",
+            "6개 동일 레이어 스택",
+            "미래 토큰 마스킹",
+            "GPU에서 완전 병렬 실행",
+            "한 번에 하나의 토큰 생성"
+          ],
+          "a": [
+            0,
+            1,
+            3
+          ],
+          "h": "Encoder에서는 모든 토큰이 시퀀스의 모든 위치를 참조해 전체 문맥을 동시에 파악합니다. 동일한 레이어를 여러 층 쌓고, 순서와 무관한 연산이라 GPU에서 한꺼번에 실행할 수 있습니다. 미래 토큰을 가리거나 한 토큰씩 생성하는 것은 Decoder의 특징입니다.",
+          "w": "양방향 문맥 이해, 6개 동일 레이어 스택, 완전 병렬 처리가 Encoder 특징입니다. 미래 토큰 마스킹과 한 번에 하나의 토큰 생성은 Decoder의 특징입니다.",
+          "an": "p.9 · Encoder 구조 상세",
+          "src": "핵심 특징\n양방향 문맥 이해\n모든 토큰이 시퀀스 내 모든 위치를 참조하여 전체 문맥을 동시에\n파악합니다.\n6개 동일 레이어 스택\n각 레이어가 점진적으로 더 높은 수준의 추상 표현을 학습합니다.\nResidual + LayerNorm\n스킵 연결로 그래디언트 흐름을 보장하고 정규화로 안정적 학습을\n지원합니다.\n병렬 처리 가능\nSelf-Attention은 순서 무관 연산이므로 GPU에서 완전 병렬 실행 가\n능합니다."
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "title": "학습 전략과 현대 LLM",
+      "ref": "p.12 · p.14~17",
+      "qs": [
+        {
+          "id": "t3-01",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Label Smoothing(ε=0.1)을 적용하면 정답 확률은 얼마로 설정되나요?",
+          "o": [
+            "1.0",
+            "0.99",
+            "0.9",
+            "0.1"
+          ],
+          "a": 2,
+          "h": "Label Smoothing은 정답에 확률을 모두 몰아주지 않고 일부를 덜어 냅니다. 원래 확률 1.0에서 ε만큼을 빼서 정답 확률로 쓰며, 이렇게 해서 모델의 과신을 막습니다.",
+          "w": "정답 확률을 1.0 대신 0.9로 설정합니다. 과신을 막고 일반화 성능을 높이는 기법입니다.",
+          "an": "p.12 · 학습 전략과 최적화",
+          "src": "Label Smoothing (ε=0.1)\n정답 확률을 1.0 대신 0.9로 설정하여 모델의 과신을 방\n지하고 일반화 성능을 향상시킵니다."
+        },
+        {
+          "id": "t3-02",
+          "ty": "mc",
+          "lv": 1,
+          "game": true,
+          "p": "Decoder Only 계열의 대표 모델로 짝지어진 것은?",
+          "o": [
+            "GPT · LLaMA",
+            "BERT · RoBERTa",
+            "T5 · BART",
+            "ELECTRA · DeBERTa"
+          ],
+          "a": 0,
+          "h": "Decoder Only 계열은 자기회귀 생성을 하는 모델로, 텍스트 생성과 대화에 쓰입니다. 양방향 이해를 하는 Encoder Only 계열과, 번역·요약을 하는 Encoder-Decoder 계열의 모델과 구분하세요.",
+          "w": "GPT 시리즈와 LLaMA가 Decoder Only입니다. BERT·RoBERTa·ELECTRA·DeBERTa는 Encoder Only, T5·BART는 Encoder-Decoder입니다.",
+          "an": "p.14 · Transformer 기반 모델 계보",
+          "src": "Decoder Only\n자기회귀 생성\n대표 모델\nGPT-1/2/3/4,\nLLaMA, Claude,\nPaLM, Gemini\n활용: 텍스트 생성, 대화"
+        },
+        {
+          "id": "t3-03",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Multi-Head를 Grouped/Multi-Query Attention으로 바꿔 추론 효율성을 높인 개선은?",
+          "o": [
+            "RoPE / ALiBi",
+            "SwiGLU / GeGLU",
+            "Flash Attention",
+            "GQA / MQA"
+          ],
+          "a": 3,
+          "h": "현대 LLM 개선 사항은 위치 인코딩, 정규화, Attention 방식, FFN 활성화, 메모리 알고리즘, 스케일링으로 나뉩니다. Attention의 헤드 구성을 그룹 단위나 단일 Query 방식으로 바꾼 항목은 두 영문 약어로 표기됩니다.",
+          "w": "GQA / MQA입니다. RoPE / ALiBi는 상대적 위치 인코딩, SwiGLU / GeGLU는 FFN 교체, Flash Attention은 IO-aware 메모리 최적화입니다.",
+          "an": "p.15 · 현대 LLM으로의 진화",
+          "src": "GQA / MQA\nMulti-Head → Grouped/Multi-Query Attention으로 추론 효율성\n대폭 향상"
+        },
+        {
+          "id": "t3-04",
+          "ty": "num",
+          "lv": 3,
+          "game": false,
+          "p": "원본 Transformer에서 d_model이 512이고 헤드 수 h가 8일 때, 각 헤드의 Key 차원 d_k는 얼마인가요?",
+          "a": 64,
+          "h": "모델 차원을 헤드 수만큼 나눠 각 헤드에 배분합니다. 계산식은 d_k = d_model / h이며, d_v도 같은 값입니다.",
+          "w": "512 / 8 = 64입니다. 하이퍼파라미터 표에도 d_k = d_v = 64 (512/8)로 적혀 있습니다.",
+          "an": "p.16 · 원본 Transformer 핵심 하이퍼파라미터",
+          "src": "파라미터 값 설명\nd_model 512 임베딩 및 모델 히든 차원\nd_ff 2048 FFN 내부 차원 (4 × d_model)\nh (heads) 8 Multi-Head Attention 헤드 수\nd_k = d_v 64 각 헤드의 Key/Value 차원 (512/8)"
+        },
+        {
+          "id": "t3-05",
+          "ty": "mc",
+          "lv": 2,
+          "game": true,
+          "p": "Teacher Forcing에 대한 설명으로 옳은 것은?",
+          "o": [
+            "학습 초기에 LR을 점진 증가",
+            "이전 단계 정답을 디코더 입력으로",
+            "정답 확률을 낮춰 과신 방지",
+            "적응적 학습률로 빠른 수렴"
+          ],
+          "a": 1,
+          "h": "Teacher Forcing은 디코더를 학습시킬 때 무엇을 입력으로 넣을지에 관한 전략입니다. 모델이 직접 예측한 값 대신 ground truth를 넣어 수렴 속도를 높입니다.",
+          "w": "학습 시 이전 단계의 정답을 디코더 입력으로 사용합니다. LR 점진 증가는 Warmup, 과신 방지는 Label Smoothing, 적응적 학습률은 Adam의 설명입니다.",
+          "an": "p.12 · Teacher Forcing",
+          "src": "Teacher Forcing\n학습 시 이전 단계의 정답(ground truth)을 디코더 입력으\n로 사용하여 수렴 속도를 높입니다."
+        },
+        {
+          "id": "t3-06",
+          "ty": "ox",
+          "lv": 1,
+          "game": true,
+          "p": "Learning Rate Warmup은 학습 초기에 LR을 점진적으로 증가시킨 뒤 감소시킨다.",
+          "a": true,
+          "h": "학습률 스케줄 수식 <code>lr = d^-0.5 · min(step^-0.5, step·warmup^-1.5)</code>을 보면, 초반에는 step에 비례하는 항이, 이후에는 step의 역제곱근 항이 선택됩니다. 원본 모델의 워밍업 스텝은 4,000입니다.",
+          "w": "맞습니다. 초기에는 LR을 점진적으로 올리고 이후 감소시킵니다.",
+          "an": "p.12 · Learning Rate Warmup",
+          "src": "Learning Rate Warmup\n학습 초기에 LR을 점진적으로 증가시킨 후 감소합니다.\nlr = d⁻⁰·⁵ · min(step⁻⁰·⁵, step·warmup⁻¹·⁵)"
+        },
+        {
+          "id": "t3-07",
+          "ty": "ox",
+          "lv": 2,
+          "game": true,
+          "p": "현대 LLM의 RMSNorm + Pre-Norm 개선은 Pre-Norm 구조를 Post-Norm으로 바꾼 것이다.",
+          "a": false,
+          "h": "이 개선 항목에는 두 가지 전환이 함께 적혀 있습니다. 정규화 방식은 Layer Norm에서 RMSNorm으로 바뀌었고, 정규화 위치도 원본 Transformer의 방식에서 반대쪽으로 옮겨 학습 안정성을 높였습니다.",
+          "w": "틀렸습니다. 방향이 반대입니다. Post-Norm → Pre-Norm, Layer Norm → RMSNorm으로 바꿔 학습 안정성을 개선했습니다.",
+          "an": "p.15 · 현대 LLM으로의 진화",
+          "src": "RMSNorm + Pre-Norm\nLayer Norm → RMSNorm, Post-Norm → Pre-Norm으로 학습 안\n정성 개선"
+        },
+        {
+          "id": "t3-08",
+          "ty": "match",
+          "lv": 2,
+          "game": false,
+          "p": "Transformer 기반 모델 계열과 주요 활용을 연결하세요.",
+          "pairs": [
+            [
+              "Encoder Only",
+              "분류, NER, QA"
+            ],
+            [
+              "Decoder Only",
+              "텍스트 생성, 대화"
+            ],
+            [
+              "Encoder-Decoder",
+              "번역, 요약, 변환"
+            ]
+          ],
+          "h": "양방향으로 문장을 이해하는 계열은 문장 분류나 개체명 인식에, 자기회귀로 생성하는 계열은 글쓰기와 대화에 쓰입니다. 입력 시퀀스를 다른 시퀀스로 바꾸는 계열은 언어를 옮기거나 글을 줄이는 작업에 쓰입니다.",
+          "w": "Encoder Only는 분류·NER·QA, Decoder Only는 텍스트 생성·대화, Encoder-Decoder는 번역·요약·변환에 쓰입니다.",
+          "an": "p.14 · Transformer 기반 모델 계보",
+          "src": "Encoder Only\n양방향 이해\n대표 모델\nBERT, RoBERTa,\nALBERT, DeBERTa,\nELECTRA\n활용: 분류, NER, QA\nDecoder Only\n자기회귀 생성\n대표 모델\nGPT-1/2/3/4,\nLLaMA, Claude,\nPaLM, Gemini\n활용: 텍스트 생성, 대화\nEncoder-Decoder\n시퀀스 변환\n대표 모델\nT5, BART,\nmT5, FLAN-T5,\nPegasus\n활용: 번역, 요약, 변환"
+        },
+        {
+          "id": "t3-09",
+          "ty": "order",
+          "lv": 1,
+          "game": false,
+          "p": "Transformer 기반 모델 계보를 연도순으로 정렬하세요.",
+          "steps": [
+            "Transformer",
+            "BERT / GPT-1",
+            "GPT-2 / T5",
+            "GPT-3",
+            "GPT-4 / Gemini / Claude"
+          ],
+          "h": "계보 타임라인은 2017년 원본 아키텍처에서 시작합니다. 이듬해 Encoder 계열과 Decoder 계열의 첫 모델이 함께 나오고, 이후 GPT 시리즈 번호가 하나씩 올라가며 2023년 이후의 대형 모델들로 이어집니다.",
+          "w": "2017 Transformer → 2018 BERT/GPT-1 → 2019 GPT-2/T5 → 2020 GPT-3 → 2023~ GPT-4/Gemini/Claude 순서입니다.",
+          "an": "p.14 · 모델 계보 타임라인",
+          "src": "2017\nTransformer\n2018\nBERT/GPT-1\n2019\nGPT-2/T5\n2020\nGPT-3\n2023~\nGPT-4/Gemini/Claude"
+        },
+        {
+          "id": "t3-10",
+          "ty": "multi",
+          "lv": 3,
+          "game": true,
+          "p": "원본 Transformer(Base)의 하이퍼파라미터로 옳은 것을 <b>모두</b> 고르세요.",
+          "o": [
+            "d_ff = 2048",
+            "N (layers) = 12",
+            "Dropout = 0.1",
+            "총 파라미터 ~65M",
+            "h (heads) = 16"
+          ],
+          "a": [
+            0,
+            2,
+            3
+          ],
+          "h": "원본 Base 모델은 모델 차원 512에 FFN 내부 차원을 그 4배로 두고, 헤드 8개와 Encoder/Decoder 각 6층을 씁니다. Dropout은 모든 서브레이어에 같은 비율로 적용하고, 워밍업은 4,000 스텝이며 총 파라미터는 수천만 개 규모입니다.",
+          "w": "d_ff = 2048, Dropout = 0.1, 총 파라미터 ~65M이 맞습니다. 레이어 수 N은 6, 헤드 수 h는 8입니다.",
+          "an": "p.16 · 원본 Transformer 핵심 하이퍼파라미터",
+          "src": "파라미터 값 설명\nd_model 512 임베딩 및 모델 히든 차원\nd_ff 2048 FFN 내부 차원 (4 × d_model)\nh (heads) 8 Multi-Head Attention 헤드 수\nd_k = d_v 64 각 헤드의 Key/Value 차원 (512/8)\nN (layers) 6 Encoder/Decoder 각각의 레이어 수\nDropout 0.1 모든 서브레이어에 적용\nWarmup Steps 4,000 Learning Rate 워밍업 스텝\n총 파라미터 ~65M Base 모델 기준"
+        }
+      ]
+    }
+  ]
+}

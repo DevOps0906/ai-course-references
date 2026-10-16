@@ -34,6 +34,11 @@
   "04-voice-ai/day07/*.ipynb",
   "04-voice-ai/day07/worksheet.html"
  ],
+ "04-voice-ai/day08.json": [
+  "04-voice-ai/day08/*.pdf",
+  "04-voice-ai/day08/*실습.ipynb",
+  "04-voice-ai/day08/worksheet.html"
+ ],
  "05-langchain-agent/day01.json": [
   "05-langchain-agent/day01/*.ipynb"
  ],

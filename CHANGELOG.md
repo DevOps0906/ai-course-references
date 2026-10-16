@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2026-10-16 02 바이브코딩 교재·Transformer 문제은행 + 원본 실명 정리
+- 문제은행 2개 추가: `vibe-coding/textbook.json`(PPT 교재 100장 → 7탭 · 70문항), `vibe-coding/transformer.json`(Transformer 해설 PDF 17쪽 → 3탭 · 30문항). 모든 문항에 h·src(원문 검증 통과)
+- `ingest.py`·`rag.py`: PPTX 지원(슬라이드별 추출, 자료 위치 '슬라이드 N')
+- 원본 정리: 08·09·10 커밋 자료에 남아 있던 원 출처 URL·강사 실명 1,434건 `clean.py`로 치환. 공동·보조 강사 실명, 02 교재·실습자료의 원 기관명(→ 디지털노마드연구소) 규칙 추가, PDF 작성자 메타데이터도 정리. 10 `day5/Test/go.mod` 모듈명 변경
+- 전체 **79개 · 518탭 · 5,185문항**
+
+## 2026-10-16 04 음성 AI Day 8 추가
+- `04-voice-ai/day08/` 추가(추론 최적화 & 스트리밍: 슬라이드 pptx·pdf, 실습·강사용 노트북, 애니메이션, 워크시트). `tools/clean.py`로 원문 기관명·원본 URL 113건 정리
+- 문제은행 `04-voice-ai/day08.json`: 워크시트 4교시 × 10문항을 그대로 변환(`legacy`), 난이도·2단계 힌트(h·src) 추가, `rag_sources.json` 등록
+- 전체 **77개 · 508탭 · 5,085문항**. 허브 표기 'Day 1~8', `04-voice-ai/README.md`에 Day 8 절 추가
+
 ## 2026-10-16 07 Physical AI 문제은행
 - 5일 과정(슬라이드 v1·v2 PDF 10개 + 노트북 95개) 분석 → 문제은행 10개(740문항): Jetson·Ubuntu, Python, C++, LLM 학습 원리, LLM 활용, VLM, OpenCV·MediaPipe, ROS 2, Pseudo-VLA, VLA
   - v2(개정판) 기준. 2일차는 v1(학습 원리)·v2(활용) 내용이 달라 따로 출제. `appendix/previous_4h`는 이전 판이라 제외

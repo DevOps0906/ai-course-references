@@ -1,6 +1,7 @@
 # AI_Voice — 「음성 AI 전문가 과정(160h)」 1~2주차 Day 1~7 강의 교재 세트 (슬라이드 · Colab 실습 노트북 · 인터랙티브 애니메이션 · 워크시트)
 > ℹ️ 이 문서는 자료를 처음 분석할 때 작성한 정리본입니다. 레포에 넣으면서 원본 표기·연락처·토큰·문서 ID는 정리되었으니, 6장의 "노출" 항목은 **정리 전 원본 기준** 기록입니다.
 
+> - **Day 8 추가 (2026-10-16)**: `day08/`은 원본 저장소 동기화(`tools/sync.py`)가 아니라 직접 추가한 자료입니다. 레포 규칙(`tools/clean.py`)으로 기관명·원본 URL을 정리했습니다(113건). 아래 1~2장의 파일 수·용량은 Day 1~7 기준이며, Day 8 내용은 2장 끝 표와 3장 Day 8 절에 있습니다.
 > - **원본 버전**: 커밋 `0d1745e` 기준 (최신 여부는 `python3 tools/sync.py`로 확인)
 > - **총 파일 수**: 37개 (html 14 · ipynb 10 · pdf 7 · pptx 6), README / LICENSE 없음
 > - **총 용량**: 32,279,578 바이트 (약 30.8 MB)
@@ -35,7 +36,8 @@ AI_Voice-main/
     ├── day04/  D4_오디오전처리_slides.pdf · .pptx · D4_오디오전처리_실습.ipynb · D4_오디오전처리_강사용.ipynb · animation.html · worksheet.html
     ├── day05/  D5_딥러닝오디오분류_slides.pdf · .pptx · D5_딥러닝오디오분류_실습.ipynb · D5_딥러닝오디오분류_강사용.ipynb · animation.html · worksheet.html
     ├── day06/  D6_ASR원리_slides.pdf · .pptx · D6_ASR원리_실습.ipynb · D6_ASR원리_강사용.ipynb · animation.html · worksheet.html
-    └── day07/  D7_Whisper심층분석_slides.pdf · D7_Whisper심층분석_실습.ipynb · animation.html · worksheet.html   (※ pptx 없음)
+    ├── day07/  D7_Whisper심층분석_slides.pdf · D7_Whisper심층분석_실습.ipynb · animation.html · worksheet.html   (※ pptx 없음)
+    └── day08/  D8_추론최적화_스트리밍_slides.pdf · .pptx · D8_추론최적화_스트리밍_실습.ipynb · D8_추론최적화_스트리밍_강사용.ipynb · animation.html · worksheet.html   (직접 추가)
 ```
 
 | 파일명 | 형식 | 크기 | 역할 |
@@ -77,6 +79,12 @@ AI_Voice-main/
 | day07/D7_Whisper심층분석_실습.ipynb | ipynb | 1.57 MB | Part 0~6, 빈칸 9개 |
 | day07/animation.html | html | 64.9 KB | 탭 D7-1~D7-9 |
 | day07/worksheet.html | html | 36.0 KB | 40문항 |
+| day08/D8_추론최적화_스트리밍_slides.pptx | pptx | 1.35 MB | 슬라이드 21장 + 노트 |
+| day08/D8_추론최적화_스트리밍_slides.pdf | pdf | 1.10 MB | 21쪽 |
+| day08/D8_추론최적화_스트리밍_실습.ipynb | ipynb | 1.16 MB | 학생용, Part 0~7, 빈칸 9개 |
+| day08/D8_추론최적화_스트리밍_강사용.ipynb | ipynb | 1.19 MB | 학생용 셀 전체 + 강사 스크립트 셀 32개 |
+| day08/animation.html | html | 56.4 KB | 탭 D8-1~D8-9 |
+| day08/worksheet.html | html | 35.1 KB | 40문항 |
 
 > 노트북 용량이 큰 이유: 모든 노트북의 셀 출력은 비어 있고(outputs 0), 설명 그림이 markdown 셀 안에 base64 이미지로 직접 들어 있습니다.
 
@@ -303,6 +311,36 @@ AI_Voice-main/
 **다음 시간(D8) 예고**: faster-whisper(CTranslate2), whisper.cpp, int8 양자화, 청크 기반 스트리밍 인식
 
 ---
+
+---
+
+### Day 8 — 「추론 최적화 & Streaming ASR: faster-whisper · 양자화 · whisper.cpp · 청크 스트리밍」
+
+**학습 목표**: 1) Whisper가 시간을 쓰는 곳(30초 창 패딩 · Decoder 반복 · 큰 숫자 · 파이썬 오버헤드)을 재고 도구와 짝짓기 2) **faster-whisper**(CTranslate2)와 '게으른 생성기' 3) 양자화(float16 · int8) 직접 구현, `compute_type` 비교 4) VAD · **BatchedInferencePipeline**으로 긴 녹음 처리 5) **whisper.cpp** 빌드, ggml 모델 **q5_0** 양자화, CPU 실행 6) 청크 스트리밍 + **LocalAgreement**로 확정 글자 띄우기, 지연(latency) 측정
+
+**교시**: 1교시 병목 · faster-whisper(Part 0~2) / 2교시 양자화 · VAD · 배치(Part 3~4) / 3교시 whisper.cpp(Part 5) / 4교시 스트리밍(Part 6~7)
+
+**슬라이드 (pptx 21장 · pdf 21쪽, 발표자 노트 21장)**: 0.0 오늘 답할 질문 · 오늘의 흐름 → 1.1 왜 느린가, 1.2 Encoder vs Decoder → 2.1 faster-whisper, 2.2 게으른 생성기 → 3.1 양자화, 3.2 양자화를 쉽게, 3.3 compute_type → 4.1 VAD와 배치 → 5.1 whisper.cpp, 5.2 whisper.cpp 실행, 5.3 무엇을 언제 → 6.1 스트리밍이란, 6.2 고정 청크, 6.3 LocalAgreement, 6.4 왜 두 번인가, 6.5 지연 재기 → 정리
+
+**실습 항목**
+| Part | 제목 (원문) | 주요 내용·모델 |
+|---|---|---|
+| 0 | 준비 | `pip install faster-whisper gTTS jiwer silero-vad`, gTTS 문장 6개 + 6초 무음으로 '강의 녹음' 만들기 |
+| 1 | 왜 느린가: 시간이 어디로 가는지 재기 | 기준선 transformers `openai/whisper-small` float32, Encoder vs Decoder 시간 분해 |
+| 2 | faster-whisper: 같은 모델, 더 빠른 엔진 | `WhisperModel("small", compute_type=...)`, 생성기와 `list()`, 기본 `beam_size` 5, 안전장치 기본값(압축률 2.4) |
+| 3 | 양자화: 숫자를 작게 저장하기 | `scale = max|w| / 127`, 형식별 크기, `float16 · int8_float16 · int8` 속도·CER 비교 |
+| 4 | VAD와 배치 | `vad_filter=True`, `duration_after_vad`, `BatchedInferencePipeline(batch_size=8)` |
+| 5 | whisper.cpp: 파이썬 없이, GPU 없이 | `git clone` → `cmake` 빌드 → `download-ggml-model.sh small` → `whisper-quantize … q5_0` → `whisper-cli -m -f -l ko -t` |
+| 6 | 스트리밍 인식 | 고정 3초 청크의 단어 잘림, LocalAgreement(lcp) 시뮬레이션, 단어별 지연 = 확정 시각 − 단어 끝 시각 |
+| 7 | 정리 & 과제 | 개념·코드 요약표, 과제 3개, 워크시트 제출 |
+
+**빈칸 실습 9개 (정답)**: `enc_time` / `list` / `scale` / `1` / `True` / `8` / `"q5_0"` / `CHUNK_N` / `b`
+
+**과제**: 1) 내 PC에서 whisper.cpp f16 vs q5_0 시간·크기·CER 2) transformers float32 → faster-whisper float16 → int8 → +VAD → +배치 8 최적화 표 3) `stream_local_agreement()`의 `step` 0.5 / 1.0 / 2.0초 비교
+
+**animation.html**: D8-1 오늘의 흐름 · D8-2 병목 찾기 · D8-3 실행 엔진 · D8-4 양자화 눈금 · D8-5 VAD · 배치 · D8-6 whisper.cpp 길잡이 · D8-7 고정 청크 vs 끝점 · D8-8 LocalAgreement · D8-9 지연 비교
+
+**강사용 노트북**: 강사 스크립트 셀 32개(하루 시간표·수업 전 점검, 오늘의 비유 사전, 교시별 ⏱️ 시간 배분), 🆘 힌트 10회
 
 ## 4. 커리큘럼 흐름
 
