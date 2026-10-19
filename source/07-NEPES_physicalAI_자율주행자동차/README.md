@@ -1,7 +1,7 @@
 # 07 · Physical AI 자율주행 — Jetson 위에서 인지·판단·행동을 잇는 5일 과정
 
 > Jetson(Ubuntu) 실습 환경에서 Python·C++ 기초 → LLM·VLM → OpenCV·MediaPipe·ROS 2 → 좌표 기반 Pseudo-VLA → 학습된 VLA 정책·시뮬레이션까지, **하나의 작업대 사례**를 5일 동안 발전시키는 과정입니다.
-> 문제은행은 [`develop/dist/07-physical-ai/`](../develop/dist/07-physical-ai)에 있습니다(허브의 '07 Physical AI · 자율주행').
+> 문제은행은 [`develop/dist/07-physical-ai/`](../../develop/dist/07-physical-ai)에 있습니다(허브의 '07 Physical AI · 자율주행').
 
 ## 📚 구성
 

@@ -1,7 +1,7 @@
 # module1.html 구성요소 정리 + 리디자인 기준안
 
 > 대상 파일은 `develop/dist/01-ai-work/ai-automation/module1.html`이고, 원본은 `develop/engine/quiz.html`과 `design/tokens.css`다.
-> 리디자인의 타이포 기준은 `04-voice-ai/day07/worksheet.html`이다. 원 출처는 AI_Voice day07 워크시트다.
+> 리디자인의 타이포 기준은 `source/04-voice-ai/day07/worksheet.html`이다. 원 출처는 AI_Voice day07 워크시트다.
 > 이 문서는 수정 전에 검토하기 위해 만들었다. **2026-10-15 제안안대로 적용 완료(디자인 v2)** — 현재 값은 `디자인시스템.md` 참고. 표의 **현재** 열은 지금 값이고, **제안** 열은 D7 수준으로 바꾼 값이다.
 
 ---
@@ -30,7 +30,7 @@
 
 ### A-2. 참고 페이지 vs module1 — 요소별 실측 비교
 
-참고 페이지는 사용자가 준 AI_Voice day07 워크시트 원본 URL이다. 2026-10-15에 받아 확인했고 레포의 `04-voice-ai/day07/worksheet.html`과 바이트 단위로 같다.
+참고 페이지는 사용자가 준 AI_Voice day07 워크시트 원본 URL이다. 2026-10-15에 받아 확인했고 레포의 `source/04-voice-ai/day07/worksheet.html`과 바이트 단위로 같다.
 module1 값은 rem을 px로 환산했다(1rem = 16px).
 
 | 요소 | 참고 페이지 글자 | 참고 행간 | module1 글자 | module1 행간 | 차이 |

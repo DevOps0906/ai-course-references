@@ -153,7 +153,7 @@ git_study-main/
 
 | 슬라이드 | 내용(슬라이드 텍스트 기준) | 대응 교재 실습 |
 |---|---|---|
-| 1 | 저장소 URL `https://github.com/DevOps0906/ai-course-references/tree/main/02-dev-basics/git`, 강사명 표기 | 오리엔테이션 |
+| 1 | 저장소 URL `https://github.com/DevOps0906/ai-course-references/tree/main/source/02-dev-basics/git`, 강사명 표기 | 오리엔테이션 |
 | 2 | Working Directory / Staging Area / Repository 3영역 + `git add` / `git commit`. README.md 내용 "# 나의 첫 Git 프로젝트"의 blob 해시 `0366cd0f039472c9ad4648ebba67709663267387`, tree, "commit : 작성자, 반영자, 메시지" | 실습 2-2 ~ 2-4 |
 | 3 | `git add .` 후 두 번째 커밋: README blob `c6c85f4`, app.js blob `e92152`("console.log('hello');"), tree `febf6d`→`ccbdda`, 커밋 `450416`("최초 커밋…") → `2a6135`("README 내용 추가 및 app.js 생성")의 **parent 연결** | 실습 2-5 |
 | 4 | "새로운 줄 추가" 후 스테이징에만 새 README blob `43c386`이 생긴 상태(작업 영역·스테이징·저장소 차이) | 실습 3-2 (`git diff` / `--staged`) |

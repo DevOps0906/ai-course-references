@@ -24,6 +24,7 @@ from collections import Counter
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
+SRC_ROOT = os.path.join(ROOT, "source")  # 원본 과정 폴더 10개가 있는 곳 — 자료 glob·bank.source는 이 기준
 BANKS = os.path.join(HERE, "banks")
 CACHE = os.path.join(HERE, "sources", "_cache")
 OUT = os.path.join(HERE, "sources", "_rag")
@@ -130,7 +131,7 @@ def resolve_sources(bank_rel, bank):
             pats.append(part)
     files = []
     for p in pats:
-        for f in sorted(glob.glob(os.path.join(ROOT, p), recursive=True)):
+        for f in sorted(glob.glob(os.path.join(SRC_ROOT, p), recursive=True)):
             if os.path.isfile(f) and f not in files:
                 files.append(f)
     return files
@@ -215,7 +216,7 @@ def retrieve(bank_path):
                           "ctx": [{"k": k, "loc": chunks[i][0], "text": chunks[i][1]} for k, i in enumerate(top)]})
     out = os.path.join(OUT, os.path.splitext(rel)[0] + ".json")
     os.makedirs(os.path.dirname(out), exist_ok=True)
-    json.dump({"bank": rel, "id": bank["id"], "files": [os.path.relpath(f, ROOT).replace(os.sep, "/") for f in files],
+    json.dump({"bank": rel, "id": bank["id"], "files": [os.path.relpath(f, SRC_ROOT).replace(os.sep, "/") for f in files],
                "items": items}, open(out, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
     print(f"✓ {rel}: 자료 {len(files)}개 · 조각 {len(chunks)}개 · 문항 {len(items)}개 → {os.path.relpath(out, ROOT)}")
     return True

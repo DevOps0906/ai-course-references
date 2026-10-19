@@ -1,7 +1,7 @@
 # 06-ai-openVino — 인텔 Physical AI · 엣지 AI 비전 과정 (리눅스 → 파이썬 → OpenCV → OpenVINO)
 
 > 우분투 개발 환경에서 파이썬과 OpenCV로 영상 처리 기초를 다진 뒤, Intel OpenVINO로 비전 모델을 추론·최적화하고 CPU·GPU·NPU 성능을 비교하는 과정입니다.
-> 모든 자료는 PDF 교재입니다. 문제은행은 [`develop/dist/06-ai-openVino/`](../develop/dist/06-ai-openVino)에 있습니다.
+> 모든 자료는 PDF 교재입니다. 문제은행은 [`develop/dist/06-ai-openVino/`](../../develop/dist/06-ai-openVino)에 있습니다.
 
 ## 📚 구성 (추천 학습 순서)
 

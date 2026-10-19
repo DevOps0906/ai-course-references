@@ -1,4 +1,4 @@
-# 00. 기존 자산 분석 — `04-voice-ai`
+# 00. 기존 자산 분석 — `source/04-voice-ai`
 
 > 플랫폼 기획의 출발점. Day 1~7의 `animation.html`·`worksheet.html`이 어떻게 만들어져 있는지, 무엇을 재사용하고 무엇이 비어 있는지 정리한다.
 

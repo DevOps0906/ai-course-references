@@ -2,7 +2,7 @@
 
 사용법:
     python3 tools/clean.py <폴더> --prefix <레포 루트 기준 폴더 경로>
-    예) python3 tools/clean.py 04-voice-ai --prefix 04-voice-ai
+    예) python3 tools/clean.py source/04-voice-ai --prefix source/04-voice-ai
 
 지원 형식: md·txt·json·ipynb·html·py·csv(텍스트), pptx·docx·xlsx(내부 XML·문서 속성), pdf(본문 글자·링크)
 PDF 처리에는 PyMuPDF가 필요합니다:  pip install pymupdf
