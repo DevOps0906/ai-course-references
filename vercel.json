@@ -2,6 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "echo 'static site: no install'",
-  "buildCommand": "pwd; B=.; [ -d develop/dist ] || B=..; [ -d $B/develop/dist ] || { echo 'no develop/dist'; exit 1; }; rm -rf dist; cp -r $B/develop/dist dist; ls dist | head -3",
+  "buildCommand": "pwd; [ -f dist/index.html ] && exit 0; B=.; [ -d develop/dist ] || B=..; [ -d $B/develop/dist ] || { echo 'no develop/dist'; exit 1; }; cp -r $B/develop/dist dist",
   "outputDirectory": "dist"
 }
