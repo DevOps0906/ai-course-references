@@ -35,9 +35,9 @@
   /* ── 2층 Semantic 고정부 ── */
   --font-sans:"Pretendard Variable","Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --font-mono:"JetBrains Mono","D2Coding",Consolas,"SF Mono",monospace;
-  --fs-base:15px;--lh:1.55;
-  --fs-h1:24px;--fs-h2:17px;--fs-q:15px;--fs-opt:14px;--fs-btn:13px;--fs-btn-pri:14px;
-  --fs-sm:13px;--fs-xs:12px;--fs-2xs:11px;--fs-ox:22px;
+  --fs-base:16px;--lh:1.55;
+  --fs-h1:25px;--fs-h2:18px;--fs-q:16px;--fs-opt:15px;--fs-btn:14px;--fs-btn-pri:15px;
+  --fs-sm:14px;--fs-xs:13px;--fs-2xs:12px;--fs-ox:23px;
   --radius-sm:6px;--radius-control:8px;--radius-card:10px;--radius-lg:12px;--maxw:880px;
   --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;--space-6:32px;--space-7:48px;--space-8:64px;
   --ease:cubic-bezier(.2,0,0,1);--dur-fast:120ms;--dur:200ms;
@@ -100,7 +100,7 @@
   --lv1:var(--green-400);--lv2:var(--yellow-400);--lv3:var(--red-400);
   --shadow:none;
   color-scheme:dark;}
-@media (max-width:560px){:root{--fs-base:14.5px;--fs-h1:20px;--fs-h2:16px;--fs-q:14.5px;--fs-ox:20px}}
+@media (max-width:560px){:root{--fs-base:15.5px;--fs-h1:21px;--fs-h2:17px;--fs-q:15.5px;--fs-ox:21px}}
 
 /* Quiz Bank 공용 컴포넌트 (대시보드·랜딩·로그인용. quiz.html은 포함하지 않음)
    시맨틱/컴포넌트 토큰만 사용. 규칙: 1px 선, 그림자·그라데이션·알약 금지, 숫자에 mono 금지, 모바일 터치 40px 이상. */
@@ -224,7 +224,7 @@ body{background:var(--color-background);color:var(--color-text);font-family:var(
 .login-top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:40px}
 .brand{display:inline-flex;white-space:nowrap;align-items:center;min-height:40px;font-weight:700;font-size:var(--fs-opt);color:var(--color-heading);text-decoration:none}
 .brand:hover{color:var(--color-brand-text)}
-.theme-btn{width:40px;padding:0;font-size:18px}
+.theme-btn{width:40px;padding:0;font-size:19px}
 .theme-btn .i-moon{display:none}
 :root[data-theme="dark"] .theme-btn .i-sun{display:none}
 :root[data-theme="dark"] .theme-btn .i-moon{display:inline}
@@ -260,8 +260,8 @@ form{display:flex;flex-direction:column;gap:var(--space-4)}
 .art .op-on{fill:var(--color-brand);stroke:var(--color-brand)}
 .art .scan{stroke:var(--color-brand);stroke-width:2;stroke-linecap:round}
 .art .scan-soft{stroke:var(--color-brand);stroke-width:1.5;stroke-dasharray:3 5;stroke-linecap:round;opacity:.7}
-.art .num{fill:var(--color-text-muted);font:600 11px var(--font-sans)}
-.art .num-on{fill:var(--color-on-brand);font:600 11px var(--font-sans)}
+.art .num{fill:var(--color-text-muted);font:600 12px var(--font-sans)}
+.art .num-on{fill:var(--color-on-brand);font:600 12px var(--font-sans)}
 @media (min-width:1024px){
   .login{grid-template-columns:minmax(440px,5fr) minmax(0,6fr)}
   .login-main{padding:var(--space-5) var(--space-7)}

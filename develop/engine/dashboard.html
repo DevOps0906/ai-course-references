@@ -75,12 +75,12 @@ h2.wt .icon{color:var(--color-brand-text)}
 .dgrid>*{min-width:0}
 .hint{font-size:var(--fs-xs);color:var(--color-text-muted);margin-top:var(--space-1)}
 .hero .big{display:flex;align-items:baseline;gap:var(--space-2)}
-.hero .big b{font-size:48px;line-height:1.1;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--color-heading)}
+.hero .big b{font-size:49px;line-height:1.1;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--color-heading)}
 .hero .big span{font-size:var(--fs-h2);color:var(--color-text-muted)}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3)}
 .stat{display:flex;flex-direction:column;justify-content:space-between;gap:var(--space-2);padding:var(--space-3) var(--space-4)}
 .stat .k{font-size:var(--fs-xs);color:var(--color-text-muted)}
-.stat .v{font-size:20px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--color-heading)}
+.stat .v{font-size:21px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--color-heading)}
 .stat .v small{font-size:var(--fs-sm);font-weight:500;color:var(--color-text-muted)}
 .stat .v.is-danger{color:var(--color-danger)}
 .heatmap{grid-template-rows:repeat(7,auto);grid-auto-flow:column;grid-template-columns:repeat(16,minmax(14px,1fr));max-width:420px}
@@ -114,7 +114,7 @@ h2.wt .icon{color:var(--color-brand-text)}
 td.prog-td{padding:0}
 .table .is-off-row{color:var(--color-text-faint)}
 .xp{display:flex;align-items:baseline;gap:var(--space-2)}
-.xp b{font-size:24px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--color-heading)}
+.xp b{font-size:25px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--color-heading)}
 details.xpd{margin-top:var(--space-3);font-size:var(--fs-sm)}
 details.xpd summary{cursor:pointer;color:var(--color-brand-text);min-height:32px;display:flex;align-items:center}
 details.xpd .table{margin-top:var(--space-2)}
@@ -196,8 +196,8 @@ details.xpd .table{margin-top:var(--space-2)}
   .content{padding-left:var(--space-4);padding-right:var(--space-4)}
   .stats{gap:var(--space-2)}
   .stat{padding:var(--space-3)}
-  .stat .v{font-size:17px}
-  .hero .big b{font-size:44px}
+  .stat .v{font-size:18px}
+  .hero .big b{font-size:45px}
   .hide-sm{display:none}
   .banks{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
 }
@@ -208,55 +208,55 @@ details.xpd .table{margin-top:var(--space-2)}
   .table .prog .pbar{width:40px}
 }
 /* 타입 스케일 축소 (대시보드 전용: 12px 기준 · 공유 tokens/components는 건드리지 않음) */
-:root{--fs-base:12px;--fs-opt:12px;--fs-btn:12px;--fs-btn-pri:12px;--fs-sm:12px;--fs-xs:11px;--fs-2xs:11px;--fs-h1:18px;--fs-h2:18px;--lh:1.5}
-@media (max-width:560px){:root{--fs-base:12px;--fs-h1:18px;--fs-h2:18px}}
+:root{--fs-base:13px;--fs-opt:13px;--fs-btn:13px;--fs-btn-pri:13px;--fs-sm:13px;--fs-xs:12px;--fs-2xs:12px;--fs-h1:19px;--fs-h2:19px;--lh:1.5}
+@media (max-width:560px){:root{--fs-base:13px;--fs-h1:19px;--fs-h2:19px}}
 .app{grid-template-columns:220px minmax(0,1fr)}
 .app.is-collapsed{grid-template-columns:64px minmax(0,1fr)}
 .topbar{height:48px}
-.topbar h1{font-size:13px}
+.topbar h1{font-size:14px}
 .btn{height:32px;padding:0 var(--space-3)}
 .btn-lg{height:34px;padding:0 var(--space-4)}
 .btn-icon{width:32px}
-.field label,.label-text{font-size:12px}
+.field label,.label-text{font-size:13px}
 .field input,.field select{height:34px}
 .sidebar a,.sidebar .nav-item,.sidebar .side-toggle{min-height:34px}
 .sidebar .course{padding-top:2px;padding-bottom:2px}
-.side-head b{font-size:12px;font-weight:600}
-.grp{font-size:11px}
+.side-head b{font-size:13px;font-weight:600}
+.grp{font-size:12px}
 .tabs [role="tab"]{min-height:34px;padding:0 var(--space-3)}
 .menu-item{min-height:34px}
 .content{padding:var(--space-4) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom,0px))}
 .subtabs{margin-bottom:var(--space-4)}
 .page-head{margin-bottom:var(--space-4)}
-.page-head h1,.view-h1{font-size:18px;line-height:1.35}
-h2.wt{font-size:12px;font-weight:600;margin-bottom:var(--space-2)}
+.page-head h1,.view-h1{font-size:19px;line-height:1.35}
+h2.wt{font-size:13px;font-weight:600;margin-bottom:var(--space-2)}
 .dgrid{gap:var(--space-3)}
 .card{padding:var(--space-4)}
 .stat{padding:var(--space-3)}
-.hero .big b{font-size:28px;line-height:1.15}
-.hero .big span{font-size:13px}
-.stat .v,.xp b{font-size:18px;font-weight:650}
-.stat .v small{font-size:11px}
+.hero .big b{font-size:29px;line-height:1.15}
+.hero .big span{font-size:14px}
+.stat .v,.xp b{font-size:19px;font-weight:650}
+.stat .v small{font-size:12px}
 .row-link{min-height:40px;padding:6px 0}
-.rt{font-size:12px}
+.rt{font-size:13px}
 .table th,.table td{padding:6px var(--space-3)}
-.table th{font-size:12px;font-weight:600}
-.empty-card p{font-size:12px}
-.up-card h2,.state h2{font-size:14px;font-weight:600}
+.table th{font-size:13px;font-weight:600}
+.empty-card p{font-size:13px}
+.up-card h2,.state h2{font-size:15px;font-weight:600}
 .up-card .icon{width:24px;height:24px}
 .state{padding:var(--space-4)}
-.stage-h .cn{font-size:12px}
-.course-h{font-size:12px;margin:var(--space-4) 0 var(--space-2)}
+.stage-h .cn{font-size:13px}
+.course-h{font-size:13px;margin:var(--space-4) 0 var(--space-2)}
 .banks{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
 .bank{padding:var(--space-3)}
-.bank .bt{font-size:13px;font-weight:600;line-height:1.4}
-.bank .bs{font-size:11px}
-.bank .meta{font-size:11px}
+.bank .bt{font-size:14px;font-weight:600;line-height:1.4}
+.bank .bs{font-size:12px}
+.bank .meta{font-size:12px}
 .drop{padding:var(--space-5) var(--space-4)}
-.file-line{font-size:12px}
-.pal-in input{height:44px;font-size:13px}
-#palList .pt{font-size:12px}
-#palList .ps{font-size:11px}
+.file-line{font-size:13px}
+.pal-in input{height:44px;font-size:14px}
+#palList .pt{font-size:13px}
+#palList .ps{font-size:12px}
 .foot{margin-top:var(--space-5)}
 @media (max-width:1023px){.sidebar{width:240px}}
 @media (max-width:760px){
@@ -267,8 +267,8 @@ h2.wt{font-size:12px;font-weight:600;margin-bottom:var(--space-2)}
 }
 @media (max-width:700px){
   .stat{padding:var(--space-3)}
-  .stat .v{font-size:16px}
-  .hero .big b{font-size:28px}
+  .stat .v{font-size:17px}
+  .hero .big b{font-size:29px}
 }
 
 /* 가독성: 본문성 텍스트 행간 1.5 */
