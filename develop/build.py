@@ -1,8 +1,10 @@
-"""엔진 + 디자인 토큰 + 문제은행 JSON → 단독 실행 HTML, 그리고 전체 목록(허브) 페이지.
+"""엔진 + 디자인 토큰 + 문제은행 JSON → 단독 실행 HTML, 그리고 사이트 페이지(랜딩·로그인·대시보드).
 
 사용법:  python develop/build.py [bank.json ...]   (기본: develop/banks 아래 전부)
 결과:    develop/dist/<banks 기준 같은 경로>.html  (file://로 더블클릭해도 열림)
-         develop/dist/index.html                   (허브: 항상 banks 전체 기준으로 다시 생성)
+         develop/dist/index.html                   (랜딩)
+         develop/dist/login.html                   (mock 로그인)
+         develop/dist/dashboard.html               (대시보드: 항상 banks 전체 기준으로 다시 생성)
 
 빌드 전에 validate.py를 돌려 오류가 있으면 그 은행은 건너뜁니다.
 """
@@ -10,16 +12,32 @@ import datetime
 import glob
 import json
 import os
+import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 ENGINE = os.path.join(HERE, "engine", "quiz.html")
-HUB_TPL = os.path.join(HERE, "engine", "hub.html")
-TOKENS = os.path.join(ROOT, "design", "tokens.css")
+LANDING_TPL = os.path.join(HERE, "engine", "landing.html")
+LOGIN_TPL = os.path.join(HERE, "engine", "login.html")
+DASH_TPL = os.path.join(HERE, "engine", "dashboard.html")
+DESIGN = os.path.join(ROOT, "design")
+TOKENS = os.path.join(DESIGN, "tokens.css")
+COMPONENTS = os.path.join(DESIGN, "components.css")
+ICONS = os.path.join(DESIGN, "icons.svg")
+CORE_JS = os.path.join(DESIGN, "qb-core.js")
+VOICE_JS = os.path.join(DESIGN, "qb-voice.js")
+PROGRESS_JS = os.path.join(DESIGN, "qb-progress.js")
+LANDING_JSON = os.path.join(HERE, "landing", "landing.json")
+CLAIMS_MD = os.path.join(HERE, "landing", "claims.md")
 BANKS = os.path.join(HERE, "banks")
 DIST = os.path.join(HERE, "dist")
-HUB_OUT = os.path.join(DIST, "index.html")
+INDEX_OUT = os.path.join(DIST, "index.html")   # 랜딩
+LOGIN_OUT = os.path.join(DIST, "login.html")
+DASH_OUT = os.path.join(DIST, "dashboard.html")
+
+SUBJECTS = [("it", "IT"), ("korean", "국어"), ("english", "영어"), ("science", "과학"), ("music", "음악"), ("art", "미술")]
+LEFTOVER = re.compile(r"Quizlet|Duolingo|LeetCode|프로그래머스", re.I)   # 벤치마킹 대상 이름은 결과물에 남기지 않는다
 
 # 허브에 보이는 단계·과정 (레포 폴더 구조와 같은 순서). 은행이 없는 과정은 '준비 중'으로 표시
 STAGES = [
@@ -45,20 +63,21 @@ STAGES = [
     ("06", "인텔 Physical AI · AI 비전 · OpenVINO", "06-ai-openVino", [
         ("", "리눅스 → 파이썬 → OpenCV → OpenVINO 엣지 AI"),
     ]),
-    ("07", "Physical AI · 자율주행", "07-physical-ai", [   # 원본 폴더: 07-NEPES_physicalAI_자율주행자동차
+    ("07", "Physical AI · 자율주행", "07-physical-ai", [   # 원본 폴더: source/07-NEPES_physicalAI_자율주행자동차
         ("", "Jetson → LLM·VLM → OpenCV·ROS → Pseudo-VLA → VLA (5일)"),
     ]),
-    ("08", "임베디드 · 시스템 SW", "08-embedded-sw", [   # 원본 폴더: 08-AI_CAMPUS-main
+    ("08", "임베디드 · 시스템 SW", "08-embedded-sw", [   # 원본 폴더: source/08-AI_CAMPUS-main
         ("", "Python → C → 컴퓨터 구조 → 운영체제 → 리눅스 → ESP32 MCU → 라즈베리파이 입출력"),
     ]),
-    ("09", "Android 프레임워크", "09-android-framework", [   # 원본 폴더: 09-android_framework-main
+    ("09", "Android 프레임워크", "09-android-framework", [   # 원본 폴더: source/09-android_framework-main
         ("", "AOSP · Binder → Native 서비스·HAL → sp/Looper/JNI → SystemUI·Automotive (4일)"),
     ]),
-    ("10", "Go 언어 프로그래밍", "10-go-programming", [   # 원본 폴더: 10-go_programming-main
+    ("10", "Go 언어 프로그래밍", "10-go-programming", [   # 원본 폴더: source/10-go_programming-main
         ("", "Go 기초 → 모듈·CLI → 동시성 → 테스트·도구 → 웹 서버 (5일)"),
     ]),
 ]
 STAGE_NUM = {folder: num for num, _, folder, _ in STAGES}
+STAGE_SUBJECT = {}   # 과정 번호 → 과목 (없으면 "it"). 다른 과목 과정을 추가할 때 여기에 넣는다
 
 # 허브 첫 화면 박스에 보이는 대표 키워드 (과정마다 4~6개)
 STAGE_KEYWORDS = {
@@ -92,6 +111,23 @@ def out_path(bank_path):
     return os.path.join(DIST, os.path.splitext(rel)[0] + ".html")
 
 
+def read_opt(path):
+    """디자인 산출물이 아직 없어도 빌드가 죽지 않게 한다."""
+    if not os.path.exists(path):
+        print(f"! {os.path.relpath(path, ROOT)} 없음 — 빈 값으로 빌드합니다.")
+        return ""
+    return open(path, encoding="utf-8").read()
+
+
+def common_pairs():
+    return (
+        ("/*__TOKENS__*/", read_opt(TOKENS)),
+        ("/*__COMPONENTS__*/", read_opt(COMPONENTS)),
+        ("<!--__ICONS__-->", read_opt(ICONS)),
+        ("/*__CORE__*/", read_opt(CORE_JS)),
+    )
+
+
 def fill(html, pairs, name):
     for key, val in pairs:
         if key not in html:
@@ -107,11 +143,13 @@ def build(bank_path):
         return False
     bank = json.load(open(bank_path, encoding="utf-8"))
     out = out_path(bank_path)
-    hub_rel = os.path.relpath(HUB_OUT, os.path.dirname(out)).replace(os.sep, "/")
+    hub_rel = os.path.relpath(DASH_OUT, os.path.dirname(out)).replace(os.sep, "/")
     stage = os.path.relpath(bank_path, BANKS).replace(os.sep, "/").split("/")[0]
     hub_stage = f"{hub_rel}#{STAGE_NUM.get(stage, stage[:2])}"   # 문제은행 → 허브의 그 과정 페이지
     html = fill(open(ENGINE, encoding="utf-8").read(), (
-        ("/*__TOKENS__*/", open(TOKENS, encoding="utf-8").read()),
+        ("/*__TOKENS__*/", read_opt(TOKENS)),
+        ("/*__CORE__*/", read_opt(CORE_JS)),
+        ("/*__VOICE__*/", read_opt(VOICE_JS)),
         ("/*__BANK__*/null", js_data(bank)),
         ("__TITLE__", esc_title(bank["title"])),
         ("__HUBSTAGE__", hub_stage),
@@ -124,8 +162,8 @@ def build(bank_path):
     return True
 
 
-def build_hub():
-    """dist에 실제로 빌드된 은행만 모아 허브를 만든다."""
+def collect_catalog():
+    """dist에 실제로 빌드된 은행만 모아 카탈로그(단계·과목·합계)를 만든다."""
     found = {}
     for p in sorted(glob.glob(os.path.join(BANKS, "**", "*.json"), recursive=True)):
         if not os.path.exists(out_path(p)) or validate(p)[0]:
@@ -135,31 +173,126 @@ def build_hub():
         stage, course = parts[0], (parts[1] if len(parts) > 2 else "")
         found.setdefault((stage, course), []).append({
             "id": bank["id"], "code": bank.get("code", ""), "title": bank["title"], "subtitle": bank.get("subtitle", ""),
+            "subject": bank.get("subject", "it"),
             "href": os.path.relpath(out_path(p), DIST).replace(os.sep, "/"),
             "tabs": len(bank["tabs"]), "qs": sum(len(t["qs"]) for t in bank["tabs"]),
         })
     stages = []
     for num, title, folder, courses in STAGES:
-        stages.append({"num": num, "title": title, "keys": STAGE_KEYWORDS.get(num, []), "courses": [
+        stages.append({"num": num, "title": title, "subject": STAGE_SUBJECT.get(num, "it"),
+                       "keys": STAGE_KEYWORDS.get(num, []), "courses": [
             {"title": ctitle, "banks": found.pop((folder, cfolder), [])} for cfolder, ctitle in courses]})
     for (stage, course), banks in found.items():  # STAGES에 없는 새 폴더도 빠뜨리지 않음
-        stages.append({"num": stage[:2], "title": stage, "courses": [{"title": course or stage, "banks": banks}]})
-    cat = {"stages": stages, "built": datetime.date.today().isoformat()}
-    html = fill(open(HUB_TPL, encoding="utf-8").read(), (
-        ("/*__TOKENS__*/", open(TOKENS, encoding="utf-8").read()),
-        ("/*__CATALOG__*/null", js_data(cat)),
-    ), "허브")
-    os.makedirs(DIST, exist_ok=True)
-    with open(HUB_OUT, "w", encoding="utf-8", newline="\n") as f:
+        stages.append({"num": stage[:2], "title": stage, "subject": "it", "courses": [{"title": course or stage, "banks": banks}]})
+    all_banks = [b for s in stages for c in s["courses"] for b in c["banks"]]
+    have = {b["subject"] for b in all_banks}
+    subjects = [{"id": i, "label": l, "ready": i in have} for i, l in SUBJECTS]
+    totals = {"stages": sum(1 for s in stages if any(c["banks"] for c in s["courses"])), "banks": len(all_banks),
+              "tabs": sum(b["tabs"] for b in all_banks), "qs": sum(b["qs"] for b in all_banks)}
+    return {"stages": stages, "subjects": subjects, "totals": totals, "built": datetime.date.today().isoformat()}
+
+
+def sample_demo(cat):
+    """랜딩 데모 문항: 단계마다 1개, 항상 같은 문항(은행 경로 정렬 순서). game · mc/ox · lv<=2 · 짧은 문제 · 그림 없음."""
+    demo = []
+    for st in cat["stages"]:
+        pick = None
+        for href in sorted(b["href"] for c in st["courses"] for b in c["banks"]):
+            bank = json.load(open(os.path.join(BANKS, os.path.splitext(href)[0] + ".json"), encoding="utf-8"))
+            for t in bank["tabs"]:
+                for q in t["qs"]:
+                    if (q.get("game") and q.get("ty") in ("mc", "ox") and (q.get("lv") or 9) <= 2
+                            and len(re.sub(r"<[^>]+>", "", q["p"])) <= 90 and not q.get("img")):
+                        pick = {k: q[k] for k in ("p", "o", "a", "h", "ty") if k in q}
+                        pick.update({"bank": bank["title"], "stage": st["num"], "href": href})
+                        break
+                if pick:
+                    break
+            if pick:
+                break
+        if pick:
+            demo.append(pick)
+    return demo
+
+
+def lint_landing(data):
+    """landing.json 규칙 검사(계획 §8). 오류 목록을 돌려준다. 표가 아직 없으면 경고 후 비교표 검사만 건너뜀."""
+    errs = []
+    claims = {}
+    if os.path.exists(CLAIMS_MD):
+        for line in open(CLAIMS_MD, encoding="utf-8"):
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            if len(cells) >= 4 and re.fullmatch(r"[A-Za-z]+-?\d+", cells[0]):
+                claims[cells[0]] = cells[-1]
+
+    def walk(o, path=""):
+        if isinstance(o, dict):
+            for k, v in o.items():
+                if k in ("claim", "claims"):
+                    for cid in ([v] if isinstance(v, str) else v if isinstance(v, list) else []):
+                        if claims.get(cid) != "검증":
+                            errs.append(f"{path}/{k}: 주장 {cid!r}이 claims.md에서 '검증'이 아님")
+                else:
+                    walk(v, f"{path}/{k}")
+        elif isinstance(o, list):
+            for i, v in enumerate(o):
+                walk(v, f"{path}[{i}]")
+        elif isinstance(o, str) and re.search(r"→\s*$", o):
+            errs.append(f"{path}: 문구 끝에 '→' 금지: {o!r}")
+    walk(data)
+    table = data.get("table")
+    if not table:
+        print("! landing.json에 table이 아직 없어 비교표 검사를 건너뜁니다.")
+        return errs
+    ours = table.get("ours")
+    marks = [(r.get("cells") or {}).get(ours) for r in table.get("rows", [])]
+    marks = [m.get("v") if isinstance(m, dict) else m for m in marks]
+    if not any(m in ("△", "✕") for m in marks):
+        errs.append("table: 우리 칸에 △·✕가 하나도 없음 (솔직하게 표시)")
+    return errs
+
+
+def write_page(path, html, label):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8", newline="\n") as f:
         f.write(html)
-    n = sum(len(c["banks"]) for s in stages for c in s["courses"])
-    print(f"✓ {os.path.relpath(HUB_OUT, ROOT)}  (문제은행 {n}개)")
+    print(f"✓ {os.path.relpath(path, ROOT)}  ({len(html) // 1024} KB)  {label}")
+
+
+def build_site(cat):
+    """랜딩·로그인·대시보드 생성. 린트·잔여 이름 검사 오류가 있으면 False."""
+    landing = json.load(open(LANDING_JSON, encoding="utf-8"))
+    errs = lint_landing(landing)
+    for e in errs:
+        print(f"✗ landing: {e}")
+    title = "디지털노마드연구소 · 문제은행"
+    demo = sample_demo(cat)
+    write_page(INDEX_OUT, fill(open(LANDING_TPL, encoding="utf-8").read(), common_pairs() + (
+        ("/*__VOICE__*/", read_opt(VOICE_JS)),
+        ("/*__CATALOG__*/null", js_data(cat)),
+        ("/*__DEMO__*/null", js_data(demo)),
+        ("/*__LANDING__*/null", js_data(landing)),
+        ("__TITLE__", esc_title(title)),
+    ), "랜딩"), f"랜딩 · 데모 {len(demo)}문항")
+    write_page(LOGIN_OUT, fill(open(LOGIN_TPL, encoding="utf-8").read(), common_pairs() + (
+        ("__TITLE__", esc_title(title)),
+    ), "로그인"), "로그인")
+    write_page(DASH_OUT, fill(open(DASH_TPL, encoding="utf-8").read(), common_pairs() + (
+        ("/*__PROGRESS__*/", read_opt(PROGRESS_JS)),
+        ("/*__CATALOG__*/null", js_data(cat)),
+    ), "대시보드"), f"대시보드 · 문제은행 {cat['totals']['banks']}개")
+    for p in (INDEX_OUT, LOGIN_OUT, DASH_OUT):
+        m = LEFTOVER.search(open(p, encoding="utf-8").read())
+        if m:
+            print(f"✗ {os.path.relpath(p, ROOT)}: 벤치마킹 대상 이름 {m.group(0)!r} 남아 있음")
+            errs.append(m.group(0))
+    return not errs
 
 
 def main():
     paths = sys.argv[1:] or sorted(glob.glob(os.path.join(BANKS, "**", "*.json"), recursive=True))
     ok = all([build(p) for p in paths])
-    build_hub()
+    ok = build_site(collect_catalog()) and ok
     sys.exit(0 if ok else 1)
 
 

@@ -22,6 +22,7 @@ except ImportError:
 
 TYPES = {"mc", "multi", "ox", "match", "order", "num"}
 GAME_TYPES = {"mc", "multi", "ox"}
+SUBJECTS = {"it", "korean", "english", "science", "music", "art", "etc"}
 PER_TAB = 10
 TARGET_MIX = {"mc": 5, "ox": 2, "match": 1, "order": 1, "multi": 1}
 TAG = re.compile(r"<[^>]+>")
@@ -51,6 +52,20 @@ def check_q(q, where, err, warn):
             warn(f"{where}: src 발췌 {len(src)}자 (권장 400자 이내)")
     if q.get("lv") not in (1, 2, 3):
         warn(f"{where}: lv(1~3) 없음")
+    img = q.get("img")
+    if img is not None:
+        if not isinstance(img, dict) or not str(img.get("src") or "").strip():
+            err(f"{where}: img는 {{src, alt}} 객체 (src 필수)")
+        elif not str(img.get("alt") or "").strip():
+            err(f"{where}: img.alt 없음 — 그림을 말로 설명하는 대체 글자 필수")
+        elif "caption" in img and not isinstance(img["caption"], str):
+            err(f"{where}: img.caption은 문자열")
+    audio = q.get("audio")
+    if audio is not None:
+        if not isinstance(audio, dict) or not str(audio.get("src") or "").strip():
+            err(f"{where}: audio는 {{src, transcript}} 객체 (src 필수)")
+        elif not str(audio.get("transcript") or "").strip():
+            err(f"{where}: audio.transcript 없음 — 듣기 문항의 대본 필수")
     a = q.get("a")
     if ty in ("mc", "multi"):
         o = q.get("o") or []
@@ -113,6 +128,8 @@ def validate(path):
     for k in ("id", "title", "source", "salt", "tabs"):
         if not bank.get(k):
             err(f"은행: '{k}' 없음")
+    if "subject" in bank and bank["subject"] not in SUBJECTS:
+        err(f"은행: 알 수 없는 subject {bank['subject']!r} (허용: {', '.join(sorted(SUBJECTS))})")
     ids = collections.Counter()
     stats = {"tabs": 0, "qs": 0, "game": 0, "types": collections.Counter()}
     for ti, tab in enumerate(bank.get("tabs") or [], 1):

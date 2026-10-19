@@ -4,6 +4,7 @@
 
 AI 업무 활용, 바이브코딩, n8n 자동화, 음성 AI, LangChain 에이전트까지 직접 공부하면서 참고하려고 모아 둔 강의 자료 9종입니다.
 주제별로 폴더를 나눴고, 폴더마다 `README.md`에 무엇이 들어 있는지 정리해 두었습니다.
+원본 과정 폴더 10개는 모두 `source/` 아래에 있고, 문제은행과 빌드 결과물은 `develop/`(`develop/dist/`)에 있습니다.
 
 > 🔒 **비공개 레포로만 사용합니다.** 외부 강의 자료를 개인 학습용으로 정리한 저장소라 공개하거나 재배포하지 않습니다.
 
@@ -13,17 +14,17 @@ AI 업무 활용, 바이브코딩, n8n 자동화, 음성 AI, LangChain 에이전
 
 | 단계 | 폴더 | 주제 | 주요 형식 | 파일 |
 |---|---|---|---|---|
-| 1 | [`01-ai-work/ai-automation`](01-ai-work/ai-automation) | 생성형 AI + 노코드 업무 자동화 개론 (모듈 1~3) | md | 3 |
-| 1 | [`01-ai-work/ai-excel`](01-ai-work/ai-excel) | ChatGPT·Gemini로 엑셀 함수·분석·정제·VBA | md, xlsx | 4 |
-| 1 | [`01-ai-work/claude-for-educators`](01-ai-work/claude-for-educators) | Claude로 수업 설계 → 평가 문항 → AI 활용 교수법 (3일) | md, docx, html | 12 |
-| 2 | [`02-dev-basics/git`](02-dev-basics/git) | Git·GitHub 입문 8교시 실습 | md, pptx | 2 |
-| 2 | [`02-dev-basics/vibe-coding`](02-dev-basics/vibe-coding) | 비개발자 바이브코딩 20H + Colab 노트북 8개 | pptx, md, ipynb | 15 |
-| 3 | [`03-n8n-automation/n8n-edu-agent`](03-n8n-automation/n8n-edu-agent) | n8n + AI로 교육 업무 자동화 (7교시, 실습 1~19) | md, json | 20 |
-| 3 | [`03-n8n-automation/n8n-blog`](03-n8n-automation/n8n-blog) | 셀프호스팅 n8n + WordPress 블로그 자동 발행 | md, json | 5 |
-| 4 | [`04-voice-ai`](04-voice-ai) | 음성 AI: 오디오 기초 → 주파수 → 전처리 → KWS → ASR → Whisper → 추론 최적화·스트리밍 (Day 1~8) | pptx/pdf, ipynb, html | 43 |
-| 5 | [`05-langchain-agent`](05-langchain-agent) | LangChain LCEL → RAG → Gradio 챗봇 → Whisper 음성 RAG → LangGraph (14일차) | ipynb, mp3 | 56 |
-| 6 | [`06-ai-openVino`](06-ai-openVino) | 엣지 AI 비전: 리눅스 → 파이썬 → OpenCV → OpenVINO 추론·최적화·디바이스 비교 | pdf | 8 |
-| 7 | [`07-NEPES_physicalAI_자율주행자동차`](07-NEPES_physicalAI_자율주행자동차) | Physical AI 5일: Jetson → LLM·VLM → OpenCV·MediaPipe·ROS 2 → Pseudo-VLA → VLA | pdf, ipynb | 108 |
+| 1 | [`source/01-ai-work/ai-automation`](source/01-ai-work/ai-automation) | 생성형 AI + 노코드 업무 자동화 개론 (모듈 1~3) | md | 3 |
+| 1 | [`source/01-ai-work/ai-excel`](source/01-ai-work/ai-excel) | ChatGPT·Gemini로 엑셀 함수·분석·정제·VBA | md, xlsx | 4 |
+| 1 | [`source/01-ai-work/claude-for-educators`](source/01-ai-work/claude-for-educators) | Claude로 수업 설계 → 평가 문항 → AI 활용 교수법 (3일) | md, docx, html | 12 |
+| 2 | [`source/02-dev-basics/git`](source/02-dev-basics/git) | Git·GitHub 입문 8교시 실습 | md, pptx | 2 |
+| 2 | [`source/02-dev-basics/vibe-coding`](source/02-dev-basics/vibe-coding) | 비개발자 바이브코딩 20H + Colab 노트북 8개 | pptx, md, ipynb | 15 |
+| 3 | [`source/03-n8n-automation/n8n-edu-agent`](source/03-n8n-automation/n8n-edu-agent) | n8n + AI로 교육 업무 자동화 (7교시, 실습 1~19) | md, json | 20 |
+| 3 | [`source/03-n8n-automation/n8n-blog`](source/03-n8n-automation/n8n-blog) | 셀프호스팅 n8n + WordPress 블로그 자동 발행 | md, json | 5 |
+| 4 | [`source/04-voice-ai`](source/04-voice-ai) | 음성 AI: 오디오 기초 → 주파수 → 전처리 → KWS → ASR → Whisper → 추론 최적화·스트리밍 (Day 1~8) | pptx/pdf, ipynb, html | 43 |
+| 5 | [`source/05-langchain-agent`](source/05-langchain-agent) | LangChain LCEL → RAG → Gradio 챗봇 → Whisper 음성 RAG → LangGraph (14일차) | ipynb, mp3 | 56 |
+| 6 | [`source/06-ai-openVino`](source/06-ai-openVino) | 엣지 AI 비전: 리눅스 → 파이썬 → OpenCV → OpenVINO 추론·최적화·디바이스 비교 | pdf | 8 |
+| 7 | [`source/07-NEPES_physicalAI_자율주행자동차`](source/07-NEPES_physicalAI_자율주행자동차) | Physical AI 5일: Jetson → LLM·VLM → OpenCV·MediaPipe·ROS 2 → Pseudo-VLA → VLA | pdf, ipynb | 108 |
 
 ## 🧭 추천 학습 순서
 
@@ -34,11 +35,11 @@ AI 업무 활용, 바이브코딩, n8n 자동화, 음성 AI, LangChain 에이전
         →  06-ai-openVino (리눅스 → 파이썬 → OpenCV → OpenVINO)  →  07 Physical AI (Jetson → VLA)
 ```
 
-> `04-voice-ai`의 Whisper(D7)와 `05-langchain-agent`의 음성 RAG(day13)는 이어서 보면 좋습니다.
+> `source/04-voice-ai`의 Whisper(D7)와 `source/05-langchain-agent`의 음성 RAG(day13)는 이어서 보면 좋습니다.
 
-- 노트북(`.ipynb`)은 Google Colab에서 열면 됩니다. `04-voice-ai`는 **T4 GPU** 런타임을 권장합니다.
-- `05-langchain-agent`는 OpenAI API 키가 필요합니다. Colab 왼쪽 🔑 **보안 비밀**에 `OPENAI_API_KEY`로 등록하세요.
-- `04-voice-ai/dayNN`의 `animation.html`, `worksheet.html`은 내려받아 브라우저로 열면 바로 동작합니다. 노트북·슬라이드의 링크는 같은 폴더 파일을 가리킵니다.
+- 노트북(`.ipynb`)은 Google Colab에서 열면 됩니다. `source/04-voice-ai`는 **T4 GPU** 런타임을 권장합니다.
+- `source/05-langchain-agent`는 OpenAI API 키가 필요합니다. Colab 왼쪽 🔑 **보안 비밀**에 `OPENAI_API_KEY`로 등록하세요.
+- `source/04-voice-ai/dayNN`의 `animation.html`, `worksheet.html`은 내려받아 브라우저로 열면 바로 동작합니다. 노트북·슬라이드의 링크는 같은 폴더 파일을 가리킵니다.
 - n8n 워크플로(`.json`)는 n8n에서 **Import from File**로 불러온 뒤, 아래 자리표시자를 내 값으로 바꾸세요.
 
 ## 🎯 문제은행 플랫폼 (개발 중)
@@ -48,10 +49,16 @@ AI 업무 활용, 바이브코딩, n8n 자동화, 음성 AI, LangChain 에이전
 | 폴더 | 내용 |
 |---|---|
 | [`plan/`](plan) | 기존 자산 분석 · 플랫폼 개념 · 기획서 · 출제 기준 |
-| [`design/`](design) | 디자인 시스템 · 토큰(`tokens.css`) · 와이어프레임 |
+| [`design/`](design) | 디자인 시스템 · 토큰(`tokens.css`) · 공용 컴포넌트(`components.css`, `icons.svg`) · 공용 스크립트(`qb-core/progress/voice.js`) · 와이어프레임 · 벤치마킹 메모 |
 | [`develop/`](develop) | 개발서 · 수집기(`ingest.py`) · 스키마 · 출제 프롬프트 · 엔진 · 검증/빌드 스크립트 |
 
-**전체 목록(허브)**: [`develop/dist/index.html`](develop/dist/index.html) — 과정별 카드, 내 진행률·남은 오답
+**진입 흐름**: [`develop/dist/index.html`](develop/dist/index.html)(랜딩) → [`login.html`](develop/dist/login.html)(체험 로그인) → [`dashboard.html`](develop/dist/dashboard.html)(과정별 목록·진행률·남은 오답·학습 기록) → 각 문제은행. 문제은행의 '과정 목록' 링크도 대시보드로 연결됩니다.
+
+**여는 법**
+- `develop/dist/index.html`을 더블클릭하면 됩니다(서버 불필요). 로그인은 이름만 받는 체험용이고 비밀번호는 저장하지 않습니다.
+- 말로 보기 번호 고르기는 **Chrome·Edge + 인터넷 연결**에서만 됩니다. 오디오가 브라우저 회사의 음성 인식 서버로 전송되며, `file://`로 열면 마이크 권한을 다시 물을 수 있습니다.
+- 랜딩 히어로의 예시 문항 카드 3장은 방문할 때마다 순서를 섞어 4초마다 넘어갑니다. 앞 카드는 클릭이나 숫자키로 바로 풀 수 있습니다.
+- 예전 북마크 `index.html#04`는 `dashboard.html#04`로 넘어갑니다.
 
 | 단계 | 과정 | 문제은행 | 문항 | 페이지 |
 |---|---|---|---|---|
@@ -105,10 +112,11 @@ AI 업무 활용, 바이브코딩, n8n 자동화, 음성 AI, LangChain 에이전
 | 07 | Physical AI | Physical AI 4일차 · 좌표 기반 Pseudo-VLA | 9탭 · 90 | [`09-pseudo-vla.html`](develop/dist/07-physical-ai/09-pseudo-vla.html) |
 | 07 | Physical AI | Physical AI 5일차 · 학습된 VLA 정책과 시뮬레이션 | 10탭 · 100 | [`10-vla.html`](develop/dist/07-physical-ai/10-vla.html) |
 
-합계 **79개 · 518탭 · 5,185문항** (05·08·09·10 과정 은행은 허브에서 볼 수 있습니다). 04-voice-ai는 기존 워크시트 구성(Day1 15문항, Day2~8 4교시×10)을 그대로 옮겼습니다.
+합계 **79개 · 518탭 · 5,185문항** (05·08·09·10 과정 은행은 대시보드에서 볼 수 있습니다). 04-voice-ai는 기존 워크시트 구성(Day1 15문항, Day2~8 4교시×10)을 그대로 옮겼습니다.
 
 - **학습 모드**: 탭별 10문항 채점, 해설과 자료 위치, 종합 결과와 결과 코드.
 - **게임 모드**: 탭 하나를 채점하면 열립니다. 문항마다 10~15초 타이머가 있고 콤보 점수와 순위표가 있습니다.
+- **말로 고르기·문제 읽기**: 마이크 버튼으로 "2번", "오"처럼 말하면 선택됩니다(Chrome·Edge). '문제 읽기'는 브라우저 음성 합성을 씁니다.
 - **오답노트·해설지**: 틀린 문항이 쌓이고, 다시 풀어 맞히면 '극복'으로 표시됩니다. 인쇄할 수 있습니다.
 - 새 자료 추가: [`develop/개발서.md`](develop/개발서.md) §3 → `python develop/validate.py` → `python develop/build.py`
 
@@ -142,7 +150,7 @@ git add -A && git commit -m "sync: 원본 업데이트 반영" && git push
 | `tools/check.py` | 원본 표기·토큰·문서 ID가 남았는지 검사 |
 | `tools/sync.py` | 원본 최신본 받기 → 변경 비교 → 정리 → 반영 |
 
-> `05-langchain-agent`는 업로드한 zip에서 가져와 원본 저장소가 없으므로 자동 동기화 대상이 아닙니다. 새 버전 zip을 받으면 폴더에 풀고 `python3 tools/clean.py 05-langchain-agent --prefix 05-langchain-agent`로 정리하세요.
+> `source/05-langchain-agent`는 업로드한 zip에서 가져와 원본 저장소가 없으므로 자동 동기화 대상이 아닙니다. 새 버전 zip을 받으면 폴더에 풀고 `python3 tools/clean.py source/05-langchain-agent --prefix source/05-langchain-agent`로 정리하세요.
 >
 > 폴더별 `README.md`는 이 레포에서 쓴 정리 문서라 동기화할 때 덮어쓰지 않습니다. 원본에 README가 생기면 `README_원본.md`로 저장됩니다.
 

@@ -11,10 +11,11 @@
     "title": {"type": "string"},
     "subtitle": {"type": "string"},
     "course": {"type": "string", "description": "화면에 보이는 출처 표기"},
-    "source": {"type": "string", "description": "원본 자료 경로 (레포 루트 기준) 또는 파일명"},
+    "source": {"type": "string", "description": "원본 자료 경로 (source/ 기준) 또는 파일명"},
     "salt": {"type": "string", "description": "결과 코드 해시 salt"},
     "version": {"type": "integer"},
     "updated": {"type": "string", "format": "date"},
+    "subject": {"enum": ["it", "korean", "english", "science", "music", "art", "etc"], "default": "it", "description": "과목. 없으면 it"},
     "legacy": {"type": "boolean", "description": "기존 워크시트 구성을 그대로 옮긴 은행. 탭당 10문항 규칙을 경고로만 검사 (04-voice-ai)"},
     "tabs": {
       "type": "array", "minItems": 1,
@@ -49,6 +50,8 @@
         "pairs": {"type": "array", "items": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 2},
                   "description": "match: [[왼쪽, 오른쪽], ...] 올바른 짝으로 작성 — 화면에서 섞임"},
         "steps": {"type": "array", "items": {"type": "string"}, "description": "order: 올바른 순서로 작성 — 화면에서 섞임"},
+        "img": {"type": "object", "required": ["src", "alt"], "properties": {"src": {"type": "string"}, "alt": {"type": "string", "minLength": 1}, "caption": {"type": "string"}}, "description": "문항 그림(미술·과학 도해용). alt 필수"},
+        "audio": {"type": "object", "required": ["src", "transcript"], "properties": {"src": {"type": "string"}, "transcript": {"type": "string", "minLength": 1}}, "description": "문항 오디오(음악·영어 듣기용). transcript 필수"},
         "unit": {"type": "string", "description": "num: 단위"},
         "tol": {"type": "number", "description": "num: 허용 오차 (기본 1e-6)"}
       },

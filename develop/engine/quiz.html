@@ -112,6 +112,26 @@ button:focus-visible,a:focus-visible,input:focus-visible,.opt:focus-within{outli
 .qsrc{margin-left:auto;font-size:var(--fs-2xs);color:var(--faint)}
 .qt{font-size:var(--fs-q);font-weight:500;margin:4px 0 8px}
 .guide{font-size:var(--fs-xs);color:var(--faint);margin:-4px 0 8px}
+/* 음성 선택 · 문제 읽기 · 그림/오디오 */
+.vrow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 8px}
+.vbtn{font:inherit;font-size:var(--fs-btn);display:inline-flex;align-items:center;gap:6px;border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);border-radius:var(--r);padding:4px 10px;min-height:32px;cursor:pointer}
+.vbtn:hover{border-color:var(--muted)}
+.vbtn svg{width:16px;height:16px;flex:0 0 auto;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.vbtn[data-state="listening"]{border-color:var(--link);color:var(--link);box-shadow:0 0 0 3px color-mix(in srgb,var(--link) 28%,transparent);animation:vpulse 1.2s ease-in-out infinite}
+.vbtn[data-state="heard"]{border-color:var(--ok)}
+.vbtn[data-state="error"]{border-color:var(--bad)}
+@keyframes vpulse{50%{box-shadow:0 0 0 6px transparent}}
+@media (prefers-reduced-motion:reduce){.vbtn[data-state="listening"]{animation:none}}
+.vstat{font-size:var(--fs-xs);color:var(--muted)}
+.vstat:empty{display:none}
+.vhint{font-size:var(--fs-xs);color:var(--faint)}
+.qfig{margin:6px 0 10px}
+.qfig img{display:block;max-width:100%;height:auto;border:1px solid var(--line);border-radius:var(--r-sm)}
+.qfig figcaption{font-size:var(--fs-xs);color:var(--muted);margin-top:4px}
+.qaud{margin:6px 0 10px}
+.qaud audio{display:block;width:100%;max-width:420px}
+.qaud details{font-size:var(--fs-sm);color:var(--muted);margin-top:4px}
+.qaud summary{cursor:pointer}
 .opts{display:grid;gap:6px}
 .opt{display:flex;gap:10px;align-items:flex-start;padding:8px 12px;border:1px solid var(--line);border-radius:var(--r);cursor:pointer;background:var(--panel);font-size:var(--fs-opt);transition:border-color .12s,background .12s}
 .opt:hover{border-color:var(--line-2)}
@@ -328,6 +348,8 @@ a.gcard:hover{border-color:var(--link);background:color-mix(in srgb,var(--link) 
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <div class="sr" id="live" aria-live="polite"></div>
+<script>/*__CORE__*/</script>
+<script>/*__VOICE__*/</script>
 <script>
 (()=>{
 'use strict';
@@ -359,6 +381,7 @@ const KEY='qb:'+BANK.id+':v1';
 const blank=()=>({name:'',tabs:{},wrong:{},board:[],drafts:{}});  // drafts: 채점 전 탭별 풀던 답
 let S=blank();
 try{const raw=localStorage.getItem(KEY);if(raw)S=Object.assign(blank(),JSON.parse(raw));}catch(e){}
+try{const u=window.QB&&QB.user();if(!S.name&&u&&u.name)S.name=u.name;}catch(e){}  // 로그인 이름 동기화(사용자가 동작하기 전엔 저장하지 않음)
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}};
 const gameUnlocked=()=>Object.keys(S.tabs).length>0;
 const allGraded=()=>TABS.every(t=>S.tabs[t.id]);
@@ -507,7 +530,7 @@ function cardHTML(q,n){
   const src=cur.mode==='retry'?`<span class="qsrc">${QTAB[q.id].idx+1}. ${esc(QTAB[q.id].title)}</span>`:'';
   return `<article class="q${g?(ok?' correct':' wrong')+' locked':''}" id="card-${q.id}" data-n="${n}" style="--tc:var(${color})">`+
     `<div class="qhead"><span class="qn">Q${n}</span><span class="tbadge">${label}</span>${lvHTML(q.lv)}${src}${g?`<span class="verdict">${ok?'✓ 정답':'✗ 오답'}</span>`:''}</div>`+
-    `<div class="qt">${q.p}</div>${hintHTML(q)}${g?'':`<p class="guide">${GUIDE[q.ty]}</p>`}${body}${exp}</article>`;
+    `<div class="qt">${q.p}</div>${mediaHTML(q)}${hintHTML(q)}${g?'':`<p class="guide">${GUIDE[q.ty]}</p>${voiceRow(q,q.id)}`}${body}${exp}</article>`;
 }
 const LV_NAME=['쉬움','보통','어려움'];
 function lvHTML(lv){
@@ -558,6 +581,53 @@ function updateProgress(){
       save();
     }
   }
+}
+
+/* ── 음성 선택 · 문제 읽기 · 그림/오디오 (qb-voice.js가 없으면 모두 숨김) ── */
+const hasVoice=()=>!!(window.QBVoice&&QBVoice.supported());
+const hasRead=()=>!!(window.QBVoice&&QBVoice.canSpeak());
+const IC_MIC='<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+const IC_VOL='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
+const VC=new Map();  // 학습 모드 문항별 음성 컨트롤러
+function voiceReset(){VC.clear();if(window.QBVoice){QBVoice.stopListening();QBVoice.cancelSpeak();}}
+function voiceRow(q,fkp){
+  const mic=hasVoice()&&['mc','multi','ox'].includes(q.ty), rd=hasRead();
+  if(!mic&&!rd)return '';
+  const qa=fkp?` data-q="${q.id}"`:'';
+  return `<div class="vrow noprint">`+
+    (mic?`<button type="button" class="vbtn vmic" data-act="vmic"${qa} data-fk="${fkp}-vmic" data-state="idle" aria-pressed="false">${IC_MIC}<span>말하기</span></button>`:'')+
+    (rd?`<button type="button" class="vbtn" data-act="vread"${qa} data-fk="${fkp}-vread">${IC_VOL}<span>문제 읽기</span></button>`:'')+
+    (mic?`<span class="vstat" aria-live="polite"></span><span class="vhint">말하기 어려우면 눌러서 고르세요</span>`:'')+`</div>`;
+}
+function mediaHTML(q){
+  let h='';
+  if(q.img&&q.img.src)h+=`<figure class="qfig"><img src="${esc(q.img.src)}" alt="${esc(q.img.alt)}" loading="lazy">${q.img.caption?`<figcaption>${esc(q.img.caption)}</figcaption>`:''}</figure>`;
+  if(q.audio&&q.audio.src)h+=`<div class="qaud"><audio controls preload="none" src="${esc(q.audio.src)}"></audio><details><summary>대본</summary><p>${esc(q.audio.transcript)}</p></details></div>`;
+  return h;
+}
+const plain=h=>{const d=document.createElement('div');d.innerHTML=h;return d.textContent.replace(/\s+/g,' ').trim();};
+// 읽어 줄 글: 문제 + 화면에 보이는 순서의 보기("1번 …")
+function readText(q,n,order){
+  let t=(n?`${n}번 문제. `:'')+plain(q.p)+'.';
+  if(q.img&&q.img.alt)t+=' 그림 설명. '+q.img.alt+'.';
+  if(q.ty==='ox')t+=' 맞으면 O, 틀리면 X.';
+  else if(q.ty==='mc'||q.ty==='multi')t+=(order||range(q.o.length)).map((oi,k)=>` ${k+1}번. ${plain(q.o[oi])}.`).join('');
+  return t;
+}
+function readAloud(text){if(QBVoice.isSpeaking())QBVoice.cancelSpeak();else QBVoice.speak(text);}
+// 음성으로 고른 것 = 보기를 직접 누른 것과 같은 경로(입력 click → 기존 change/click 처리)
+function voicePick(q,r){
+  if(!cur||cur.graded)return;
+  const card=document.getElementById('card-'+q.id);if(!card)return;
+  const el=r.kind==='ox'?card.querySelector(`[data-act="ox"][data-v="${r.v==='O'?1:0}"]`):card.querySelector(`input[data-i="${r.i}"]`);
+  if(el&&!el.disabled)el.click();
+}
+function studyVoice(q){
+  let c=VC.get(q.id);if(c)return c;
+  const card=()=>document.getElementById('card-'+q.id);
+  c=QBVoice.attach({bind:false,button:()=>card()&&card().querySelector('.vmic'),live:()=>card()&&card().querySelector('.vstat'),
+    getOptions:()=>q.ty==='ox'?2:q.o.length,getType:()=>q.ty,select:r=>voicePick(q,r)});
+  VC.set(q.id,c);return c;
 }
 
 /* 학습 화면 상호작용 */
@@ -642,6 +712,7 @@ function viewStudy(tid,fresh){
   renderSheet();
 }
 function renderSheet(){
+  voiceReset();
   const study=cur.mode==='study', tab=cur.tab;
   const tabbar=study?`<nav class="tabbar noprint" role="tablist" aria-label="탭">${TABS.map((t,i)=>{const r=S.tabs[t.id];
       return `<a class="tabchip" role="tab" href="#study/${t.id}" aria-selected="${t===tab}"><b>${i+1}</b><span class="tl">${esc(t.title)}</span><span class="qc" id="qc-${t.id}">${fmtCnt(tabAnswered(t),t.qs.length)}</span>${r?`<span class="sc" title="채점 점수">✓${r.score}</span>`:''}</a>`;}).join('')}
@@ -807,7 +878,7 @@ let G=null;
 const gameSetup={mode:'timeattack',count:10,scope:'all',time:GAME_MODES.timeattack.defaultTime};
 function gamePool(scope){
   const M=GAME_MODES[gameSetup.mode];
-  const base=ALLQ.filter(q=>q.game&&M.types.includes(q.ty));
+  const base=ALLQ.filter(q=>q.game&&!q.audio&&M.types.includes(q.ty));  // 오디오 문항은 제한시간 안에 들을 수 없어 제외
   if(scope==='played')return shuffle(base.filter(q=>S.tabs[QTAB[q.id].id]));
   if(scope==='wrong'){const w=new Set(wrongList(false));return shuffle(base.filter(q=>w.has(q.id))).concat(shuffle(base.filter(q=>!w.has(q.id))));}
   return shuffle(base);
@@ -866,6 +937,7 @@ function startGame(){
   renderGameQ();
 }
 function renderGameQ(){
+  voiceReset();
   const q=G.qs[G.i];
   G.locked=false;G.elapsed=0;G.last=performance.now();G.limit=G.time*1000;G.warned=false;G.pick=[];
   G.view=q.ty==='ox'?[true,false]:shuffle(range(q.o.length));
@@ -877,12 +949,15 @@ function renderGameQ(){
     <div class="gtop"><div class="hud"><span>${G.i+1} / ${G.qs.length}</span><span class="combo${G.combo>=3?' hot':''}">🔥 콤보 ${G.combo}</span><span class="pts">${G.score.toLocaleString()}점</span></div>
     <div class="timer" id="timer"><div id="tbar"></div></div><div class="tleft" id="tleft"></div></div>
     <div class="gtype">${TYPES[q.ty][0]}${q.ty==='multi'?' · 모두 고른 뒤 제출':''}</div>
-    <div class="gq">${q.p}</div>
-    <div class="gbottom">${opts}
+    <div class="gq">${q.p}</div>${mediaHTML(q)}
+    <div class="gbottom">${voiceRow(q,'g')}${opts}
     <div class="gfloat" id="gfloat" aria-live="polite"></div>
     <div class="gsub"><button class="btn" type="button" data-act="gquit">그만하기</button>
       ${q.ty==='multi'?'<button class="btn primary" type="button" data-act="gsubmit">제출 (Enter)</button>':''}</div></div>
   </div>`;
+  if(hasVoice())G.vc=QBVoice.attach({bind:false,button:()=>app.querySelector('.vmic'),live:()=>app.querySelector('.vstat'),
+    getOptions:()=>G.view.length,getType:()=>q.ty,
+    select:r=>gameAnswer(r.kind==='ox'?(r.v==='O'?0:1):r.i),submit:q.ty==='multi'?gameSubmit:null});  // 말하면 클릭과 같게 바로 선택(·제출)
   G.raf=requestAnimationFrame(tick);
 }
 function tick(now){
@@ -966,7 +1041,7 @@ function finishGame(){
 
 /* ── 라우터 · 이벤트 ───────────────────── */
 function route(){
-  stopGame();cur=null;app.classList.remove('sheet');
+  stopGame();voiceReset();cur=null;app.classList.remove('sheet');
   const [v,arg]=(location.hash.slice(1)||'home').split('/');
   ({study:()=>viewStudy(arg),notes:viewNotes,retry:viewRetry,key:viewKey,game:()=>arg?viewGameSetup(arg):viewGamePick(),summary:viewSummary}[v]||viewHome)();
   window.scrollTo(0,0);
@@ -990,6 +1065,11 @@ app.addEventListener('click',e=>{
     case 'gset':gameSetup[el.dataset.g]=['count','time'].includes(el.dataset.g)?+el.dataset.v:el.dataset.v;viewGameSetup();break;
     case 'gstart':startGame();break;
     case 'gans':gameAnswer(+el.dataset.k);break;
+    case 'vmic':{const q=G?null:QMAP[el.dataset.q];const c=G?G.vc:(q&&cur?studyVoice(q):null);if(c)c.toggle();break;}
+    case 'vread':{
+      if(G){const q=G.qs[G.i];readAloud(readText(q,0,q.ty==='ox'?null:G.view));break;}
+      const q=QMAP[el.dataset.q], card=document.getElementById('card-'+el.dataset.q);
+      if(q)readAloud(readText(q,card?card.dataset.n:0));break;}
     case 'gsubmit':gameSubmit();break;
     case 'gquit':stopGame();viewGameSetup(gameSetup.mode);break;
     case 'gagain':startGame();break;
@@ -1007,8 +1087,9 @@ document.addEventListener('keydown',e=>{
   const q=G.qs[G.i], k=e.key.toLowerCase();
   if(q.ty==='ox'){if(k==='o'||k==='1'){e.preventDefault();gameAnswer(0);}else if(k==='x'||k==='2'){e.preventDefault();gameAnswer(1);}return;}
   if(/^[1-9]$/.test(k)){e.preventDefault();gameAnswer(+k-1);}
-  else if(k==='enter'&&q.ty==='multi'){e.preventDefault();gameSubmit();}
+  else if(k==='enter'&&q.ty==='multi'&&!(e.target.closest&&e.target.closest('.vrow'))){e.preventDefault();gameSubmit();}
 });
+window.addEventListener('pagehide',()=>{if(window.QBVoice){QBVoice.stopListening();QBVoice.cancelSpeak();}});
 document.addEventListener('visibilitychange',()=>{if(G&&!document.hidden)G.last=performance.now();});
 // 탭 바 좌우 화살표
 app.addEventListener('keydown',e=>{

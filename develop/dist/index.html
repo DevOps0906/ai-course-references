@@ -3,190 +3,1428 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>문제은행 · 전체 과정</title>
+<title>디지털노마드연구소 · 문제은행</title>
+<meta name="description" content="강의 PDF로 만든 문제은행. 배운 날 바로 풀고, 틀린 곳만 다시 봅니다.">
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
-/* Quiz Bank 디자인 토큰 v2
-   타이포 기준: AI_Voice day07 워크시트 (본문 15px / 행간 1.55, 요소 13~14px)
+/* Quiz Bank 디자인 토큰 v3 (3층: Primitive → Semantic → Component)
    다크 팔레트: day07 워크시트(#0b1220 남색 + 앰버·틸 포인트) / 라이트: 같은 구조의 중립 팔레트
+   포인트색은 teal 하나(--color-brand). amber는 제목(다크)·경고·하이라이트 보조.
+   v2 이름(--bg, --ink 등)은 파일 끝 Alias 블록이 시맨틱으로 연결한다.
    build.py가 이 파일을 엔진 <style> 맨 앞에 그대로 넣는다. */
 :root{
-  /* 타이포 */
-  --font:"Pretendard Variable","Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
-  --mono:"JetBrains Mono","D2Coding",Consolas,"SF Mono",monospace;
+  /* ── 1층 Primitive: 원시 값 ── */
+  --white:#FFFFFF;--ink-900:#141A26;
+  --slate-50:#F5F6F8;--slate-100:#F0F2F5;--slate-200:#E2E6EC;--slate-250:#D5DAE2;--slate-300:#CDD3DC;
+  --slate-400:#8A93A4;--slate-500:#64748B;--slate-600:#5A6375;
+  --navy-950:#0A0F1C;--navy-900:#0B1220;--navy-850:#0E1628;--navy-800:#111A2E;--navy-700:#16203A;--navy-650:#172239;
+  --navy-600:#1F2B45;--navy-500:#2A3A5C;
+  --ice-200:#DBE4F0;--steel-400:#8A9BB8;--steel-500:#5E6F8E;
+  --teal-900:#123D33;--teal-700:#0B6F66;--teal-600:#0E8C80;--teal-400:#2DD4BF;
+  --amber-900:#3A2A0C;--amber-700:#B45309;--amber-650:#D97706;--amber-600:#B7791F;--amber-400:#F5B942;--amber-100:#FEF3C7;
+  --gold-600:#B7891F;
+  --green-700:#15803D;--green-600:#16A34A;--green-400:#4ADE80;
+  --red-650:#DC2626;--red-600:#D23B32;--red-400:#F87171;
+  --yellow-500:#EAB308;--yellow-400:#FACC15;
+  --violet-600:#7C3AED;--violet-400:#C084FC;
+  --pink-700:#C2417A;--pink-400:#F472B6;
+  --blue-600:#2563EB;--blue-400:#60A5FA;
+  /* 과목 색: 흰 배경·남색 배경 모두 3:1 이상(아이콘·스트라이프용), 테마 공통 */
+  --subject-it:#4F7FC0;--subject-korean:#B05A5A;--subject-english:#3F8F6E;
+  --subject-science:#8A62B8;--subject-music:#B0762A;--subject-art:#C0508A;
+
+  /* ── 2층 Semantic 고정부 ── */
+  --font-sans:"Pretendard Variable","Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --font-mono:"JetBrains Mono","D2Coding",Consolas,"SF Mono",monospace;
   --fs-base:15px;--lh:1.55;
   --fs-h1:24px;--fs-h2:17px;--fs-q:15px;--fs-opt:14px;--fs-btn:13px;--fs-btn-pri:14px;
   --fs-sm:13px;--fs-xs:12px;--fs-2xs:11px;--fs-ox:22px;
-  /* 형태 */
-  --r-sm:6px;--r:8px;--r-md:10px;--r-lg:12px;--maxw:880px;
+  --radius-sm:6px;--radius-control:8px;--radius-card:10px;--radius-lg:12px;--maxw:880px;
+  --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;--space-6:32px;--space-7:48px;--space-8:64px;
+  --ease:cubic-bezier(.2,0,0,1);--dur-fast:120ms;--dur:200ms;
 
-  /* 라이트 */
-  --bg:#F5F6F8;--panel:#FFFFFF;--raised:#FFFFFF;--field:#FFFFFF;
-  --ink:#141A26;--muted:#5A6375;--faint:#8A93A4;--line:#E2E6EC;--line-2:#CDD3DC;--soft:#F0F2F5;
-  --title:#141A26;--link:#0E8C80;--accent:#B7791F;
-  --ok:#15803D;--bad:#D23B32;--combo:#7C3AED;--gold:#B7891F;
-  --btn-bg:#FFFFFF;--btn-line:#D5DAE2;--pri-bg:#141A26;--pri-line:#141A26;--pri-ink:#FFFFFF;
-  --ty-mc:#0E8C80;--ty-multi:#7C3AED;--ty-ox:#64748B;--ty-match:#C2417A;--ty-order:#B7791F;--ty-num:#2563EB;
-  --timer-hi:#16A34A;--timer-mid:#D97706;--timer-lo:#DC2626;
-  --lv1:#16A34A;--lv2:#EAB308;--lv3:#DC2626;  /* 난이도 1·2·3 */
+  /* ── 라이트 시맨틱 + 컴포넌트 ── */
+  --color-background:var(--slate-50);--color-surface:var(--white);--color-surface-raised:var(--white);--color-surface-muted:var(--slate-100);--color-field:var(--white);
+  --color-text:var(--ink-900);--color-text-muted:var(--slate-600);--color-text-faint:var(--slate-400);
+  --color-border:var(--slate-200);--color-border-strong:var(--slate-300);
+  --color-heading:var(--ink-900);--legacy-title:var(--ink-900);--color-brand:var(--teal-600);--color-brand-text:var(--teal-700);--color-on-brand:var(--white);
+  --color-accent:var(--amber-600);--color-success:var(--green-700);--color-warning:var(--amber-700);--color-danger:var(--red-600);
+  --color-highlight:var(--amber-100);--color-focus:var(--teal-600);
+  --button-bg:var(--white);--button-border:var(--slate-250);--button-text:var(--ink-900);
+  --button-primary-bg:var(--ink-900);--button-primary-border:var(--ink-900);--button-primary-text:var(--white);
+  --combo:var(--violet-600);--gold:var(--gold-600);
+  --ty-mc:var(--teal-600);--ty-multi:var(--violet-600);--ty-ox:var(--slate-500);--ty-match:var(--pink-700);--ty-order:var(--amber-600);--ty-num:var(--blue-600);
+  --timer-hi:var(--green-600);--timer-mid:var(--amber-650);--timer-lo:var(--red-650);
+  --lv1:var(--green-600);--lv2:var(--yellow-500);--lv3:var(--red-650);
   --shadow:0 1px 2px rgb(16 24 40 / .04);
   color-scheme:light;
+
+  /* ── Alias (v2 이름 → 시맨틱). 엔진 페이지 호환용. 새 코드는 --color-* 사용 ── */
+  --font:var(--font-sans);--mono:var(--font-mono);
+  --r-sm:var(--radius-sm);--r:var(--radius-control);--r-md:var(--radius-card);--r-lg:var(--radius-lg);
+  --bg:var(--color-background);--panel:var(--color-surface);--raised:var(--color-surface-raised);--field:var(--color-field);
+  --soft:var(--color-surface-muted);
+  --ink:var(--color-text);--muted:var(--color-text-muted);--faint:var(--color-text-faint);
+  --line:var(--color-border);--line-2:var(--color-border-strong);
+  --title:var(--legacy-title);--link:var(--color-brand);--accent:var(--color-accent);
+  --ok:var(--color-success);--bad:var(--color-danger);
+  --btn-bg:var(--button-bg);--btn-line:var(--button-border);
+  --pri-bg:var(--button-primary-bg);--pri-line:var(--button-primary-border);--pri-ink:var(--button-primary-text);
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0B1220;--panel:#111A2E;--raised:#0E1628;--field:#0A0F1C;
-  --ink:#DBE4F0;--muted:#8A9BB8;--faint:#5E6F8E;--line:#1F2B45;--line-2:#2A3A5C;--soft:#16203A;
-  --title:#F5B942;--link:#2DD4BF;--accent:#F5B942;
-  --ok:#4ADE80;--bad:#F87171;--combo:#C084FC;--gold:#F5B942;
-  --btn-bg:#172239;--btn-line:#2A3A5C;--pri-bg:#123D33;--pri-line:#2DD4BF;--pri-ink:#2DD4BF;
-  --ty-mc:#2DD4BF;--ty-multi:#C084FC;--ty-ox:#8A9BB8;--ty-match:#F472B6;--ty-order:#F5B942;--ty-num:#60A5FA;
-  --timer-hi:#4ADE80;--timer-mid:#F5B942;--timer-lo:#F87171;
-  --lv1:#4ADE80;--lv2:#FACC15;--lv3:#F87171;
+  --color-background:var(--navy-900);--color-surface:var(--navy-800);--color-surface-raised:var(--navy-850);--color-surface-muted:var(--navy-700);--color-field:var(--navy-950);
+  --color-text:var(--ice-200);--color-text-muted:var(--steel-400);--color-text-faint:var(--steel-500);
+  --color-border:var(--navy-600);--color-border-strong:var(--navy-500);
+  --color-heading:var(--color-text);--legacy-title:var(--amber-400);--color-brand:var(--teal-400);--color-brand-text:var(--teal-400);--color-on-brand:var(--navy-900);
+  --color-accent:var(--amber-400);--color-success:var(--green-400);--color-warning:var(--amber-400);--color-danger:var(--red-400);
+  --color-highlight:var(--amber-900);--color-focus:var(--teal-400);
+  --button-bg:var(--navy-650);--button-border:var(--navy-500);--button-text:var(--ice-200);
+  --button-primary-bg:var(--teal-900);--button-primary-border:var(--teal-400);--button-primary-text:var(--teal-400);
+  --combo:var(--violet-400);--gold:var(--amber-400);
+  --ty-mc:var(--teal-400);--ty-multi:var(--violet-400);--ty-ox:var(--steel-400);--ty-match:var(--pink-400);--ty-order:var(--amber-400);--ty-num:var(--blue-400);
+  --timer-hi:var(--green-400);--timer-mid:var(--amber-400);--timer-lo:var(--red-400);
+  --lv1:var(--green-400);--lv2:var(--yellow-400);--lv3:var(--red-400);
   --shadow:none;
   color-scheme:dark;}}
 :root[data-theme="dark"]{
-  --bg:#0B1220;--panel:#111A2E;--raised:#0E1628;--field:#0A0F1C;
-  --ink:#DBE4F0;--muted:#8A9BB8;--faint:#5E6F8E;--line:#1F2B45;--line-2:#2A3A5C;--soft:#16203A;
-  --title:#F5B942;--link:#2DD4BF;--accent:#F5B942;
-  --ok:#4ADE80;--bad:#F87171;--combo:#C084FC;--gold:#F5B942;
-  --btn-bg:#172239;--btn-line:#2A3A5C;--pri-bg:#123D33;--pri-line:#2DD4BF;--pri-ink:#2DD4BF;
-  --ty-mc:#2DD4BF;--ty-multi:#C084FC;--ty-ox:#8A9BB8;--ty-match:#F472B6;--ty-order:#F5B942;--ty-num:#60A5FA;
-  --timer-hi:#4ADE80;--timer-mid:#F5B942;--timer-lo:#F87171;
-  --lv1:#4ADE80;--lv2:#FACC15;--lv3:#F87171;
+  --color-background:var(--navy-900);--color-surface:var(--navy-800);--color-surface-raised:var(--navy-850);--color-surface-muted:var(--navy-700);--color-field:var(--navy-950);
+  --color-text:var(--ice-200);--color-text-muted:var(--steel-400);--color-text-faint:var(--steel-500);
+  --color-border:var(--navy-600);--color-border-strong:var(--navy-500);
+  --color-heading:var(--color-text);--legacy-title:var(--amber-400);--color-brand:var(--teal-400);--color-brand-text:var(--teal-400);--color-on-brand:var(--navy-900);
+  --color-accent:var(--amber-400);--color-success:var(--green-400);--color-warning:var(--amber-400);--color-danger:var(--red-400);
+  --color-highlight:var(--amber-900);--color-focus:var(--teal-400);
+  --button-bg:var(--navy-650);--button-border:var(--navy-500);--button-text:var(--ice-200);
+  --button-primary-bg:var(--teal-900);--button-primary-border:var(--teal-400);--button-primary-text:var(--teal-400);
+  --combo:var(--violet-400);--gold:var(--amber-400);
+  --ty-mc:var(--teal-400);--ty-multi:var(--violet-400);--ty-ox:var(--steel-400);--ty-match:var(--pink-400);--ty-order:var(--amber-400);--ty-num:var(--blue-400);
+  --timer-hi:var(--green-400);--timer-mid:var(--amber-400);--timer-lo:var(--red-400);
+  --lv1:var(--green-400);--lv2:var(--yellow-400);--lv3:var(--red-400);
   --shadow:none;
   color-scheme:dark;}
 @media (max-width:560px){:root{--fs-base:14.5px;--fs-h1:20px;--fs-h2:16px;--fs-q:14.5px;--fs-ox:20px}}
 
+/* Quiz Bank 공용 컴포넌트 (대시보드·랜딩·로그인용. quiz.html은 포함하지 않음)
+   시맨틱/컴포넌트 토큰만 사용. 규칙: 1px 선, 그림자·그라데이션·알약 금지, 숫자에 mono 금지, 모바일 터치 40px 이상. */
 *,*::before,*::after{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:var(--fs-base);line-height:var(--lh);-webkit-font-smoothing:antialiased;padding-bottom:env(safe-area-inset-bottom,0px)}
-a{color:inherit}
-.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px 56px}
-.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;height:calc(52px + env(safe-area-inset-top,0px));margin:0 -20px 22px;padding:env(safe-area-inset-top,0px) 20px 0;
-  background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:saturate(1.4) blur(10px);-webkit-backdrop-filter:saturate(1.4) blur(10px);border-bottom:1px solid var(--line)}
-.brand{font-size:var(--fs-xs);color:var(--muted);flex:1}
-.brand b{color:var(--ink);font-weight:600}
-.iconbtn{font:inherit;font-size:14px;border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);width:32px;height:32px;border-radius:var(--r);cursor:pointer;display:grid;place-items:center}
-h1{font-size:var(--fs-h1);line-height:1.3;margin:0 0 6px;letter-spacing:-.02em;font-weight:700;color:var(--title)}
-.sub{color:var(--muted);margin:0 0 14px;font-size:var(--fs-sm)}
-.stats{display:grid;grid-template-columns:repeat(4,minmax(0,140px));gap:8px;margin:0 0 22px}
-.stat{border:1px solid var(--line);background:var(--panel);border-radius:var(--r);padding:8px 12px;min-width:0}
-@media (max-width:560px){.stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}.stat{padding:7px 8px}.stat b{font-size:15px}}
-.stat b{display:block;font-size:18px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--title)}
-.stat span{font-size:var(--fs-2xs);color:var(--faint)}
-.stage{margin:0 0 26px}
-.stage>h2{font-size:var(--fs-h2);margin:0 0 10px;font-weight:650;display:flex;align-items:center;gap:8px}
-.stage>h2 .num{font-family:var(--mono);font-size:var(--fs-xs);color:var(--link);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:0 7px;font-weight:500}
-.course{margin:0 0 14px}
-.course h3{font-size:var(--fs-sm);color:var(--muted);font-weight:600;margin:0 0 8px}
-/* 카드: 웹 자유 배치 · 태블릿 3개 · 모바일 2개 */
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
-@media (max-width:1023px){.cards{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:560px){.cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
-.card{display:flex;flex-direction:column;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:12px 14px;text-decoration:none;color:var(--ink);box-shadow:var(--shadow);transition:border-color .15s}
-.card:hover{border-color:var(--link)}
-.card .code{font-family:var(--mono);font-size:var(--fs-2xs);color:var(--faint)}
-.card .tt{font-weight:650;font-size:14px;line-height:1.45;word-break:keep-all}
-.card .st{font-size:var(--fs-xs);color:var(--muted);line-height:1.5}
-.card .meta{margin-top:auto;padding-top:8px;display:flex;justify-content:space-between;gap:8px;font-size:var(--fs-2xs);color:var(--faint);font-variant-numeric:tabular-nums}
-.card .bar{height:4px;background:var(--soft);border-radius:99px;overflow:hidden;margin-top:6px}
-.card .bar i{display:block;height:100%;background:var(--link);border-radius:99px}
-.card.done{border-color:color-mix(in srgb,var(--gold) 55%,var(--line))}
-.card .wn{color:var(--bad)}
-/* 첫 화면: 과정 제목 박스 */
-.boxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-@media (max-width:1023px){.boxes{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:560px){.boxes{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}}
-.box{display:flex;flex-direction:column;justify-content:flex-start;gap:12px;min-height:112px;background:var(--panel);border:1px solid var(--line);border-radius:var(--r-md);padding:16px;text-decoration:none;color:var(--ink);box-shadow:var(--shadow);transition:border-color .15s,transform .15s}
-a.box:hover{border-color:var(--link);transform:translateY(-1px)}
-.box .num{align-self:flex-start;font-family:var(--mono);font-size:var(--fs-xs);color:var(--link);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:0 7px}
-.box .tt{font-weight:650;font-size:15px;line-height:1.45;word-break:keep-all}
-.box.off{opacity:.55;box-shadow:none;border-style:dashed}
-.box.off .num{color:var(--faint)}
-.box .keys{display:flex;flex-wrap:wrap;gap:4px;margin-top:-4px}
-.box .keys span{font-size:var(--fs-2xs);color:var(--muted);background:var(--soft);border:1px solid var(--line);border-radius:var(--r-sm);padding:1px 6px;line-height:1.5;white-space:nowrap}
-.box.off .keys span{color:var(--faint)}
-.box .soon{font-size:var(--fs-2xs);color:var(--faint)}
-.crumbs{font-size:var(--fs-xs);margin:0 0 12px}
-.crumbs a{color:var(--link);text-decoration:none}
-@media (max-width:560px){.box{min-height:96px;padding:12px}.box .tt{font-size:14px}}
-.empty{font-size:var(--fs-sm);color:var(--faint);border:1px dashed var(--line-2);border-radius:var(--r-md);padding:12px;text-align:center}
-.foot{font-size:var(--fs-2xs);color:var(--faint);margin-top:24px}
-@media (max-width:560px){.wrap{padding:0 16px 48px}.topbar{margin:0 -16px 18px;padding-left:16px;padding-right:16px}.card{padding:10px}.card .st{display:none}.card .tt{font-size:13px}}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.icon{width:1em;height:1em;flex:none;vertical-align:-.125em;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+:where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{outline:2px solid var(--color-focus);outline-offset:2px}
+
+/* 앱 셸 */
+.app{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh;background:var(--color-background);color:var(--color-text);font-family:var(--font-sans);font-size:var(--fs-base);line-height:var(--lh)}
+.app.is-collapsed{grid-template-columns:64px minmax(0,1fr)}
+.sidebar{position:sticky;top:0;height:100vh;overflow-y:auto;display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-3);background:var(--color-surface);border-right:1px solid var(--color-border)}
+.sidebar a,.sidebar .nav-item{display:flex;align-items:center;gap:var(--space-3);min-height:40px;padding:0 var(--space-3);border-radius:var(--radius-control);color:var(--color-text-muted);text-decoration:none;font-size:var(--fs-opt);transition:background var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
+.sidebar a:hover{background:var(--color-surface-muted);color:var(--color-text)}
+.sidebar a[aria-current="page"],.sidebar a.is-active{background:var(--color-surface-muted);color:var(--color-brand-text);font-weight:600}
+.app.is-collapsed .sidebar .label{display:none}
+.main{min-width:0}
+.topbar{position:sticky;top:0;z-index:10;height:52px;display:flex;align-items:center;gap:var(--space-3);padding:0 var(--space-4);background:color-mix(in srgb,var(--color-surface) 85%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--color-border)}
+.content{max-width:1120px;margin:0 auto;padding:var(--space-5) var(--space-4)}
+
+/* 버튼 */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);height:36px;padding:0 var(--space-4);border:1px solid var(--button-border);border-radius:var(--radius-control);background:var(--button-bg);color:var(--button-text);font:inherit;font-size:var(--fs-btn-pri);font-weight:600;text-decoration:none;cursor:pointer;transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease)}
+.btn:hover{border-color:var(--color-brand)}
+.btn-sm{height:32px;padding:0 var(--space-3);font-size:var(--fs-btn)}
+.btn-lg{height:40px;padding:0 var(--space-5)}
+.btn-primary{background:var(--button-primary-bg);border-color:var(--button-primary-border);color:var(--button-primary-text)}
+.btn-secondary{background:var(--color-surface-muted)}
+.btn-ghost{background:transparent;border-color:transparent;color:var(--color-text-muted)}
+.btn-ghost:hover{background:var(--color-surface-muted);border-color:transparent;color:var(--color-text)}
+.btn-danger{background:transparent;border-color:var(--color-danger);color:var(--color-danger)}
+.btn:disabled,.btn[aria-disabled="true"]{opacity:.5;cursor:not-allowed;pointer-events:none}
+.btn.is-loading{position:relative;color:transparent;pointer-events:none}
+.btn.is-loading::after{content:"";position:absolute;width:14px;height:14px;border:2px solid var(--color-text-muted);border-top-color:transparent;border-radius:50%;animation:qb-spin .8s linear infinite}
+@keyframes qb-spin{to{transform:rotate(360deg)}}
+
+/* 필드 */
+.field{display:flex;flex-direction:column;gap:var(--space-1)}
+.field label,.label-text{font-size:var(--fs-sm);font-weight:600;color:var(--color-text)}
+.field input,.field select,.field textarea{height:40px;padding:0 var(--space-3);border:1px solid var(--color-border-strong);border-radius:var(--radius-control);background:var(--color-field);color:var(--color-text);font:inherit;font-size:var(--fs-opt)}
+.field textarea{height:auto;min-height:96px;padding:var(--space-2) var(--space-3)}
+.field input::placeholder{color:var(--color-text-faint)}
+.field .hint{font-size:var(--fs-xs);color:var(--color-text-muted)}
+.field .error{font-size:var(--fs-xs);color:var(--color-danger)}
+.field.is-invalid input,.field.is-invalid select,.field.is-invalid textarea{border-color:var(--color-danger)}
+
+/* 표 */
+.table{width:100%;border-collapse:collapse;font-size:var(--fs-sm);font-variant-numeric:tabular-nums}
+.table th,.table td{padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--color-border);text-align:left;vertical-align:middle}
+.table th{font-weight:600;color:var(--color-text-muted);background:var(--color-surface-muted)}
+.table .num{text-align:right}
+
+/* 배지 (알약 금지) */
+.badge{display:inline-flex;align-items:center;gap:var(--space-1);padding:1px var(--space-2);border:1px solid var(--color-border-strong);border-radius:var(--radius-sm);background:var(--color-surface-muted);color:var(--color-text-muted);font-size:var(--fs-xs);font-weight:600;line-height:1.5}
+.badge-brand{border-color:var(--color-brand);color:var(--color-brand-text)}
+.badge-danger{border-color:var(--color-danger);color:var(--color-danger)}
+
+/* 콜아웃 */
+.callout{display:flex;gap:var(--space-3);padding:var(--space-3) var(--space-4);border:1px solid var(--color-border);border-left:3px solid var(--color-brand);border-radius:var(--radius-control);background:var(--color-surface);font-size:var(--fs-sm)}
+.callout-warning{border-left-color:var(--color-warning);background:var(--color-highlight)}
+.callout-danger{border-left-color:var(--color-danger)}
+
+/* 단계 레일 */
+.step-rail{display:flex;gap:var(--space-2);margin:0;padding:0;list-style:none;counter-reset:step}
+.step-rail>li{flex:1;display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-control);color:var(--color-text-muted);font-size:var(--fs-sm);counter-increment:step}
+.step-rail>li::before{content:counter(step);display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border:1px solid var(--color-border-strong);border-radius:var(--radius-sm);font-variant-numeric:tabular-nums;font-size:var(--fs-xs)}
+.step-rail>li.is-active{border-color:var(--color-brand);color:var(--color-text);font-weight:600}
+.step-rail>li.is-active::before{background:var(--color-brand);border-color:var(--color-brand);color:var(--color-on-brand)}
+
+/* 대비 비교(전·후) */
+.contrast-pair{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3)}
+.contrast-pair>*{padding:var(--space-4);border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-surface)}
+.contrast-pair>.is-before{border-color:var(--color-danger)}
+.contrast-pair>.is-after{border-color:var(--color-success)}
+
+/* 대체 텍스트 표 (모바일 세로 쌓임) */
+.alt-table{width:100%;border-collapse:collapse;font-size:var(--fs-sm)}
+.alt-table th,.alt-table td{padding:var(--space-2) var(--space-3);border-bottom:1px solid var(--color-border);text-align:left}
+
+/* 탭 */
+.tabs{display:flex;gap:var(--space-1);border-bottom:1px solid var(--color-border)}
+.tabs [role="tab"]{display:inline-flex;align-items:center;gap:var(--space-2);min-height:40px;padding:0 var(--space-4);border:0;border-bottom:2px solid transparent;background:none;color:var(--color-text-muted);font:inherit;font-size:var(--fs-opt);cursor:pointer}
+.tabs [role="tab"]:hover{color:var(--color-text)}
+.tabs [role="tab"][aria-selected="true"]{color:var(--color-brand-text);border-bottom-color:var(--color-brand);font-weight:600}
+.tabs [role="tab"][aria-disabled="true"],.tabs [role="tab"]:disabled{color:var(--color-text-faint);cursor:not-allowed}
+.tabs [aria-disabled="true"]::after{content:"준비 중";font-size:var(--fs-2xs);padding:0 var(--space-1);border:1px solid var(--color-border);border-radius:var(--radius-sm)}
+
+/* 카드 */
+.card{padding:var(--space-4);border:1px solid var(--color-border);border-radius:var(--radius-card);background:var(--color-surface)}
+.card-link{display:block;color:inherit;text-decoration:none;transition:border-color var(--dur-fast) var(--ease)}
+.card-link:hover{border-color:var(--color-brand)}
+
+/* 키보드 키 */
+.kbd{display:inline-block;min-width:22px;padding:0 var(--space-1);border:1px solid var(--color-border-strong);border-bottom-width:2px;border-radius:var(--radius-sm);background:var(--color-surface-muted);color:var(--color-text);font-family:var(--font-sans);font-size:var(--fs-xs);text-align:center}
+
+/* 히트맵 (브랜드 4단계) */
+.heatmap{display:grid;gap:3px}
+.heatmap .cell{aspect-ratio:1;min-width:14px;border-radius:2px;background:var(--color-surface-muted)}
+.heatmap .cell[data-l="1"]{background:color-mix(in srgb,var(--color-brand) 25%,var(--color-surface))}
+.heatmap .cell[data-l="2"]{background:color-mix(in srgb,var(--color-brand) 50%,var(--color-surface))}
+.heatmap .cell[data-l="3"]{background:color-mix(in srgb,var(--color-brand) 75%,var(--color-surface))}
+.heatmap .cell[data-l="4"]{background:var(--color-brand)}
+
+@media (max-width:760px){
+  .app,.app.is-collapsed{grid-template-columns:minmax(0,1fr)}
+  .sidebar{position:fixed;inset:0 auto 0 0;width:260px;z-index:20;transform:translateX(-100%);transition:transform var(--dur) var(--ease)}
+  .app.is-nav-open .sidebar{transform:none}
+  .btn,.btn-sm,.btn-lg{min-height:40px}
+  .step-rail{flex-direction:column}
+  .contrast-pair{grid-template-columns:1fr}
+  .alt-table thead{display:none}
+  .alt-table tr{display:block;border-bottom:1px solid var(--color-border);padding:var(--space-2) 0}
+  .alt-table td{display:block;border:0;padding:var(--space-1) var(--space-3)}
+  .alt-table td[data-label]::before{content:attr(data-label) " ";font-weight:600;color:var(--color-text-muted)}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+html{scroll-padding-top:76px}
+:root{
+  --fs-base:14px;
+  --lp-a:var(--color-surface);--lp-b:var(--color-background);--lp-card:var(--color-surface);
+  --lp-pad:clamp(72px,9vw,120px);
+  --lp-hero:color-mix(in srgb,var(--color-brand) 6%,var(--color-surface));
+  --lp-glow:color-mix(in srgb,var(--color-brand) 12%,transparent);
+  --lp-shadow:0 12px 32px rgb(16 24 40 / .10);
+  --lp-shadow-sm:0 4px 14px rgb(16 24 40 / .06);
+  --band-bg:var(--teal-700);--band-text:var(--white);--band-sub:color-mix(in srgb,var(--white) 82%,transparent);
+  --band-btn-bg:var(--white);--band-btn-text:var(--teal-700);
+  --ft-bg:var(--color-text);--ft-text:color-mix(in srgb,var(--color-surface) 90%,transparent);--ft-muted:color-mix(in srgb,var(--color-surface) 66%,transparent);--ft-line:color-mix(in srgb,var(--color-surface) 18%,transparent);--ft-brand:var(--teal-400);
+}
+:root[data-theme="dark"]{
+  --lp-a:var(--color-background);--lp-b:var(--color-surface);--lp-card:var(--color-surface-muted);
+  --lp-hero:color-mix(in srgb,var(--color-brand) 7%,var(--color-background));
+  --lp-glow:color-mix(in srgb,var(--color-brand) 14%,transparent);--lp-shadow:none;--lp-shadow-sm:none;
+  --band-bg:var(--teal-900);--band-text:var(--color-text);--band-sub:var(--color-text-muted);
+  --band-btn-bg:var(--teal-400);--band-btn-text:var(--navy-900);
+  --ft-bg:var(--navy-950);--ft-text:var(--color-text);--ft-muted:var(--color-text-muted);--ft-line:var(--color-border);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --lp-a:var(--color-background);--lp-b:var(--color-surface);--lp-card:var(--color-surface-muted);
+  --lp-hero:color-mix(in srgb,var(--color-brand) 7%,var(--color-background));
+  --lp-glow:color-mix(in srgb,var(--color-brand) 14%,transparent);--lp-shadow:none;--lp-shadow-sm:none;
+  --band-bg:var(--teal-900);--band-text:var(--color-text);--band-sub:var(--color-text-muted);
+  --band-btn-bg:var(--teal-400);--band-btn-text:var(--navy-900);
+  --ft-bg:var(--navy-950);--ft-text:var(--color-text);--ft-muted:var(--color-text-muted);--ft-line:var(--color-border);
+}}
+body{margin:0;word-break:keep-all;overflow-wrap:anywhere;background:var(--lp-a);color:var(--color-text);font-family:var(--font-sans);font-size:var(--fs-base);line-height:1.6;-webkit-text-size-adjust:100%;overflow-x:hidden}
+a{color:var(--color-brand-text)}
+h1,h2,h3,p,ul,ol,dl,dd,figure{margin:0}
+.wrap{max-width:1200px;margin:0 auto;padding-inline:clamp(20px,5vw,64px)}
+.skip{position:absolute;left:12px;top:-60px;z-index:50;padding:8px 12px;background:var(--color-surface);border:1px solid var(--color-border-strong);border-radius:var(--radius-control)}
+.skip:focus{top:8px}
+.soon-tag{border-style:dashed}
+.tag-sample{font-weight:500}
+.btn{transition:background 150ms var(--ease),border-color 150ms var(--ease),transform 150ms var(--ease),box-shadow 150ms var(--ease)}
+.btn-xl{height:44px;padding:0 var(--space-5);font-size:15px;border-radius:var(--radius-control)}
+.btn-primary:hover{border-color:var(--color-brand)}
+
+/* 상단 바 */
+.topbar{height:64px;padding:0;background:color-mix(in srgb,var(--color-surface) 82%,transparent);-webkit-backdrop-filter:blur(12px) saturate(1.4);backdrop-filter:blur(12px) saturate(1.4)}
+.topbar .wrap{display:flex;align-items:center;gap:var(--space-4);width:100%}
+.brand{display:inline-flex;align-items:center;gap:var(--space-2);font-weight:700;font-size:15px;color:var(--color-heading);text-decoration:none;white-space:nowrap}
+.brand .logo{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:var(--radius-control);background:var(--color-brand);color:var(--color-on-brand);font-size:16px}
+.topnav{display:flex;gap:2px;margin-left:var(--space-5)}
+.topnav a{display:inline-flex;align-items:center;min-height:40px;padding:0 var(--space-3);border-radius:var(--radius-control);color:var(--color-text-muted);text-decoration:none;font-size:14px;transition:background 150ms,color 150ms}
+.topnav a:hover{background:var(--color-surface-muted);color:var(--color-text)}
+.topact{display:flex;align-items:center;gap:var(--space-2);margin-left:auto}
+.topact .btn{height:40px}
+.iconbtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border:1px solid transparent;border-radius:var(--radius-control);background:none;color:var(--color-text-muted);font-size:18px;cursor:pointer;transition:background 150ms,color 150ms}
+.iconbtn:hover{background:var(--color-surface-muted);color:var(--color-text)}
+
+/* 섹션 공통 */
+.sec{padding:var(--lp-pad) 0;background:var(--lp-a)}
+.sec.alt{background:var(--lp-b)}
+.sec-h{text-align:center;max-width:720px;margin:0 auto clamp(40px,5vw,64px)}
+h2{font-size:clamp(22px,2.6vw,30px);line-height:1.3;font-weight:700;letter-spacing:-.01em;color:var(--color-heading)}
+.sec-lead{margin-top:var(--space-3);font-size:15px;color:var(--color-text-muted)}
+h3{font-size:18px;line-height:1.4;font-weight:700;color:var(--color-heading)}
+
+/* 히어로 */
+.hero{position:relative;padding:clamp(32px,4vw,56px) 0 clamp(40px,5vw,64px);background:radial-gradient(60% 70% at 78% 40%,var(--lp-glow),transparent 70%),var(--lp-hero);border-bottom:1px solid var(--color-border);overflow:hidden}
+.hero-wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:clamp(32px,5vw,56px);align-items:center}
+.hero-copy{display:flex;flex-direction:column;align-items:flex-start}
+.kicker{display:inline-flex;align-items:center;gap:var(--space-2);font-size:14px;font-weight:600;color:var(--color-brand-text)}
+.kicker .icon{font-size:16px}
+h1{margin-top:var(--space-3);font-size:clamp(28px,3.4vw,40px);line-height:1.2;font-weight:800;letter-spacing:-.025em;color:var(--color-heading);max-width:18ch}
+h1 em{font-style:normal;color:var(--color-brand-text)}
+.lead{margin-top:var(--space-4);font-size:17px;line-height:1.55;color:var(--color-text);max-width:34ch}
+.subline{margin-top:var(--space-3);color:var(--color-text-muted);max-width:46ch}
+.subline .badge{margin:0 2px;vertical-align:1px}
+.cta-row{display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-3);margin-top:var(--space-5)}
+.checks{display:flex;flex-wrap:wrap;gap:var(--space-2) var(--space-5);margin:var(--space-5) 0 0;padding:0;list-style:none}
+.checks li{display:inline-flex;align-items:center;gap:var(--space-2);font-size:14px;font-weight:600;color:var(--color-text)}
+.checks .icon{flex:none;width:18px;height:18px;padding:3px;box-sizing:border-box;border-radius:50%;background:color-mix(in srgb,var(--color-brand) 16%,transparent);color:var(--color-brand-text);stroke-width:3}
+
+/* 카드 스택 */
+.stk{--cw:260px;--ch:272px;--fx:84px;--stk-shadow:var(--lp-shadow);min-width:0}
+.stk-stage{position:relative;height:400px;overflow:hidden}
+.stk-fan{position:absolute;inset:0;z-index:1;pointer-events:none;animation:stk-float 6s ease-in-out infinite}
+@keyframes stk-float{0%,100%{transform:translateY(-4px)}50%{transform:translateY(4px)}}
+.stk-card{position:absolute;left:50%;top:50%;width:var(--cw);height:var(--ch);margin:calc(var(--ch) / -2) 0 0 calc(var(--cw) / -2);padding:var(--space-3);display:flex;flex-direction:column;gap:var(--space-2);overflow:hidden;pointer-events:auto;background:var(--color-surface);border:1px solid var(--color-border-strong);border-radius:var(--radius-lg);box-shadow:var(--stk-shadow);transition:transform 600ms var(--ease),opacity 600ms var(--ease)}
+:root[data-theme="dark"] .stk-card{background:var(--color-surface-muted)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .stk-card{background:var(--color-surface-muted)}}
+.stk-card[data-slot="0"]{transform:translate(var(--fx),-9%) rotate(7deg);z-index:3}
+.stk-card[data-slot="1"]{transform:rotate(1deg);z-index:2}
+.stk-card[data-slot="2"]{transform:translate(calc(var(--fx) * -1),9%) rotate(-8deg);z-index:1}
+.stk-card.is-swap{opacity:0;transition:transform 600ms var(--ease),opacity 0s}
+.stk-card .tbar{flex:none;height:4px;margin:0;visibility:hidden}
+.stk.is-time .stk-card[data-slot="0"] .tbar{visibility:visible}
+.sc-lab{display:flex;justify-content:space-between;gap:var(--space-2);flex:none;font-size:var(--fs-2xs);font-weight:600;color:var(--color-text-muted);font-variant-numeric:tabular-nums}
+.sc-q{flex:none;font-size:13px;font-weight:600;line-height:1.4;color:var(--color-heading);display:-webkit-box;-webkit-line-clamp:3;line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+code{font-family:var(--font-mono);font-size:.92em;padding:0 3px;background:var(--color-surface-muted);border-radius:var(--radius-sm)}
+.sc-opts{display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none}
+.sc-opt{display:flex;align-items:center;gap:var(--space-2);width:100%;min-height:32px;padding:2px var(--space-2);border:1px solid var(--color-border-strong);border-radius:var(--radius-control);background:var(--color-field);color:var(--color-text);font:inherit;font-size:12px;text-align:left;cursor:pointer;transition:border-color 150ms}
+.sc-opt:hover:not(:disabled){border-color:var(--color-brand)}
+.sc-opt:disabled{cursor:default;color:var(--color-text)}
+.opt-n{display:inline-flex;align-items:center;justify-content:center;flex:none;width:18px;height:18px;border:1px solid var(--color-border-strong);border-radius:var(--radius-sm);font-size:var(--fs-2xs);font-variant-numeric:tabular-nums;color:var(--color-text-muted)}
+.opt-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.opt-m{display:none;flex:none}
+.sc-opt.is-right{border-color:var(--color-success);border-width:2px}
+.sc-opt.is-right .opt-m{display:inline-flex;color:var(--color-success)}
+.sc-opt.is-wrong{border-color:var(--color-danger);border-width:2px}
+.sc-opt.is-wrong .opt-m{display:inline-flex;color:var(--color-danger)}
+.sc-src{margin-top:auto;flex:none;font-size:11px;color:var(--color-text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stk-dock{display:flex;flex-direction:column;align-items:center;gap:var(--space-3);margin-top:var(--space-3)}
+.stk-ctl{display:flex;align-items:center;justify-content:center;gap:var(--space-4)}
+.stk-ctl .iconbtn{border-color:var(--color-border-strong);background:var(--color-surface)}
+.stk-ctl .iconbtn:disabled{opacity:.4;cursor:default}
+.stk-ctl .flip .icon{transform:scaleX(-1)}
+.dots{display:flex;align-items:center;gap:6px}
+.dot{display:block;width:6px;height:6px;border-radius:3px;background:var(--color-border-strong);transition:width var(--dur) var(--ease),background var(--dur) var(--ease)}
+.dot.is-on{width:18px;background:var(--color-brand)}
+.stk-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:var(--space-3)}
+.seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--color-border-strong);border-radius:var(--radius-control);background:var(--color-surface-muted)}
+.seg [role="tab"]{min-height:40px;padding:0 var(--space-4);border:1px solid transparent;border-radius:var(--radius-sm);background:none;color:var(--color-text-muted);font:inherit;font-size:var(--fs-sm);cursor:pointer}
+.seg [role="tab"][aria-selected="true"]{background:var(--color-surface);color:var(--color-text);font-weight:600;border-color:var(--color-border-strong)}
+.voice-st{font-size:var(--fs-xs);color:var(--color-text-muted)}
+.stk-fb{margin-top:var(--space-2);min-height:24px;text-align:center;font-size:var(--fs-sm);font-weight:600}
+.stk-fb.ok{color:var(--color-success)}
+.stk-fb.no{color:var(--color-danger)}
+.stk-fb .icon{margin-right:4px}
+.stk-hint{max-width:560px;margin:var(--space-2) auto 0;padding:var(--space-2) var(--space-3);border-left:3px solid var(--color-brand);background:var(--color-surface);border-radius:0 var(--radius-control) var(--radius-control) 0;text-align:left;font-size:var(--fs-sm);color:var(--color-text-muted)}
+.stk-hint code{font-size:.92em}
+.tbar{height:6px;border-radius:3px;background:var(--color-surface-muted);overflow:hidden}
+.tbar i{display:block;height:100%;width:100%;background:var(--timer-hi)}
+.tbar i.mid{background:var(--timer-mid)}
+.tbar i.lo{background:var(--timer-lo)}
+.stk-res{max-width:520px;margin:var(--space-4) auto 0}
+.stk-res .table{margin-top:var(--space-3)}
+.stk-res-act{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-3);margin-top:var(--space-4)}
+.stk-res-t{font-weight:600;color:var(--color-heading)}
+.stk .badge{background:var(--color-surface)}
+@media (min-width:1024px){.hero-wrap{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+@media (min-width:1024px) and (max-width:1279px){.stk{--cw:236px;--fx:68px}}
+@media (max-width:1023px){.stk{--cw:248px;--fx:84px}.stk-stage{height:360px}.hero-copy{align-items:center;text-align:center}.cta-row,.checks{justify-content:center}h1{max-width:20ch}}
+@media (max-width:560px){.stk{--cw:176px;--ch:288px;--fx:58px}.stk-stage{height:340px}.sc-opt{min-height:36px}}
+@media (prefers-reduced-motion:reduce){.stk-fan{animation:none}.stk-card,.stk-card.is-swap,.dot{transition:none}}
+
+/* 수치 띠 */
+.stats{background:var(--color-surface);border-bottom:1px solid var(--color-border)}
+.stats ul{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:0;padding:0;list-style:none}
+.stats li{padding:clamp(24px,3vw,36px) var(--space-4);text-align:center;border-left:1px solid var(--color-border)}
+.stats li:first-child{border-left:0}
+.stats b{display:block;font-size:clamp(26px,2.6vw,32px);line-height:1.15;font-weight:800;letter-spacing:-.02em;color:var(--color-heading);font-variant-numeric:tabular-nums}
+.stats b small{font-size:.5em;font-weight:700;margin-left:2px;color:var(--color-text-muted)}
+.stats span{display:block;margin-top:var(--space-1);font-size:13px;color:var(--color-text-muted)}
+.stats .sub{margin-top:2px;font-size:12px;color:var(--color-text-faint)}
+@media (max-width:760px){.stats ul{grid-template-columns:repeat(2,minmax(0,1fr))}.stats li:nth-child(3){border-left:0}.stats li:nth-child(n+3){border-top:1px solid var(--color-border)}}
+
+/* 기능 행 */
+.frow{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--space-6);align-items:center}
+.frow+.frow{margin-top:clamp(56px,7vw,96px)}
+.frow-t{display:flex;flex-direction:column;align-items:flex-start;gap:var(--space-3);max-width:480px}
+.fico{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:var(--radius-lg);background:color-mix(in srgb,var(--color-brand) 12%,transparent);color:var(--color-brand-text);font-size:22px}
+.frow h3{font-size:20px;display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2)}
+.frow-t>p{font-size:15px;color:var(--color-text-muted)}
+.fcheck{margin:var(--space-1) 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:var(--space-2)}
+.fcheck li{display:flex;align-items:flex-start;gap:var(--space-2);font-size:14px;color:var(--color-text)}
+.fcheck .icon{flex:none;margin-top:3px;width:16px;height:16px;color:var(--color-brand-text);stroke-width:3}
+@media (min-width:1024px){
+  .frow{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:clamp(48px,6vw,96px)}
+  .frow.rev{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)}
+  .frow.rev .win{order:2}
+}
+@media (max-width:1023px){.frow-t{max-width:none}.frow .win{order:2}}
+
+/* 목업 창 */
+.win{min-width:0;border:1px solid var(--color-border-strong);border-radius:var(--radius-lg);background:var(--color-surface);box-shadow:var(--lp-shadow);overflow:hidden}
+:root[data-theme="dark"] .win{background:var(--color-surface-raised)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .win{background:var(--color-surface-raised)}}
+.win-bar{display:flex;align-items:center;gap:6px;padding:0 var(--space-3);height:40px;border-bottom:1px solid var(--color-border);background:var(--color-surface-muted)}
+.win-bar i{width:10px;height:10px;border-radius:50%;background:var(--color-border-strong)}
+.win-t{margin-left:var(--space-2);font-size:12px;font-weight:600;color:var(--color-text-muted);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.win-bar .badge{font-size:11px;padding:0 6px;background:var(--color-surface)}
+.win-body{padding:clamp(16px,2.4vw,24px);display:flex;flex-direction:column;gap:var(--space-3);min-height:296px;justify-content:center}
+.m-top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);font-size:12px;font-weight:600;color:var(--color-text-muted);font-variant-numeric:tabular-nums}
+.m-prog{flex:1;height:6px;border-radius:3px;background:var(--color-surface-muted);overflow:hidden}
+.m-prog i{display:block;height:100%;border-radius:3px;background:var(--color-brand)}
+.m-q{font-size:15px;font-weight:600;line-height:1.5;color:var(--color-heading)}
+.m-opts{display:flex;flex-direction:column;gap:6px;margin:0;padding:0;list-style:none}
+.m-opt{display:flex;align-items:center;gap:var(--space-3);min-height:40px;padding:6px var(--space-3);border:1px solid var(--color-border-strong);border-radius:var(--radius-control);background:var(--color-field);font-size:13.5px;color:var(--color-text)}
+.m-opt .n{display:inline-flex;align-items:center;justify-content:center;flex:none;width:22px;height:22px;border:1px solid var(--color-border-strong);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--color-text-muted)}
+.m-opt .t{flex:1;min-width:0}
+.m-opt.ok{border:2px solid var(--color-success);background:color-mix(in srgb,var(--color-success) 8%,var(--color-field))}
+.m-opt.ok .n{border-color:var(--color-success);background:var(--color-success);color:var(--color-surface)}
+.m-opt.ok .icon{color:var(--color-success);flex:none;stroke-width:3}
+.m-opt.sel{border:2px solid var(--color-brand);background:color-mix(in srgb,var(--color-brand) 10%,var(--color-field))}
+.m-opt.sel .n{border-color:var(--color-brand);background:var(--color-brand);color:var(--color-on-brand)}
+.m-hint{display:flex;gap:var(--space-2);padding:var(--space-3);border-radius:var(--radius-control);border-left:3px solid var(--color-brand);background:color-mix(in srgb,var(--color-brand) 8%,var(--color-surface));font-size:12.5px;line-height:1.5;color:var(--color-text-muted)}
+.m-hint b{color:var(--color-brand-text)}
+.m-hint span{display:-webkit-box;-webkit-line-clamp:3;line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.m-list{display:flex;flex-direction:column;gap:var(--space-2);margin:0;padding:0;list-style:none}
+.m-wrow{display:flex;align-items:center;gap:var(--space-3);padding:var(--space-3);border:1px solid var(--color-border);border-radius:var(--radius-control);background:var(--color-field)}
+.m-wrow .wi{flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:color-mix(in srgb,var(--color-danger) 12%,transparent);color:var(--color-danger);font-size:14px}
+.m-wrow .wt{flex:1;min-width:0;display:flex;flex-direction:column}
+.m-wrow .wq{font-size:13px;font-weight:600;color:var(--color-heading);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.m-wrow .wb{font-size:12px;color:var(--color-text-muted)}
+.m-foot{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);margin-top:var(--space-1)}
+.m-foot .badge{font-size:12px}
+.m-btn{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 var(--space-4);border-radius:var(--radius-control);background:var(--button-primary-bg);border:1px solid var(--button-primary-border);color:var(--button-primary-text);font-size:13px;font-weight:600}
+.m-hud{display:flex;align-items:center;gap:var(--space-2);flex-wrap:wrap;font-size:12px;font-weight:600;font-variant-numeric:tabular-nums}
+.m-hud .pill{display:inline-flex;align-items:center;gap:4px;padding:2px var(--space-2);border:1px solid var(--color-border-strong);border-radius:var(--radius-sm);color:var(--color-text-muted)}
+.m-hud .pill.hot{border-color:var(--combo);color:var(--combo);background:color-mix(in srgb,var(--combo) 12%,transparent)}
+.m-hud .pts{margin-left:auto;font-size:16px;color:var(--color-heading)}
+.m-timer{display:flex;align-items:center;gap:var(--space-3)}
+.m-timer .tbar{flex:1;height:8px}
+.m-timer b{font-size:15px;color:var(--color-heading);font-variant-numeric:tabular-nums}
+.m-chips{display:flex;gap:6px;flex-wrap:wrap}
+.m-chip{display:inline-flex;align-items:center;justify-content:center;min-width:52px;height:32px;padding:0 var(--space-3);border:1px solid var(--color-border-strong);border-radius:999px;font-size:13px;font-weight:600;color:var(--color-text-muted);background:var(--color-field)}
+.m-chip.on{border-color:var(--color-brand);background:color-mix(in srgb,var(--color-brand) 12%,var(--color-field));color:var(--color-brand-text)}
+.m-lab{font-size:12px;color:var(--color-text-muted)}
+.m-mic{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);padding:var(--space-2) 0}
+.m-micbtn{position:relative;display:inline-flex;align-items:center;justify-content:center;width:56px;height:56px;border-radius:50%;background:var(--color-brand);color:var(--color-on-brand);font-size:24px}
+.m-micbtn::before,.m-micbtn::after{content:"";position:absolute;inset:-8px;border-radius:50%;border:2px solid color-mix(in srgb,var(--color-brand) 45%,transparent)}
+.m-micbtn::after{inset:-18px;border-color:color-mix(in srgb,var(--color-brand) 22%,transparent)}
+.m-live{padding:var(--space-2) var(--space-3);border-radius:999px;background:var(--color-surface-muted);font-size:13px;color:var(--color-text);margin-top:var(--space-3)}
+.m-live b{color:var(--color-brand-text)}
+
+/* 작동 방식 */
+.steps{display:grid;grid-template-columns:minmax(0,1fr);gap:0;margin:0;padding:0;list-style:none;counter-reset:s}
+.step{position:relative;display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:var(--space-4);padding-bottom:var(--space-5)}
+.step:last-child{padding-bottom:0}
+.step::before{content:"";position:absolute;left:19px;top:40px;bottom:0;width:2px;background:var(--color-border-strong)}
+.step:last-child::before{display:none}
+.step.done::before{background:var(--color-brand)}
+.sn{position:relative;z-index:1;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;border:2px solid var(--color-border-strong);background:var(--color-surface);font-size:15px;font-weight:700;color:var(--color-text-muted);font-variant-numeric:tabular-nums;transition:background 300ms,border-color 300ms,color 300ms}
+.step.done .sn{border-color:var(--color-brand);color:var(--color-brand-text)}
+.step.active .sn{border-color:var(--color-brand);background:var(--color-brand);color:var(--color-on-brand);box-shadow:0 0 0 5px color-mix(in srgb,var(--color-brand) 18%,transparent)}
+.sb{min-width:0;padding-top:var(--space-1)}
+.sb h3{font-size:16px;display:flex;align-items:center;flex-wrap:wrap;gap:var(--space-2)}
+.sb .badge{font-size:11px}
+.sb .dec{color:var(--color-brand-text);border-color:var(--color-brand)}
+.sd{margin-top:var(--space-2);font-size:13px;line-height:1.55;color:var(--color-text-muted)}
+.sd b{display:block;font-size:11.5px;font-weight:700;color:var(--color-text-faint);letter-spacing:.02em}
+.sd+.sd{margin-top:var(--space-2)}
+.how-note{display:flex;gap:var(--space-3);align-items:flex-start;max-width:760px;margin:clamp(32px,4vw,56px) auto 0;padding:var(--space-4) var(--space-5);border:1px solid var(--color-border);border-left:3px solid var(--color-brand);border-radius:var(--radius-lg);background:var(--lp-card);font-size:14px;color:var(--color-text)}
+.how-note .icon{flex:none;margin-top:3px;font-size:18px;color:var(--color-brand-text)}
+@media (min-width:1024px){
+  .steps{grid-template-columns:repeat(7,minmax(0,1fr));column-gap:var(--space-3)}
+  .step{display:block;text-align:center;padding:0}
+  .step::before{left:calc(50% + 28px);right:calc(-50% + 28px - var(--space-3));top:19px;bottom:auto;width:auto;height:2px}
+  .sn{margin:0 auto}
+  .sb{padding-top:var(--space-4)}
+  .sb h3{justify-content:center;font-size:15px}
+  .sd{text-align:center;padding:0 var(--space-1)}
+}
+
+/* 과정 카드 */
+.subj{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-2);margin:0 0 var(--space-6);padding:0;list-style:none}
+.subj li{display:inline-flex;align-items:center;gap:var(--space-2);min-height:40px;padding:0 var(--space-4);border:1px solid var(--color-border-strong);border-radius:999px;background:var(--lp-card);font-size:14px;font-weight:600;color:var(--color-text-muted)}
+.subj li .icon{font-size:16px}
+.subj li.on{border-color:var(--color-brand);background:color-mix(in srgb,var(--color-brand) 12%,var(--color-surface));color:var(--color-brand-text)}
+.subj li.soonli{border-style:dashed;font-weight:500}
+.subj li small{font-size:11px;font-weight:600;color:var(--color-text-faint)}
+.cgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-4);margin:0;padding:0;list-style:none}
+.cc{position:relative;display:flex;flex-direction:column;gap:var(--space-3);height:100%;box-sizing:border-box;padding:var(--space-5);padding-top:calc(var(--space-5) + 4px);border:1px solid var(--color-border);border-radius:var(--radius-lg);background:var(--lp-card);color:inherit;text-decoration:none;overflow:hidden;transition:transform 150ms var(--ease),border-color 150ms var(--ease),box-shadow 150ms var(--ease)}
+.cc::before{content:"";position:absolute;left:0;right:0;top:0;height:4px;background:var(--c,var(--subject-it))}
+.cc:hover{transform:translateY(-2px);border-color:var(--color-brand);box-shadow:var(--lp-shadow-sm)}
+.cc-h{display:flex;align-items:center;justify-content:space-between}
+.cc-n{display:inline-flex;align-items:center;justify-content:center;min-width:34px;height:26px;padding:0 var(--space-2);border-radius:var(--radius-sm);background:var(--color-surface-muted);font-size:13px;font-weight:700;color:var(--color-text);font-variant-numeric:tabular-nums}
+.cc-i{display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:var(--radius-control);background:color-mix(in srgb,var(--c,var(--subject-it)) 14%,transparent);color:var(--c,var(--subject-it));font-size:18px}
+.cc h3{font-size:16px;min-height:2.8em}
+.cc-all-li{grid-column:span 2}
+.cc-all{justify-content:center;align-items:flex-start;border-style:dashed;background:color-mix(in srgb,var(--color-brand) 6%,var(--lp-card))}
+.cc-all::before{display:none}
+.cc-all h3{min-height:0;color:var(--color-brand-text)}
+.cc-all p{font-size:13px;color:var(--color-text-muted)}
+.cc-all .go{display:inline-flex;align-items:center;gap:var(--space-2);font-weight:600;color:var(--color-brand-text)}
+.cc-m{display:flex;gap:var(--space-5);margin:auto 0 0;padding-top:var(--space-3);border-top:1px solid var(--color-border)}
+.cc-m div{display:flex;flex-direction:column}
+.cc-m dt{font-size:12px;color:var(--color-text-muted)}
+.cc-m dd{font-size:16px;font-weight:700;color:var(--color-heading);font-variant-numeric:tabular-nums}
+@media (max-width:1023px){.cgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.cgrid{grid-template-columns:minmax(0,1fr)}.cc-all-li{grid-column:auto}.cc h3{min-height:0}}
+
+/* 비교표 */
+.tbl-wrap{overflow-x:auto;border:1px solid var(--color-border);border-radius:var(--radius-lg);background:var(--lp-card);box-shadow:var(--lp-shadow-sm)}
+.alt-table{min-width:960px;width:100%;border-collapse:separate;border-spacing:0}
+.alt-table th,.alt-table td{padding:var(--space-4);border-bottom:1px solid var(--color-border);text-align:left;vertical-align:top;font-size:13px}
+.alt-table thead th{background:var(--color-surface-muted);color:var(--color-text);font-weight:700;vertical-align:bottom;font-size:13px}
+.alt-table tbody th{position:sticky;left:0;z-index:1;width:150px;background:var(--lp-card);font-weight:600;color:var(--color-heading)}
+.alt-table thead th:first-child{position:sticky;left:0;z-index:2}
+.alt-table tbody tr:last-child th,.alt-table tbody tr:last-child td{border-bottom:0}
+.alt-table td{color:var(--color-text-muted)}
+.alt-table th.ours,.alt-table td.ours{background:color-mix(in srgb,var(--color-brand) 8%,var(--lp-card));border-left:2px solid var(--color-brand);border-right:2px solid var(--color-brand)}
+.alt-table thead th.ours{background:color-mix(in srgb,var(--color-brand) 14%,var(--lp-card));border-top:2px solid var(--color-brand)}
+.alt-table tbody tr:last-child td.ours{border-bottom:2px solid var(--color-brand)}
+.alt-table td.ours{color:var(--color-text)}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px var(--space-3);border-radius:999px;background:var(--color-brand);color:var(--color-on-brand);font-size:12px;font-weight:700}
+.sym{display:inline-block;min-width:1.2em;font-weight:700;margin-right:4px;color:var(--color-text)}
+.sym-o{color:var(--color-success)}
+.sym-x{color:var(--color-danger)}
+.sym-t{color:var(--color-warning)}
+.alt-table .sub{display:block;margin-top:4px}
+.alt-table .proof{font-size:12px}
+.proofs{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--space-3);margin-top:var(--space-5)}
+.src-note{margin:var(--space-3) auto 0;font-size:12px;color:var(--color-text-muted);max-width:70ch;text-align:center}
+.notfit{display:flex;gap:var(--space-4);max-width:880px;margin:var(--space-6) auto 0;padding:var(--space-4) var(--space-5);border:1px solid var(--color-border);border-left:3px solid var(--color-warning);border-radius:var(--radius-lg);background:var(--lp-card)}
+.notfit>.icon{flex:none;margin-top:2px;font-size:18px;color:var(--color-warning)}
+.notfit h3{font-size:15px}
+.notfit ul{margin:var(--space-2) 0 0;padding:0;list-style:none}
+.notfit li{position:relative;padding:3px 0 3px var(--space-4);font-size:13.5px;color:var(--color-text-muted)}
+.notfit li::before{content:"";position:absolute;left:2px;top:.9em;width:5px;height:5px;border-radius:50%;background:var(--color-text-faint)}
+@media (max-width:760px){
+  .alt-table{min-width:0}
+  .tbl-wrap{overflow:visible;border:0;background:none;box-shadow:none}
+  .alt-table,.alt-table tbody,.alt-table tr,.alt-table td,.alt-table th{display:block}
+  .alt-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .alt-table tbody tr{display:flex;flex-direction:column;margin-bottom:var(--space-4);border:1px solid var(--color-border);border-radius:var(--radius-lg);background:var(--lp-card);overflow:hidden}
+  .alt-table tbody th{position:static;width:auto;background:var(--color-surface-muted);border-bottom:1px solid var(--color-border)}
+  .alt-table td{border-bottom:1px solid var(--color-border)}
+  .alt-table td:last-child{border-bottom:0}
+  .alt-table td::before{content:attr(data-label);display:block;margin-bottom:2px;font-size:12px;font-weight:700;color:var(--color-text-faint)}
+  .alt-table td.ours{order:-1;border:0;border-bottom:1px solid var(--color-border);border-left:3px solid var(--color-brand)}
+  .alt-table td.ours::before{color:var(--color-brand-text)}
+  .alt-table tbody tr:last-child td.ours{border-bottom:1px solid var(--color-border)}
+  .alt-table tbody tr:last-child td:last-child{border-bottom:0}
+  .alt-table tbody th{order:-2}
+  .notfit{padding:var(--space-4)}
+}
+
+/* 계산기 */
+.calc{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);max-width:960px;margin:0 auto;border:1px solid var(--color-border);border-radius:var(--radius-lg);background:var(--lp-card);box-shadow:var(--lp-shadow-sm);overflow:hidden}
+.calc-in{padding:var(--space-6);display:flex;flex-direction:column;gap:var(--space-4)}
+.calc-in form{display:flex;flex-direction:column;gap:var(--space-4)}
+.calc .field input{width:100%;font-variant-numeric:tabular-nums}
+.calc .unit{font-weight:400;color:var(--color-text-muted)}
+.calc-out{padding:var(--space-6);background:color-mix(in srgb,var(--color-brand) 6%,var(--color-surface-muted));border-left:1px solid var(--color-border);display:flex;flex-direction:column;justify-content:center;gap:var(--space-4)}
+.rs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space-3)}
+.rs-c{padding:var(--space-4);border:1px solid var(--color-border-strong);border-radius:var(--radius-control);background:var(--color-surface)}
+.rs-c.best{border:2px solid var(--color-brand)}
+.rs-c h4{margin:0;font-size:12.5px;font-weight:600;color:var(--color-text-muted)}
+.rs-c strong{display:block;margin-top:var(--space-1);font-size:24px;line-height:1.2;font-weight:800;color:var(--color-heading);font-variant-numeric:tabular-nums}
+.rs-c.best strong{color:var(--color-brand-text)}
+.rs-c dl{margin:var(--space-3) 0 0;font-size:12.5px;color:var(--color-text-muted)}
+.rs-c dl div{display:flex;justify-content:space-between;gap:var(--space-2);padding:2px 0}
+.rs-c dd{font-variant-numeric:tabular-nums;color:var(--color-text)}
+.rs-diff{font-size:14px;color:var(--color-text)}
+.rs-diff b{color:var(--color-brand-text);font-variant-numeric:tabular-nums}
+.calc-empty{padding:var(--space-5);border:1px dashed var(--color-border-strong);border-radius:var(--radius-control);color:var(--color-text-muted);font-size:13.5px;text-align:center;background:var(--color-surface)}
+.disc{font-size:12px;color:var(--color-text-muted)}
+.calc details{border-top:1px solid var(--color-border);padding-top:var(--space-3);font-size:12.5px;color:var(--color-text-muted)}
+.calc summary{cursor:pointer;min-height:32px;display:flex;align-items:center;font-weight:600;color:var(--color-text)}
+.formula{margin:var(--space-2) 0 0;padding:0;list-style:none}
+.formula li{padding:2px 0}
+@media (max-width:860px){.calc{grid-template-columns:minmax(0,1fr)}.calc-out{border-left:0;border-top:1px solid var(--color-border)}.calc-in,.calc-out{padding:var(--space-5)}}
+@media (max-width:420px){.rs{grid-template-columns:minmax(0,1fr)}}
+
+/* FAQ */
+.faq{max-width:760px;margin:0 auto;border-top:1px solid var(--color-border)}
+.faq details{border-bottom:1px solid var(--color-border)}
+.faq summary{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:56px;padding:var(--space-3) 0;font-size:15px;font-weight:600;color:var(--color-heading);cursor:pointer;list-style:none}
+.faq summary:hover{color:var(--color-brand-text)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary::after{content:"+";flex:none;display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--color-surface-muted);font-weight:400;font-size:18px;color:var(--color-text-muted)}
+.faq details[open] summary::after{content:"\2212"}
+.faq details p{padding:0 var(--space-6) var(--space-4) 0;color:var(--color-text-muted);font-size:14px;line-height:1.65}
+
+/* CTA 띠 */
+.band{padding:clamp(64px,8vw,104px) 0;background:radial-gradient(50% 120% at 85% 0%,color-mix(in srgb,var(--white) 10%,transparent),transparent 70%),var(--band-bg);color:var(--band-text);text-align:center}
+.band h2{color:var(--band-text);max-width:30ch;margin-inline:auto;font-size:clamp(24px,3vw,34px)}
+.band p{margin:var(--space-3) auto 0;color:var(--band-sub);font-size:15px}
+.band .btn{margin-top:var(--space-5);background:var(--band-btn-bg);border-color:var(--band-btn-bg);color:var(--band-btn-text)}
+.band .btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgb(0 0 0 / .18);border-color:var(--band-btn-bg)}
+:root[data-theme="dark"] .band{border-top:1px solid var(--color-border)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .band{border-top:1px solid var(--color-border)}}
+
+/* 푸터 */
+footer.ft{padding:clamp(48px,6vw,80px) 0 var(--space-5);background:var(--ft-bg);color:var(--ft-muted);font-size:14px}
+.ft-top{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:var(--space-6) var(--space-7)}
+.ft .brand{color:var(--ft-text)}
+.ft .brand .logo{background:var(--ft-brand);color:var(--navy-900)}
+.ft-brand p{margin-top:var(--space-3);max-width:30ch;line-height:1.65}
+.ft-col h3{font-size:14px;font-weight:700;color:var(--ft-text)}
+.ft-col ul{margin:var(--space-2) 0 0;padding:0;list-style:none}
+.ft-col a{display:inline-flex;align-items:center;gap:var(--space-2);min-height:40px;color:var(--ft-muted);text-decoration:none;transition:color 150ms}
+.ft-col a:hover{color:var(--ft-text);text-decoration:underline}
+.ft .badge{background:transparent;border-color:var(--ft-line);color:var(--ft-muted)}
+.ft-bot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--space-3);margin-top:var(--space-7);padding-top:var(--space-4);border-top:1px solid var(--ft-line);font-size:13px}
+.ft-bot-r{display:flex;align-items:center;gap:var(--space-3)}
+.ft .iconbtn{color:var(--ft-muted)}
+.ft .iconbtn:hover{background:color-mix(in srgb,var(--ft-text) 12%,transparent);color:var(--ft-text)}
+.ft :where(a,button):focus-visible{outline-color:var(--ft-brand)}
+@media (max-width:1023px){.ft-top{grid-template-columns:1fr 1fr}.ft-brand{grid-column:1 / -1}}
+@media (max-width:560px){.ft-top{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:860px){.topnav{display:none}}
+@media (max-width:420px){.topact .btn-ghost{padding:0 var(--space-2)}.brand .bn{display:none}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.cc,.btn,.sn{transition:none}}
+
+/* ===== 축소판 (본문 12px, 카드형 요소 약 1/2) ===== */
+:root{--fs-base:12px;--lp-pad:clamp(40px,5vw,64px)}
+body{font-size:12px;line-height:1.6}
+.btn{font-size:12px;height:32px;padding:0 var(--space-3)}
+.btn-sm{height:28px}
+.badge{font-size:11px;padding:0 6px}
+.topbar{height:52px}
+.brand{font-size:13px}.brand .logo{width:24px;height:24px;font-size:14px}
+.topnav a{font-size:12px;min-height:36px}
+.topact .btn{height:34px}
+.iconbtn{width:36px;height:36px;font-size:16px}
+h1{font-size:clamp(24px,2.6vw,32px);margin-top:var(--space-2)}
+h2{font-size:clamp(18px,1.8vw,22px)}
+h3{font-size:14px}
+.kicker{font-size:12px}
+.lead{font-size:14px;margin-top:var(--space-3)}
+.subline{font-size:12px;margin-top:var(--space-2)}
+.subline .badge{font-size:11px}
+.checks{margin-top:var(--space-4);gap:var(--space-2) var(--space-4)}
+.checks li{font-size:12px}
+.sec-lead{font-size:13px;margin-top:var(--space-2)}
+.sec-h{margin-bottom:clamp(20px,2.5vw,32px)}
+/* 히어로: 카드 스택을 오른쪽 단 정중앙에 */
+.hero{padding:clamp(28px,3.5vw,48px) 0;display:flex;align-items:center}
+.hero-wrap{width:100%;align-items:center}
+.stk{display:flex;flex-direction:column;align-items:center;justify-content:center;--cw:236px;--ch:236px;--fx:64px}
+.stk-stage{width:100%;height:330px;overflow:visible}
+.stk-dock{margin-top:var(--space-1)}
+.stk-ctl .iconbtn{width:32px;height:32px;font-size:14px}
+.stk-fb{margin-top:0;min-height:20px;font-size:12px}
+.sc-lab{font-size:10px}
+.sc-q{font-size:12px}
+.sc-opt{font-size:11px;min-height:28px}
+.opt-n{width:16px;height:16px;font-size:10px}
+.sc-src{font-size:10px}
+.stk-card{padding:var(--space-3);gap:6px}
+@media (min-width:1024px){.stk{--cw:236px;--fx:64px}}
+@media (max-width:1023px){.stk-stage{height:320px}}
+@media (max-width:560px){.stk{--cw:176px;--ch:250px;--fx:48px}.stk-stage{height:290px}.sc-opt{min-height:30px}}
+/* 수치 띠 */
+.stats li{padding:clamp(14px,2vw,20px) var(--space-3)}
+.stats b{font-size:22px}
+.stats span{font-size:12px}
+.stats .sub{font-size:11px}
+.stats-cta{display:flex;justify-content:center;margin-top:var(--space-5);padding-bottom:clamp(20px,2.5vw,28px)}
+.stats-cta .btn{height:40px;padding:0 var(--space-5);font-size:13px}
+/* 기능 행 */
+.frow{max-width:760px;margin-inline:auto;gap:var(--space-4)}
+.frow+.frow{margin-top:clamp(28px,3.5vw,48px)}
+.frow-t{gap:var(--space-2);max-width:340px}
+.fico{width:28px;height:28px;font-size:15px;border-radius:var(--radius-control)}
+.frow h3{font-size:14px}
+.frow-t>p{font-size:12px}
+.fcheck li{font-size:12px}
+.fcheck .icon{margin-top:2px;width:13px;height:13px}
+@media (min-width:1024px){.frow,.frow.rev{grid-template-columns:340px 340px;justify-content:center;gap:clamp(40px,6vw,88px)}}
+.win{max-width:340px;width:100%}
+@media (max-width:1023px){.win{margin-inline:auto}.frow-t{margin-inline:auto;width:100%;max-width:340px}}
+.win-bar{height:26px}.win-bar i{width:7px;height:7px}
+.win-t{font-size:11px}.win-bar .badge{font-size:10px}
+.win-body{padding:12px;gap:var(--space-2);min-height:150px}
+.m-top{font-size:10.5px}
+.m-q{font-size:12px}
+.m-opts{gap:4px}
+.m-opt{min-height:26px;padding:3px var(--space-2);font-size:11px;gap:var(--space-2)}
+.m-opt .n{width:16px;height:16px;font-size:10px}
+.m-hint{font-size:10.5px;padding:var(--space-2);gap:6px}
+.m-wrow{padding:var(--space-2);gap:var(--space-2)}
+.m-wrow .wi{width:20px;height:20px;font-size:11px}
+.m-wrow .wq{font-size:11px}.m-wrow .wb{font-size:10px}
+.m-btn{height:26px;font-size:11px;padding:0 var(--space-3)}
+.m-hud{font-size:10.5px}.m-hud .pts{font-size:13px}
+.m-timer b{font-size:12px}.m-timer .tbar{height:6px}
+.m-chip{min-width:40px;height:24px;font-size:11px;padding:0 var(--space-2)}
+.m-lab{font-size:10.5px}
+.m-micbtn{width:36px;height:36px;font-size:16px}
+.m-micbtn::before{inset:-5px}.m-micbtn::after{inset:-11px}
+.m-mic{padding:var(--space-3) 0 0}
+.m-live{font-size:11px;padding:3px var(--space-3);margin-top:var(--space-2)}
+/* 작동 방식 */
+.steps{max-width:1000px;margin-inline:auto}
+.sn{width:28px;height:28px;font-size:12px}
+.step{grid-template-columns:28px minmax(0,1fr);column-gap:var(--space-3);padding-bottom:var(--space-3)}
+.step::before{left:13px;top:28px}
+.sb h3{font-size:13px}
+.sd{font-size:11px;margin-top:var(--space-1)}
+.sd b{font-size:10px}
+.sd+.sd{margin-top:var(--space-1)}
+.step.active .sn{box-shadow:0 0 0 3px color-mix(in srgb,var(--color-brand) 18%,transparent)}
+.how-note{font-size:12px;padding:var(--space-3) var(--space-4);margin-top:clamp(16px,2vw,28px);max-width:640px}
+@media (min-width:1024px){.step{padding-bottom:0}.step::before{left:calc(50% + 20px);right:calc(-50% + 20px - var(--space-3));top:13px}.sb{padding-top:var(--space-2)}.sb h3{font-size:12.5px}}
+/* 과정 카드 */
+.subj{margin-bottom:var(--space-4)}
+.subj li{min-height:28px;padding:0 var(--space-3);font-size:12px}
+.subj li small{font-size:10px}
+.cgrid{grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--space-2)}
+.cc{padding:var(--space-3);padding-top:calc(var(--space-3) + 3px);gap:var(--space-2)}
+.cc::before{height:3px}
+.cc-n{min-width:24px;height:20px;font-size:11px}
+.cc-i{width:24px;height:24px;font-size:13px}
+.cc h3{font-size:12.5px;min-height:0;line-height:1.35}
+.cc-m{gap:var(--space-4);padding-top:var(--space-2)}
+.cc-m dt{font-size:10px}.cc-m dd{font-size:12px}
+.cc-all p{font-size:11px}
+.cc-all-li{grid-column:span 2}
+@media (max-width:1023px){.cgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:420px){.cgrid{grid-template-columns:minmax(0,1fr)}.cc-all-li{grid-column:auto}}
+/* 비교표 */
+.alt-table{min-width:760px}
+.alt-table th,.alt-table td{padding:var(--space-2) var(--space-3);font-size:11px}
+.alt-table thead th{font-size:11px}
+.alt-table tbody th{width:110px}
+.chip{font-size:11px;padding:2px var(--space-2)}
+.alt-table .proof{font-size:10.5px}
+.src-note{font-size:11px}
+.proofs{margin-top:var(--space-3)}
+.notfit{margin-top:var(--space-4);padding:var(--space-3) var(--space-4);max-width:720px}
+.notfit h3{font-size:13px}.notfit li{font-size:11.5px}
+@media (max-width:760px){.alt-table{min-width:0}}
+/* 계산기 */
+.calc{max-width:720px}
+.calc-in,.calc-out{padding:var(--space-4)}
+.calc-in form{gap:var(--space-2)}
+.field label{font-size:11px}
+.field input{height:30px;font-size:12px}
+.rs-c{padding:var(--space-3)}
+.rs-c h4{font-size:11px}
+.rs-c strong{font-size:18px}
+.rs-c dl{font-size:11px;margin-top:var(--space-2)}
+.rs-diff{font-size:12px}
+.calc-empty{font-size:11.5px;padding:var(--space-3)}
+.disc{font-size:11px}
+.rs+.calc-empty{margin-top:var(--space-2)}
+.calc details{font-size:11px}
+/* FAQ */
+.faq{max-width:640px}
+.faq summary{min-height:36px;padding:var(--space-2) 0;font-size:12.5px}
+.faq summary::after{width:20px;height:20px;font-size:14px}
+.faq details p{font-size:12px;padding-bottom:var(--space-3)}
+/* CTA 띠 */
+.band{padding:clamp(28px,3.5vw,44px) 0}
+.band h2{font-size:clamp(18px,1.8vw,22px)}
+.band p{font-size:12px;margin-top:var(--space-2)}
+.band .btn{height:34px;margin-top:var(--space-3);font-size:13px;padding:0 var(--space-5)}
+/* 푸터 */
+footer.ft{padding:clamp(28px,3.5vw,44px) 0 var(--space-4);font-size:12px}
+.ft-col h3{font-size:12px}
+.ft-col a{min-height:32px}
+.ft-bot{margin-top:var(--space-5);font-size:11px}
+.ft-brand p{font-size:12px}
+
+/* 히어로 시작하기 */
+.cta-row{display:flex;margin-top:var(--space-5)}
+.cta-row .btn{height:40px;padding:0 var(--space-5);font-size:13px}
+@media (max-width:1023px){.cta-row{justify-content:center}}
+
+/* 시작하기를 '오답 자동 기록' 바로 아래에 맞춤 (가운데 열) */
+@media (min-width:1024px){
+  .hero-act{display:grid;grid-template-columns:repeat(3,max-content);column-gap:var(--space-4)}
+  .hero-act .checks{grid-column:1/-1;display:grid;grid-template-columns:subgrid}
+  .hero-act .cta-row{grid-column:2;justify-content:flex-start}
+}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header class="topbar">
-    <span class="brand">디지털노마드연구소 · <b>문제은행</b></span>
-    <button class="iconbtn" id="themeBtn" type="button" aria-label="라이트/다크 전환">🌓</button>
-  </header>
-  <main id="app"></main>
-</div>
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+<symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6a3 3 0 013 3v13a2 2 0 00-2-2H4z"/><path d="M20 4h-6a3 3 0 00-3 3v13a2 2 0 012-2h7z"/></symbol>
+<symbol id="i-alert-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v5"/><path d="M12 16.5v.01"/></symbol>
+<symbol id="i-history" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 109-9 9 9 0 00-6.4 2.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M4 16v4h16v-4"/></symbol>
+<symbol id="i-file-text" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a1 1 0 00-1 1v16a1 1 0 001 1h12a1 1 0 001-1V8z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/></symbol>
+<symbol id="i-scan" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V5a1 1 0 011-1h3"/><path d="M16 4h3a1 1 0 011 1v3"/><path d="M20 16v3a1 1 0 01-1 1h-3"/><path d="M8 20H5a1 1 0 01-1-1v-3"/><path d="M8 12h8"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></symbol>
+<symbol id="i-mic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0"/><path d="M12 18v3"/></symbol>
+<symbol id="i-mic-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3l18 18"/><path d="M9 9v2a3 3 0 005 2.1"/><path d="M15 9.3V6a3 3 0 00-5.9-.7"/><path d="M5 11a7 7 0 0011 5.7"/><path d="M19 11a7 7 0 01-.6 2.8"/><path d="M12 18v3"/></symbol>
+<symbol id="i-volume" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 010 7"/><path d="M19 6a8.5 8.5 0 010 12"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.9 4.9l1.4 1.4"/><path d="M17.7 17.7l1.4 1.4"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.9 19.1l1.4-1.4"/><path d="M17.7 6.3l1.4-1.4"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/></symbol>
+<symbol id="i-chevrons-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 17l-5-5 5-5"/><path d="M18 17l-5-5 5-5"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0116 0"/></symbol>
+<symbol id="i-log-out" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H5a1 1 0 00-1 1v14a1 1 0 001 1h4"/><path d="M16 8l4 4-4 4"/><path d="M20 12H9"/></symbol>
+<symbol id="i-timer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="14" r="7"/><path d="M12 14l3-3"/><path d="M9 2h6"/><path d="M12 2v5"/></symbol>
+<symbol id="i-flame" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3.5 5 5.5 5 10a5 5 0 01-10 0c0-2 1-3.5 2-4.5 0 1.5.5 2.5 1.5 3C10.5 8.5 11 5.5 12 3z"/></symbol>
+<symbol id="i-trophy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8v6a4 4 0 01-8 0z"/><path d="M8 6H4v1a4 4 0 004 4"/><path d="M16 6h4v1a4 4 0 01-4 4"/><path d="M12 14v4"/><path d="M8 21h8"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4l13 8-13 8z"/></symbol>
+<symbol id="i-pause" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></symbol>
+<symbol id="i-chevron-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></symbol>
+<symbol id="i-code" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 8l-5 4 5 4"/><path d="M16 8l5 4-5 4"/><path d="M14 5l-4 14"/></symbol>
+<symbol id="i-type" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 6V4h14v2"/><path d="M12 4v16"/><path d="M9 20h6"/></symbol>
+<symbol id="i-languages" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h9"/><path d="M8.5 3v2"/><path d="M6 5c0 4 3 7 6 8"/><path d="M12 5c-1 4-4 7-8 8.5"/><path d="M12 21l4.5-10L21 21"/><path d="M13.5 17.5h6"/></symbol>
+<symbol id="i-flask" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6"/><path d="M10 3v6L4.5 19a1.5 1.5 0 001.3 2h12.4a1.5 1.5 0 001.3-2L14 9V3"/><path d="M7.5 15h9"/></symbol>
+<symbol id="i-music" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></symbol>
+<symbol id="i-palette" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 100 18c1.5 0 2-1 2-2 0-1.5-1-1.5-1-3a2 2 0 012-2h2.5A3.5 3.5 0 0021 10.5C21 6.4 17 3 12 3z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7" r="1"/><circle cx="15" cy="7" r="1"/></symbol>
+</svg>
+
+<script>/* QB 공용 코어 — 저장 키, mock 로그인, 테마, 과목 목록. 비밀번호는 저장하지 않는다. */
+(function(){
+'use strict';
+var KEY_USER='qb:user', KEY_UI='qb:ui:v1', KEY_THEME='qb:theme';
+function get(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function set(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}}
+function del(k){try{localStorage.removeItem(k);}catch(e){}}
+function json(k,d){try{var r=get(k);return r?JSON.parse(r):d;}catch(e){return d;}}
+var QB=window.QB={};
+QB.SUBJECTS=[
+  {id:'it',label:'IT'},{id:'korean',label:'국어'},{id:'english',label:'영어'},
+  {id:'science',label:'과학'},{id:'music',label:'음악'},{id:'art',label:'미술'}
+];
+QB.user=function(){var u=json(KEY_USER,null);return u&&u.v===1&&u.name?u:null;};
+QB.login=function(o){
+  o=o||{};var prev=json(KEY_USER,null),now=new Date().toISOString();
+  var u={v:1,name:String(o.name||'').trim().slice(0,20),email:String(o.email||'').trim(),
+    provider:o.provider||'email',createdAt:(prev&&prev.createdAt)||now,lastLoginAt:now};
+  set(KEY_USER,JSON.stringify(u));return u;
+};
+QB.logout=function(){del(KEY_USER);};
+QB.rename=function(n){
+  var u=QB.user();n=String(n||'').trim().slice(0,20);if(!u||!n)return null;
+  u.name=n;set(KEY_USER,JSON.stringify(u));return u;
+};
+QB.safeNext=function(n){
+  n=String(n||'');return /^dashboard\.html(#[A-Za-z0-9\/=&_-]*)?$/.test(n)?n:'dashboard.html';
+};
+QB.requireUser=function(next){
+  var u=QB.user();if(u)return u;
+  next=QB.safeNext(next==null?'dashboard.html'+location.hash:next);
+  location.replace('login.html?next='+encodeURIComponent(next));return null;
+};
+QB.theme={
+  get:function(){return get(KEY_THEME);},
+  apply:function(){var t=get(KEY_THEME),r=document.documentElement;if(t)r.dataset.theme=t;else delete r.dataset.theme;},
+  toggle:function(){
+    var t=get(KEY_THEME),dark=t?t==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+    set(KEY_THEME,dark?'light':'dark');QB.theme.apply();
+  }
+};
+QB.ui={
+  get:function(){var d=json(KEY_UI,null);return d&&typeof d==='object'?d:{sidebar:true,subject:'it'};},
+  set:function(p){var d=Object.assign(QB.ui.get(),p||{});set(KEY_UI,JSON.stringify(d));return d;}
+};
+QB.theme.apply();
+})();
+</script>
+<script>/* qb-voice.js — 음성으로 보기 번호 고르기(Web Speech API) + 문제 읽기(speechSynthesis)
+   window.QBVoice: supported · canSpeak · parse · attach · speak · cancelSpeak · isSpeaking · stopListening
+   parse()는 순수 함수라 node에서도 테스트한다. */
+(function(root){
+'use strict';
+
+/* ── 말 → 선택 해석 (순수 함수) ───────────────── */
+const SINO={일:1,이:2,삼:3,사:4,오:5,육:6,칠:7,팔:8,구:9,십:10};
+const NAT={하나:1,둘:2,셋:3,넷:4,다섯:5,여섯:6,일곱:7,여덟:8,아홉:9,열:10};
+const DET={한:1,두:2,세:3,네:4,첫:1};  // 한/두/세/네/첫 은 '번'·'번째'·'째'가 붙을 때만 번호
+// 보기 글자 A~H. '이'(E)는 숫자 2와 겹쳐 숫자를 우선하므로 영문 e로만 받는다
+const LET={a:1,b:2,c:3,d:4,e:5,f:6,g:7,h:8,에이:1,비:2,씨:3,디:4,에프:6,지:7,에이치:8};
+
+const alt=o=>Object.keys(o).sort((x,y)=>y.length-x.length).join('|');
+const PRE='(?:정답은|정답이|정답|답은|답이|답|내답은|제답은|저는|나는|전|선택|번호)?';
+const SUF='(?:이에요|이요|예요|이야|이죠|이다|입니다|이라고생각해요|이라고|선택할게요?|선택|할게요?|할래요?|고를게요?|고를래요?|정답|같아요|요|으로|로|을|를|이|가|은|는)*';
+const R_DIGIT=new RegExp('^'+PRE+'(\\d{1,2})(?:번째|번|째)?'+SUF+'$');
+const R_STD=new RegExp('^'+PRE+'('+alt(Object.assign({},SINO,NAT))+')(?:번째|번|째)?'+SUF+'$');
+const R_DET=new RegExp('^'+PRE+'('+alt(DET)+')(?:번째|번|째)'+SUF+'$');
+const R_LET=new RegExp('^'+PRE+'('+alt(LET)+')(?:번)?'+SUF+'$');
+const R_X=/틀|아니|아닙|아닌|안맞|맞지않|엑스|가위|^x(?:요|입니다)?$/;
+const R_O=/^(?:o|오|동그라미|오케이|ok|예|네|응|그래요?|맞.*)(?:요|입니다|이요|예요|야|라고생각해요)?$/;
+const R_SUBMIT=/제출|채점|확인|다풀었|다했/;
+
+function norm(s){
+  return String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s.,!?'"“”‘’~…·\-_()\[\]]/g,'');
+}
+function numOf(t){
+  let m;
+  if((m=R_DIGIT.exec(t)))return +m[1];
+  if((m=R_STD.exec(t)))return SINO[m[1]]||NAT[m[1]];
+  if((m=R_DET.exec(t)))return DET[m[1]];
+  if((m=R_LET.exec(t)))return LET[m[1]];
+  return 0;
+}
+function parseOne(raw,count,type){
+  const t=norm(raw);if(!t)return null;
+  if(type==='ox'){
+    if(R_X.test(t))return {kind:'ox',v:'X'};
+    if(R_O.test(t))return {kind:'ox',v:'O'};
+    const n=numOf(t);  // ox에서 1번 = O, 2번 = X (게임 모드 키와 같음)
+    if(n===1)return {kind:'ox',v:'O'};
+    if(n===2)return {kind:'ox',v:'X'};
+    return R_SUBMIT.test(t)?{kind:'submit'}:null;
+  }
+  const n=numOf(t)||numOf(t.replace(/(?:제출|채점|확인).*$/,''));  // '3번 제출'은 번호 우선
+  if(n)return n>=1&&n<=count?{kind:'index',i:n-1}:null;  // 범위 밖이면 다음 후보로
+  return R_SUBMIT.test(t)?{kind:'submit'}:null;
+}
+/* text: 문자열 또는 후보 배열. 범위 안에서 해석되는 첫 후보를 돌려준다 */
+function parse(text,opt){
+  opt=opt||{};
+  const count=opt.count>0?opt.count:4, type=opt.type||'mc';
+  const list=Array.isArray(text)?text:[text];
+  for(const s of list){const r=parseOne(s,count,type);if(r)return r;}
+  return null;
+}
+
+/* ── 브라우저 부분 ────────────────────────── */
+const hasWin=typeof window!=='undefined';
+const SR=()=>hasWin?(window.SpeechRecognition||window.webkitSpeechRecognition):null;
+const supported=()=>!!SR();
+const canSpeak=()=>hasWin&&'speechSynthesis' in window&&typeof SpeechSynthesisUtterance!=='undefined';
+
+const ERR={
+  'not-allowed':'마이크 권한이 꺼져 있습니다. 주소창의 마이크 아이콘에서 허용하세요.',
+  'service-not-allowed':'마이크 권한이 꺼져 있습니다. 주소창의 마이크 아이콘에서 허용하세요.',
+  'network':'음성 인식은 인터넷 연결이 필요합니다.',
+  'no-speech':'소리가 들리지 않았습니다. 다시 눌러 말해 주세요.',
+  'audio-capture':'마이크를 찾을 수 없습니다.'
+};
+let active=null;  // 지금 듣는 중인 컨트롤러 (동시에 하나만)
+function stopListening(){if(active){active.stop();active=null;}}
+
+function describe(r){
+  if(r.kind==='index')return `'${r.i+1}번'으로 들었습니다`;
+  if(r.kind==='ox')return `'${r.v}'로 들었습니다`;
+  return "'제출'로 들었습니다";
+}
+
+/* o: {button, live, getOptions, getType, select, submit, lang, bind}
+   button·live는 요소 또는 요소를 돌려주는 함수(카드를 다시 그려도 새 요소를 찾도록).
+   select(r): r = {kind:'index',i} | {kind:'ox',v}. submit(): 제출. bind:false면 클릭 리스너를 달지 않는다(위임용) */
+function attach(o){
+  const get=x=>typeof x==='function'?x():x;
+  const ctl={listening:false,toggle(){},stop(){}};
+  const b0=get(o.button);
+  if(!supported()){if(b0)b0.hidden=true;return ctl;}
+  const lang=o.lang||'ko-KR';
+  let rec=null, done=false;
+  function ui(state,msg){
+    const b=get(o.button), l=get(o.live);
+    if(b){b.dataset.state=state;b.setAttribute('aria-pressed',state==='listening'?'true':'false');}
+    if(l&&msg!=null)l.textContent=msg;
+  }
+  ctl.stop=function(){
+    ctl.listening=false;done=true;
+    if(rec){try{rec.abort();}catch(e){}rec=null;}
+    ui('idle');
+  };
+  function finish(state,msg){if(done)return;done=true;ctl.listening=false;rec=null;if(active===ctl)active=null;ui(state,msg);}
+  function onResult(alts){
+    const count=o.getOptions?o.getOptions():4, type=o.getType?o.getType():'mc';
+    let r=parse(alts,{count,type});
+    if(r&&r.kind==='submit'&&!o.submit)r=null;
+    if(!r){
+      const heard=(alts[0]||'').trim().slice(0,24);
+      const guide=type==='ox'?"'O' 또는 'X'로 말해 주세요.":`1~${count}번 중에서 말해 주세요.`;
+      finish('error',heard?`'${heard}'로 들었습니다. ${guide}`:'소리가 들리지 않았습니다. 다시 눌러 말해 주세요.');
+      return;
+    }
+    finish('heard');
+    try{if(r.kind==='submit')o.submit();else o.select(r);}catch(e){}
+    ui('heard',describe(r));  // select가 카드를 다시 그렸더라도 새 요소에 상태를 적는다
+  }
+  ctl.toggle=function(){
+    if(ctl.listening){ctl.stop();return;}
+    stopListening();cancelSpeak();
+    const Ctor=SR();
+    try{rec=new Ctor();}catch(e){ui('error','음성 인식을 시작할 수 없습니다.');return;}
+    done=false;ctl.listening=true;active=ctl;
+    rec.lang=lang;rec.continuous=false;rec.interimResults=false;rec.maxAlternatives=5;
+    rec.onresult=ev=>{
+      const res=ev.results&&ev.results[0], alts=[];
+      if(res)for(let i=0;i<res.length;i++)alts.push(res[i].transcript);
+      onResult(alts);
+    };
+    rec.onerror=ev=>{
+      if(ev.error==='aborted')return;
+      finish('error',ERR[ev.error]||'음성 인식에 실패했습니다. 다시 눌러 주세요.');
+    };
+    rec.onend=()=>{if(!done)finish('error',ERR['no-speech']);};
+    ui('listening','듣는 중…');
+    try{rec.start();}catch(e){finish('error','음성 인식을 시작할 수 없습니다. 잠시 뒤 다시 눌러 주세요.');}
+  };
+  if(o.bind!==false&&b0)b0.addEventListener('click',ctl.toggle);
+  return ctl;
+}
+
+/* ── 읽어 주기 ────────────────────────────── */
+function pickVoice(lang){
+  try{
+    const vs=speechSynthesis.getVoices();
+    return vs.find(v=>v.lang===lang)||vs.find(v=>v.lang&&v.lang.replace('_','-').toLowerCase().startsWith(lang.slice(0,2).toLowerCase()))||null;
+  }catch(e){return null;}
+}
+function speak(text,lang){
+  if(!canSpeak()||!text)return false;
+  lang=lang||'ko-KR';
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(String(text));
+    u.lang=lang;const v=pickVoice(lang);if(v)u.voice=v;
+    speechSynthesis.speak(u);return true;
+  }catch(e){return false;}
+}
+function cancelSpeak(){if(canSpeak()){try{speechSynthesis.cancel();}catch(e){}}}
+function isSpeaking(){try{return canSpeak()&&speechSynthesis.speaking;}catch(e){return false;}}
+
+const API={supported,canSpeak,parse,attach,speak,cancelSpeak,isSpeaking,stopListening};
+if(hasWin)root.QBVoice=API;
+if(typeof module!=='undefined'&&module.exports)module.exports=API;
+})(typeof window!=='undefined'?window:globalThis);
+</script>
+<a class="skip" href="#main">본문으로 건너뛰기</a>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="index.html"><span class="logo" aria-hidden="true"><svg class="icon"><use href="#i-book"/></svg></span><span class="bn">디지털노마드연구소</span></a>
+    <nav class="topnav" aria-label="페이지 안내">
+      <a href="#features">학습 방식</a><a href="#how">작동 방식</a><a href="#courses">과정</a><a href="#why">비교</a><a href="#calc">시간 계산기</a><a href="#faq">자주 묻는 질문</a>
+    </nav>
+    <div class="topact">
+      <button type="button" class="iconbtn" id="theme-btn" aria-label="화면 테마 바꾸기"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg></button>
+      <a class="btn btn-ghost" id="top-login" href="login.html?next=dashboard.html">로그인</a>
+      <a class="btn btn-primary" id="top-start" href="login.html?next=dashboard.html">시작하기</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<section class="hero" aria-labelledby="h-title">
+  <div class="wrap hero-wrap">
+    <div class="hero-copy">
+      <span class="kicker" id="h-kicker"><svg class="icon" aria-hidden="true"><use href="#i-layers"/></svg><span>강의자료 기반 학습 플랫폼</span></span>
+      <h1 id="h-title">강의 PDF로 만든 <em>문제은행</em></h1>
+      <p class="lead" id="h-lead">배운 날 바로 풀고, 틀린 곳만 다시 봅니다.</p>
+      <p class="subline" id="h-sub">보기 번호는 말로 골라도 됩니다<span class="badge tag-sample">Chrome·Edge</span>. 내 PDF 올리기는 곧 열립니다<span class="badge soon-tag">준비 중</span>.</p>
+      <div class="hero-act">
+      <ul class="checks" id="h-checks">
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>즉시 채점·힌트</li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>오답 자동 기록</li>
+        <li><svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>설치 없이 바로</li>
+      </ul>
+      <div class="cta-row"><a class="btn btn-primary" id="start" href="login.html?next=dashboard.html">시작하기</a></div>
+      </div>
+    </div>
+    <div class="stk" id="demo" role="region" aria-labelledby="demo-title">
+      <h2 id="demo-title" class="sr-only">예시 문항 풀어 보기</h2>
+      <div class="stk-stage" id="stk-stage">
+        <div class="stk-fan" id="stk-fan"></div>
+      </div>
+      <div class="stk-dock">
+        <div class="stk-ctl">
+          <button type="button" class="iconbtn flip" id="stk-prev" aria-label="이전 문항" title="이전 문항"><svg class="icon" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+          <div class="dots" id="stk-dots" role="group" aria-label="문항 위치"></div>
+          <button type="button" class="iconbtn" id="stk-next" aria-label="다음 문항" title="다음 문항"><svg class="icon" aria-hidden="true"><use href="#i-chevron-right"/></svg></button>
+        </div>
+      </div>
+      <div class="stk-fb" id="d-fb" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<section class="stats" aria-label="현재 규모"><div class="wrap"><ul id="stats"></ul></div></section>
+
+<section class="sec" id="features" aria-labelledby="f-h"><div class="wrap">
+  <div class="sec-h"><h2 id="f-h">이렇게 공부합니다</h2><p class="sec-lead" id="f-lead"></p></div>
+  <div id="f-rows"></div>
+</div></section>
+
+<section class="sec alt" id="how" aria-labelledby="how-h"><div class="wrap">
+  <div class="sec-h"><h2 id="how-h"></h2><p class="sec-lead" id="how-lead"></p></div>
+  <ol class="steps" id="steps" aria-label="처리 순서"></ol>
+  <div id="how-note"></div>
+</div></section>
+
+<section class="sec" id="courses" aria-labelledby="c-h"><div class="wrap">
+  <div class="sec-h"><h2 id="c-h"></h2><p class="sec-lead" id="c-lead"></p></div>
+  <ul class="subj" id="subj" aria-label="과목"></ul>
+  <ul class="cgrid" id="cgrid"></ul>
+</div></section>
+
+<section class="sec alt" id="why" aria-labelledby="why-h"><div class="wrap">
+  <div class="sec-h"><h2 id="why-h"></h2><p class="sec-lead" id="why-lead"></p></div>
+  <div id="why-body"></div>
+</div></section>
+
+<section class="sec" id="calc" aria-labelledby="calc-h"><div class="wrap">
+  <div class="sec-h"><h2 id="calc-h"></h2><p class="sec-lead" id="calc-lead"></p></div>
+  <div class="calc" id="calc-body"></div>
+</div></section>
+
+<section class="sec alt" id="faq" aria-labelledby="faq-h"><div class="wrap">
+  <div class="sec-h"><h2 id="faq-h">자주 묻는 질문</h2></div>
+  <div class="faq" id="faq-list"></div>
+</div></section>
+
+<section class="band" aria-labelledby="cta-h"><div class="wrap">
+  <h2 id="cta-h">오늘 배운 강의, 지금 문제로 확인하세요</h2>
+  <p id="cta-body"></p>
+  <a class="btn btn-xl" id="start2" href="login.html?next=dashboard.html">시작하기</a>
+</div></section>
+</main>
+
+<footer class="ft"><div class="wrap">
+  <div class="ft-top">
+    <div class="ft-brand">
+      <a class="brand" href="index.html"><span class="logo" aria-hidden="true"><svg class="icon"><use href="#i-book"/></svg></span><span class="bn">디지털노마드연구소</span></a>
+      <p>강의 PDF로 만든 문제은행으로 배운 날 바로 복습합니다.</p>
+    </div>
+    <nav class="ft-col" aria-labelledby="ft-h1">
+      <h3 id="ft-h1">학습</h3>
+      <ul>
+        <li><a href="dashboard.html">대시보드</a></li>
+        <li><a href="dashboard.html#wrong">남은 오답</a></li>
+        <li><a href="dashboard.html#history">학습 기록</a></li>
+        <li><a href="dashboard.html#upload">문서로 문제 만들기<span class="badge soon-tag">준비 중</span></a></li>
+      </ul>
+    </nav>
+    <nav class="ft-col" aria-labelledby="ft-h2">
+      <h3 id="ft-h2">과정</h3>
+      <ul id="ft-stages"><li><a href="dashboard.html">전체 과정 보기</a></li></ul>
+    </nav>
+    <nav class="ft-col" aria-labelledby="ft-h3">
+      <h3 id="ft-h3">도움말</h3>
+      <ul>
+        <li><a href="#how">작동 방식</a></li>
+        <li><a href="#why">다른 방법과 비교</a></li>
+        <li><a href="#faq">자주 묻는 질문</a></li>
+        <li><a href="login.html">로그인</a></li>
+      </ul>
+    </nav>
+  </div>
+  <div class="ft-bot">
+    <span>© 2026 디지털노마드연구소</span>
+    <span class="ft-bot-r"><span>기록은 이 브라우저에만 저장됩니다</span>
+      <button type="button" class="iconbtn" id="theme-btn2" aria-label="화면 테마 바꾸기"><svg class="icon" aria-hidden="true"><use href="#i-sun"/></svg></button></span>
+  </div>
+</div></footer>
+
 <script>
 (()=>{
 'use strict';
-const CAT={"stages":[{"num":"01","title":"AI 업무 활용","keys":["생성형 AI","프롬프트","업무 자동화","엑셀 실무","Claude 교육 활용"],"courses":[{"title":"생성형 AI + 노코드 업무 자동화","banks":[{"id":"ai-automation-m1","code":"M1","title":"모듈1 · AI와 업무 자동화 개론","subtitle":"AI 개념 · 프롬프트 R-C-T-F-C · 업무 진단과 AS-IS/TO-BE","href":"01-ai-work/ai-automation/module1.html","tabs":6,"qs":60},{"id":"ai-automation-m2","code":"M2","title":"모듈2 · 문서·커뮤니케이션 업무 효율화","subtitle":"문서 패턴(보고서·기획안·매뉴얼) · 회의록·요약 · 메일 톤과 템플릿","href":"01-ai-work/ai-automation/module2.html","tabs":5,"qs":50},{"id":"ai-automation-m3","code":"M3","title":"모듈3 · 스프레드시트·데이터 작업 자동화","subtitle":"엑셀 AI 분석 · 반복 보고서 템플릿 · 트리거–액션–LLM 자동화","href":"01-ai-work/ai-automation/module3.html","tabs":6,"qs":60}]},{"title":"AI 엑셀 실무","banks":[{"id":"ai-excel","code":"EX","title":"AI 엑셀 실무 · ChatGPT·Gemini로 하는 비즈니스 엑셀","subtitle":"함수 자동화 · 데이터 정제와 검증 · VBA 매크로","href":"01-ai-work/ai-excel/ai-excel.html","tabs":8,"qs":80}]},{"title":"Claude 활용 교육","banks":[{"id":"claude-edu-d1","code":"CE1","title":"Claude 활용 교육 1일차 · 수업 목표 구조화","subtitle":"LLM 원리와 환각 · Bloom 학습목표 · [교수 확인 필요] 명세서","href":"01-ai-work/claude-for-educators/day1.html","tabs":6,"qs":60},{"id":"claude-edu-d2","code":"CE2","title":"Claude 활용 교육 2일차 · 평가 문항 설계","subtitle":"타당도·신뢰도 · 매력적 오답 · 루브릭과 피드백","href":"01-ai-work/claude-for-educators/day2.html","tabs":5,"qs":50},{"id":"claude-edu-d3","code":"CE3","title":"Claude 활용 교육 3일차 · AI 활용 교수 프로토콜","subtitle":"학생 AI 신호등 규칙 · 바이브코딩 연습 도구 · AI 활용 교수 프로토콜","href":"01-ai-work/claude-for-educators/day3.html","tabs":6,"qs":60}]}]},{"num":"02","title":"개발 기초","keys":["Git","GitHub 협업","바이브코딩","프롬프트 기법","웹 앱 프로토타입"],"courses":[{"title":"Git · GitHub 입문","banks":[{"id":"git-basics","code":"GIT","title":"Git · GitHub 입문 · 8교시 실습","subtitle":"커밋과 브랜치 · 충돌과 되돌리기 · GitHub 협업","href":"02-dev-basics/git/git.html","tabs":8,"qs":80}]},{"title":"비개발자 바이브코딩","banks":[{"id":"vibe-d1","code":"VC1","title":"바이브코딩 Day 1 · AI와 일하는 법 & AI 기초","subtitle":"AI 도구 비교 · 업무 문서 프롬프트 · AI 보안","href":"02-dev-basics/vibe-coding/day1.html","tabs":4,"qs":40},{"id":"vibe-d2","code":"VC2","title":"바이브코딩 Day 2 · 프롬프트 엔지니어링 마스터","subtitle":"CRISP 템플릿 · Few-Shot·CoT·페르소나 · 프롬프트 체이닝","href":"02-dev-basics/vibe-coding/day2.html","tabs":7,"qs":70},{"id":"vibe-d3","code":"VC3","title":"바이브코딩 Day 3 · AI 기반 바이브 코딩 실전","subtitle":"웹 앱 만들기 · 수정 요청과 디버깅 · 업무 도구 프로토타입","href":"02-dev-basics/vibe-coding/day3.html","tabs":5,"qs":50},{"id":"vibe-d4","code":"VC4","title":"바이브코딩 Day 4 · 결과물 공유 & 업무 활용 전략","subtitle":"발표·동료 평가 · 업무 적용 전략과 30일 플랜 · 페르소나·프롬프트 리파이닝","href":"02-dev-basics/vibe-coding/day4.html","tabs":6,"qs":60},{"id":"vibe-nb-basic","code":"VB","title":"바이브코딩 기본 노트북 · 세션 0~4","subtitle":"Claude×Colab 워크플로 · 추천·이미지·감성 AI · 시계열 예측","href":"02-dev-basics/vibe-coding/nb-basic.html","tabs":5,"qs":50},{"id":"vibe-nb-adv","code":"VA","title":"바이브코딩 중급 노트북 · Claude Code·시뮬레이터·사다리게임","subtitle":"CLAUDE.md·Plan 모드 · Canvas 인터랙션 · 알고리즘 프롬프트","href":"02-dev-basics/vibe-coding/nb-intermediate.html","tabs":4,"qs":40},{"id":"vibe-textbook","code":"VCT","title":"바이브코딩 교재 · AI 바이브 코딩 실전 과정 20H","subtitle":"생성형 AI와 모델 비교 · 프롬프트 엔지니어링 · 바이브 코딩과 업무 적용 전략","href":"02-dev-basics/vibe-coding/textbook.html","tabs":7,"qs":70},{"id":"vibe-transformer","code":"TF","title":"Transformer 완전 해부","subtitle":"Self-Attention·Multi-Head · Encoder·Decoder 구조 · 학습 전략과 현대 LLM","href":"02-dev-basics/vibe-coding/transformer.html","tabs":3,"qs":30}]}]},{"num":"03","title":"n8n 자동화","keys":["n8n","워크플로우","Google Sheets·Gmail","Webhook","AI 노드","블로그 자동 발행"],"courses":[{"title":"n8n + AI 교육 업무 자동화","banks":[{"id":"n8n-edu-p1","code":"NE1","title":"n8n 교육 자동화 1교시 · n8n 소개와 환경 구축","subtitle":"n8n Cloud 가입 · 첫 워크플로우 · 노드·엣지·JSON 핵심 개념","href":"03-n8n-automation/n8n-edu-agent/period1.html","tabs":4,"qs":40},{"id":"n8n-edu-p2","code":"NE2","title":"n8n 교육 자동화 2교시 · 핵심 노드와 데이터 연동","subtitle":"Google Sheets 읽기·쓰기 · Edit Fields·IF·Switch · Gmail 상태별 발송","href":"03-n8n-automation/n8n-edu-agent/period2.html","tabs":5,"qs":50},{"id":"n8n-edu-p3","code":"NE3","title":"n8n 교육 자동화 3교시 · 교육서비스업 자동화 ①","subtitle":"Webhook 수강 신청 처리 · 중복 체크와 응답 · Schedule 수업 리마인더","href":"03-n8n-automation/n8n-edu-agent/period3.html","tabs":4,"qs":40},{"id":"n8n-edu-p4","code":"NE4","title":"n8n 교육 자동화 4교시 · 교육서비스업 자동화 ②","subtitle":"피드백 수집과 Code 집계 · 만족도 경고 · 수업 자료 자동 배포","href":"03-n8n-automation/n8n-edu-agent/period4.html","tabs":4,"qs":40},{"id":"n8n-edu-p5","code":"NE5","title":"n8n 교육 자동화 5교시 · AI API 연동 & 프롬프트","subtitle":"OpenAI·Claude·Gemini 노드 · 응답 표현식 · 비용과 보안","href":"03-n8n-automation/n8n-edu-agent/period5.html","tabs":6,"qs":60},{"id":"n8n-edu-p6","code":"NE6","title":"n8n 교육 자동화 6교시 · AI 기반 교육서비스 자동화","subtitle":"Q&A 자동 응답 봇 · 피드백 AI 리포트 · 콘텐츠·이메일 생성","href":"03-n8n-automation/n8n-edu-agent/period6.html","tabs":6,"qs":60},{"id":"n8n-edu-p7","code":"NE7","title":"n8n 교육 자동화 7교시 · 멀티미디어 AI 활용","subtitle":"이미지 OCR·생성 · PDF·녹음 분석 · 멀티모달 파이프라인","href":"03-n8n-automation/n8n-edu-agent/period7.html","tabs":6,"qs":60}]},{"title":"n8n 블로그 자동 발행","banks":[{"id":"n8n-blog","code":"NB","title":"n8n 블로그 자동 발행 · 패션 블로그 자동화 4시간","subtitle":"Docker 자체 호스팅 · AI 글·룩북 이미지 생성 · WordPress 자동 초안","href":"03-n8n-automation/n8n-blog/n8n-blog.html","tabs":10,"qs":100}]}]},{"num":"04","title":"음성 AI","keys":["ASR·TTS","STFT·MFCC","잡음 제거·VAD","CTC·Wav2Vec2","Whisper"],"courses":[{"title":"음성 AI 전문가 과정 Day 1~8","banks":[{"id":"voice-d1","code":"V1","title":"음성 AI Day 1 · 음성 AI 첫걸음","subtitle":"ASR·TTS·Voice Agent · Colab 개발환경 · CER·RTF","href":"04-voice-ai/day01.html","tabs":1,"qs":15},{"id":"voice-d2","code":"V2","title":"음성 AI Day 2 · 디지털 오디오 기초","subtitle":"샘플링·나이퀴스트 · 양자화·채널 · 포맷·pydub 전처리","href":"04-voice-ai/day02.html","tabs":4,"qs":40},{"id":"voice-d3","code":"V3","title":"음성 AI Day 3 · 주파수 분석","subtitle":"배음·포먼트·DFT · 창 함수·STFT · Mel·MFCC","href":"04-voice-ai/day03.html","tabs":4,"qs":40},{"id":"voice-d4","code":"V4","title":"음성 AI Day 4 · 오디오 전처리","subtitle":"SNR·정규화·필터 · 스펙트럼 차감·Wiener · VAD·Silero","href":"04-voice-ai/day04.html","tabs":4,"qs":40},{"id":"voice-d5","code":"V5","title":"음성 AI Day 5 · 딥러닝 오디오 분류","subtitle":"Log-Mel 입력 · CNN·softmax·cross-entropy · 학습 루프·SpecAugment","href":"04-voice-ai/day05.html","tabs":4,"qs":40},{"id":"voice-d6","code":"V6","title":"음성 AI Day 6 · ASR 원리","subtitle":"CTC · Wav2Vec2 디코딩 · AED·Transducer·자기지도 학습","href":"04-voice-ai/day06.html","tabs":4,"qs":40},{"id":"voice-d7","code":"V7","title":"음성 AI Day 7 · Whisper 심층 분석","subtitle":"30초 창·특수 토큰 · 모델 선택·디코딩 옵션 · 환각 대응","href":"04-voice-ai/day07.html","tabs":4,"qs":40},{"id":"voice-d8","code":"V8","title":"음성 AI Day 8 · 추론 최적화 & 스트리밍","subtitle":"faster-whisper·양자화 · whisper.cpp · LocalAgreement 스트리밍","href":"04-voice-ai/day08.html","tabs":4,"qs":40}]}]},{"num":"05","title":"LangChain · RAG · Agent","keys":["LangChain LCEL","RAG","Gradio","음성 RAG","LangGraph"],"courses":[{"title":"LangChain LCEL → RAG → Gradio → 음성 RAG → LangGraph (14일)","banks":[{"id":"lc-d01","code":"LC1","title":"LangChain 1일차 · 프롬프트 템플릿과 LCEL 대화형 챗봇","subtitle":"프롬프트 원칙·템플릿 요소 · ChatPromptTemplate·LCEL · 대화 메모리 챗봇","href":"05-langchain-agent/day01.html","tabs":3,"qs":30},{"id":"lc-d02","code":"LC2","title":"LangChain 2일차 · LangGraph 어시스턴트와 LCEL 프롬프트 실습","subtitle":"LangGraph 어시스턴트 · stream·MessagePromptTemplate · LCEL 실습 문제","href":"05-langchain-agent/day02.html","tabs":4,"qs":40},{"id":"lc-d03","code":"LC3","title":"LangChain 3일차 · Few-shot 프롬프트·예제 선택기·LangGraph","subtitle":"FewShotPromptTemplate · SemanticSimilarityExampleSelector · FewShotChatMessagePromptTemplate","href":"05-langchain-agent/day03.html","tabs":4,"qs":40},{"id":"lc-d04","code":"LC4","title":"LangChain 4일차 · LCEL 복합 체인·모델 파라미터·출력 파서","subtitle":"LCEL 체인·라우팅 · 모델 파라미터·bind · CSV·JSON 출력 파서","href":"05-langchain-agent/day04.html","tabs":6,"qs":60},{"id":"lc-d05","code":"LC5","title":"LangChain 5일차 · 출력 파서 (CSV·JSON 파서·Pydantic 스키마)","subtitle":"CommaSeparatedListOutputParser · JsonOutputParser · Pydantic BaseModel","href":"05-langchain-agent/day05.html","tabs":3,"qs":30},{"id":"lc-d06","code":"LC6","title":"LangChain 6일차 · 문서 로더 (PDF·Word·CSV 로더·텍스트 추출·문서 분석기)","subtitle":"Document Loader · CSVLoader·Document 결합 · 확장자별 로더 자동 선택","href":"05-langchain-agent/day06.html","tabs":6,"qs":60},{"id":"lc-d07","code":"LC7","title":"LangChain 7일차 · Runnable 인터페이스 (실행 메서드·Parallel·Passthrough·Lambda·@chain)","subtitle":"invoke·batch·stream 실행 메서드 · RunnableParallel·Passthrough·Lambda · ConfigurableField·@chain","href":"05-langchain-agent/day07.html","tabs":8,"qs":80},{"id":"lc-d08","code":"LC8","title":"LangChain 8일차 · RAG 기초 (TextSplitter·FAISS·LCEL RAG 체인)","subtitle":"RAG 개념·구성 요소 · TextSplitter 청크 분할 · FAISS·LCEL RAG 체인","href":"05-langchain-agent/day08.html","tabs":7,"qs":70},{"id":"lc-d09","code":"LC9","title":"LangChain 9일차 · RAG LCEL 파이프라인과 대화형 RAG","subtitle":"RAG 8단계 LCEL 체인 · Chat Memory·Query Rewriting · BM25+FAISS 앙상블","href":"05-langchain-agent/day09.html","tabs":7,"qs":70},{"id":"lc-d10","code":"LC10","title":"LangChain 10일차 · 다문서 RAG QA 챗봇과 Text Splitter","subtitle":"Chroma 다문서 RAG 챗봇 · Chunk 품질 평가 · Text Splitter·토큰 분할","href":"05-langchain-agent/day10.html","tabs":7,"qs":70},{"id":"lc-d11","code":"LC11","title":"LangChain 11일차 · 임베딩 · 벡터스토어 · 다문서 RAG 챗봇","subtitle":"임베딩·코사인 유사도 · FAISS·Chroma VectorStore · LCEL RAG 챗봇","href":"05-langchain-agent/day11.html","tabs":8,"qs":80},{"id":"lc-d12","code":"LC12","title":"LangChain 12일차 · Gradio PDF RAG 챗봇 (카카오톡·텔레그램 스타일)","subtitle":"Gradio 챗봇 UI · PDF RAG LCEL 체인 · 카톡·텔레그램 스타일 챗봇","href":"05-langchain-agent/day12.html","tabs":8,"qs":80},{"id":"lc-d13","code":"LC13","title":"LangChain 13일차 · Whisper 음성 RAG · 회의록 멀티에이전트 · LangGraph","subtitle":"Whisper 음성 RAG · 회의록 멀티에이전트 · LangGraph 슈퍼바이저","href":"05-langchain-agent/day13.html","tabs":9,"qs":90},{"id":"lc-d14","code":"LC14","title":"LangChain 14일차 · LangGraph 메일 에이전트 · LCEL 메일 분석기 · RAG 리뷰 루프","subtitle":"LangGraph 메일 에이전트 · LCEL 메일 분석 파이프라인 · RAG 리뷰 루프","href":"05-langchain-agent/day14.html","tabs":5,"qs":50}]}]},{"num":"06","title":"인텔 Physical AI · AI 비전 · OpenVINO","keys":["리눅스","파이썬","OpenCV","OpenVINO","CPU·GPU·NPU 비교"],"courses":[{"title":"리눅스 → 파이썬 → OpenCV → OpenVINO 엣지 AI","banks":[{"id":"ov-linux","code":"LX","title":"리눅스 실습 노트 · 우분투로 배우는 리눅스 기본","subtitle":"리눅스·우분투 개념 · 14가지 핵심 명령어 실습 · 권한·프로세스·쉘 스크립트","href":"06-ai-openVino/01-linux.html","tabs":6,"qs":60},{"id":"ov-python","code":"PY","title":"파이썬 기초부터 이미지처리까지","subtitle":"파이썬 문법·클래스 · NumPy·Pandas · 이미지처리 이론","href":"06-ai-openVino/02-python.html","tabs":10,"qs":100},{"id":"ov-devenv","code":"ENV","title":"우분투 개발 환경 구축 · Python 3.11 · VS Code · OpenVINO","subtitle":"Python 3.11 설치 · 가상환경(venv) · OpenVINO 설치와 검증","href":"06-ai-openVino/03-dev-env.html","tabs":4,"qs":40},{"id":"ov-intro","code":"OV","title":"OpenVINO란 무엇인가","subtitle":"OpenVINO와 엣지 AI · OpenCV·PyTorch · LeRobot과 AI 에이전트","href":"06-ai-openVino/04-what-is-openvino.html","tabs":3,"qs":30},{"id":"ov-opencv","code":"CV","title":"OpenCV · 컴퓨터 비전 기초부터 객체 검출까지","subtitle":"이미지 데이터·색상 공간 · 필터링·모폴로지·윤곽선 · 비디오·객체 검출·DNN","href":"06-ai-openVino/05-opencv.html","tabs":9,"qs":90},{"id":"ov-runtime","code":"RT","title":"OpenVINO 심화와 비전 AI 프로젝트","subtitle":"추론 파이프라인·전후처리 · 디바이스 최적화·INT8 · 물류 자동 계수","href":"06-ai-openVino/06-runtime.html","tabs":8,"qs":80},{"id":"ov-bench","code":"BM","title":"CPU · GPU · NPU 속도 비교","subtitle":"디바이스 특성과 드라이버 · benchmark_app 측정 · Throughput·Latency 해석","href":"06-ai-openVino/07-device-benchmark.html","tabs":3,"qs":30}]}]},{"num":"07","title":"Physical AI · 자율주행","keys":["Jetson","LLM·VLM","OpenCV·MediaPipe","ROS 2","VLA"],"courses":[{"title":"Jetson → LLM·VLM → OpenCV·ROS → Pseudo-VLA → VLA (5일)","banks":[{"id":"pai-d1","code":"PA1","title":"Physical AI 1일차 · Jetson · Ubuntu · 실습 환경","subtitle":"Jetson·Ubuntu 기초 · Docker·원격 접속 · Python·C++ 연동","href":"07-physical-ai/01-jetson-ubuntu.html","tabs":9,"qs":90},{"id":"pai-python","code":"PAP","title":"Physical AI · Python 기초와 자료구조","subtitle":"변수·조건·반복·함수 · 리스트·튜플·딕셔너리 · 센서 보고서","href":"07-physical-ai/02-python.html","tabs":5,"qs":50},{"id":"pai-cpp","code":"PAC","title":"Physical AI · C++ 기초 · 메모리 · STL · CMake","subtitle":"값·참조·포인터 · STL 컨테이너 · CMake와 Python 연동","href":"07-physical-ai/03-cpp.html","tabs":9,"qs":90},{"id":"pai-llm-train","code":"PL1","title":"Physical AI 2일차 · LLM 학습 원리 (RNN·LSTM·Seq2Seq·Transformer)","subtitle":"훈련 원리(loss·gradient) · RNN·LSTM·Attention · Ollama 추론","href":"07-physical-ai/04-llm-training.html","tabs":8,"qs":80},{"id":"pai-llm-apps","code":"PL2","title":"Physical AI 2일차 · LLM 활용 (프롬프트·Tool·RAG·에이전트)","subtitle":"LangChain 호출·대화 이력 · Tool Calling·RAG · 배심원·판사 Agent","href":"07-physical-ai/05-llm-apps.html","tabs":6,"qs":60},{"id":"pai-vlm","code":"PV","title":"Physical AI 2일차 · VLM (이미지 질문·카메라 기록·구조화 결과)","subtitle":"이미지 압축·전송 · 최신 프레임 관찰 기록 · 구조화 결과 검증","href":"07-physical-ai/06-vlm.html","tabs":5,"qs":50},{"id":"pai-cv-mp","code":"PCV","title":"Physical AI 3일차 · OpenCV · MediaPipe","subtitle":"이미지 배열·입출력 · 색 mask·letterbox · 얼굴·손 특징점 규칙","href":"07-physical-ai/07-opencv-mediapipe.html","tabs":7,"qs":70},{"id":"pai-ros","code":"PR","title":"Physical AI 3일차 · ROS 2 (노드·토픽·turtlesim·카메라·launch)","subtitle":"Node·Topic·Message · Graph·QoS·Image · TTL·watchdog·launch","href":"07-physical-ai/08-ros.html","tabs":6,"qs":60},{"id":"pai-pvla","code":"PPV","title":"Physical AI 4일차 · 좌표 기반 Pseudo-VLA","subtitle":"규칙·VLM 손 추종 · 지연·TTL · YOLO pose → LLM → ROS","href":"07-physical-ai/09-pseudo-vla.html","tabs":9,"qs":90},{"id":"pai-vla","code":"PVA","title":"Physical AI 5일차 · 학습된 VLA 정책과 시뮬레이션","subtitle":"VLA 원리·행동 묶음 · 시뮬레이션 추론·폐루프 · 조건별 평가와 자습","href":"07-physical-ai/10-vla.html","tabs":10,"qs":100}]}]},{"num":"08","title":"임베디드 · 시스템 SW","keys":["Python","C 언어","컴퓨터 구조","운영체제","리눅스 시스템","ESP32·GPIO"],"courses":[{"title":"Python → C → 컴퓨터 구조 → 운영체제 → 리눅스 → ESP32 MCU → 라즈베리파이 입출력","banks":[{"id":"emb-python","code":"EPY","title":"임베디드 SW · Python 기초 (4일)","subtitle":"자료형·비트·제어 · 자료구조·클래스·파일 · NumPy·pandas","href":"08-embedded-sw/01-python.html","tabs":11,"qs":110},{"id":"emb-c","code":"EC","title":"임베디드 SW · C 언어 (4일)","subtitle":"빌드·자료형 · 포인터·동적 메모리 · 비트 연산·파일 I/O","href":"08-embedded-sw/02-c.html","tabs":10,"qs":100},{"id":"emb-arch","code":"EAR","title":"임베디드 SW · 컴퓨터 구조 (3일)","subtitle":"4대 부품과 사양표 · 2진수·문자·색 · 게이트에서 명령 실행까지","href":"08-embedded-sw/03-computer-architecture.html","tabs":8,"qs":80},{"id":"emb-os","code":"EOS","title":"임베디드 SW · 운영체제 활용 (3일)","subtitle":"File System과 CLI · Process와 자원 · 커널 파일과 Script 자동화","href":"08-embedded-sw/04-os.html","tabs":10,"qs":100},{"id":"emb-linux","code":"ELX","title":"임베디드 SW · 리눅스 시스템 프로그래밍 (5일)","subtitle":"시스템 콜·프로세스 · 스케줄링·메모리 · 파일·sysfs·쓰레드 동기화","href":"08-embedded-sw/05-linux.html","tabs":11,"qs":110},{"id":"emb-mcu","code":"EMC","title":"임베디드 SW · MCU 프로그래밍 (4일)","subtitle":"GPIO·인터럽트·PWM · ADC·센서·I2C · FreeRTOS·Wi-Fi·디버깅","href":"08-embedded-sw/06-mcu.html","tabs":9,"qs":90},{"id":"emb-io","code":"EIO","title":"임베디드 SW · 임베디드 입출력 (3일, Raspberry Pi GPIO·PWM)","subtitle":"Pi 설정·Device Tree · libgpiod GPIO·이벤트 · PWM·모터·초음파","href":"08-embedded-sw/07-embedded-io.html","tabs":7,"qs":70}]}]},{"num":"09","title":"Android 프레임워크","keys":["AOSP 빌드","Binder·AIDL","Native 서비스·HAL","Looper·JNI","SystemUI·Automotive"],"courses":[{"title":"AOSP · Binder → Native 서비스·HAL → sp/Looper/JNI → SystemUI·Automotive (4일)","banks":[{"id":"aosp-d1","code":"AF1","title":"Android 프레임워크 1일차 · 환경 설정 · Boot · Binder/AIDL","subtitle":"AOSP 빌드 환경 · Boot·Binder 구조 · AIDL·IPC 패턴","href":"09-android-framework/day1.html","tabs":8,"qs":80},{"id":"aosp-d2","code":"AF2","title":"Android 프레임워크 2일차 · Native Binder · AIDL · HAL","subtitle":"수작업 Bn/Bp와 Parcel · AIDL 보안과 init.rc · AIDL HAL과 VINTF","href":"09-android-framework/day2.html","tabs":8,"qs":80},{"id":"aosp-d3","code":"AF3","title":"Android 프레임워크 3일차 · sp/wp · Thread·Looper · JNI · SurfaceFlinger · 공유 메모리","subtitle":"sp/wp·Thread·Looper · JNI·SurfaceFlinger · 공유 메모리·LMKD","href":"09-android-framework/day3.html","tabs":9,"qs":90},{"id":"aosp-d4","code":"AF4","title":"Android 프레임워크 4일차 · APEX · RRO · SystemUI · WindowManager · Automotive","subtitle":"APEX·RRO 델타 배포 · SystemUI·WindowManager · CarService·VHAL","href":"09-android-framework/day4.html","tabs":9,"qs":90}]}]},{"num":"10","title":"Go 언어 프로그래밍","keys":["Go 기초","모듈·Cobra CLI","고루틴·채널","Context·Worker Pool","웹 서버·테스트"],"courses":[{"title":"Go 기초 → 모듈·CLI → 동시성 → 테스트·도구 → 웹 서버 (5일)","banks":[{"id":"go-d1","code":"GO1","title":"Go 언어 1일차 · C에서 Go로 (기본 문법·자료구조·인터페이스)","subtitle":"변수·함수·포인터 · 슬라이스·맵 · 인터페이스","href":"10-go-programming/day1.html","tabs":8,"qs":80},{"id":"go-d2","code":"GO2","title":"Go 언어 2일차 · 에러 처리·모듈·패키지·빌드 시스템","subtitle":"에러 처리 · 모듈·패키지 · 빌드·CLI·벤치마크","href":"10-go-programming/day2.html","tabs":10,"qs":100},{"id":"go-d3","code":"GO3","title":"Go 언어 3일차 · 동시성 (고루틴·채널·sync 패키지)","subtitle":"고루틴·스케줄러 · 채널·select · sync·Producer-Consumer","href":"10-go-programming/day3.html","tabs":9,"qs":90},{"id":"go-d4","code":"GO4","title":"Go 언어 4일차 · 동시성 심화 (select·Context·Worker Pool·Pipeline)","subtitle":"select·타임아웃 · Context 취소 전파 · Worker Pool·Pipeline","href":"10-go-programming/day4.html","tabs":9,"qs":90},{"id":"go-d5","code":"GO5","title":"Go 언어 5일차 · net/http·JSON·테스트·디버깅·pprof·CGo","subtitle":"net/http·JSON · 테스트·로깅·디버깅 · pprof·CGo","href":"10-go-programming/day5.html","tabs":15,"qs":150}]}]}],"built":"2026-10-16"};
-const app=document.getElementById('app');
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function progress(b){
-  try{const s=JSON.parse(localStorage.getItem('qb:'+b.id+':v1')||'null');if(!s)return {done:0,wrong:0};
-    return {done:Object.keys(s.tabs||{}).length,wrong:Object.values(s.wrong||{}).filter(w=>!w.solved).length};}
-  catch(e){return {done:0,wrong:0};}
+/* 예전 북마크 index.html#04 → dashboard.html#04 */
+if(/^#\d{2}$/.test(location.hash)){location.replace('dashboard.html'+location.hash);return;}
+const CAT={"stages":[{"num":"01","title":"AI 업무 활용","subject":"it","keys":["생성형 AI","프롬프트","업무 자동화","엑셀 실무","Claude 교육 활용"],"courses":[{"title":"생성형 AI + 노코드 업무 자동화","banks":[{"id":"ai-automation-m1","code":"M1","title":"모듈1 · AI와 업무 자동화 개론","subtitle":"AI 개념 · 프롬프트 R-C-T-F-C · 업무 진단과 AS-IS/TO-BE","subject":"it","href":"01-ai-work/ai-automation/module1.html","tabs":6,"qs":60},{"id":"ai-automation-m2","code":"M2","title":"모듈2 · 문서·커뮤니케이션 업무 효율화","subtitle":"문서 패턴(보고서·기획안·매뉴얼) · 회의록·요약 · 메일 톤과 템플릿","subject":"it","href":"01-ai-work/ai-automation/module2.html","tabs":5,"qs":50},{"id":"ai-automation-m3","code":"M3","title":"모듈3 · 스프레드시트·데이터 작업 자동화","subtitle":"엑셀 AI 분석 · 반복 보고서 템플릿 · 트리거–액션–LLM 자동화","subject":"it","href":"01-ai-work/ai-automation/module3.html","tabs":6,"qs":60}]},{"title":"AI 엑셀 실무","banks":[{"id":"ai-excel","code":"EX","title":"AI 엑셀 실무 · ChatGPT·Gemini로 하는 비즈니스 엑셀","subtitle":"함수 자동화 · 데이터 정제와 검증 · VBA 매크로","subject":"it","href":"01-ai-work/ai-excel/ai-excel.html","tabs":8,"qs":80}]},{"title":"Claude 활용 교육","banks":[{"id":"claude-edu-d1","code":"CE1","title":"Claude 활용 교육 1일차 · 수업 목표 구조화","subtitle":"LLM 원리와 환각 · Bloom 학습목표 · [교수 확인 필요] 명세서","subject":"it","href":"01-ai-work/claude-for-educators/day1.html","tabs":6,"qs":60},{"id":"claude-edu-d2","code":"CE2","title":"Claude 활용 교육 2일차 · 평가 문항 설계","subtitle":"타당도·신뢰도 · 매력적 오답 · 루브릭과 피드백","subject":"it","href":"01-ai-work/claude-for-educators/day2.html","tabs":5,"qs":50},{"id":"claude-edu-d3","code":"CE3","title":"Claude 활용 교육 3일차 · AI 활용 교수 프로토콜","subtitle":"학생 AI 신호등 규칙 · 바이브코딩 연습 도구 · AI 활용 교수 프로토콜","subject":"it","href":"01-ai-work/claude-for-educators/day3.html","tabs":6,"qs":60}]}]},{"num":"02","title":"개발 기초","subject":"it","keys":["Git","GitHub 협업","바이브코딩","프롬프트 기법","웹 앱 프로토타입"],"courses":[{"title":"Git · GitHub 입문","banks":[{"id":"git-basics","code":"GIT","title":"Git · GitHub 입문 · 8교시 실습","subtitle":"커밋과 브랜치 · 충돌과 되돌리기 · GitHub 협업","subject":"it","href":"02-dev-basics/git/git.html","tabs":8,"qs":80}]},{"title":"비개발자 바이브코딩","banks":[{"id":"vibe-d1","code":"VC1","title":"바이브코딩 Day 1 · AI와 일하는 법 & AI 기초","subtitle":"AI 도구 비교 · 업무 문서 프롬프트 · AI 보안","subject":"it","href":"02-dev-basics/vibe-coding/day1.html","tabs":4,"qs":40},{"id":"vibe-d2","code":"VC2","title":"바이브코딩 Day 2 · 프롬프트 엔지니어링 마스터","subtitle":"CRISP 템플릿 · Few-Shot·CoT·페르소나 · 프롬프트 체이닝","subject":"it","href":"02-dev-basics/vibe-coding/day2.html","tabs":7,"qs":70},{"id":"vibe-d3","code":"VC3","title":"바이브코딩 Day 3 · AI 기반 바이브 코딩 실전","subtitle":"웹 앱 만들기 · 수정 요청과 디버깅 · 업무 도구 프로토타입","subject":"it","href":"02-dev-basics/vibe-coding/day3.html","tabs":5,"qs":50},{"id":"vibe-d4","code":"VC4","title":"바이브코딩 Day 4 · 결과물 공유 & 업무 활용 전략","subtitle":"발표·동료 평가 · 업무 적용 전략과 30일 플랜 · 페르소나·프롬프트 리파이닝","subject":"it","href":"02-dev-basics/vibe-coding/day4.html","tabs":6,"qs":60},{"id":"vibe-nb-basic","code":"VB","title":"바이브코딩 기본 노트북 · 세션 0~4","subtitle":"Claude×Colab 워크플로 · 추천·이미지·감성 AI · 시계열 예측","subject":"it","href":"02-dev-basics/vibe-coding/nb-basic.html","tabs":5,"qs":50},{"id":"vibe-nb-adv","code":"VA","title":"바이브코딩 중급 노트북 · Claude Code·시뮬레이터·사다리게임","subtitle":"CLAUDE.md·Plan 모드 · Canvas 인터랙션 · 알고리즘 프롬프트","subject":"it","href":"02-dev-basics/vibe-coding/nb-intermediate.html","tabs":4,"qs":40},{"id":"vibe-textbook","code":"VCT","title":"바이브코딩 교재 · AI 바이브 코딩 실전 과정 20H","subtitle":"생성형 AI와 모델 비교 · 프롬프트 엔지니어링 · 바이브 코딩과 업무 적용 전략","subject":"it","href":"02-dev-basics/vibe-coding/textbook.html","tabs":7,"qs":70},{"id":"vibe-transformer","code":"TF","title":"Transformer 완전 해부","subtitle":"Self-Attention·Multi-Head · Encoder·Decoder 구조 · 학습 전략과 현대 LLM","subject":"it","href":"02-dev-basics/vibe-coding/transformer.html","tabs":3,"qs":30}]}]},{"num":"03","title":"n8n 자동화","subject":"it","keys":["n8n","워크플로우","Google Sheets·Gmail","Webhook","AI 노드","블로그 자동 발행"],"courses":[{"title":"n8n + AI 교육 업무 자동화","banks":[{"id":"n8n-edu-p1","code":"NE1","title":"n8n 교육 자동화 1교시 · n8n 소개와 환경 구축","subtitle":"n8n Cloud 가입 · 첫 워크플로우 · 노드·엣지·JSON 핵심 개념","subject":"it","href":"03-n8n-automation/n8n-edu-agent/period1.html","tabs":4,"qs":40},{"id":"n8n-edu-p2","code":"NE2","title":"n8n 교육 자동화 2교시 · 핵심 노드와 데이터 연동","subtitle":"Google Sheets 읽기·쓰기 · Edit Fields·IF·Switch · Gmail 상태별 발송","subject":"it","href":"03-n8n-automation/n8n-edu-agent/period2.html","tabs":5,"qs":50},{"id":"n8n-edu-p3","code":"NE3","title":"n8n 교육 자동화 3교시 · 교육서비스업 자동화 ①","subtitle":"Webhook 수강 신청 처리 · 중복 체크와 응답 · Schedule 수업 리마인더","subject":"it","href":"03-n8n-automation/n8n-edu-agent/period3.html","tabs":4,"qs":40},{"id":"n8n-edu-p4","code":"NE4","title":"n8n 교육 자동화 4교시 · 교육서비스업 자동화 ②","subtitle":"피드백 수집과 Code 집계 · 만족도 경고 · 수업 자료 자동 배포","subject":"it","href":"03-n8n-automation/n8n-edu-agent/period4.html","tabs":4,"qs":40},{"id":"n8n-edu-p5","code":"NE5","title":"n8n 교육 자동화 5교시 · AI API 연동 & 프롬프트","subtitle":"OpenAI·Claude·Gemini 노드 · 응답 표현식 · 비용과 보안","subject":"it","href":"03-n8n-automation/n8n-edu-agent/period5.html","tabs":6,"qs":60},{"id":"n8n-edu-p6","code":"NE6","title":"n8n 교육 자동화 6교시 · AI 기반 교육서비스 자동화","subtitle":"Q&A 자동 응답 봇 · 피드백 AI 리포트 · 콘텐츠·이메일 생성","subject":"it","href":"03-n8n-automation/n8n-edu-agent/period6.html","tabs":6,"qs":60},{"id":"n8n-edu-p7","code":"NE7","title":"n8n 교육 자동화 7교시 · 멀티미디어 AI 활용","subtitle":"이미지 OCR·생성 · PDF·녹음 분석 · 멀티모달 파이프라인","subject":"it","href":"03-n8n-automation/n8n-edu-agent/period7.html","tabs":6,"qs":60}]},{"title":"n8n 블로그 자동 발행","banks":[{"id":"n8n-blog","code":"NB","title":"n8n 블로그 자동 발행 · 패션 블로그 자동화 4시간","subtitle":"Docker 자체 호스팅 · AI 글·룩북 이미지 생성 · WordPress 자동 초안","subject":"it","href":"03-n8n-automation/n8n-blog/n8n-blog.html","tabs":10,"qs":100}]}]},{"num":"04","title":"음성 AI","subject":"it","keys":["ASR·TTS","STFT·MFCC","잡음 제거·VAD","CTC·Wav2Vec2","Whisper"],"courses":[{"title":"음성 AI 전문가 과정 Day 1~8","banks":[{"id":"voice-d1","code":"V1","title":"음성 AI Day 1 · 음성 AI 첫걸음","subtitle":"ASR·TTS·Voice Agent · Colab 개발환경 · CER·RTF","subject":"it","href":"04-voice-ai/day01.html","tabs":1,"qs":15},{"id":"voice-d2","code":"V2","title":"음성 AI Day 2 · 디지털 오디오 기초","subtitle":"샘플링·나이퀴스트 · 양자화·채널 · 포맷·pydub 전처리","subject":"it","href":"04-voice-ai/day02.html","tabs":4,"qs":40},{"id":"voice-d3","code":"V3","title":"음성 AI Day 3 · 주파수 분석","subtitle":"배음·포먼트·DFT · 창 함수·STFT · Mel·MFCC","subject":"it","href":"04-voice-ai/day03.html","tabs":4,"qs":40},{"id":"voice-d4","code":"V4","title":"음성 AI Day 4 · 오디오 전처리","subtitle":"SNR·정규화·필터 · 스펙트럼 차감·Wiener · VAD·Silero","subject":"it","href":"04-voice-ai/day04.html","tabs":4,"qs":40},{"id":"voice-d5","code":"V5","title":"음성 AI Day 5 · 딥러닝 오디오 분류","subtitle":"Log-Mel 입력 · CNN·softmax·cross-entropy · 학습 루프·SpecAugment","subject":"it","href":"04-voice-ai/day05.html","tabs":4,"qs":40},{"id":"voice-d6","code":"V6","title":"음성 AI Day 6 · ASR 원리","subtitle":"CTC · Wav2Vec2 디코딩 · AED·Transducer·자기지도 학습","subject":"it","href":"04-voice-ai/day06.html","tabs":4,"qs":40},{"id":"voice-d7","code":"V7","title":"음성 AI Day 7 · Whisper 심층 분석","subtitle":"30초 창·특수 토큰 · 모델 선택·디코딩 옵션 · 환각 대응","subject":"it","href":"04-voice-ai/day07.html","tabs":4,"qs":40},{"id":"voice-d8","code":"V8","title":"음성 AI Day 8 · 추론 최적화 & 스트리밍","subtitle":"faster-whisper·양자화 · whisper.cpp · LocalAgreement 스트리밍","subject":"it","href":"04-voice-ai/day08.html","tabs":4,"qs":40}]}]},{"num":"05","title":"LangChain · RAG · Agent","subject":"it","keys":["LangChain LCEL","RAG","Gradio","음성 RAG","LangGraph"],"courses":[{"title":"LangChain LCEL → RAG → Gradio → 음성 RAG → LangGraph (14일)","banks":[{"id":"lc-d01","code":"LC1","title":"LangChain 1일차 · 프롬프트 템플릿과 LCEL 대화형 챗봇","subtitle":"프롬프트 원칙·템플릿 요소 · ChatPromptTemplate·LCEL · 대화 메모리 챗봇","subject":"it","href":"05-langchain-agent/day01.html","tabs":3,"qs":30},{"id":"lc-d02","code":"LC2","title":"LangChain 2일차 · LangGraph 어시스턴트와 LCEL 프롬프트 실습","subtitle":"LangGraph 어시스턴트 · stream·MessagePromptTemplate · LCEL 실습 문제","subject":"it","href":"05-langchain-agent/day02.html","tabs":4,"qs":40},{"id":"lc-d03","code":"LC3","title":"LangChain 3일차 · Few-shot 프롬프트·예제 선택기·LangGraph","subtitle":"FewShotPromptTemplate · SemanticSimilarityExampleSelector · FewShotChatMessagePromptTemplate","subject":"it","href":"05-langchain-agent/day03.html","tabs":4,"qs":40},{"id":"lc-d04","code":"LC4","title":"LangChain 4일차 · LCEL 복합 체인·모델 파라미터·출력 파서","subtitle":"LCEL 체인·라우팅 · 모델 파라미터·bind · CSV·JSON 출력 파서","subject":"it","href":"05-langchain-agent/day04.html","tabs":6,"qs":60},{"id":"lc-d05","code":"LC5","title":"LangChain 5일차 · 출력 파서 (CSV·JSON 파서·Pydantic 스키마)","subtitle":"CommaSeparatedListOutputParser · JsonOutputParser · Pydantic BaseModel","subject":"it","href":"05-langchain-agent/day05.html","tabs":3,"qs":30},{"id":"lc-d06","code":"LC6","title":"LangChain 6일차 · 문서 로더 (PDF·Word·CSV 로더·텍스트 추출·문서 분석기)","subtitle":"Document Loader · CSVLoader·Document 결합 · 확장자별 로더 자동 선택","subject":"it","href":"05-langchain-agent/day06.html","tabs":6,"qs":60},{"id":"lc-d07","code":"LC7","title":"LangChain 7일차 · Runnable 인터페이스 (실행 메서드·Parallel·Passthrough·Lambda·@chain)","subtitle":"invoke·batch·stream 실행 메서드 · RunnableParallel·Passthrough·Lambda · ConfigurableField·@chain","subject":"it","href":"05-langchain-agent/day07.html","tabs":8,"qs":80},{"id":"lc-d08","code":"LC8","title":"LangChain 8일차 · RAG 기초 (TextSplitter·FAISS·LCEL RAG 체인)","subtitle":"RAG 개념·구성 요소 · TextSplitter 청크 분할 · FAISS·LCEL RAG 체인","subject":"it","href":"05-langchain-agent/day08.html","tabs":7,"qs":70},{"id":"lc-d09","code":"LC9","title":"LangChain 9일차 · RAG LCEL 파이프라인과 대화형 RAG","subtitle":"RAG 8단계 LCEL 체인 · Chat Memory·Query Rewriting · BM25+FAISS 앙상블","subject":"it","href":"05-langchain-agent/day09.html","tabs":7,"qs":70},{"id":"lc-d10","code":"LC10","title":"LangChain 10일차 · 다문서 RAG QA 챗봇과 Text Splitter","subtitle":"Chroma 다문서 RAG 챗봇 · Chunk 품질 평가 · Text Splitter·토큰 분할","subject":"it","href":"05-langchain-agent/day10.html","tabs":7,"qs":70},{"id":"lc-d11","code":"LC11","title":"LangChain 11일차 · 임베딩 · 벡터스토어 · 다문서 RAG 챗봇","subtitle":"임베딩·코사인 유사도 · FAISS·Chroma VectorStore · LCEL RAG 챗봇","subject":"it","href":"05-langchain-agent/day11.html","tabs":8,"qs":80},{"id":"lc-d12","code":"LC12","title":"LangChain 12일차 · Gradio PDF RAG 챗봇 (카카오톡·텔레그램 스타일)","subtitle":"Gradio 챗봇 UI · PDF RAG LCEL 체인 · 카톡·텔레그램 스타일 챗봇","subject":"it","href":"05-langchain-agent/day12.html","tabs":8,"qs":80},{"id":"lc-d13","code":"LC13","title":"LangChain 13일차 · Whisper 음성 RAG · 회의록 멀티에이전트 · LangGraph","subtitle":"Whisper 음성 RAG · 회의록 멀티에이전트 · LangGraph 슈퍼바이저","subject":"it","href":"05-langchain-agent/day13.html","tabs":9,"qs":90},{"id":"lc-d14","code":"LC14","title":"LangChain 14일차 · LangGraph 메일 에이전트 · LCEL 메일 분석기 · RAG 리뷰 루프","subtitle":"LangGraph 메일 에이전트 · LCEL 메일 분석 파이프라인 · RAG 리뷰 루프","subject":"it","href":"05-langchain-agent/day14.html","tabs":5,"qs":50}]}]},{"num":"06","title":"인텔 Physical AI · AI 비전 · OpenVINO","subject":"it","keys":["리눅스","파이썬","OpenCV","OpenVINO","CPU·GPU·NPU 비교"],"courses":[{"title":"리눅스 → 파이썬 → OpenCV → OpenVINO 엣지 AI","banks":[{"id":"ov-linux","code":"LX","title":"리눅스 실습 노트 · 우분투로 배우는 리눅스 기본","subtitle":"리눅스·우분투 개념 · 14가지 핵심 명령어 실습 · 권한·프로세스·쉘 스크립트","subject":"it","href":"06-ai-openVino/01-linux.html","tabs":6,"qs":60},{"id":"ov-python","code":"PY","title":"파이썬 기초부터 이미지처리까지","subtitle":"파이썬 문법·클래스 · NumPy·Pandas · 이미지처리 이론","subject":"it","href":"06-ai-openVino/02-python.html","tabs":10,"qs":100},{"id":"ov-devenv","code":"ENV","title":"우분투 개발 환경 구축 · Python 3.11 · VS Code · OpenVINO","subtitle":"Python 3.11 설치 · 가상환경(venv) · OpenVINO 설치와 검증","subject":"it","href":"06-ai-openVino/03-dev-env.html","tabs":4,"qs":40},{"id":"ov-intro","code":"OV","title":"OpenVINO란 무엇인가","subtitle":"OpenVINO와 엣지 AI · OpenCV·PyTorch · LeRobot과 AI 에이전트","subject":"it","href":"06-ai-openVino/04-what-is-openvino.html","tabs":3,"qs":30},{"id":"ov-opencv","code":"CV","title":"OpenCV · 컴퓨터 비전 기초부터 객체 검출까지","subtitle":"이미지 데이터·색상 공간 · 필터링·모폴로지·윤곽선 · 비디오·객체 검출·DNN","subject":"it","href":"06-ai-openVino/05-opencv.html","tabs":9,"qs":90},{"id":"ov-runtime","code":"RT","title":"OpenVINO 심화와 비전 AI 프로젝트","subtitle":"추론 파이프라인·전후처리 · 디바이스 최적화·INT8 · 물류 자동 계수","subject":"it","href":"06-ai-openVino/06-runtime.html","tabs":8,"qs":80},{"id":"ov-bench","code":"BM","title":"CPU · GPU · NPU 속도 비교","subtitle":"디바이스 특성과 드라이버 · benchmark_app 측정 · Throughput·Latency 해석","subject":"it","href":"06-ai-openVino/07-device-benchmark.html","tabs":3,"qs":30}]}]},{"num":"07","title":"Physical AI · 자율주행","subject":"it","keys":["Jetson","LLM·VLM","OpenCV·MediaPipe","ROS 2","VLA"],"courses":[{"title":"Jetson → LLM·VLM → OpenCV·ROS → Pseudo-VLA → VLA (5일)","banks":[{"id":"pai-d1","code":"PA1","title":"Physical AI 1일차 · Jetson · Ubuntu · 실습 환경","subtitle":"Jetson·Ubuntu 기초 · Docker·원격 접속 · Python·C++ 연동","subject":"it","href":"07-physical-ai/01-jetson-ubuntu.html","tabs":9,"qs":90},{"id":"pai-python","code":"PAP","title":"Physical AI · Python 기초와 자료구조","subtitle":"변수·조건·반복·함수 · 리스트·튜플·딕셔너리 · 센서 보고서","subject":"it","href":"07-physical-ai/02-python.html","tabs":5,"qs":50},{"id":"pai-cpp","code":"PAC","title":"Physical AI · C++ 기초 · 메모리 · STL · CMake","subtitle":"값·참조·포인터 · STL 컨테이너 · CMake와 Python 연동","subject":"it","href":"07-physical-ai/03-cpp.html","tabs":9,"qs":90},{"id":"pai-llm-train","code":"PL1","title":"Physical AI 2일차 · LLM 학습 원리 (RNN·LSTM·Seq2Seq·Transformer)","subtitle":"훈련 원리(loss·gradient) · RNN·LSTM·Attention · Ollama 추론","subject":"it","href":"07-physical-ai/04-llm-training.html","tabs":8,"qs":80},{"id":"pai-llm-apps","code":"PL2","title":"Physical AI 2일차 · LLM 활용 (프롬프트·Tool·RAG·에이전트)","subtitle":"LangChain 호출·대화 이력 · Tool Calling·RAG · 배심원·판사 Agent","subject":"it","href":"07-physical-ai/05-llm-apps.html","tabs":6,"qs":60},{"id":"pai-vlm","code":"PV","title":"Physical AI 2일차 · VLM (이미지 질문·카메라 기록·구조화 결과)","subtitle":"이미지 압축·전송 · 최신 프레임 관찰 기록 · 구조화 결과 검증","subject":"it","href":"07-physical-ai/06-vlm.html","tabs":5,"qs":50},{"id":"pai-cv-mp","code":"PCV","title":"Physical AI 3일차 · OpenCV · MediaPipe","subtitle":"이미지 배열·입출력 · 색 mask·letterbox · 얼굴·손 특징점 규칙","subject":"it","href":"07-physical-ai/07-opencv-mediapipe.html","tabs":7,"qs":70},{"id":"pai-ros","code":"PR","title":"Physical AI 3일차 · ROS 2 (노드·토픽·turtlesim·카메라·launch)","subtitle":"Node·Topic·Message · Graph·QoS·Image · TTL·watchdog·launch","subject":"it","href":"07-physical-ai/08-ros.html","tabs":6,"qs":60},{"id":"pai-pvla","code":"PPV","title":"Physical AI 4일차 · 좌표 기반 Pseudo-VLA","subtitle":"규칙·VLM 손 추종 · 지연·TTL · YOLO pose → LLM → ROS","subject":"it","href":"07-physical-ai/09-pseudo-vla.html","tabs":9,"qs":90},{"id":"pai-vla","code":"PVA","title":"Physical AI 5일차 · 학습된 VLA 정책과 시뮬레이션","subtitle":"VLA 원리·행동 묶음 · 시뮬레이션 추론·폐루프 · 조건별 평가와 자습","subject":"it","href":"07-physical-ai/10-vla.html","tabs":10,"qs":100}]}]},{"num":"08","title":"임베디드 · 시스템 SW","subject":"it","keys":["Python","C 언어","컴퓨터 구조","운영체제","리눅스 시스템","ESP32·GPIO"],"courses":[{"title":"Python → C → 컴퓨터 구조 → 운영체제 → 리눅스 → ESP32 MCU → 라즈베리파이 입출력","banks":[{"id":"emb-python","code":"EPY","title":"임베디드 SW · Python 기초 (4일)","subtitle":"자료형·비트·제어 · 자료구조·클래스·파일 · NumPy·pandas","subject":"it","href":"08-embedded-sw/01-python.html","tabs":11,"qs":110},{"id":"emb-c","code":"EC","title":"임베디드 SW · C 언어 (4일)","subtitle":"빌드·자료형 · 포인터·동적 메모리 · 비트 연산·파일 I/O","subject":"it","href":"08-embedded-sw/02-c.html","tabs":10,"qs":100},{"id":"emb-arch","code":"EAR","title":"임베디드 SW · 컴퓨터 구조 (3일)","subtitle":"4대 부품과 사양표 · 2진수·문자·색 · 게이트에서 명령 실행까지","subject":"it","href":"08-embedded-sw/03-computer-architecture.html","tabs":8,"qs":80},{"id":"emb-os","code":"EOS","title":"임베디드 SW · 운영체제 활용 (3일)","subtitle":"File System과 CLI · Process와 자원 · 커널 파일과 Script 자동화","subject":"it","href":"08-embedded-sw/04-os.html","tabs":10,"qs":100},{"id":"emb-linux","code":"ELX","title":"임베디드 SW · 리눅스 시스템 프로그래밍 (5일)","subtitle":"시스템 콜·프로세스 · 스케줄링·메모리 · 파일·sysfs·쓰레드 동기화","subject":"it","href":"08-embedded-sw/05-linux.html","tabs":11,"qs":110},{"id":"emb-mcu","code":"EMC","title":"임베디드 SW · MCU 프로그래밍 (4일)","subtitle":"GPIO·인터럽트·PWM · ADC·센서·I2C · FreeRTOS·Wi-Fi·디버깅","subject":"it","href":"08-embedded-sw/06-mcu.html","tabs":9,"qs":90},{"id":"emb-io","code":"EIO","title":"임베디드 SW · 임베디드 입출력 (3일, Raspberry Pi GPIO·PWM)","subtitle":"Pi 설정·Device Tree · libgpiod GPIO·이벤트 · PWM·모터·초음파","subject":"it","href":"08-embedded-sw/07-embedded-io.html","tabs":7,"qs":70}]}]},{"num":"09","title":"Android 프레임워크","subject":"it","keys":["AOSP 빌드","Binder·AIDL","Native 서비스·HAL","Looper·JNI","SystemUI·Automotive"],"courses":[{"title":"AOSP · Binder → Native 서비스·HAL → sp/Looper/JNI → SystemUI·Automotive (4일)","banks":[{"id":"aosp-d1","code":"AF1","title":"Android 프레임워크 1일차 · 환경 설정 · Boot · Binder/AIDL","subtitle":"AOSP 빌드 환경 · Boot·Binder 구조 · AIDL·IPC 패턴","subject":"it","href":"09-android-framework/day1.html","tabs":8,"qs":80},{"id":"aosp-d2","code":"AF2","title":"Android 프레임워크 2일차 · Native Binder · AIDL · HAL","subtitle":"수작업 Bn/Bp와 Parcel · AIDL 보안과 init.rc · AIDL HAL과 VINTF","subject":"it","href":"09-android-framework/day2.html","tabs":8,"qs":80},{"id":"aosp-d3","code":"AF3","title":"Android 프레임워크 3일차 · sp/wp · Thread·Looper · JNI · SurfaceFlinger · 공유 메모리","subtitle":"sp/wp·Thread·Looper · JNI·SurfaceFlinger · 공유 메모리·LMKD","subject":"it","href":"09-android-framework/day3.html","tabs":9,"qs":90},{"id":"aosp-d4","code":"AF4","title":"Android 프레임워크 4일차 · APEX · RRO · SystemUI · WindowManager · Automotive","subtitle":"APEX·RRO 델타 배포 · SystemUI·WindowManager · CarService·VHAL","subject":"it","href":"09-android-framework/day4.html","tabs":9,"qs":90}]}]},{"num":"10","title":"Go 언어 프로그래밍","subject":"it","keys":["Go 기초","모듈·Cobra CLI","고루틴·채널","Context·Worker Pool","웹 서버·테스트"],"courses":[{"title":"Go 기초 → 모듈·CLI → 동시성 → 테스트·도구 → 웹 서버 (5일)","banks":[{"id":"go-d1","code":"GO1","title":"Go 언어 1일차 · C에서 Go로 (기본 문법·자료구조·인터페이스)","subtitle":"변수·함수·포인터 · 슬라이스·맵 · 인터페이스","subject":"it","href":"10-go-programming/day1.html","tabs":8,"qs":80},{"id":"go-d2","code":"GO2","title":"Go 언어 2일차 · 에러 처리·모듈·패키지·빌드 시스템","subtitle":"에러 처리 · 모듈·패키지 · 빌드·CLI·벤치마크","subject":"it","href":"10-go-programming/day2.html","tabs":10,"qs":100},{"id":"go-d3","code":"GO3","title":"Go 언어 3일차 · 동시성 (고루틴·채널·sync 패키지)","subtitle":"고루틴·스케줄러 · 채널·select · sync·Producer-Consumer","subject":"it","href":"10-go-programming/day3.html","tabs":9,"qs":90},{"id":"go-d4","code":"GO4","title":"Go 언어 4일차 · 동시성 심화 (select·Context·Worker Pool·Pipeline)","subtitle":"select·타임아웃 · Context 취소 전파 · Worker Pool·Pipeline","subject":"it","href":"10-go-programming/day4.html","tabs":9,"qs":90},{"id":"go-d5","code":"GO5","title":"Go 언어 5일차 · net/http·JSON·테스트·디버깅·pprof·CGo","subtitle":"net/http·JSON · 테스트·로깅·디버깅 · pprof·CGo","subject":"it","href":"10-go-programming/day5.html","tabs":15,"qs":150}]}]}],"subjects":[{"id":"it","label":"IT","ready":true},{"id":"korean","label":"국어","ready":false},{"id":"english","label":"영어","ready":false},{"id":"science","label":"과학","ready":false},{"id":"music","label":"음악","ready":false},{"id":"art","label":"미술","ready":false}],"totals":{"stages":10,"banks":79,"tabs":518,"qs":5185},"built":"2026-10-20"}, DEMO=[{"p":"AI 관련 용어를 마트료시카 인형처럼 겹쳐 보면, 가장 바깥(가장 큰) 개념은 무엇인가요?","o":["머신러닝 (ML)","딥러닝 (DL)","인공지능 (AI)","LLM"],"a":2,"h":"자료는 AI 관련 용어를 마트료시카 인형처럼 큰 개념 안에 작은 개념이 들어 있는 구조로 정리합니다. 머신러닝은 데이터로 스스로 규칙을 학습하고, 그 안의 딥러닝은 인공신경망으로 학습하며, 가장 안쪽의 LLM은 글을 읽고 쓰는 생성형 AI입니다. 이 모두를 감싸는 '사람처럼 판단하는 기술 전체'가 무엇인지 떠올려 보세요.","ty":"mc","bank":"모듈1 · AI와 업무 자동화 개론","stage":"01","href":"01-ai-work/ai-automation/module1.html"},{"p":"Git을 가장 정확하게 설명한 것은?","o":["분산 버전 관리 시스템","클라우드 저장소 서비스","코드 편집기","운영체제 명령어 모음"],"a":0,"h":"교재 1.1은 Git을 영어 이름 Distributed Version Control System으로 소개합니다. 저장소가 한 서버에만 있지 않고 각자의 PC에 나뉘어 있으며, 파일의 변경 이력을 관리한다는 두 특징을 함께 담은 보기를 고르면 됩니다.","ty":"mc","bank":"Git · GitHub 입문 · 8교시 실습","stage":"02","href":"02-dev-basics/git/git.html"},{"p":"이 과정에서 n8n·WordPress·DB를 내 PC에서 한 번에 실행하는 도구는?","o":["VirtualBox 가상 PC","Docker Desktop","Python 가상환경","Node.js 설치 파일"],"a":1,"h":"이 과정은 DB·WordPress·n8n 세 서비스를 컨테이너로 띄워 한 PC에서 함께 실행합니다. 사전 준비 Step 2에서 설치하는 데스크톱 프로그램이 이 컨테이너 실행 도구이며, 고래 아이콘과 'Engine running' 표시로 상태를 확인합니다.","ty":"mc","bank":"n8n 블로그 자동 발행 · 패션 블로그 자동화 4시간","stage":"03","href":"03-n8n-automation/n8n-blog/n8n-blog.html"},{"p":"사람의 목소리를 듣고 글자로 받아쓰는 기술은 무엇인가요?","o":["TTS","ASR","VAD","ffmpeg"],"a":1,"h":"음성 AI 4대 기술 지형도에서 이 기술은 '소리 → 글자' 방향, 즉 사람 말을 듣고 받아쓰기하는 일을 맡습니다. 다른 이름으로 STT라고도 부르며, 대표 도구는 Whisper와 faster-whisper입니다. 영어 이름 Automatic Speech Recognition의 머리글자를 떠올려 보세요.","ty":"mc","bank":"음성 AI Day 1 · 음성 AI 첫걸음","stage":"04","href":"04-voice-ai/day01.html"},{"p":"사용자와 LLM의 상호작용에서 모델 응답의 품질과 방향을 결정짓는 핵심 입력값은?","o":["출력 파서","프롬프트","체인","세션 기록"],"a":1,"h":"자료는 이 용어를 사용자와 언어 모델 사이 상호작용에서 '모델에게 건네는 입력'으로 정의합니다. 이 입력이 달라지면 응답의 품질과 방향이 함께 달라집니다. 파서·체인처럼 결과를 가공하거나 연결하는 부품과는 구분하세요.","ty":"mc","bank":"LangChain 1일차 · 프롬프트 템플릿과 LCEL 대화형 챗봇","stage":"05","href":"05-langchain-agent/day01.html"},{"p":"엄밀히 말해 '리눅스(Linux)'는 무엇의 이름인가요?","o":["배포판","커널","쉘","패키지 관리자"],"a":1,"h":"자료의 구조도에서 응용 프로그램과 하드웨어 사이에 놓인 층은 메모리·프로세스·장치·파일 시스템을 관리하는 운영체제의 핵심입니다. 배포판은 바로 이 핵심 위에 여러 도구를 얹어 만든 것이라고 설명합니다. 그렇다면 '리눅스'라는 이름은 배포판 전체가 아니라 그 아래 핵심 층을 가리킵니다.","ty":"mc","bank":"리눅스 실습 노트 · 우분투로 배우는 리눅스 기본","stage":"06","href":"06-ai-openVino/01-linux.html"},{"p":"Physical AI에서 세 단계가 이어지는 순서로 맞는 것은?","o":["판단 → 인지 → 행동","인지 → 판단 → 행동","행동 → 인지 → 판단","인지 → 행동 → 판단"],"a":1,"h":"센서 입력에서 시작해 '무엇이 보이는가'를 먼저 알아야 조건을 따질 수 있습니다.","ty":"mc","bank":"Physical AI 1일차 · Jetson · Ubuntu · 실습 환경","stage":"07","href":"07-physical-ai/01-jetson-ubuntu.html"},{"p":"Colab 셀에서 <code>!ls<\/code>처럼 맨 앞에 붙는 <code>!<\/code>는 무엇을 뜻합니까?","o":["라인 매직 명령","셀 매직 명령","리눅스 셸 명령","텍스트 셀 표시"],"a":2,"h":"Colab 셀에서 <code>!<\/code> 뒤에 적은 내용은 파이썬이 아니라 Colab 가상 머신의 운영체제 셸에 그대로 전달됩니다. 그래서 <code>!ls /content<\/code>, <code>!python --version<\/code>처럼 터미널에서 치던 명령을 셀 안에서 실행할 수 있습니다. 참고로 <code>%<\/code>는 노트북 매직 명령입니다.","ty":"mc","bank":"임베디드 SW · Python 기초 (4일)","stage":"08","href":"08-embedded-sw/01-python.html"},{"p":"PuTTYgen에서 Ed25519 키를 만들 때 <b>Type of key to generate<\/b>에서 고르는 항목은?","o":["RSA","DSA","EdDSA","ECDSA"],"a":2,"h":"PuTTYgen 하단 Parameters 영역에서 먼저 키 종류(Type of key to generate)를 고르고, 그 바로 아래 Curve 항목에서 Ed25519 (255 bits)를 선택합니다. Ed25519는 Edwards 곡선 기반 디지털 서명 알고리즘(Edwards-curve DSA) 계열에 속합니다.","ty":"mc","bank":"Android 프레임워크 1일차 · 환경 설정 · Boot · Binder/AIDL","stage":"09","href":"09-android-framework/day1.html"},{"p":"Go 언어가 처음 공개된 해는 언제입니까?","o":["2007년","2009년","2012년","2018년"],"a":1,"h":"자료 §1.1은 Go가 Google의 Robert Griesemer, Rob Pike, Ken Thompson 세 사람에 의해 2007년에 설계가 시작되었다고 설명합니다. 공개 시점은 설계 시작 2년 뒤로, 같은 문장 뒤쪽에 적혀 있습니다.","ty":"mc","bank":"Go 언어 1일차 · C에서 Go로 (기본 문법·자료구조·인터페이스)","stage":"10","href":"10-go-programming/day1.html"}], LANDING={"version":3,"hero":{"kicker":"강의자료 기반 학습 플랫폼","title":"강의 PDF로 만든 문제은행","accent":"문제은행","lead":"배운 날 바로 풀고, 틀린 곳만 다시 봅니다.","sub":"보기 번호는 말로 골라도 됩니다. 내 PDF 올리기는 곧 열립니다.","cta":"시작하기","ghost":"예시 문제 풀어 보기","checks":["즉시 채점·힌트","오답 자동 기록","설치 없이 바로"]},"stats":{"claim":"C1","items":[{"k":"stages","label":"과정"},{"k":"banks","label":"문제은행"},{"k":"qs","label":"문항"},{"value":"4가지","label":"학습 방식","note":"학습 · 오답 · 타임어택 · 말로 고르기"}]},"features":{"title":"이렇게 공부합니다","lead":"풀고, 틀린 곳을 모으고, 시간을 재고, 말로 고르는 네 가지 방법입니다.","items":[{"id":"study","icon":"book","title":"학습 모드","desc":"한 문제씩 풀면 바로 정답이 나오고, 힌트에는 자료의 어느 부분에서 나온 문제인지 적혀 있습니다.","bullets":["풀자마자 즉시 채점","문항마다 힌트와 원문 위치","객관식과 O/X 문항"],"claims":["C2"]},{"id":"wrong","icon":"alert-circle","title":"오답노트","desc":"틀린 문제는 따로 적지 않아도 자동으로 모입니다. 대시보드에서 남은 오답만 골라 다시 풉니다.","bullets":["틀린 문제가 자동으로 기록","남은 오답만 골라 다시 풀기","대시보드에서 한눈에 확인"],"claims":["C3"]},{"id":"time","icon":"timer","title":"타임어택","desc":"제한 시간 안에 풀면서 정확도와 속도를 따로 확인합니다. 연속으로 맞히면 콤보가 쌓입니다.","bullets":["5·7·10·15초 중 선택","정확도와 속도를 따로 계산","연속 정답 콤보와 점수"],"claims":["C4"]},{"id":"voice","icon":"mic","title":"말로 고르기","desc":"보기 번호를 말하면 그 번호가 선택됩니다. 손이 바쁠 때나 소리 내어 외울 때 편합니다.","tag":"Chrome·Edge","bullets":["\"2번\"처럼 번호를 말하면 선택","지원하지 않는 브라우저에서는 버튼이 숨겨짐","음성은 브라우저 음성 인식 서비스로 전송될 수 있음"]}]},"how":{"title":"PDF가 문제은행이 되는 순서","lead":"지금은 운영자가 대신 분석·출제·검수를 하고, 내 PDF 업로드는 준비 중입니다.","steps":[{"name":"업로드","soon":true,"you":"PDF, TXT, Word 파일을 올립니다.","sys":"파일을 받아 글을 꺼냅니다."},{"name":"글·그림 읽기(OCR)","soon":true,"you":"스캔본인지 확인합니다.","sys":"이미지 속 글자를 읽어 글로 바꿉니다."},{"name":"분석","you":"기다립니다.","sys":"단원과 핵심 개념을 나눕니다."},{"name":"출제","you":"기다립니다.","sys":"객관식과 O/X 문제에 힌트와 원문 위치를 붙입니다."},{"name":"검수","decision":true,"you":"문제와 정답을 읽고, 쓸지 말지 정합니다.","sys":"의심되는 문항을 표시해 둡니다."},{"name":"학습 모드","you":"풀면서 즉시 채점으로 확인합니다.","sys":"채점하고 힌트를 보여 주며 오답을 기록합니다.","claims":["C2","C3"]},{"name":"게임 모드","you":"5, 7, 10, 15초 중 골라 풉니다.","sys":"시간을 재고 정확도와 속도를 따로 계산합니다.","claims":["C4"]}],"note":"지금은 운영자가 강의 PDF로 분석·출제·검수를 대신해 문제은행을 만듭니다. 내 PDF를 직접 올리는 기능은 준비 중입니다."},"courses":{"title":"과정 둘러보기","lead":"지금 열려 있는 과정입니다. 카드를 누르면 해당 과정의 문제은행으로 이동합니다."},"why":{"title":"다른 방법과 비교하면","lead":"방법마다 잘하는 일이 다릅니다. 이 플랫폼이 약한 곳도 그대로 적었습니다."},"table":{"ours":"ours","cols":[{"id":"reread","label":"강의자료 다시 읽기"},{"id":"chat","label":"범용 AI 채팅에 문제 요청"},{"id":"cards","label":"암기카드 앱에 직접 만들기"},{"id":"tutor","label":"스터디·과외"},{"id":"ours","label":"이 플랫폼"}],"rows":[{"k":"강의 내용과 일치, 원문 페이지","cells":{"reread":{"v":"△","t":"내용은 그대로지만 문제로 바뀌지는 않습니다"},"chat":{"v":"△","t":"어느 부분에서 나온 문제인지 따로 확인해야 합니다"},"cards":{"v":"○","t":"내가 옮겨 적은 내용 그대로입니다"},"tutor":{"v":"△","t":"자료를 맞추는 시간이 듭니다"},"ours":{"v":"○","t":"문항마다 원문 위치를 알려 주는 힌트가 붙습니다","claim":"C2","proof":"demo"}}},{"k":"오답 다시 풀기","cells":{"reread":{"v":"✕","t":"틀린 곳이 따로 기록되지 않습니다"},"chat":{"v":"△","t":"대화 안에서 직접 다시 요청해야 합니다"},"cards":{"v":"△","t":"앱마다 다르고 직접 설정해야 합니다"},"tutor":{"v":"△","t":"함께 모이는 시간에 한정됩니다"},"ours":{"v":"○","t":"틀린 문제가 자동으로 모이고 다시 풉니다","claim":"C3","proof":"demo"}}},{"k":"시작 수고","cells":{"reread":{"v":"○","t":"바로 읽을 수 있습니다"},"chat":{"v":"△","t":"자료를 붙여 넣고 요청 문장을 써야 합니다"},"cards":{"v":"✕","t":"문제를 하나씩 직접 입력해야 합니다"},"tutor":{"v":"△","t":"일정을 맞춰야 합니다"},"ours":{"v":"○","t":"설치 없이 파일을 열면 바로 풉니다","claim":"C5","proof":"bank"}}},{"k":"그림·도표 내용","cells":{"reread":{"v":"○","t":"눈으로 볼 수 있습니다"},"chat":{"v":"△","t":"이미지를 읽는 기능은 서비스마다 다릅니다"},"cards":{"v":"△","t":"이미지를 직접 넣어야 합니다"},"tutor":{"v":"○","t":"설명을 들을 수 있습니다"},"ours":{"v":"✕","t":"준비 중입니다. 지금은 글 중심 문항입니다"}}},{"k":"진행 기록","cells":{"reread":{"v":"✕","t":"남지 않습니다"},"chat":{"v":"△","t":"대화 기록은 남지만 점수로 정리되지 않습니다"},"cards":{"v":"△","t":"앱마다 다릅니다"},"tutor":{"v":"△","t":"노트나 기억에 의존합니다"},"ours":{"v":"△","t":"이 브라우저에만 저장됩니다"}}}],"notFitTitle":"이런 경우엔 다른 방법이 낫습니다","notFit":["한 번 읽고 끝낼 짧은 자료라면 다시 읽기만으로 충분합니다.","그림이나 도표를 해석하는 연습이 목표라면 지금은 맞지 않습니다. 이 부분은 준비 중입니다.","여러 기기에서 기록을 이어 봐야 한다면 맞지 않습니다. 기록은 이 브라우저에만 저장됩니다."],"source":"비교 대상은 서비스 이름 없이 방법의 종류로만 적었습니다. 다른 방법의 칸은 직접 써 보면 확인되는 일반적인 사용 방식이며, 서비스마다 다를 수 있습니다.","links":{"demo":"가입 없이 문제 풀어 보기","bank":"샘플 문제은행 열기"}},"calc":{"title":"시간 계산기","lead":"내 숫자를 넣으면 계산해 드립니다. 미리 채워 둔 값은 없습니다.","inputs":[{"id":"n","label":"강의 수","unit":"개"},{"id":"make","label":"강의당 문제를 직접 만드는 시간","unit":"분"},{"id":"solve","label":"강의당 풀이 시간","unit":"분"}],"formula":["직접 만들 때 제작 시간 = 강의 수 × 강의당 제작 시간","풀이 시간 = 강의 수 × 강의당 풀이 시간","문제은행으로 풀 때 제작 시간 = 0분 (이미 만들어진 은행 기준)"],"disclaimer":"입력한 가정으로 계산한 추정치입니다."},"cta":{"title":"오늘 배운 강의, 지금 문제로 확인하세요","body":"가입 없이 위의 예시 문항을 먼저 풀어 볼 수 있습니다.","button":"시작하기"},"faq":[{"q":"기록은 어디에 저장되나요?","a":"이 브라우저에만 저장됩니다. 다른 기기나 다른 브라우저에서는 보이지 않고, 브라우저 데이터를 지우면 함께 사라집니다."},{"q":"로그인은 무엇인가요?","a":"체험용입니다. 이름과 이메일만 이 브라우저에 저장하고, 비밀번호는 저장하지 않습니다."},{"q":"내 PDF를 올릴 수 있나요?","a":"아직 아닙니다. 준비 중입니다. 지금은 이미 만들어 둔 문제은행을 풀 수 있습니다."},{"q":"말로 답하기는 어떤 브라우저에서 되나요?","a":"Chrome과 Edge에서 됩니다. 음성은 브라우저의 음성 인식 서비스로 전송될 수 있고, 인터넷이 없으면 쓸 수 없습니다. 지원하지 않는 브라우저에서는 마이크 버튼이 보이지 않습니다."}]};
+const $=(s,r)=>(r||document).querySelector(s), $$=(s,r)=>Array.from((r||document).querySelectorAll(s));
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ico=(n,cls)=>`<svg class="icon${cls?' '+cls:''}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+const strip=h=>String(h||'').replace(/<[^>]+>/g,'').replace(/&nbsp;/g,' ');
+const L=LANDING||{};
+const fmtN=n=>Number(n).toLocaleString('ko-KR');
+
+/* ---------- 상단·CTA ---------- */
+const logged=!!QB.user();
+const startHref=logged?'dashboard.html':'login.html?next=dashboard.html';
+['start','start2','top-start'].forEach(id=>{const a=document.getElementById(id);if(a){a.href=startHref;}});
+if(logged){const tl=$('#top-login');tl.textContent='내 대시보드';tl.href='dashboard.html';}
+const themeBtns=[$('#theme-btn'),$('#theme-btn2')].filter(Boolean);
+function themeIcon(){const d=document.documentElement.dataset.theme?document.documentElement.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
+  themeBtns.forEach(b=>{b.innerHTML=ico(d?'sun':'moon');b.setAttribute('aria-label',d?'밝은 화면으로 바꾸기':'어두운 화면으로 바꾸기');});}
+themeBtns.forEach(b=>b.addEventListener('click',()=>{QB.theme.toggle();themeIcon();}));
+themeIcon();
+
+/* ---------- 히어로 문구 ---------- */
+if(L.hero){
+  const H=L.hero;
+  $('#h-kicker span').textContent=H.kicker;
+  const t=esc(H.title),a=esc(H.accent||'');
+  $('#h-title').innerHTML=a&&t.includes(a)?t.replace(a,'<em>'+a+'</em>'):t;
+  $('#h-lead').textContent=H.lead;
+  $('#h-checks').innerHTML=H.checks.map(c=>`<li>${ico('check')}${esc(c)}</li>`).join('');
 }
-const banks=CAT.stages.flatMap(st=>st.courses.flatMap(c=>c.banks));
-const totalQ=banks.reduce((n,b)=>n+b.qs,0);
-const P=Object.fromEntries(banks.map(b=>[b.id,progress(b)]));
-const doneTabs=banks.reduce((n,b)=>n+P[b.id].done,0), allTabs=banks.reduce((n,b)=>n+b.tabs,0);
-const wrong=banks.reduce((n,b)=>n+P[b.id].wrong,0);
-const card=b=>{const p=P[b.id],pc=Math.round(p.done/b.tabs*100);
-  return `<a class="card${p.done===b.tabs?' done':''}" href="${esc(b.href)}">
-    <span class="code">${esc(b.code)}</span><span class="tt">${esc(b.title)}</span>
-    ${b.subtitle?`<span class="st">${esc(b.subtitle)}</span>`:''}
-    <span class="bar" aria-label="진행률 ${pc}%"><i style="width:${pc}%"></i></span>
-    <span class="meta"><span>${b.qs}문항 · ${b.tabs}탭</span><span>${p.done?`${p.done}/${b.tabs} 탭`:'미응시'}${p.wrong?` · <span class="wn">오답 ${p.wrong}</span>`:''}</span></span></a>`;};
-const keys=st=>(st.keys||[]).length?`<span class="keys">${st.keys.map(k=>`<span>${esc(k)}</span>`).join('')}</span>`:'';
-const count=st=>st.courses.reduce((n,c)=>n+c.banks.length,0);
-const foot=`<p class="foot">진행률·오답은 이 브라우저에만 저장됩니다. · 갱신 ${esc(CAT.built)}</p>`;
-/* 첫 화면: 과정 제목 박스만 */
-function home(){
-  document.title='문제은행 · 전체 과정';
-  app.innerHTML=`
-  <h1>📚 문제은행</h1>
-  <p class="sub">강의자료를 문제은행으로 바꿔 공부합니다. 과정을 골라 학습 모드 → 게임 모드로 이어 가세요.</p>
-  <div class="stats">
-    <div class="stat"><b>${banks.length}</b><span>문제은행</span></div>
-    <div class="stat"><b>${totalQ.toLocaleString()}</b><span>전체 문항</span></div>
-    <div class="stat"><b>${doneTabs}/${allTabs}</b><span>채점한 탭</span></div>
-    <div class="stat"><b>${wrong}</b><span>남은 오답</span></div>
-  </div>
-  <div class="boxes">${CAT.stages.map(st=>count(st)
-    ?`<a class="box" href="#${esc(st.num)}"><span class="num">${esc(st.num)}</span><span class="tt">${esc(st.title)}</span>${keys(st)}</a>`
-    :`<div class="box off" aria-disabled="true"><span class="num">${esc(st.num)}</span><span class="tt">${esc(st.title)}</span>${keys(st)}<span class="soon">준비 중</span></div>`).join('')}</div>
-  ${foot}`;
+
+/* ---------- 수치 띠 ---------- */
+(function(){
+  const S=L.stats;if(!S||!CAT)return;
+  const t=CAT.totals;
+  $('#stats').innerHTML=S.items.map(it=>{
+    const v=it.k?fmtN(t[it.k]):it.value;
+    const unit=it.k?'<small>개</small>':'';
+    return `<li><b>${esc(v)}${unit}</b><span>${esc(it.label)}</span>${it.note?`<span class="sub">${esc(it.note)}</span>`:''}</li>`;
+  }).join('');
+})();
+
+/* ---------- 푸터: 과정 링크 ---------- */
+if(CAT&&CAT.stages){
+  const li=CAT.stages.slice(0,5).map(st=>`<li><a href="dashboard.html#${esc(st.num)}">${esc(st.num)} ${esc(st.title)}</a></li>`).join('');
+  $('#ft-stages').innerHTML=li+'<li><a href="dashboard.html">전체 과정 보기</a></li>';
 }
-/* 과정 페이지: 그 과정의 문제은행 카드 */
-function stage(st){
-  document.title=`${st.num} ${st.title} · 문제은행`;
-  app.innerHTML=`
-  <nav class="crumbs"><a href="#">← 전체 과정</a></nav>
-  <h1><span class="num" style="font-family:var(--mono);font-size:var(--fs-sm);color:var(--link);margin-right:8px">${esc(st.num)}</span>${esc(st.title)}</h1>
-  <p class="sub">문제은행 ${count(st)}개 · ${st.courses.reduce((n,c)=>n+c.banks.reduce((m,b)=>m+b.qs,0),0).toLocaleString()}문항</p>
-  ${st.courses.map(c=>`<div class="course">${st.courses.length>1?`<h3>${esc(c.title)}</h3>`:''}
-    ${c.banks.length?`<div class="cards">${c.banks.map(card).join('')}</div>`:'<div class="empty">준비 중</div>'}</div>`).join('')}
-  ${foot}`;
+
+/* ---------- 히어로 카드 스택 (학습 모드만) ---------- */
+const Q0=(DEMO||[]).map(q=>{
+  const ox=q.ty==='ox';
+  return {p:q.p,o:ox?['O','X']:q.o.slice(),a:ox?(q.a===true||q.a===0?0:1):q.a,h:q.h||'',ty:ox?'ox':'mc',bank:q.bank,href:q.href};
+});
+/* 열 때마다 순서를 섞는다 (Fisher–Yates) */
+const Q=Q0.slice();
+for(let i=Q.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));const t=Q[i];Q[i]=Q[j];Q[j]=t;}
+const NQ=Q.length;
+const IDLE=4000,AFTER=2500;
+const rmQ=matchMedia('(prefers-reduced-motion: reduce)');
+const demoEl=$('#demo'),fan=$('#stk-fan'),stage=$('#stk-stage'),fb=$('#d-fb');
+const prevB=$('#stk-prev'),nextB=$('#stk-next'),dotsEl=$('#stk-dots');
+const D={cur:0,done:false,adv:0};
+let cards=[];
+function render(el,qi){
+  const q=Q[qi];el.dataset.qi=qi;
+  const tx=t=>q.ty==='ox'?esc(t):t;
+  el.innerHTML=
+    `<p class="sc-lab"><span>예시 문항</span><span>${qi+1} / ${NQ}</span></p>`+
+    `<p class="sc-q">${q.p}</p>`+
+    `<ul class="sc-opts" role="list">`+q.o.map((t,k)=>
+      `<li><button type="button" class="sc-opt" data-i="${k}" title="${esc(strip(String(t)))}"><span class="opt-n">${k+1}</span><span class="opt-t">${tx(t)}</span><span class="opt-m"></span></button></li>`).join('')+`</ul>`+
+    `<p class="sc-src">${esc(q.bank)}</p>`;
+  el.setAttribute('aria-label',(qi+1)+'번째 예시 문항');
 }
-function route(){
-  const id=decodeURIComponent(location.hash.slice(1)), st=CAT.stages.find(s=>s.num===id);
-  if(st&&count(st))stage(st);else home();
-  window.scrollTo(0,0);
+function place(){
+  cards.forEach((el,sl)=>{el.dataset.slot=sl;const f=sl===0;el.inert=!f;el.setAttribute('aria-hidden',f?'false':'true');});
 }
-addEventListener('hashchange',route);route();
-/* 테마 (문제은행 페이지와 같은 저장 키) */
-let theme=null;try{theme=localStorage.getItem('qb:theme');}catch(e){}
-const apply=()=>{if(theme)document.documentElement.dataset.theme=theme;else delete document.documentElement.dataset.theme;};apply();
-document.getElementById('themeBtn').addEventListener('click',()=>{
-  const dark=theme?theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;
-  theme=dark?'light':'dark';try{localStorage.setItem('qb:theme',theme);}catch(e){}apply();});
+function drawDots(){
+  dotsEl.innerHTML=Q.map((_,i)=>`<span class="dot${i===D.cur?' is-on':''}" role="img" aria-label="${i+1}번째 문항"${i===D.cur?' aria-current="true"':''}></span>`).join('');
+}
+function swapIn(el,qi){
+  el.classList.add('is-swap');render(el,qi);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.remove('is-swap')));
+}
+function paused(){return stage.matches(':hover')||stage.matches(':focus-within')||document.hidden;}
+function idle(){
+  clearTimeout(D.adv);
+  if(rmQ.matches)return;
+  D.adv=setTimeout(()=>{if(paused()||D.done)idle();else move(1);},IDLE);
+}
+function begin(){D.done=false;fb.className='stk-fb';fb.textContent='';drawDots();idle();}
+function move(dir){
+  if(!cards.length)return;
+  const nc=cards.length,hadFocus=stage.contains(document.activeElement)&&document.activeElement.classList.contains('sc-opt');
+  clearTimeout(D.adv);
+  if(nc>1){
+    if(dir>0){const f=cards.shift();cards.push(f);D.cur=(D.cur+1)%NQ;swapIn(f,(D.cur+nc-1)%NQ);}
+    else{const bk=cards.pop();cards.unshift(bk);D.cur=(D.cur-1+NQ)%NQ;swapIn(bk,D.cur);const old=cards[1];render(old,+old.dataset.qi);}
+  }else{D.cur=(D.cur+dir+NQ)%NQ;render(cards[0],D.cur);}
+  place();begin();
+  if(hadFocus){const o=cards[0].querySelector('.sc-opt');if(o)o.focus({preventScroll:true});}
+}
+function choose(k){
+  if(D.done||!cards.length)return;
+  const q=Q[D.cur];D.done=true;clearTimeout(D.adv);
+  const ok=k===q.a;
+  $$('.sc-opt',cards[0]).forEach((b,j)=>{
+    b.disabled=true;const m=$('.opt-m',b);
+    if(j===q.a){b.classList.add('is-right');m.innerHTML=ico('check')+'<span class="sr-only">정답</span>';}
+    else if(j===k){b.classList.add('is-wrong');m.innerHTML=ico('x')+'<span class="sr-only">오답</span>';}
+  });
+  if(ok){fb.className='stk-fb ok';fb.innerHTML=ico('check')+'정답입니다.';}
+  else{fb.className='stk-fb no';fb.innerHTML=ico('x')+'정답은 '+(q.a+1)+'번입니다.';}
+  D.adv=setTimeout(()=>move(1),AFTER);
+}
+function initStack(){
+  prevB.addEventListener('click',()=>move(-1));
+  nextB.addEventListener('click',()=>move(1));
+  fan.addEventListener('click',e=>{
+    const b=e.target.closest('.sc-opt');
+    if(b&&b.closest('.stk-card')===cards[0])choose(+b.dataset.i);
+  });
+  stage.addEventListener('keydown',e=>{
+    if(e.ctrlKey||e.metaKey||e.altKey)return;
+    if(/^[1-9]$/.test(e.key)){const n=+e.key;if(n<=Q[D.cur].o.length&&!D.done){e.preventDefault();choose(n-1);}}
+    else if(e.key==='ArrowLeft'){e.preventDefault();move(-1);}
+    else if(e.key==='ArrowRight'){e.preventDefault();move(1);}
+  });
+  stage.addEventListener('mouseleave',()=>{if(!D.done)idle();});
+  stage.addEventListener('focusout',()=>{if(!D.done)setTimeout(idle,0);});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&!D.done)idle();});
+  fan.innerHTML='';cards=[];
+  for(let i=0;i<Math.min(3,NQ);i++){
+    const el=document.createElement('div');el.className='stk-card';el.setAttribute('role','group');
+    fan.appendChild(el);cards.push(el);render(el,i);
+  }
+  place();begin();
+}
+if(NQ)initStack();
+else{fan.innerHTML='<p style="text-align:center;padding-top:120px;color:var(--color-text-muted)">예시 문항을 불러오지 못했습니다.</p>';}
+
+/* ---------- 기능 행 + 목업 ---------- */
+(function(){
+  const F=L.features;if(!F)return;
+  $('#f-h').textContent=F.title;$('#f-lead').textContent=F.lead||'';
+  const mcs=Q0.filter(q=>q.ty==='mc');
+  const q0=mcs[0]||Q0[0]||{p:'예시 문항',o:['보기 1','보기 2','보기 3','보기 4'],a:0,h:''};
+  const tl=q=>strip(q.p);
+  const mock={
+    study:()=>{
+      const opts=q0.o.slice(0,4);
+      return `<div class="m-top"><span>학습 모드</span><span class="m-prog" aria-hidden="true"><i style="width:30%"></i></span><span>3 / 10</span></div>`+
+        `<p class="m-q">${q0.p}</p>`+
+        `<ul class="m-opts">`+opts.map((t,i)=>`<li class="m-opt${i===q0.a?' ok':''}"><span class="n">${i+1}</span><span class="t">${t}</span>${i===q0.a?ico('check'):''}</li>`).join('')+`</ul>`+
+        `<div class="m-hint">${ico('book')}<span><b>힌트·원문 위치</b> ${q0.h?strip(q0.h):'문항마다 자료의 어느 부분인지 적힌 힌트가 붙습니다.'}</span></div>`;
+    },
+    wrong:()=>{
+      const pick=[mcs[1],mcs[3],mcs[5]].filter(Boolean);
+      while(pick.length<3)pick.push(q0);
+      return `<div class="m-top"><span>오답노트</span><span>남은 오답 ${pick.length}개</span></div><ul class="m-list">`+
+        pick.map(q=>`<li class="m-wrow"><span class="wi">${ico('x')}</span><span class="wt"><span class="wq">${esc(tl(q))}</span><span class="wb">${esc(q.bank)}</span></span><span class="badge badge-danger">남은 오답</span></li>`).join('')+`</ul>`+
+        `<div class="m-foot"><span class="m-lab">틀린 문제는 자동으로 쌓입니다</span><span class="m-btn">${ico('play')}다시 풀기</span></div>`;
+    },
+    time:()=>{
+      return `<div class="m-hud"><span class="pill">${ico('timer')}타임어택</span><span class="pill">4 / 10</span><span class="pill hot">${ico('flame')}콤보 3</span><span class="pts">1,240점</span></div>`+
+        `<div class="m-timer"><div class="tbar" aria-hidden="true"><i class="mid" style="width:58%"></i></div><b>5.8초</b></div>`+
+        `<p class="m-q">${q0.p}</p>`+
+        `<ul class="m-opts">`+q0.o.slice(0,2).map((t,i)=>`<li class="m-opt"><span class="n">${i+1}</span><span class="t">${t}</span></li>`).join('')+`</ul>`+
+        `<div><p class="m-lab" style="margin-bottom:6px">제한 시간</p><div class="m-chips"><span class="m-chip">5초</span><span class="m-chip">7초</span><span class="m-chip on">10초</span><span class="m-chip">15초</span></div></div>`;
+    },
+    voice:()=>{
+      return `<div class="m-top"><span>말로 고르기</span><span class="badge tag-sample">Chrome·Edge</span></div>`+
+        `<p class="m-q">${q0.p}</p>`+
+        `<ul class="m-opts">`+q0.o.slice(0,4).map((t,i)=>`<li class="m-opt${i===1?' sel':''}"><span class="n">${i+1}</span><span class="t">${t}</span></li>`).join('')+`</ul>`+
+        `<div class="m-mic"><span class="m-micbtn">${ico('mic')}</span><span class="m-lab" style="margin-top:14px">듣는 중</span><span class="m-live">“2번”으로 들었습니다</span></div>`;
+    }
+  };
+  const bar={study:'학습 모드',wrong:'오답노트',time:'타임어택',voice:'말로 고르기'};
+  $('#f-rows').innerHTML=F.items.map((f,i)=>
+    `<article class="frow${i%2?' rev':''}"><div class="win" role="img" aria-label="${esc(f.title)} 화면 예시"><div class="win-bar" aria-hidden="true"><i></i><i></i><i></i><span class="win-t">${esc(bar[f.id]||f.title)}</span><span class="badge">예시 화면</span></div><div class="win-body" aria-hidden="true">${(mock[f.id]||(()=>''))()}</div></div>`+
+    `<div class="frow-t"><span class="fico">${ico(f.icon)}</span><h3>${esc(f.title)}${f.tag?`<span class="badge tag-sample">${esc(f.tag)}</span>`:''}</h3><p>${esc(f.desc)}</p><ul class="fcheck">`+f.bullets.map(b=>`<li>${ico('check')}<span>${esc(b)}</span></li>`).join('')+`</ul></div></article>`).join('');
+})();
+
+/* ---------- 작동 방식 ---------- */
+(function(){
+  const H=L.how;if(!H)return;
+  $('#how-h').textContent=H.title;$('#how-lead').textContent=H.lead||'';
+  const el=$('#steps');
+  el.innerHTML=H.steps.map((s,i)=>`<li class="step" data-s="${i}"><span class="sn" aria-hidden="true">${i+1}</span><div class="sb"><h3>${esc(s.name)}${s.soon?'<span class="badge soon-tag">준비 중</span>':''}${s.decision?'<span class="badge dec">사람이 결정</span>':''}</h3><p class="sd"><b>내가 하는 일</b>${esc(s.you)}</p><p class="sd"><b>플랫폼이 하는 일</b>${esc(s.sys)}</p></div></li>`).join('');
+  if(H.note)$('#how-note').innerHTML=`<p class="how-note">${ico('user')}<span>${esc(H.note)}</span></p>`;
+  const lis=$$('.step',el);
+  function mark(i){lis.forEach((l,k)=>{l.classList.toggle('done',k<i);l.classList.toggle('active',k===i);if(k===i)l.setAttribute('aria-current','step');else l.removeAttribute('aria-current');});}
+  lis.forEach((l,k)=>l.addEventListener('mouseenter',()=>{clearInterval(tm);mark(k);}));
+  let tm=0;
+  if('IntersectionObserver' in window&&!rmQ.matches){
+    const io=new IntersectionObserver(es=>{
+      if(!es.some(e=>e.isIntersecting))return;
+      io.disconnect();let k=0;mark(0);
+      tm=setInterval(()=>{k++;if(k>=lis.length){clearInterval(tm);return;}mark(k);},1100);
+    },{threshold:.35});
+    io.observe(el);
+  }else{mark(lis.length-1);}
+})();
+
+/* ---------- 과정 둘러보기 ---------- */
+(function(){
+  const C=L.courses;if(!C||!CAT)return;
+  $('#c-h').textContent=C.title;$('#c-lead').textContent=C.lead||'';
+  const si={it:'code',korean:'type',english:'languages',science:'flask',music:'music',art:'palette'};
+  $('#subj').innerHTML=CAT.subjects.map(s=>s.ready
+    ?`<li class="on" aria-current="true">${ico(si[s.id]||'book')}${esc(s.label)}</li>`
+    :`<li class="soonli">${ico(si[s.id]||'book')}${esc(s.label)}<small>준비 중</small></li>`).join('');
+  $('#cgrid').innerHTML=CAT.stages.map(st=>{
+    const banks=st.courses.reduce((a,c)=>a+c.banks.length,0),qs=st.courses.reduce((a,c)=>a+c.banks.reduce((x,b)=>x+b.qs,0),0);
+    if(!banks)return '';
+    const sub=st.subject||'it';
+    return `<li><a class="cc" href="dashboard.html#${esc(st.num)}" style="--c:var(--subject-${esc(sub)})"><span class="cc-h"><span class="cc-n">${esc(st.num)}</span><span class="cc-i">${ico(si[sub]||'code')}</span></span><h3>${esc(st.title)}</h3><dl class="cc-m"><div><dt>문제은행</dt><dd>${banks}개</dd></div><div><dt>문항</dt><dd>${fmtN(qs)}개</dd></div></dl></a></li>`;
+  }).join('')+`<li class="cc-all-li"><a class="cc cc-all" href="dashboard.html"><h3>전체 과정 보기</h3><p>대시보드에서 과정별 진행률과 남은 오답을 함께 확인합니다.</p><span class="go">대시보드 열기${ico('chevron-right')}</span></a></li>`;
+})();
+
+/* ---------- 비교 ---------- */
+(function(){
+  const T=L.table,W=L.why;if(!T||!W)return;
+  $('#why-h').textContent=W.title;$('#why-lead').textContent=W.lead||'';
+  const symc={'○':'sym-o','△':'sym-t','✕':'sym-x'},symt={'○':'됩니다','△':'일부만 됩니다','✕':'안 됩니다'};
+  const bank=DEMO&&DEMO[0]?DEMO[0].href:'dashboard.html';
+  const cell=(c,ours)=>{
+    c=typeof c==='string'?{v:c,t:''}:(c||{});
+    let h=`<span class="sym ${symc[c.v]||''}" aria-label="${symt[c.v]||''}">${esc(c.v)}</span>${esc(c.t)}`;
+    if(ours&&c.claim){
+      const href=c.proof==='bank'?esc(bank):'#demo';
+      h+=`<span class="sub proof"><a href="${href}">${c.proof==='bank'?'샘플 문제은행으로 확인':'위 예시 문항으로 확인'}</a> (근거 ${esc(c.claim)})</span>`;
+    }
+    return h;
+  };
+  const head=`<tr><th scope="col">비교 기준</th>`+T.cols.map(c=>`<th scope="col" class="${c.id===T.ours?'ours':''}">${c.id===T.ours?`<span class="chip">${ico('check')}${esc(c.label)}</span>`:esc(c.label)}</th>`).join('')+`</tr>`;
+  const rows=T.rows.map(r=>`<tr><th scope="row">${esc(r.k)}</th>`+T.cols.map(c=>`<td data-label="${esc(c.label)}" class="${c.id===T.ours?'ours':''}">${cell(r.cells[c.id],c.id===T.ours)}</td>`).join('')+`</tr>`).join('');
+  $('#why-body').innerHTML=
+    `<div class="tbl-wrap" tabindex="0" role="region" aria-label="비교표"><table class="alt-table"><caption class="sr-only">${esc(W.title)}</caption><thead>${head}</thead><tbody>${rows}</tbody></table></div>`+
+    `<p class="src-note">${esc(T.source)}${CAT?' 이 플랫폼 칸은 '+esc(CAT.built)+' 빌드 기준입니다.':''}</p>`+
+    `<div class="proofs"><a class="btn" href="#demo">${esc(T.links.demo)}</a><a class="btn" href="${esc(bank)}">${esc(T.links.bank)}</a></div>`+
+    `<div class="notfit" role="note">${ico('alert-circle')}<div><h3>${esc(T.notFitTitle)}</h3><ul>`+T.notFit.map(t=>`<li>${esc(t)}</li>`).join('')+`</ul></div></div>`;
+})();
+
+/* ---------- 시간 계산기 ---------- */
+(function(){
+  const C=L.calc;if(!C)return;
+  $('#calc-h').textContent=C.title;$('#calc-lead').textContent=C.lead;
+  $('#calc-body').innerHTML=
+    `<div class="calc-in"><form id="calc-f" novalidate>`+C.inputs.map(f=>`<div class="field"><label for="c-${f.id}">${esc(f.label)} <span class="unit">(${esc(f.unit)})</span></label><input id="c-${f.id}" type="number" inputmode="decimal" min="0" step="any" autocomplete="off"></div>`).join('')+`</form>`+
+    `<details><summary>계산 공식 보기</summary><ul class="formula">`+C.formula.map(t=>`<li>${esc(t)}</li>`).join('')+`</ul></details></div>`+
+    `<div class="calc-out"><div id="calc-out" aria-live="polite"></div><p class="disc">${esc(C.disclaimer)}</p></div>`;
+  const fmt=m=>{m=Math.round(m);if(m<60)return m+'분';const h=Math.floor(m/60),r=m%60;return h+'시간'+(r?' '+r+'분':'');};
+  function calc(){
+    const v=C.inputs.map(f=>{const s=document.getElementById('c-'+f.id).value.trim();return s===''?NaN:parseFloat(s);});
+    const out=$('#calc-out');
+    if(v.some(x=>!isFinite(x)||x<0)){out.innerHTML='<div class="rs"><div class="rs-c"><h4>직접 문제를 만들 때</h4><strong>—</strong><dl><div><dt>제작 시간</dt><dd>—</dd></div><div><dt>풀이 시간</dt><dd>—</dd></div></dl></div><div class="rs-c best"><h4>준비된 문제은행을 쓸 때</h4><strong>—</strong><dl><div><dt>제작 시간</dt><dd>—</dd></div><div><dt>풀이 시간</dt><dd>—</dd></div></dl></div></div><p class="calc-empty">세 칸을 모두 채우면 결과가 나타납니다.</p>';return;}
+    const n=v[0],make=n*v[1],solve=n*v[2];
+    out.innerHTML=`<div class="rs"><div class="rs-c"><h4>직접 문제를 만들 때</h4><strong>${fmt(make+solve)}</strong><dl><div><dt>제작 시간</dt><dd>${fmt(make)}</dd></div><div><dt>풀이 시간</dt><dd>${fmt(solve)}</dd></div></dl></div>`+
+      `<div class="rs-c best"><h4>준비된 문제은행을 쓸 때</h4><strong>${fmt(solve)}</strong><dl><div><dt>제작 시간</dt><dd>0분</dd></div><div><dt>풀이 시간</dt><dd>${fmt(solve)}</dd></div></dl></div></div>`+
+      `<p class="rs-diff">제작에 드는 <b>${fmt(make)}</b>을 아낄 수 있습니다.</p>`;
+  }
+  $('#calc-f').addEventListener('input',calc);$('#calc-f').addEventListener('submit',e=>e.preventDefault());
+  calc();
+})();
+
+/* ---------- CTA, FAQ ---------- */
+(function(){
+  const C=L.cta;
+  if(C){$('#cta-h').textContent=C.title;$('#cta-body').textContent=C.body;$('#start2').textContent=C.button;}
+  if(L.faq)$('#faq-list').innerHTML=L.faq.map(f=>`<details><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join('');
+})();
 })();
 </script>
 </body>

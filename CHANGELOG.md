@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## 2026-10-20 랜딩 · 체험 로그인 · 대시보드 · 음성 선택 · 과목 확장 준비
+- 진입 흐름 변경: `dist/index.html`은 설득형 랜딩, `login.html`(mock 로그인, 비밀번호 미저장), `dashboard.html`(예전 허브 `hub.html`을 확장: 연속 학습일·16주 히트맵·XP·이어서 풀기·남은 오답·`#upload` 데모). 79개 은행의 '과정 목록' 링크는 자동으로 대시보드를 가리킴. 예전 `index.html#NN` 북마크는 `dashboard.html#NN`으로 이동
+- 랜딩 7섹션: 예시 문항 카드 3장(겹침·회전, 방문마다 무작위, 4초 순환), 수치 띠, 기능 소개 4줄(실제 화면 축소 그림), 과정 카드, 비교표(우리 칸 △·✕ 표기), 시간 계산기, FAQ. 업로드·OCR은 '준비 중'
+- 디자인: `tokens.css`를 primitive·semantic·component 3층(v3)으로 개편하고 v2 이름은 별칭으로 유지(`quiz.html` 그대로 동작). 과목 토큰 6개, 신규 `components.css`·`icons.svg`·`qb-core.js`·`qb-progress.js`·`qb-voice.js`
+- 음성: 보기 번호·O/X·제출을 말로 선택, 문제 읽기(TTS). Chrome·Edge만, 온라인 전용. `quiz.html`과 랜딩 데모에 적용, 은행 이름은 로그인 이름으로 채움
+- 과목 확장 준비: 스키마·`validate.py`에 선택 필드 `subject`, 문항 `img{src,alt}`, `audio{src,transcript}` 추가(기존 은행은 수정 없이 통과). 대시보드 과목 탭 6개(IT 외 '준비 중')
+- `build.py`: `build_site()`, `collect_catalog()`, `sample_demo()`, `lint_landing()`(근거 목록의 '검증' 주장만 인용, 비교표 △·✕, 끝 '→' 금지), 벤치마킹 대상 이름 잔여 검사. 신규 `develop/landing/{landing.json,claims.md}`, `design/benchmark/patterns.md`(추상화한 패턴 메모만)
+- 문서: `개발서.md`에 템플릿·자리표시자, 저장 계약, 음성, 과목, PDF→문제은행 로드맵, 후속 과제 절 추가. README 진입 흐름 갱신. 랜딩 주장 C6~C9(음성·업로드·OCR·타과목)는 출시 전까지 '보류'
+
+## 2026-10-20 원본 과정 폴더 10개를 source/로 이동
+- `01-ai-work` … `10-go_programming-main` 10개 폴더를 `git mv`로 `source/` 아래로 이동(이력 유지). `develop/banks`·`develop/dist` 경로와 은행 id는 그대로
+- `tools/sources.json` target에 `source/` 접두, `develop/rag.py`에 `SRC_ROOT`(= `source/`) 추가 — `rag_sources.json` glob과 은행 `source` 필드는 이제 `source/` 기준
+- 폴더 README·pptx 슬라이드 링크, README·개발서·기획 문서의 경로 갱신. `develop/sources/_cache`는 경로 해시가 바뀌어 다시 만들어짐
+
 ## 2026-10-16 02 바이브코딩 교재·Transformer 문제은행 + 원본 실명 정리
 - 문제은행 2개 추가: `vibe-coding/textbook.json`(PPT 교재 100장 → 7탭 · 70문항), `vibe-coding/transformer.json`(Transformer 해설 PDF 17쪽 → 3탭 · 30문항). 모든 문항에 h·src(원문 검증 통과)
 - `ingest.py`·`rag.py`: PPTX 지원(슬라이드별 추출, 자료 위치 '슬라이드 N')
