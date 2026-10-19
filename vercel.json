@@ -2,6 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "echo 'static site: no install'",
-  "buildCommand": "echo \"cwd: $(pwd)\" && ls && if [ -d develop/dist ]; then rm -rf dist && cp -r develop/dist dist && echo 'copied develop/dist -> dist'; elif [ -f dist/index.html ]; then echo 'dist already present'; else echo 'ERROR: develop/dist not found from this directory' && exit 1; fi",
+  "buildCommand": "pwd; ls; if [ -d develop/dist ]; then rm -rf dist; cp -r develop/dist dist; elif [ ! -f dist/index.html ]; then echo 'no develop/dist'; exit 1; fi",
   "outputDirectory": "dist"
 }
