@@ -100,21 +100,40 @@
   --lv1:var(--green-400);--lv2:var(--yellow-400);--lv3:var(--red-400);
   --shadow:none;
   color-scheme:dark;}
-/* 글자 크기 스케일: SmartAI-RAG-Tour(src/web/static/css/app.src.css)와 동일.
-   태블릿·모바일(<1024px)은 Tailwind 기본 크기, 웹(≥1024px)은 약 10% 축소(가장 작은 글자 11px).
-   모든 글자 크기는 --text-* 단계로만 지정한다(--fs-* 의미 토큰도 이 단계를 가리킴). rem 기준 = 16px. */
+/* ── 반응형 표준 3단계 ─────────────────────────────────────────────
+   모바일  ≤767px      (기본값 = 이 :root. 1열 · 드로어 메뉴 · 터치 44px)
+   태블릿  768~1023px  (@media (min-width:768px)로 덮어씀. 2열 혼합 · 드로어 메뉴 · 터치 40px)
+   데스크탑 ≥1024px    (@media (min-width:1024px)로 덮어씀. 풀 레이아웃 · 고정 사이드바)
+   모든 페이지의 @media 폭은 767 / 768 / 1023 / 1024 네 값만 쓴다(build.py lint_responsive가 검사).
+   글자 크기는 --text-* 9단계로만 지정하고, 기기 단계별 값은 아래에서만 정의한다(rem 기준 16px).
+   데스크탑·태블릿 값은 SmartAI-RAG-Tour(app.src.css)와 동일: 태블릿 = Tailwind 기본, 데스크탑 = 약 10% 축소(최소 11px).
+   모바일은 본문 단계(xs~xl)를 태블릿과 같게 유지하고(읽기·입력 확대 방지), 큰 제목 단계(3xl~5xl)만 줄인다. */
 :root{
+  /* 모바일 (기본) */
   --text-xs:.75rem;     /* 12px */
   --text-sm:.875rem;    /* 14px */
   --text-base:1rem;     /* 16px */
   --text-lg:1.125rem;   /* 18px */
   --text-xl:1.25rem;    /* 20px */
   --text-2xl:1.5rem;    /* 24px */
+  --text-3xl:1.75rem;   /* 28px */
+  --text-4xl:2rem;      /* 32px */
+  --text-5xl:2.5rem;    /* 40px */
+  --page-pad:16px;      /* 페이지 좌우 여백 */
+  --tap:44px;           /* 버튼·입력 최소 높이(터치) */
+  --gap-grid:12px;      /* 카드 그리드 간격 */
+}
+@media (min-width:768px){:root{
+  /* 태블릿 */
   --text-3xl:1.875rem;  /* 30px */
   --text-4xl:2.25rem;   /* 36px */
   --text-5xl:3rem;      /* 48px */
-}
+  --page-pad:24px;
+  --tap:40px;
+  --gap-grid:16px;
+}}
 @media (min-width:1024px){:root{
+  /* 데스크탑 */
   --text-xs:.6875rem;   /* 12px -> 11px */
   --text-sm:.8125rem;   /* 14px -> 13px */
   --text-base:.9rem;    /* 16px -> 14.4px */
@@ -124,6 +143,9 @@
   --text-3xl:1.6875rem; /* 30px -> 27px */
   --text-4xl:2.025rem;  /* 36px -> 32.4px */
   --text-5xl:2.7rem;    /* 48px -> 43.2px */
+  --page-pad:32px;
+  --tap:36px;
+  --gap-grid:16px;
 }}
 
 /* Quiz Bank 공용 컴포넌트 (대시보드·랜딩·로그인용. quiz.html은 포함하지 않음)
@@ -143,7 +165,7 @@
 .app.is-collapsed .sidebar .label{display:none}
 .main{min-width:0}
 .topbar{position:sticky;top:0;z-index:10;height:52px;display:flex;align-items:center;gap:var(--space-3);padding:0 var(--space-4);background:color-mix(in srgb,var(--color-surface) 85%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-bottom:1px solid var(--color-border)}
-.content{max-width:1120px;margin:0 auto;padding:var(--space-5) var(--space-4)}
+.content{max-width:1120px;margin:0 auto;padding:var(--space-5) var(--page-pad)}
 
 /* 버튼 */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:var(--space-2);height:36px;padding:0 var(--space-4);border:1px solid var(--button-border);border-radius:var(--radius-control);background:var(--button-bg);color:var(--button-text);font:inherit;font-size:var(--fs-btn-pri);font-weight:600;text-decoration:none;cursor:pointer;transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease)}
@@ -227,11 +249,10 @@
 .heatmap .cell[data-l="3"]{background:color-mix(in srgb,var(--color-brand) 75%,var(--color-surface))}
 .heatmap .cell[data-l="4"]{background:var(--color-brand)}
 
-@media (max-width:760px){
+@media (max-width:767px){
   .app,.app.is-collapsed{grid-template-columns:minmax(0,1fr)}
   .sidebar{position:fixed;inset:0 auto 0 0;width:260px;z-index:20;transform:translateX(-100%);transition:transform var(--dur) var(--ease)}
   .app.is-nav-open .sidebar{transform:none}
-  .btn,.btn-sm,.btn-lg{min-height:40px}
   .step-rail{flex-direction:column}
   .contrast-pair{grid-template-columns:1fr}
   .alt-table thead{display:none}
@@ -239,16 +260,17 @@
   .alt-table td{display:block;border:0;padding:var(--space-1) var(--space-3)}
   .alt-table td[data-label]::before{content:attr(data-label) " ";font-weight:600;color:var(--color-text-muted)}
 }
+@media (max-width:1023px){.btn,.btn-sm,.btn-lg{min-height:var(--tap)}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
 html,body{margin:0}
 body{background:var(--color-background);color:var(--color-text);font-family:var(--font-sans);font-size:var(--fs-base);line-height:var(--lh)}
 .login{display:grid;grid-template-columns:minmax(0,1fr);min-height:100vh}
-.login-main{display:flex;flex-direction:column;min-width:0;padding:var(--space-4)}
-.login-top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:40px}
-.brand{display:inline-flex;white-space:nowrap;align-items:center;min-height:40px;font-weight:700;font-size:var(--fs-opt);color:var(--color-heading);text-decoration:none}
+.login-main{display:flex;flex-direction:column;min-width:0;padding:var(--space-3) var(--page-pad)}
+.login-top{display:flex;align-items:center;justify-content:space-between;gap:var(--space-3);min-height:var(--tap)}
+.brand{display:inline-flex;white-space:nowrap;align-items:center;min-height:var(--tap);font-weight:700;font-size:var(--fs-opt);color:var(--color-heading);text-decoration:none}
 .brand:hover{color:var(--color-brand-text)}
-.theme-btn{width:40px;padding:0;font-size:var(--text-xl)}
+.theme-btn{width:var(--tap);flex:none;padding:0;font-size:var(--text-xl)}
 .theme-btn .i-moon{display:none}
 :root[data-theme="dark"] .theme-btn .i-sun{display:none}
 :root[data-theme="dark"] .theme-btn .i-moon{display:inline}
@@ -256,7 +278,7 @@ body{background:var(--color-background);color:var(--color-text);font-family:var(
   :root:not([data-theme="light"]) .theme-btn .i-sun{display:none}
   :root:not([data-theme="light"]) .theme-btn .i-moon{display:inline}
 }
-.login-body{flex:1;width:100%;max-width:400px;padding:var(--space-7) 0 var(--space-6)}
+.login-body{flex:1;width:100%;max-width:400px;margin-inline:auto;padding:var(--space-6) 0 var(--space-6)}
 .login-body h1{margin:0 0 var(--space-2);font-size:var(--fs-h1);line-height:1.3;color:var(--color-heading)}
 .lead{margin:0 0 var(--space-5);color:var(--color-text-muted);font-size:var(--fs-sm)}
 form{display:flex;flex-direction:column;gap:var(--space-4)}
@@ -266,7 +288,7 @@ form{display:flex;flex-direction:column;gap:var(--space-4)}
 .pw-toggle:hover{color:var(--color-text);background:var(--color-surface-muted)}
 .pw-toggle[aria-pressed="true"]{color:var(--color-brand-text)}
 .field .error[hidden]{display:none}
-.login .btn{width:100%;height:40px}
+.login-body .btn{width:100%;height:auto;min-height:var(--tap)}
 .divider{display:flex;align-items:center;gap:var(--space-3);margin:var(--space-4) 0;color:var(--color-text-faint);font-size:var(--fs-xs)}
 .divider::before,.divider::after{content:"";flex:1;height:1px;background:var(--color-border)}
 .g-panel{margin-top:var(--space-3);padding:var(--space-4);border:1px solid var(--color-border);border-left:3px solid var(--color-brand);border-radius:var(--radius-control);background:var(--color-surface)}
@@ -286,10 +308,13 @@ form{display:flex;flex-direction:column;gap:var(--space-4)}
 .art .scan-soft{stroke:var(--color-brand);stroke-width:1.5;stroke-dasharray:3 5;stroke-linecap:round;opacity:.7}
 .art .num{fill:var(--color-text-muted);font:600 var(--text-xs) var(--font-sans)}
 .art .num-on{fill:var(--color-on-brand);font:600 var(--text-xs) var(--font-sans)}
+@media (min-width:768px){
+  .login-body{max-width:440px;padding-top:var(--space-8)}
+}
 @media (min-width:1024px){
   .login{grid-template-columns:minmax(440px,5fr) minmax(0,6fr)}
   .login-main{padding:var(--space-5) var(--space-7)}
-  .login-body{padding-top:var(--space-8)}
+  .login-body{margin-inline:0;max-width:400px}
   .login-art{display:flex;align-items:center;justify-content:center;padding:var(--space-7);background:var(--color-surface-muted);border-left:1px solid var(--color-border)}
 }
 </style>

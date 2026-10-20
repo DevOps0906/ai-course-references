@@ -259,12 +259,33 @@ def write_page(path, html, label):
     print(f"✓ {os.path.relpath(path, ROOT)}  ({len(html) // 1024} KB)  {label}")
 
 
+def lint_responsive():
+    """반응형 표준 검사: @media 폭은 767/768/1023/1024만, 글자 크기는 --text-* 단계(직접 px 금지).
+    기준은 design/tokens.css 머리말 참고(모바일 ≤767 · 태블릿 768~1023 · 데스크탑 ≥1024)."""
+    allowed = {"767", "768", "1023", "1024"}
+    errs = []
+    for p in (TOKENS, COMPONENTS, ENGINE, LANDING_TPL, LOGIN_TPL, DASH_TPL):
+        text = open(p, encoding="utf-8").read()
+        name = os.path.relpath(p, ROOT)
+        for m in re.finditer(r"@media[^{]*", text):
+            for w in re.findall(r"(?:min|max)-width:\s*(\d+)px", m.group(0)):
+                if w not in allowed:
+                    errs.append(f"{name}: @media 폭 {w}px (허용: 767/768/1023/1024) → {m.group(0).strip()}")
+        for m in re.finditer(r"font-size:\s*[\d.]+px|font:[^;}\"]*?\b[\d.]+px", text):
+            errs.append(f"{name}: 글자 크기를 px로 직접 지정 → {m.group(0)} (var(--text-*) 사용)")
+    for e in errs:
+        print(f"✗ responsive: {e}")
+    return not errs
+
+
 def build_site(cat):
     """랜딩·로그인·대시보드 생성. 린트·잔여 이름 검사 오류가 있으면 False."""
     landing = json.load(open(LANDING_JSON, encoding="utf-8"))
     errs = lint_landing(landing)
     for e in errs:
         print(f"✗ landing: {e}")
+    if not lint_responsive():
+        errs.append("responsive")
     title = "디지털노마드연구소 · 문제은행"
     demo = sample_demo(cat)
     write_page(INDEX_OUT, fill(open(LANDING_TPL, encoding="utf-8").read(), common_pairs() + (

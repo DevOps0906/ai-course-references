@@ -92,21 +92,40 @@
   --lv1:var(--green-400);--lv2:var(--yellow-400);--lv3:var(--red-400);
   --shadow:none;
   color-scheme:dark;}
-/* 글자 크기 스케일: SmartAI-RAG-Tour(src/web/static/css/app.src.css)와 동일.
-   태블릿·모바일(<1024px)은 Tailwind 기본 크기, 웹(≥1024px)은 약 10% 축소(가장 작은 글자 11px).
-   모든 글자 크기는 --text-* 단계로만 지정한다(--fs-* 의미 토큰도 이 단계를 가리킴). rem 기준 = 16px. */
+/* ── 반응형 표준 3단계 ─────────────────────────────────────────────
+   모바일  ≤767px      (기본값 = 이 :root. 1열 · 드로어 메뉴 · 터치 44px)
+   태블릿  768~1023px  (@media (min-width:768px)로 덮어씀. 2열 혼합 · 드로어 메뉴 · 터치 40px)
+   데스크탑 ≥1024px    (@media (min-width:1024px)로 덮어씀. 풀 레이아웃 · 고정 사이드바)
+   모든 페이지의 @media 폭은 767 / 768 / 1023 / 1024 네 값만 쓴다(build.py lint_responsive가 검사).
+   글자 크기는 --text-* 9단계로만 지정하고, 기기 단계별 값은 아래에서만 정의한다(rem 기준 16px).
+   데스크탑·태블릿 값은 SmartAI-RAG-Tour(app.src.css)와 동일: 태블릿 = Tailwind 기본, 데스크탑 = 약 10% 축소(최소 11px).
+   모바일은 본문 단계(xs~xl)를 태블릿과 같게 유지하고(읽기·입력 확대 방지), 큰 제목 단계(3xl~5xl)만 줄인다. */
 :root{
+  /* 모바일 (기본) */
   --text-xs:.75rem;     /* 12px */
   --text-sm:.875rem;    /* 14px */
   --text-base:1rem;     /* 16px */
   --text-lg:1.125rem;   /* 18px */
   --text-xl:1.25rem;    /* 20px */
   --text-2xl:1.5rem;    /* 24px */
+  --text-3xl:1.75rem;   /* 28px */
+  --text-4xl:2rem;      /* 32px */
+  --text-5xl:2.5rem;    /* 40px */
+  --page-pad:16px;      /* 페이지 좌우 여백 */
+  --tap:44px;           /* 버튼·입력 최소 높이(터치) */
+  --gap-grid:12px;      /* 카드 그리드 간격 */
+}
+@media (min-width:768px){:root{
+  /* 태블릿 */
   --text-3xl:1.875rem;  /* 30px */
   --text-4xl:2.25rem;   /* 36px */
   --text-5xl:3rem;      /* 48px */
-}
+  --page-pad:24px;
+  --tap:40px;
+  --gap-grid:16px;
+}}
 @media (min-width:1024px){:root{
+  /* 데스크탑 */
   --text-xs:.6875rem;   /* 12px -> 11px */
   --text-sm:.8125rem;   /* 14px -> 13px */
   --text-base:.9rem;    /* 16px -> 14.4px */
@@ -116,4 +135,7 @@
   --text-3xl:1.6875rem; /* 30px -> 27px */
   --text-4xl:2.025rem;  /* 36px -> 32.4px */
   --text-5xl:2.7rem;    /* 48px -> 43.2px */
+  --page-pad:32px;
+  --tap:36px;
+  --gap-grid:16px;
 }}

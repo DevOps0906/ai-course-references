@@ -16,7 +16,8 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font
 a{color:inherit}
 b,strong{font-weight:650}
 code{font-family:var(--mono);font-size:.88em;color:var(--link);background:var(--soft);padding:1px 5px;border-radius:4px}
-.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px 56px}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 var(--page-pad) 56px}
+@media (max-width:1023px){.btn,.vbtn,.tabchip,.opt{min-height:var(--tap)}}
 .muted{color:var(--muted)}
 /* 상단 바 */
 .topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:10px;height:calc(52px + env(safe-area-inset-top,0px));margin:0 -20px 22px;padding:env(safe-area-inset-top,0px) 20px 0;
@@ -239,7 +240,7 @@ a.gcard:hover{border-color:var(--link);background:color-mix(in srgb,var(--link) 
 .gcard b{font-size:var(--text-base)}
 .gcard .gd{font-size:var(--fs-xs);color:var(--muted);line-height:1.5}
 .gcard.soon{border-style:dashed;opacity:.6;cursor:not-allowed}
-@media (max-width:560px){.gpick{gap:6px}.gcard{min-height:84px;padding:10px 8px;align-items:center;text-align:center;justify-content:center}.gcard b{font-size:var(--text-sm);word-break:keep-all}.gcard .gd{display:none}}
+@media (max-width:767px){.gpick{gap:6px}.gcard{min-height:84px;padding:10px 8px;align-items:center;text-align:center;justify-content:center}.gcard b{font-size:var(--text-sm);word-break:keep-all}.gcard .gd{display:none}}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 14px}
 .chip{font:inherit;font-size:var(--fs-btn);padding:6px 12px;border-radius:var(--r);border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);cursor:pointer;min-height:32px}
 .chip:hover{border-color:var(--muted)}
@@ -298,8 +299,8 @@ a.gcard:hover{border-color:var(--link);background:color-mix(in srgb,var(--link) 
 /* 한글이 섞인 숫자 요소는 mono 대신 본문 글꼴 + 고정폭 숫자 (mono 한글 자간이 벌어짐) */
 .meta,.tcard .tn,.tcard .ts,.progress span,.homeprog span,.note .foot,.an,.hud,.tleft,.gfloat,.bignum b{font-family:var(--font);font-variant-numeric:tabular-nums;letter-spacing:0}
 /* ── 반응형 ─────────────────────────────────────── */
-@media (max-width:560px){
-  .wrap{padding:0 16px 48px}
+@media (max-width:767px){
+  .wrap{padding-bottom:48px}
   .topbar{margin:0 -16px 18px;padding-left:16px;padding-right:16px}
   /* 홈 탭 카드: 모바일에서도 한 줄 3개 (사용자 지정) */
   .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}

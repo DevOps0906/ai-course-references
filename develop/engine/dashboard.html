@@ -191,9 +191,8 @@ details.xpd .table{margin-top:var(--space-2)}
   .app.is-nav-open .scrim{display:block;position:fixed;inset:0;z-index:35;background:color-mix(in srgb,var(--color-background) 60%,transparent)}
   .c4,.c5,.c7,.c8{grid-column:1/-1}
 }
-@media (max-width:700px){
+@media (max-width:767px){
   .c6{grid-column:1/-1}
-  .content{padding-left:var(--space-4);padding-right:var(--space-4)}
   .stats{gap:var(--space-2)}
   .stat{padding:var(--space-3)}
   .stat .v{font-size:var(--text-lg)}
@@ -201,7 +200,7 @@ details.xpd .table{margin-top:var(--space-2)}
   .hide-sm{display:none}
   .banks{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
 }
-@media (max-width:560px){
+@media (max-width:767px){
   .hide-xs{display:none}
   .acct-name{display:none}
   .page-head .btn{width:100%}
@@ -209,11 +208,10 @@ details.xpd .table{margin-top:var(--space-2)}
 }
 /* 타입 스케일 축소 (대시보드 전용: 12px 기준 · 공유 tokens/components는 건드리지 않음) */
 :root{--fs-base:var(--text-sm);--fs-opt:var(--text-sm);--fs-btn:var(--text-sm);--fs-btn-pri:var(--text-sm);--fs-sm:var(--text-sm);--fs-xs:var(--text-xs);--fs-2xs:var(--text-xs);--fs-h1:var(--text-xl);--fs-h2:var(--text-xl);--lh:1.5}
-@media (max-width:560px){:root{--fs-base:var(--text-sm);--fs-h1:var(--text-xl);--fs-h2:var(--text-xl)}}
 .app{grid-template-columns:220px minmax(0,1fr)}
 .app.is-collapsed{grid-template-columns:64px minmax(0,1fr)}
 @media (max-width:1023px){.app,.app.is-collapsed{grid-template-columns:minmax(0,1fr)}}
-@media (max-width:700px){.card.c12{overflow-x:auto}}
+@media (max-width:767px){.card.c12{overflow-x:auto}}
 .topbar{height:48px}
 .topbar h1{font-size:var(--text-sm)}
 .btn{height:32px;padding:0 var(--space-3)}
@@ -227,7 +225,7 @@ details.xpd .table{margin-top:var(--space-2)}
 .grp{font-size:var(--text-xs)}
 .tabs [role="tab"]{min-height:34px;padding:0 var(--space-3)}
 .menu-item{min-height:34px}
-.content{padding:var(--space-4) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom,0px))}
+.content{padding:var(--space-4) var(--page-pad) calc(var(--space-6) + env(safe-area-inset-bottom,0px))}
 .subtabs{margin-bottom:var(--space-4)}
 .page-head{margin-bottom:var(--space-4)}
 .page-head h1,.view-h1{font-size:var(--text-xl);line-height:1.35}
@@ -261,13 +259,13 @@ h2.wt{font-size:var(--text-sm);font-weight:600;margin-bottom:var(--space-2)}
 #palList .ps{font-size:var(--text-xs)}
 .foot{margin-top:var(--space-5)}
 @media (max-width:1023px){.sidebar{width:240px}}
-@media (max-width:760px){
-  .btn,.btn-sm,.btn-lg,.btn-icon{min-height:40px}
-  .btn-icon{width:40px}
-  .sidebar a,.sidebar .nav-item,.sidebar .side-toggle,.menu-item,.tabs [role="tab"],.field input,.field select{min-height:40px}
-  .row-link{min-height:44px}
+@media (max-width:1023px){
+  .btn,.btn-sm,.btn-lg,.btn-icon{min-height:var(--tap)}
+  .btn-icon{width:var(--tap)}
+  .sidebar a,.sidebar .nav-item,.sidebar .side-toggle,.menu-item,.tabs [role="tab"],.field input,.field select{min-height:var(--tap)}
+  .row-link{min-height:calc(var(--tap) + 4px)}
 }
-@media (max-width:700px){
+@media (max-width:767px){
   .stat{padding:var(--space-3)}
   .stat .v{font-size:var(--text-lg)}
   .hero .big b{font-size:var(--text-3xl)}
