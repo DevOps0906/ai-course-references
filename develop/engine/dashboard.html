@@ -274,6 +274,27 @@ h2.wt{font-size:var(--text-sm);font-weight:600;margin-bottom:var(--space-2)}
 /* 가독성: 본문성 텍스트 행간 1.5 */
 .side-head,.sidebar .label,.rt,.bank .bt{line-height:1.5}
 .bank .bs,.bank .bm,.widget p,.widget li,.table td,.table th,.cmd-results li,.empty p,.upload p{line-height:1.5}
+
+/* 사이드바 하위 메뉴(기본 닫힘) */
+.grp-btn{display:flex;align-items:center;gap:var(--space-3);width:100%;min-height:40px;padding:0 var(--space-3);border:0;border-radius:var(--radius-control);background:none;color:var(--color-text-muted);font-family:inherit;font-size:var(--fs-opt);text-align:left;cursor:pointer}
+.grp-btn:hover{background:var(--color-surface-muted);color:var(--color-text)}
+.grp-btn.has-active{color:var(--color-brand-text);font-weight:600}
+.grp-btn .chev{margin-left:auto;flex:none;transition:transform var(--dur) var(--ease)}
+.grp-btn[aria-expanded="true"] .chev{transform:rotate(90deg)}
+.submenu{display:flex;flex-direction:column;gap:var(--space-1);padding:var(--space-1) 0 var(--space-2) var(--space-4)}
+.submenu[hidden]{display:none}
+.app.is-collapsed .submenu{display:none}
+.app.is-collapsed .grp-btn{justify-content:center;padding:0}
+.app.is-collapsed .grp-btn .chev{display:none}
+.bank.subj{border-top:3px solid var(--sc,var(--color-border))}
+.bank.subj .code{display:inline-flex;align-items:center;gap:var(--space-2);color:var(--sc)}
+.bank.subj.is-off{opacity:.65}
+@media (max-width:1023px){
+  .grp-btn{min-height:var(--tap)}
+  .app.is-collapsed .submenu:not([hidden]){display:flex}
+  .app.is-collapsed .grp-btn{justify-content:flex-start;padding:0 var(--space-3)}
+  .app.is-collapsed .grp-btn .chev{display:inline}
+}
 </style>
 </head>
 <body>
@@ -340,22 +361,25 @@ function parseHash(){
   return {r,s};
 }
 const readySubject=id=>(CAT.subjects||[]).some(x=>x.id===id&&x.ready);
-let sub='it';
+let sub='it', allScope=true;
 function pickSubject(hs){
   const saved=QB.ui.get().subject;
   sub=readySubject(hs)?hs:readySubject(saved)?saved:'it';
   if(sub!==saved)QB.ui.set({subject:sub});
 }
-const h=r=>'#'+r+(sub!=='it'?'&s='+sub:'');
+const h=r=>'#'+r+(!allScope&&sub!=='it'?'&s='+sub:'');
+const hSub=id=>'#subject&s='+id;
+const subLabel=id=>((CAT.subjects||[]).find(x=>x.id===id)||{}).label||id;
 
 /* ── 데이터 ── */
-const stageBanks=st=>st.courses.flatMap(c=>c.banks).filter(b=>(b.subject||'it')===sub);
+const stageBanks=st=>st.courses.flatMap(c=>c.banks).filter(b=>allScope||(b.subject||'it')===sub);
 let allBanks=[], byId={}, snap=null, tot=null, stageOf={};
 function load(){
   allBanks=CAT.stages.flatMap(st=>stageBanks(st).map(b=>{stageOf[b.id]=st;return b;}));
   byId=Object.fromEntries(allBanks.map(b=>[b.id,b]));
-  snap=QBP.snapshot(CAT,{subject:sub,name:user().name});
-  tot=QBP.totals(snap,CAT,{subject:sub});
+  const so=allScope?{}:{subject:sub};
+  snap=QBP.snapshot(CAT,Object.assign({name:user().name},so));
+  tot=QBP.totals(snap,CAT,so);
 }
 function stageStat(st){
   const bs=stageBanks(st);let tabs=0,done=0,wrong=0,qs=0;
@@ -368,23 +392,46 @@ const dayLabel=t=>{
 };
 
 /* ── 사이드바 ── */
+const SG=new Set();  /* 열린 하위 메뉴 그룹: 기본은 모두 닫힘, 라우트가 바뀔 때마다 초기화 */
+const stageStatSub=st=>{
+  const bs=st.courses.flatMap(c=>c.banks).filter(b=>(b.subject||'it')===sub);let tabs=0,done=0;
+  bs.forEach(b=>{const p=snap.per[b.id]||{done:0};tabs+=b.tabs;done+=p.done;});
+  return {n:bs.length,pct:tabs?Math.round(done/tabs*100):0};
+};
 function sideHTML(route){
   const cur=a=>a===route?' aria-current="page"':'';
-  const nav=(r,icon,label)=>`<a href="${h(r)}" data-route="${r}" title="${esc(label)}"${cur(r)}>${ic(icon)}<span class="label">${esc(label)}</span></a>`;
+  const nav=(r,icon,label,href)=>`<a href="${href||h(r)}" data-route="${r}" title="${esc(label)}"${cur(r)}>${ic(icon)}<span class="label">${esc(label)}</span></a>`;
+  const grp=(id,icon,label,body,active)=>{const o=SG.has(id);
+    return `<button class="grp-btn${active?' has-active':''}" type="button" data-grp="${id}" aria-expanded="${o}" aria-controls="sm-${id}">${ic(icon)}<span class="label">${label}</span>${ic('chevron-right','chev')}</button><div class="submenu" id="sm-${id}"${o?'':' hidden'}>${body}</div>`;};
+  const subjects=(CAT.subjects||[]).map(s=>{
+    const on=s.ready, act=route==='subject'&&s.id===sub;
+    return on?`<a href="${hSub(s.id)}" data-route="subject" title="${esc(s.label)}"${act?' aria-current="page"':''}>${ic(SUBJ_ICON[s.id]||'book')}<span class="label">${esc(s.label)}</span></a>`
+      :`<span class="nav-item is-off" aria-disabled="true" title="${esc(s.label)} 준비 중">${ic(SUBJ_ICON[s.id]||'book')}<span class="label">${esc(s.label)} · 준비 중</span></span>`;
+  }).join('');
   const courses=CAT.stages.map(st=>{
-    const s=stageStat(st),t=`${st.num} ${st.title}`;
+    const s=stageStatSub(st),t=`${st.num} ${st.title}`;
     return s.n
-      ?`<a class="course" href="${h(st.num)}" data-route="${st.num}" title="${esc(t)}"${cur(st.num)}><span class="cn">${esc(st.num)}</span><span class="label"><span class="tt">${esc(st.title)}</span><span class="pbar" role="img" aria-label="진행률 ${s.pct}%"><i style="width:${s.pct}%"></i></span></span></a>`
+      ?`<a class="course" href="#${st.num}&s=${sub}" data-route="${st.num}" title="${esc(t)}"${cur(st.num)}><span class="cn">${esc(st.num)}</span><span class="label"><span class="tt">${esc(st.title)}</span><span class="pbar" role="img" aria-label="진행률 ${s.pct}%"><i style="width:${s.pct}%"></i></span></span></a>`
       :`<span class="nav-item course is-off" aria-disabled="true" title="${esc(t)} 준비 중"><span class="cn">${esc(st.num)}</span><span class="label"><span class="tt">${esc(st.title)}</span><span class="tt">준비 중</span></span></span>`;
   }).join('');
+  const learn=nav('wrong','alert-circle','남은 오답')+nav('history','history','학습 기록')+nav('upload','upload','문서로 문제 만들기');
+  const isStage=CAT.stages.some(s=>s.num===route);
   return `<div class="side-head"><small>디지털노마드연구소</small><b>문제은행</b></div>
-  <nav aria-label="학습"><p class="grp">학습</p>
-    ${nav('','home','홈')}${nav('wrong','alert-circle','남은 오답')}${nav('history','history','학습 기록')}${nav('upload','upload','문서로 문제 만들기')}
+  <nav aria-label="주 메뉴">
+    ${nav('','home','홈 (전체 대시보드)','#')}
+    ${grp('subjects','layers','과목',subjects,route==='subject')}
+    ${grp('courses','book',`과정 · ${esc(subLabel(sub))}`,courses,isStage)}
+    ${grp('learn','history','학습',learn,['wrong','history','upload'].includes(route))}
   </nav>
-  <nav aria-label="과정"><p class="grp">과정</p>${courses}</nav>
   <button class="side-toggle" id="sideToggle" type="button" aria-expanded="${!shell.classList.contains('is-collapsed')}" aria-label="사이드바 접기">${ic('chevrons-left')}<span class="label">접기</span></button>`;
 }
 function bindSide(){
+  side.querySelectorAll('.grp-btn').forEach(b=>b.addEventListener('click',()=>{
+    const id=b.dataset.grp, o=b.getAttribute('aria-expanded')!=='true';
+    o?SG.add(id):SG.delete(id);
+    b.setAttribute('aria-expanded',String(o));
+    $('#sm-'+id).hidden=!o;
+  }));
   $('#sideToggle').addEventListener('click',()=>{
     const c=shell.classList.toggle('is-collapsed');QB.ui.set({sidebar:!c});
     $('#sideToggle').setAttribute('aria-expanded',String(!c));
@@ -476,19 +523,19 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ── 공통 조각 ── */
-function subTabs(){
-  const subs=(CAT.subjects||[]).map(s=>{
-    const on=s.ready,sel=on&&s.id===sub;
-    return `<button class="" role="tab" type="button" data-subject="${esc(s.id)}" style="--sc:var(--subject-${esc(s.id)})" aria-selected="${sel}"${on?'':' aria-disabled="true"'} tabindex="${sel?0:-1}">${ic(SUBJ_ICON[s.id]||'book')}${esc(s.label)}</button>`;
-  }).join('');
+function subTabs(active){
+  const one=(id,label,icon,on,sel)=>`<button role="tab" type="button" data-subject="${esc(id)}" style="--sc:var(--subject-${esc(id)},var(--color-brand))" aria-selected="${sel}"${on?'':' aria-disabled="true"'} tabindex="${sel?0:-1}">${ic(icon)}${esc(label)}</button>`;
+  const subs=one('all','전체','home',true,active==='all')+(CAT.subjects||[]).map(s=>one(s.id,s.label,SUBJ_ICON[s.id]||'book',s.ready,s.ready&&active===s.id)).join('');
   return `<div class="tabs subtabs" role="tablist" aria-label="과목">${subs}</div>`;
 }
 function bindSubTabs(){
   const tabs=[...view.querySelectorAll('.subtabs [role=tab]')];
   tabs.forEach(t=>{
     t.addEventListener('click',()=>{
-      if(t.getAttribute('aria-disabled')==='true')return;
-      if(t.dataset.subject!==sub){QB.ui.set({subject:t.dataset.subject});location.hash=(parseHash().r||'')+'&s='+t.dataset.subject;}
+      if(t.getAttribute('aria-disabled')==='true'||t.getAttribute('aria-selected')==='true')return;
+      const id=t.dataset.subject;
+      if(id==='all'){location.hash='';return;}
+      QB.ui.set({subject:id});location.hash='subject&s='+id;
     });
     t.addEventListener('keydown',e=>{
       const i=tabs.indexOf(t),n=e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0;
@@ -510,7 +557,8 @@ function blockedHTML(){
 
 /* ── 홈 ── */
 function homeView(){
-  const name=user().name, cl=QBP.continueList(CAT,3,snap,{subject:sub}), ev=snap.events;
+  const isAll=allScope, slab=subLabel(sub);
+  const name=user().name, cl=QBP.continueList(CAT,3,snap,allScope?{}:{subject:sub}), ev=snap.events;
   const streak=QBP.streak(ev), today=QBP.activeToday(ev), hm=QBP.heatmap(ev,16), xp=snap.xp;
   const empty=!ev.length&&!tot.doneTabs&&!tot.unsolved;
   const first=allBanks[0], go=cl[0]?cl[0].bank:first;
@@ -527,10 +575,24 @@ function homeView(){
     return `<li><a class="row-link" href="${esc(b.href)}"><span class="grow"><span class="rt">${esc(b.title)}</span><span class="rs">${esc(b.code)} ${x.done}/${b.tabs} 탭</span>${bar(pc)}</span>${ic('chevron-right')}</a></li>`;}).join('')}</ul>`
     :'<p class="hint">모든 문제은행의 탭을 채점했습니다.</p>';
   const recent=QBP.recent(ev,8).map(actLine).join('');
-  view.innerHTML=`${subTabs()}
+  const subjCards=(CAT.subjects||[]).map(s=>{
+    const col=`style="--sc:var(--subject-${esc(s.id)},var(--color-brand))"`, icn=ic(SUBJ_ICON[s.id]||'book');
+    if(!s.ready)return `<div class="card bank subj is-off" ${col} aria-disabled="true"><span class="code">${icn}${esc(s.label)}</span><span class="bt">준비 중</span><span class="bs">곧 문제은행이 추가됩니다.</span></div>`;
+    const t=QBP.totals(snap,CAT,{subject:s.id}), pc=t.allTabs?Math.round(t.doneTabs/t.allTabs*100):0;
+    return `<a class="card card-link bank subj" ${col} href="${hSub(s.id)}"><span class="code">${icn}${esc(s.label)}</span><span class="bt">${esc(s.label)} 대시보드</span>${bar(pc)}
+      <span class="meta"><span>문제은행 ${t.banks}</span><span>문항 ${fmt(t.qs)}</span><span>${t.doneTabs}/${t.allTabs} 탭 채점</span>${t.unsolved?`<span class="wn">오답 ${t.unsolved}</span>`:''}</span></a>`;
+  }).join('');
+  const listSection=isAll
+    ?`<section class="c12" aria-labelledby="w5"><h2 class="wt" id="w5">${ic('layers')}과목별 대시보드</h2><div class="banks">${subjCards}</div></section>`
+    :`<section class="card c12" aria-labelledby="w5"><h2 class="wt" id="w5">${ic('book')}과정 진행률</h2>
+      <table class="table"><caption class="sr-only">과정별 문제은행 수, 채점한 탭, 진행률, 남은 오답</caption>
+      <thead><tr><th scope="col">과정</th><th scope="col" class="num hide-sm">문제은행</th><th scope="col" class="num">채점 탭</th><th scope="col" class="num">진행률</th><th scope="col" class="num">오답</th></tr></thead>
+      <tbody>${stageRows}</tbody></table></section>`;
+  view.innerHTML=`${subTabs(isAll?'all':sub)}
+  ${isAll?'':`<nav class="crumbs" aria-label="경로"><a href="#">홈</a>${ic('chevron-right')}<span>${esc(slab)} 대시보드</span></nav>`}
   <div class="page-head">
-    <div><h1 class="view-h1" tabindex="-1" id="h1">안녕하세요, ${esc(name)}님</h1>
-    <p class="sub">문제은행 ${fmt(tot.banks)}개, ${fmt(tot.qs)}문항이 준비되어 있습니다.</p></div>
+    <div><h1 class="view-h1" tabindex="-1" id="h1">${isAll?`안녕하세요, ${esc(name)}님`:`${esc(slab)} 대시보드`}</h1>
+    <p class="sub">${isAll?`전체 과목 · 문제은행 ${fmt(tot.banks)}개, ${fmt(tot.qs)}문항이 준비되어 있습니다.`:`${esc(slab)} · 문제은행 ${fmt(tot.banks)}개, ${fmt(tot.qs)}문항이 준비되어 있습니다.`}</p></div>
     ${go?`<a class="btn btn-primary btn-lg" href="${esc(go.href)}">${ic('play')}이어서 풀기</a>`:''}
   </div>
   ${empty?`<div class="card empty-card"><p>아직 푼 문제가 없습니다. 01 과정 첫 문제은행부터 시작하세요.</p>${first?`<a class="btn btn-primary" href="${esc(first.href)}">첫 문제은행 열기</a>`:''}</div>`:''}
@@ -547,10 +609,7 @@ function homeView(){
       <p class="sr-only">${esc(sum)}</p>
       <div class="hm-foot"><span>${esc(sum)}</span><span class="legend" aria-hidden="true">적음 ${[0,1,2,3,4].map(l=>`<span class="heatmap-key" data-l="${l}"></span>`).join('')} 많음</span></div></section>
     <section class="card c5" aria-labelledby="w4"><h2 class="wt" id="w4">${ic('play')}이어서 풀기</h2>${contHTML}</section>`}
-    <section class="card c12" aria-labelledby="w5"><h2 class="wt" id="w5">${ic('book')}과정 진행률</h2>
-      <table class="table"><caption class="sr-only">과정별 문제은행 수, 채점한 탭, 진행률, 남은 오답</caption>
-      <thead><tr><th scope="col">과정</th><th scope="col" class="num hide-sm">문제은행</th><th scope="col" class="num">채점 탭</th><th scope="col" class="num">진행률</th><th scope="col" class="num">오답</th></tr></thead>
-      <tbody>${stageRows}</tbody></table></section>
+    ${listSection}
     ${empty?'':`<section class="card c7" aria-labelledby="w6"><h2 class="wt" id="w6">${ic('history')}최근 활동</h2>
       ${recent?`<ul class="list">${recent}</ul><p class="hint"><a href="${h('history')}" style="color:var(--color-brand-text)">전체 기록 보기</a></p>`:'<p class="hint">아직 활동 기록이 없습니다.</p>'}</section>`}
     <section class="card ${empty?'c12':'c5'}" aria-labelledby="w7"><h2 class="wt" id="w7">${ic('trophy')}경험치</h2>
@@ -575,12 +634,12 @@ function stageView(st){
   const card=b=>{const p=snap.per[b.id]||{done:0,open:0},pc=b.tabs?Math.round(p.done/b.tabs*100):0;
     return `<a class="card card-link bank${b.tabs&&p.done===b.tabs?' is-done':''}" href="${esc(b.href)}"><span class="code">${esc(b.code)}</span><span class="bt">${esc(b.title)}</span>${b.subtitle?`<span class="bs">${esc(b.subtitle)}</span>`:''}${bar(pc)}
       <span class="meta"><span>문항 ${b.qs}</span><span>탭 ${b.tabs}</span><span>${p.done?`${p.done}/${b.tabs} 탭 채점`:'미응시'}</span>${p.open?`<span class="wn">오답 ${p.open}</span>`:''}</span></a>`;};
-  view.innerHTML=`${subTabs()}
-  <nav class="crumbs" aria-label="경로"><a href="${h('')}">홈</a>${ic('chevron-right')}<span>${esc(st.num)} ${esc(st.title)}</span></nav>
+  view.innerHTML=`${subTabs(sub)}
+  <nav class="crumbs" aria-label="경로"><a href="#">홈</a>${ic('chevron-right')}<a href="${hSub(sub)}">${esc(subLabel(sub))}</a>${ic('chevron-right')}<span>${esc(st.num)} ${esc(st.title)}</span></nav>
   <div class="stage-h"><span class="cn">${esc(st.num)}</span><h1 class="view-h1" tabindex="-1" id="h1">${esc(st.title)}</h1></div>
   <p class="sub">문제은행 ${s.n}개, ${fmt(s.qs)}문항, 채점한 탭 ${s.done}/${s.tabs}</p>
   ${(st.keys||[]).length?`<div class="keys">${st.keys.map(k=>`<span class="badge">${esc(k)}</span>`).join('')}</div>`:''}
-  ${st.courses.map(c=>{const bs=c.banks.filter(b=>(b.subject||'it')===sub);
+  ${st.courses.map(c=>{const bs=c.banks.filter(b=>allScope||(b.subject||'it')===sub);
     return `<section>${st.courses.length>1?`<h2 class="course-h">${esc(c.title)}</h2>`:'<div style="height:var(--space-5)"></div>'}
     ${bs.length?`<div class="banks">${bs.map(card).join('')}</div>`:'<p class="hint">준비 중</p>'}</section>`;}).join('')}
   ${foot()}`;
@@ -660,24 +719,27 @@ function uploadView(){
 }
 
 /* ── 라우팅 ── */
-const TITLES={'':'홈',wrong:'남은 오답',history:'학습 기록',upload:'문서로 문제 만들기'};
+const TITLES={'':'홈',subject:'과목 대시보드',wrong:'남은 오답',history:'학습 기록',upload:'문서로 문제 만들기'};
 function route(keepScroll){
   if(teardown){teardown();teardown=null;}
-  const hs=parseHash();pickSubject(hs.s);
+  const hs=parseHash();allScope=false;pickSubject(hs.s);
   const st=CAT.stages.find(s=>s.num===hs.r&&stageBanks(s).length);
   const r=st?st.num:(hs.r in TITLES?hs.r:'');
+  allScope=!st&&r!=='subject';   /* 홈·오답·기록·업로드는 전체 과목, 과목 대시보드·과정은 선택한 과목 */
   load();
-  const title=st?`${st.num} ${st.title}`:TITLES[r];
+  SG.clear();
+  if(st)SG.add('courses');else if(r==='subject')SG.add('subjects');else if(r==='wrong'||r==='history'||r==='upload')SG.add('learn');
+  const title=st?`${st.num} ${st.title}`:r==='subject'?`${subLabel(sub)} 대시보드`:r===''?'전체 대시보드':TITLES[r];
   $('#pageTitle').textContent=title;
   document.title=`${title} · 문제은행`;
   side.innerHTML=sideHTML(r);bindSide();
   const storageOk=QBP.storageOk();
   if(r==='upload')uploadView();
   else if(st)stageView(st);
-  else if(!storageOk)view.innerHTML=subTabs()+blockedHTML();
+  else if(!storageOk)view.innerHTML=subTabs(allScope?'all':sub)+blockedHTML();
   else if(r==='wrong')wrongView();
   else if(r==='history')historyView();
-  else homeView();
+  else homeView();   /* r==='' 전체, r==='subject' 과목 */
   bindSubTabs();
   view.querySelectorAll('tr[data-go]').forEach(tr=>tr.addEventListener('click',e=>{if(!e.target.closest('a'))location.hash=tr.dataset.go.slice(1);}));
   navOpen(false,false);

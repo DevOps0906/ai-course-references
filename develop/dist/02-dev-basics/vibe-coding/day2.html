@@ -167,6 +167,10 @@ code{font-family:var(--mono);font-size:.88em;color:var(--link);background:var(--
 .brand b{color:var(--ink);font-weight:600}
 .iconbtn{font:inherit;font-size:var(--text-base);border:1px solid var(--btn-line);background:var(--btn-bg);color:var(--ink);width:32px;height:32px;border-radius:var(--r);cursor:pointer;flex:0 0 auto;display:grid;place-items:center}
 .iconbtn:hover{border-color:var(--muted)}
+.topscore{flex:none;display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font-size:var(--text-sm);font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.topscore small{font-size:var(--text-xs);font-weight:400;color:var(--muted)}
+.topscore[hidden]{display:none}
+@media (max-width:767px){.topscore{padding:2px 8px}.topscore small{display:none}}
 /* 제목 */
 h1{font-size:var(--fs-h1);line-height:1.3;margin:0 0 6px;letter-spacing:-.02em;font-weight:700;color:var(--title)}
 h2{font-size:var(--fs-h2);line-height:1.4;margin:0;font-weight:650;letter-spacing:-.01em}
@@ -484,6 +488,7 @@ a.gcard:hover{border-color:var(--link);background:color-mix(in srgb,var(--link) 
 <div class="wrap">
   <header class="topbar noprint">
     <a class="brand" href="../../dashboard.html" title="전체 문제은행 목록">디지털노마드연구소 · <b>문제은행</b></a>
+    <span class="topscore" id="topScore" role="status" aria-live="polite" hidden></span>
     <button class="iconbtn" id="themeBtn" type="button" aria-label="라이트/다크 전환">🌓</button>
   </header>
   <main id="app"></main>
@@ -918,6 +923,17 @@ function tabAnswered(t){
   const src=cur&&cur.mode==='study'&&cur.tab===t?cur.ans:(S.drafts[t.id]||(S.tabs[t.id]&&S.tabs[t.id].answers)||{});
   return t.qs.filter(q=>isAnswered(q,src[q.id])).length;
 }
+function setTopScore(html){
+  const el=document.getElementById('topScore');if(!el)return;
+  el.hidden=!html;el.innerHTML=html||'';
+}
+function topScoreSheet(){
+  if(!cur||!cur.graded){setTopScore('');return;}
+  const n=cur.list.length, s=cur.list.filter(q=>isCorrect(q,finalAns(q))).length;
+  let h=`🏁 ${cur.mode==='study'?'이 탭':'오답 풀이'} ${s}/${n}점 <small>${pct(s,n)}%</small>`;
+  if(cur.mode==='study'&&allGraded()){const st=summaryStats();h+=` <small>· 종합 ${st.score}/${st.total}</small>`;}
+  setTopScore(h);
+}
 function updateProgress(){
   const p=document.getElementById('pbar');if(!p||!cur)return;
   const n=cur.list.filter(answered).length, cnt=fmtCnt(n,cur.list.length);
@@ -1088,6 +1104,7 @@ function renderSheet(){
   const on=app.querySelector('.tabchip[aria-selected="true"]');
   if(on)on.parentElement.scrollLeft=on.offsetLeft-on.parentElement.offsetLeft-16;
   updateProgress();
+  topScoreSheet();
 }
 function sheetResultHTML(){
   const n=cur.list.length, score=cur.list.filter(q=>isCorrect(q,finalAns(q))).length, p=pct(score,n);
@@ -1136,6 +1153,7 @@ function resultCode(score,total){return `${BANK.code||'QB'}-${letter(pct(score,t
 function viewSummary(){
   if(!allGraded()){location.hash='#home';return;}
   const st=summaryStats(), p=pct(st.score,st.total), code=resultCode(st.score,st.total);
+  setTopScore(`★ 종합 ${st.score}/${st.total}점 <small>${p}%</small>`);
   app.innerHTML=`
   <nav class="crumbs noprint"><a href="#home">← 홈</a><span>/</span><span>종합 결과</span></nav>
   <div class="printhead">${esc(BANK.title)} · ${esc(S.name||'이름 없음')} · ${today()}</div>
@@ -1374,6 +1392,7 @@ function finishGame(){
   const row=(r,i)=>`<tr class="${r.id===rec.id?'me':''}"><td>${medal(i)}</td><td>${esc(r.name)}</td><td class="r">${r.score.toLocaleString()}</td><td class="r">${r.rate}%</td><td class="r">${r.correct}/${r.total}</td><td class="r">${new Date(r.at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'})}</td></tr>`;
   const wrong=R.filter(r=>!r.ok);
   G=null;
+  setTopScore(`⚡ 게임 ${rec.score.toLocaleString()}점 <small>정답 ${correct}/${R.length}</small>`);
   app.innerHTML=`
   <div class="game">
     <div class="panel center">
@@ -1393,7 +1412,7 @@ function finishGame(){
 
 /* ── 라우터 · 이벤트 ───────────────────── */
 function route(){
-  stopGame();voiceReset();cur=null;app.classList.remove('sheet');
+  stopGame();voiceReset();cur=null;app.classList.remove('sheet');setTopScore('');
   const [v,arg]=(location.hash.slice(1)||'home').split('/');
   ({study:()=>viewStudy(arg),notes:viewNotes,retry:viewRetry,key:viewKey,game:()=>arg?viewGameSetup(arg):viewGamePick(),summary:viewSummary}[v]||viewHome)();
   window.scrollTo(0,0);
