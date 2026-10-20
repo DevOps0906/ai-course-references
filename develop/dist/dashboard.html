@@ -36,9 +36,9 @@
   /* ── 2층 Semantic 고정부 ── */
   --font-sans:"Pretendard Variable","Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --font-mono:"JetBrains Mono","D2Coding",Consolas,"SF Mono",monospace;
-  --fs-base:calc(16px*var(--fz));--lh:1.55;
-  --fs-h1:calc(25px*var(--fz));--fs-h2:calc(18px*var(--fz));--fs-q:calc(16px*var(--fz));--fs-opt:calc(15px*var(--fz));--fs-btn:calc(14px*var(--fz));--fs-btn-pri:calc(15px*var(--fz));
-  --fs-sm:calc(14px*var(--fz));--fs-xs:calc(13px*var(--fz));--fs-2xs:calc(12px*var(--fz));--fs-ox:calc(23px*var(--fz));
+  --fs-base:var(--text-base);--lh:1.55;
+  --fs-h1:var(--text-2xl);--fs-h2:var(--text-lg);--fs-q:var(--text-base);--fs-opt:var(--text-base);--fs-btn:var(--text-sm);--fs-btn-pri:var(--text-base);
+  --fs-sm:var(--text-sm);--fs-xs:var(--text-sm);--fs-2xs:var(--text-xs);--fs-ox:var(--text-2xl);
   --radius-sm:6px;--radius-control:8px;--radius-card:10px;--radius-lg:12px;--maxw:880px;
   --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;--space-6:32px;--space-7:48px;--space-8:64px;
   --ease:cubic-bezier(.2,0,0,1);--dur-fast:120ms;--dur:200ms;
@@ -101,12 +101,31 @@
   --lv1:var(--green-400);--lv2:var(--yellow-400);--lv3:var(--red-400);
   --shadow:none;
   color-scheme:dark;}
-/* 기기별 글자 배율: 모든 글자 크기 = 원본 px × --fz. 웹 1.25 · 태블릿 1.2 · 모바일 1.15
-   (웹 ≥1024px / 태블릿 561~1023px / 모바일 ≤560px. 값 하나만 바꾸면 해당 기기의 모든 글자가 함께 바뀜) */
-:root{--fz:1.25}
-@media (max-width:1023px){:root{--fz:1.2}}
-@media (max-width:560px){:root{--fz:1.15}}
-@media (max-width:560px){:root{--fs-base:calc(15.5px*var(--fz));--fs-h1:calc(21px*var(--fz));--fs-h2:calc(17px*var(--fz));--fs-q:calc(15.5px*var(--fz));--fs-ox:calc(21px*var(--fz))}}
+/* 글자 크기 스케일: SmartAI-RAG-Tour(src/web/static/css/app.src.css)와 동일.
+   태블릿·모바일(<1024px)은 Tailwind 기본 크기, 웹(≥1024px)은 약 10% 축소(가장 작은 글자 11px).
+   모든 글자 크기는 --text-* 단계로만 지정한다(--fs-* 의미 토큰도 이 단계를 가리킴). rem 기준 = 16px. */
+:root{
+  --text-xs:.75rem;     /* 12px */
+  --text-sm:.875rem;    /* 14px */
+  --text-base:1rem;     /* 16px */
+  --text-lg:1.125rem;   /* 18px */
+  --text-xl:1.25rem;    /* 20px */
+  --text-2xl:1.5rem;    /* 24px */
+  --text-3xl:1.875rem;  /* 30px */
+  --text-4xl:2.25rem;   /* 36px */
+  --text-5xl:3rem;      /* 48px */
+}
+@media (min-width:1024px){:root{
+  --text-xs:.6875rem;   /* 12px -> 11px */
+  --text-sm:.8125rem;   /* 14px -> 13px */
+  --text-base:.9rem;    /* 16px -> 14.4px */
+  --text-lg:1.0125rem;  /* 18px -> 16.2px */
+  --text-xl:1.125rem;   /* 20px -> 18px */
+  --text-2xl:1.35rem;   /* 24px -> 21.6px */
+  --text-3xl:1.6875rem; /* 30px -> 27px */
+  --text-4xl:2.025rem;  /* 36px -> 32.4px */
+  --text-5xl:2.7rem;    /* 48px -> 43.2px */
+}}
 
 /* Quiz Bank 공용 컴포넌트 (대시보드·랜딩·로그인용. quiz.html은 포함하지 않음)
    시맨틱/컴포넌트 토큰만 사용. 규칙: 1px 선, 그림자·그라데이션·알약 금지, 숫자에 mono 금지, 모바일 터치 40px 이상. */
@@ -289,12 +308,12 @@ h2.wt .icon{color:var(--color-brand-text)}
 .dgrid>*{min-width:0}
 .hint{font-size:var(--fs-xs);color:var(--color-text-muted);margin-top:var(--space-1)}
 .hero .big{display:flex;align-items:baseline;gap:var(--space-2)}
-.hero .big b{font-size:calc(49px*var(--fz));line-height:1.1;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--color-heading)}
+.hero .big b{font-size:var(--text-5xl);line-height:1.1;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--color-heading)}
 .hero .big span{font-size:var(--fs-h2);color:var(--color-text-muted)}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3)}
 .stat{display:flex;flex-direction:column;justify-content:space-between;gap:var(--space-2);padding:var(--space-3) var(--space-4)}
 .stat .k{font-size:var(--fs-xs);color:var(--color-text-muted)}
-.stat .v{font-size:calc(21px*var(--fz));font-weight:650;font-variant-numeric:tabular-nums;color:var(--color-heading)}
+.stat .v{font-size:var(--text-xl);font-weight:650;font-variant-numeric:tabular-nums;color:var(--color-heading)}
 .stat .v small{font-size:var(--fs-sm);font-weight:500;color:var(--color-text-muted)}
 .stat .v.is-danger{color:var(--color-danger)}
 .heatmap{grid-template-rows:repeat(7,auto);grid-auto-flow:column;grid-template-columns:repeat(16,minmax(14px,1fr));max-width:420px}
@@ -328,7 +347,7 @@ h2.wt .icon{color:var(--color-brand-text)}
 td.prog-td{padding:0}
 .table .is-off-row{color:var(--color-text-faint)}
 .xp{display:flex;align-items:baseline;gap:var(--space-2)}
-.xp b{font-size:calc(25px*var(--fz));font-weight:650;font-variant-numeric:tabular-nums;color:var(--color-heading)}
+.xp b{font-size:var(--text-2xl);font-weight:650;font-variant-numeric:tabular-nums;color:var(--color-heading)}
 details.xpd{margin-top:var(--space-3);font-size:var(--fs-sm)}
 details.xpd summary{cursor:pointer;color:var(--color-brand-text);min-height:32px;display:flex;align-items:center}
 details.xpd .table{margin-top:var(--space-2)}
@@ -410,8 +429,8 @@ details.xpd .table{margin-top:var(--space-2)}
   .content{padding-left:var(--space-4);padding-right:var(--space-4)}
   .stats{gap:var(--space-2)}
   .stat{padding:var(--space-3)}
-  .stat .v{font-size:calc(18px*var(--fz))}
-  .hero .big b{font-size:calc(45px*var(--fz))}
+  .stat .v{font-size:var(--text-lg)}
+  .hero .big b{font-size:var(--text-5xl)}
   .hide-sm{display:none}
   .banks{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
 }
@@ -422,57 +441,57 @@ details.xpd .table{margin-top:var(--space-2)}
   .table .prog .pbar{width:40px}
 }
 /* 타입 스케일 축소 (대시보드 전용: 12px 기준 · 공유 tokens/components는 건드리지 않음) */
-:root{--fs-base:calc(13px*var(--fz));--fs-opt:calc(13px*var(--fz));--fs-btn:calc(13px*var(--fz));--fs-btn-pri:calc(13px*var(--fz));--fs-sm:calc(13px*var(--fz));--fs-xs:calc(12px*var(--fz));--fs-2xs:calc(12px*var(--fz));--fs-h1:calc(19px*var(--fz));--fs-h2:calc(19px*var(--fz));--lh:1.5}
-@media (max-width:560px){:root{--fs-base:calc(13px*var(--fz));--fs-h1:calc(19px*var(--fz));--fs-h2:calc(19px*var(--fz))}}
+:root{--fs-base:var(--text-sm);--fs-opt:var(--text-sm);--fs-btn:var(--text-sm);--fs-btn-pri:var(--text-sm);--fs-sm:var(--text-sm);--fs-xs:var(--text-xs);--fs-2xs:var(--text-xs);--fs-h1:var(--text-xl);--fs-h2:var(--text-xl);--lh:1.5}
+@media (max-width:560px){:root{--fs-base:var(--text-sm);--fs-h1:var(--text-xl);--fs-h2:var(--text-xl)}}
 .app{grid-template-columns:220px minmax(0,1fr)}
 .app.is-collapsed{grid-template-columns:64px minmax(0,1fr)}
 @media (max-width:1023px){.app,.app.is-collapsed{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:700px){.card.c12{overflow-x:auto}}
 .topbar{height:48px}
-.topbar h1{font-size:calc(14px*var(--fz))}
+.topbar h1{font-size:var(--text-sm)}
 .btn{height:32px;padding:0 var(--space-3)}
 .btn-lg{height:34px;padding:0 var(--space-4)}
 .btn-icon{width:32px}
-.field label,.label-text{font-size:calc(13px*var(--fz))}
+.field label,.label-text{font-size:var(--text-sm)}
 .field input,.field select{height:34px}
 .sidebar a,.sidebar .nav-item,.sidebar .side-toggle{min-height:34px}
 .sidebar .course{padding-top:2px;padding-bottom:2px}
-.side-head b{font-size:calc(13px*var(--fz));font-weight:600}
-.grp{font-size:calc(12px*var(--fz))}
+.side-head b{font-size:var(--text-sm);font-weight:600}
+.grp{font-size:var(--text-xs)}
 .tabs [role="tab"]{min-height:34px;padding:0 var(--space-3)}
 .menu-item{min-height:34px}
 .content{padding:var(--space-4) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom,0px))}
 .subtabs{margin-bottom:var(--space-4)}
 .page-head{margin-bottom:var(--space-4)}
-.page-head h1,.view-h1{font-size:calc(19px*var(--fz));line-height:1.35}
-h2.wt{font-size:calc(13px*var(--fz));font-weight:600;margin-bottom:var(--space-2)}
+.page-head h1,.view-h1{font-size:var(--text-xl);line-height:1.35}
+h2.wt{font-size:var(--text-sm);font-weight:600;margin-bottom:var(--space-2)}
 .dgrid{gap:var(--space-3)}
 .card{padding:var(--space-4)}
 .stat{padding:var(--space-3)}
-.hero .big b{font-size:calc(29px*var(--fz));line-height:1.15}
-.hero .big span{font-size:calc(14px*var(--fz))}
-.stat .v,.xp b{font-size:calc(19px*var(--fz));font-weight:650}
-.stat .v small{font-size:calc(12px*var(--fz))}
+.hero .big b{font-size:var(--text-3xl);line-height:1.15}
+.hero .big span{font-size:var(--text-sm)}
+.stat .v,.xp b{font-size:var(--text-xl);font-weight:650}
+.stat .v small{font-size:var(--text-xs)}
 .row-link{min-height:40px;padding:6px 0}
-.rt{font-size:calc(13px*var(--fz))}
+.rt{font-size:var(--text-sm)}
 .table th,.table td{padding:6px var(--space-3)}
-.table th{font-size:calc(13px*var(--fz));font-weight:600}
-.empty-card p{font-size:calc(13px*var(--fz))}
-.up-card h2,.state h2{font-size:calc(15px*var(--fz));font-weight:600}
+.table th{font-size:var(--text-sm);font-weight:600}
+.empty-card p{font-size:var(--text-sm)}
+.up-card h2,.state h2{font-size:var(--text-base);font-weight:600}
 .up-card .icon{width:24px;height:24px}
 .state{padding:var(--space-4)}
-.stage-h .cn{font-size:calc(13px*var(--fz))}
-.course-h{font-size:calc(13px*var(--fz));margin:var(--space-4) 0 var(--space-2)}
+.stage-h .cn{font-size:var(--text-sm)}
+.course-h{font-size:var(--text-sm);margin:var(--space-4) 0 var(--space-2)}
 .banks{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
 .bank{padding:var(--space-3)}
-.bank .bt{font-size:calc(14px*var(--fz));font-weight:600;line-height:1.4}
-.bank .bs{font-size:calc(12px*var(--fz))}
-.bank .meta{font-size:calc(12px*var(--fz))}
+.bank .bt{font-size:var(--text-sm);font-weight:600;line-height:1.4}
+.bank .bs{font-size:var(--text-xs)}
+.bank .meta{font-size:var(--text-xs)}
 .drop{padding:var(--space-5) var(--space-4)}
-.file-line{font-size:calc(13px*var(--fz))}
-.pal-in input{height:44px;font-size:calc(14px*var(--fz))}
-#palList .pt{font-size:calc(13px*var(--fz))}
-#palList .ps{font-size:calc(12px*var(--fz))}
+.file-line{font-size:var(--text-sm)}
+.pal-in input{height:44px;font-size:var(--text-sm)}
+#palList .pt{font-size:var(--text-sm)}
+#palList .ps{font-size:var(--text-xs)}
 .foot{margin-top:var(--space-5)}
 @media (max-width:1023px){.sidebar{width:240px}}
 @media (max-width:760px){
@@ -483,8 +502,8 @@ h2.wt{font-size:calc(13px*var(--fz));font-weight:600;margin-bottom:var(--space-2
 }
 @media (max-width:700px){
   .stat{padding:var(--space-3)}
-  .stat .v{font-size:calc(17px*var(--fz))}
-  .hero .big b{font-size:calc(29px*var(--fz))}
+  .stat .v{font-size:var(--text-lg)}
+  .hero .big b{font-size:var(--text-3xl)}
 }
 
 /* 가독성: 본문성 텍스트 행간 1.5 */
