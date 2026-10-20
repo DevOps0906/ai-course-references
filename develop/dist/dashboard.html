@@ -36,9 +36,9 @@
   /* ── 2층 Semantic 고정부 ── */
   --font-sans:"Pretendard Variable","Pretendard","Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
   --font-mono:"JetBrains Mono","D2Coding",Consolas,"SF Mono",monospace;
-  --fs-base:16px;--lh:1.55;
-  --fs-h1:25px;--fs-h2:18px;--fs-q:16px;--fs-opt:15px;--fs-btn:14px;--fs-btn-pri:15px;
-  --fs-sm:14px;--fs-xs:13px;--fs-2xs:12px;--fs-ox:23px;
+  --fs-base:calc(16px*var(--fz));--lh:1.55;
+  --fs-h1:calc(25px*var(--fz));--fs-h2:calc(18px*var(--fz));--fs-q:calc(16px*var(--fz));--fs-opt:calc(15px*var(--fz));--fs-btn:calc(14px*var(--fz));--fs-btn-pri:calc(15px*var(--fz));
+  --fs-sm:calc(14px*var(--fz));--fs-xs:calc(13px*var(--fz));--fs-2xs:calc(12px*var(--fz));--fs-ox:calc(23px*var(--fz));
   --radius-sm:6px;--radius-control:8px;--radius-card:10px;--radius-lg:12px;--maxw:880px;
   --space-1:4px;--space-2:8px;--space-3:12px;--space-4:16px;--space-5:24px;--space-6:32px;--space-7:48px;--space-8:64px;
   --ease:cubic-bezier(.2,0,0,1);--dur-fast:120ms;--dur:200ms;
@@ -101,7 +101,12 @@
   --lv1:var(--green-400);--lv2:var(--yellow-400);--lv3:var(--red-400);
   --shadow:none;
   color-scheme:dark;}
-@media (max-width:560px){:root{--fs-base:15.5px;--fs-h1:21px;--fs-h2:17px;--fs-q:15.5px;--fs-ox:21px}}
+/* 기기별 글자 배율: 모든 글자 크기 = 원본 px × --fz. 웹 1.25 · 태블릿 1.2 · 모바일 1.15
+   (웹 ≥1024px / 태블릿 561~1023px / 모바일 ≤560px. 값 하나만 바꾸면 해당 기기의 모든 글자가 함께 바뀜) */
+:root{--fz:1.25}
+@media (max-width:1023px){:root{--fz:1.2}}
+@media (max-width:560px){:root{--fz:1.15}}
+@media (max-width:560px){:root{--fs-base:calc(15.5px*var(--fz));--fs-h1:calc(21px*var(--fz));--fs-h2:calc(17px*var(--fz));--fs-q:calc(15.5px*var(--fz));--fs-ox:calc(21px*var(--fz))}}
 
 /* Quiz Bank 공용 컴포넌트 (대시보드·랜딩·로그인용. quiz.html은 포함하지 않음)
    시맨틱/컴포넌트 토큰만 사용. 규칙: 1px 선, 그림자·그라데이션·알약 금지, 숫자에 mono 금지, 모바일 터치 40px 이상. */
@@ -284,12 +289,12 @@ h2.wt .icon{color:var(--color-brand-text)}
 .dgrid>*{min-width:0}
 .hint{font-size:var(--fs-xs);color:var(--color-text-muted);margin-top:var(--space-1)}
 .hero .big{display:flex;align-items:baseline;gap:var(--space-2)}
-.hero .big b{font-size:49px;line-height:1.1;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--color-heading)}
+.hero .big b{font-size:calc(49px*var(--fz));line-height:1.1;font-weight:700;letter-spacing:-.03em;font-variant-numeric:tabular-nums;color:var(--color-heading)}
 .hero .big span{font-size:var(--fs-h2);color:var(--color-text-muted)}
 .stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--space-3)}
 .stat{display:flex;flex-direction:column;justify-content:space-between;gap:var(--space-2);padding:var(--space-3) var(--space-4)}
 .stat .k{font-size:var(--fs-xs);color:var(--color-text-muted)}
-.stat .v{font-size:21px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--color-heading)}
+.stat .v{font-size:calc(21px*var(--fz));font-weight:650;font-variant-numeric:tabular-nums;color:var(--color-heading)}
 .stat .v small{font-size:var(--fs-sm);font-weight:500;color:var(--color-text-muted)}
 .stat .v.is-danger{color:var(--color-danger)}
 .heatmap{grid-template-rows:repeat(7,auto);grid-auto-flow:column;grid-template-columns:repeat(16,minmax(14px,1fr));max-width:420px}
@@ -323,7 +328,7 @@ h2.wt .icon{color:var(--color-brand-text)}
 td.prog-td{padding:0}
 .table .is-off-row{color:var(--color-text-faint)}
 .xp{display:flex;align-items:baseline;gap:var(--space-2)}
-.xp b{font-size:25px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--color-heading)}
+.xp b{font-size:calc(25px*var(--fz));font-weight:650;font-variant-numeric:tabular-nums;color:var(--color-heading)}
 details.xpd{margin-top:var(--space-3);font-size:var(--fs-sm)}
 details.xpd summary{cursor:pointer;color:var(--color-brand-text);min-height:32px;display:flex;align-items:center}
 details.xpd .table{margin-top:var(--space-2)}
@@ -405,8 +410,8 @@ details.xpd .table{margin-top:var(--space-2)}
   .content{padding-left:var(--space-4);padding-right:var(--space-4)}
   .stats{gap:var(--space-2)}
   .stat{padding:var(--space-3)}
-  .stat .v{font-size:18px}
-  .hero .big b{font-size:45px}
+  .stat .v{font-size:calc(18px*var(--fz))}
+  .hero .big b{font-size:calc(45px*var(--fz))}
   .hide-sm{display:none}
   .banks{grid-template-columns:repeat(auto-fill,minmax(200px,1fr))}
 }
@@ -417,55 +422,57 @@ details.xpd .table{margin-top:var(--space-2)}
   .table .prog .pbar{width:40px}
 }
 /* 타입 스케일 축소 (대시보드 전용: 12px 기준 · 공유 tokens/components는 건드리지 않음) */
-:root{--fs-base:13px;--fs-opt:13px;--fs-btn:13px;--fs-btn-pri:13px;--fs-sm:13px;--fs-xs:12px;--fs-2xs:12px;--fs-h1:19px;--fs-h2:19px;--lh:1.5}
-@media (max-width:560px){:root{--fs-base:13px;--fs-h1:19px;--fs-h2:19px}}
+:root{--fs-base:calc(13px*var(--fz));--fs-opt:calc(13px*var(--fz));--fs-btn:calc(13px*var(--fz));--fs-btn-pri:calc(13px*var(--fz));--fs-sm:calc(13px*var(--fz));--fs-xs:calc(12px*var(--fz));--fs-2xs:calc(12px*var(--fz));--fs-h1:calc(19px*var(--fz));--fs-h2:calc(19px*var(--fz));--lh:1.5}
+@media (max-width:560px){:root{--fs-base:calc(13px*var(--fz));--fs-h1:calc(19px*var(--fz));--fs-h2:calc(19px*var(--fz))}}
 .app{grid-template-columns:220px minmax(0,1fr)}
 .app.is-collapsed{grid-template-columns:64px minmax(0,1fr)}
+@media (max-width:1023px){.app,.app.is-collapsed{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:700px){.card.c12{overflow-x:auto}}
 .topbar{height:48px}
-.topbar h1{font-size:14px}
+.topbar h1{font-size:calc(14px*var(--fz))}
 .btn{height:32px;padding:0 var(--space-3)}
 .btn-lg{height:34px;padding:0 var(--space-4)}
 .btn-icon{width:32px}
-.field label,.label-text{font-size:13px}
+.field label,.label-text{font-size:calc(13px*var(--fz))}
 .field input,.field select{height:34px}
 .sidebar a,.sidebar .nav-item,.sidebar .side-toggle{min-height:34px}
 .sidebar .course{padding-top:2px;padding-bottom:2px}
-.side-head b{font-size:13px;font-weight:600}
-.grp{font-size:12px}
+.side-head b{font-size:calc(13px*var(--fz));font-weight:600}
+.grp{font-size:calc(12px*var(--fz))}
 .tabs [role="tab"]{min-height:34px;padding:0 var(--space-3)}
 .menu-item{min-height:34px}
 .content{padding:var(--space-4) var(--space-4) calc(var(--space-6) + env(safe-area-inset-bottom,0px))}
 .subtabs{margin-bottom:var(--space-4)}
 .page-head{margin-bottom:var(--space-4)}
-.page-head h1,.view-h1{font-size:19px;line-height:1.35}
-h2.wt{font-size:13px;font-weight:600;margin-bottom:var(--space-2)}
+.page-head h1,.view-h1{font-size:calc(19px*var(--fz));line-height:1.35}
+h2.wt{font-size:calc(13px*var(--fz));font-weight:600;margin-bottom:var(--space-2)}
 .dgrid{gap:var(--space-3)}
 .card{padding:var(--space-4)}
 .stat{padding:var(--space-3)}
-.hero .big b{font-size:29px;line-height:1.15}
-.hero .big span{font-size:14px}
-.stat .v,.xp b{font-size:19px;font-weight:650}
-.stat .v small{font-size:12px}
+.hero .big b{font-size:calc(29px*var(--fz));line-height:1.15}
+.hero .big span{font-size:calc(14px*var(--fz))}
+.stat .v,.xp b{font-size:calc(19px*var(--fz));font-weight:650}
+.stat .v small{font-size:calc(12px*var(--fz))}
 .row-link{min-height:40px;padding:6px 0}
-.rt{font-size:13px}
+.rt{font-size:calc(13px*var(--fz))}
 .table th,.table td{padding:6px var(--space-3)}
-.table th{font-size:13px;font-weight:600}
-.empty-card p{font-size:13px}
-.up-card h2,.state h2{font-size:15px;font-weight:600}
+.table th{font-size:calc(13px*var(--fz));font-weight:600}
+.empty-card p{font-size:calc(13px*var(--fz))}
+.up-card h2,.state h2{font-size:calc(15px*var(--fz));font-weight:600}
 .up-card .icon{width:24px;height:24px}
 .state{padding:var(--space-4)}
-.stage-h .cn{font-size:13px}
-.course-h{font-size:13px;margin:var(--space-4) 0 var(--space-2)}
+.stage-h .cn{font-size:calc(13px*var(--fz))}
+.course-h{font-size:calc(13px*var(--fz));margin:var(--space-4) 0 var(--space-2)}
 .banks{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
 .bank{padding:var(--space-3)}
-.bank .bt{font-size:14px;font-weight:600;line-height:1.4}
-.bank .bs{font-size:12px}
-.bank .meta{font-size:12px}
+.bank .bt{font-size:calc(14px*var(--fz));font-weight:600;line-height:1.4}
+.bank .bs{font-size:calc(12px*var(--fz))}
+.bank .meta{font-size:calc(12px*var(--fz))}
 .drop{padding:var(--space-5) var(--space-4)}
-.file-line{font-size:13px}
-.pal-in input{height:44px;font-size:14px}
-#palList .pt{font-size:13px}
-#palList .ps{font-size:12px}
+.file-line{font-size:calc(13px*var(--fz))}
+.pal-in input{height:44px;font-size:calc(14px*var(--fz))}
+#palList .pt{font-size:calc(13px*var(--fz))}
+#palList .ps{font-size:calc(12px*var(--fz))}
 .foot{margin-top:var(--space-5)}
 @media (max-width:1023px){.sidebar{width:240px}}
 @media (max-width:760px){
@@ -476,8 +483,8 @@ h2.wt{font-size:13px;font-weight:600;margin-bottom:var(--space-2)}
 }
 @media (max-width:700px){
   .stat{padding:var(--space-3)}
-  .stat .v{font-size:17px}
-  .hero .big b{font-size:29px}
+  .stat .v{font-size:calc(17px*var(--fz))}
+  .hero .big b{font-size:calc(29px*var(--fz))}
 }
 
 /* 가독성: 본문성 텍스트 행간 1.5 */
