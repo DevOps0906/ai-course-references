@@ -1,5 +1,5 @@
 /* qb-voice.js — 음성으로 보기 번호 고르기(Web Speech API) + 문제 읽기(speechSynthesis)
-   window.QBVoice: supported · canSpeak · parse · attach · speak · cancelSpeak · isSpeaking · stopListening
+   window.QBVoice: supported · canSpeak · parse · attach · auto(연속 듣기) · speak · cancelSpeak · isSpeaking · stopListening
    parse()는 순수 함수라 node에서도 테스트한다. */
 (function(root){
 'use strict';
@@ -21,6 +21,7 @@ const R_LET=new RegExp('^'+PRE+'('+alt(LET)+')(?:번)?'+SUF+'$');
 const R_X=/틀|아니|아닙|아닌|안맞|맞지않|엑스|가위|^x(?:요|입니다)?$/;
 const R_O=/^(?:o|오|동그라미|오케이|ok|예|네|응|그래요?|맞.*)(?:요|입니다|이요|예요|야|라고생각해요)?$/;
 const R_SUBMIT=/제출|채점|확인|다풀었|다했/;
+const R_NEXT=/^(?:다음|다음문제|패스|건너뛰|건너뛸게|넘어가|넘어갈게|넘겨|스킵|skip)/;
 
 function norm(s){
   return String(s==null?'':s).normalize('NFKC').toLowerCase().replace(/[\s.,!?'"“”‘’~…·\-_()\[\]]/g,'');
@@ -35,6 +36,7 @@ function numOf(t){
 }
 function parseOne(raw,count,type){
   const t=norm(raw);if(!t)return null;
+  if(R_NEXT.test(t))return {kind:'next'};
   if(type==='ox'){
     if(R_X.test(t))return {kind:'ox',v:'X'};
     if(R_O.test(t))return {kind:'ox',v:'O'};
@@ -70,11 +72,13 @@ const ERR={
   'audio-capture':'마이크를 찾을 수 없습니다.'
 };
 let active=null;  // 지금 듣는 중인 컨트롤러 (동시에 하나만)
-function stopListening(){if(active){active.stop();active=null;}}
+let autoCtl=null;  // 연속 듣기 컨트롤러(하나)
+function stopListening(){if(active){active.stop();active=null;}if(autoCtl)autoCtl.stop();}
 
 function describe(r){
   if(r.kind==='index')return `'${r.i+1}번'으로 들었습니다`;
   if(r.kind==='ox')return `'${r.v}'로 들었습니다`;
+  if(r.kind==='next')return "'다음'으로 들었습니다";
   return "'제출'로 들었습니다";
 }
 
@@ -102,7 +106,7 @@ function attach(o){
   function onResult(alts){
     const count=o.getOptions?o.getOptions():4, type=o.getType?o.getType():'mc';
     let r=parse(alts,{count,type});
-    if(r&&r.kind==='submit'&&!o.submit)r=null;
+    if(r&&((r.kind==='submit'&&!o.submit)||r.kind==='next'))r=null;
     if(!r){
       const heard=(alts[0]||'').trim().slice(0,24);
       const guide=type==='ox'?"'O' 또는 'X'로 말해 주세요.":`1~${count}번 중에서 말해 주세요.`;
@@ -137,6 +141,76 @@ function attach(o){
   return ctl;
 }
 
+
+/* ── 연속 듣기: 한 번 켜 두면 문제가 바뀌어도 계속 듣는다 ─────────
+   o: {getTarget, select, next, submit, onState, lang}
+   getTarget() → {count,type} | null (null이면 들어도 무시). onState(state,msg): 'listening'|'heard'|'error'|'off'
+   치명 오류(권한 거부·마이크 없음·네트워크)면 스스로 꺼지고, 그 밖의 끊김은 자동으로 다시 시작한다. */
+const FATAL={'not-allowed':1,'service-not-allowed':1,'audio-capture':1,'network':1,'language-not-supported':1};
+function auto(o){
+  const lang=o.lang||'ko-KR';
+  let rec=null,want=false,timer=null,quick=0,fatal=false;
+  const ctl={get want(){return want;},get listening(){return !!rec;}};
+  const state=(s,m)=>{try{o.onState&&o.onState(s,m);}catch(e){}};
+  const later=(ms)=>{if(timer)clearTimeout(timer);timer=setTimeout(open,ms);};
+  function handle(alts){
+    const tg=o.getTarget?o.getTarget():null;
+    if(!tg)return;
+    const r=parse(alts,{count:tg.count,type:tg.type});
+    if(!r||(r.kind==='submit'&&!o.submit)||(r.kind==='next'&&!o.next)){
+      const heard=(alts[0]||'').trim().slice(0,24);
+      state('listening',heard?`'${heard}'로 들었습니다. ${tg.type==='ox'?"'O' 또는 'X'로":`1~${tg.count}번 중에서`} 말해 주세요.`:'듣는 중…');
+      return;
+    }
+    try{if(r.kind==='submit')o.submit();else if(r.kind==='next')o.next();else o.select(r);}catch(e){}
+    state('heard',describe(r));
+  }
+  function open(){
+    timer=null;
+    if(!want||rec)return;
+    if(isSpeaking()){later(400);return;}
+    const Ctor=SR();
+    if(!Ctor){want=false;state('off');return;}
+    let r;try{r=new Ctor();}catch(e){want=false;state('error','음성 인식을 시작할 수 없습니다.');return;}
+    rec=r;fatal=false;
+    const t0=Date.now();let got=false;
+    r.lang=lang;r.continuous=false;r.interimResults=false;r.maxAlternatives=5;
+    r.onresult=ev=>{
+      got=true;quick=0;
+      const res=ev.results&&ev.results[ev.results.length-1],alts=[];
+      if(res)for(let i=0;i<res.length;i++)alts.push(res[i].transcript);
+      handle(alts);
+    };
+    r.onerror=ev=>{
+      if(ev.error==='aborted'||ev.error==='no-speech')return;
+      if(FATAL[ev.error]){fatal=true;want=false;state('error',ERR[ev.error]||'음성 인식을 사용할 수 없습니다.');}
+    };
+    r.onend=()=>{
+      if(rec===r)rec=null;
+      if(!want)return;
+      if(!got&&Date.now()-t0<700){
+        if(++quick>=6){want=false;state('error','음성 인식이 계속 끊깁니다. 마이크 버튼을 눌러 다시 켜 주세요.');return;}
+      }else if(!got)quick=0;
+      later(got?120:250);
+    };
+    try{r.start();}catch(e){rec=null;later(500);}
+  }
+  ctl.start=function(){
+    if(!supported())return false;
+    want=true;quick=0;state('listening','듣는 중… 보기 번호를 말하세요');
+    open();return true;
+  };
+  ctl.stop=function(){
+    const was=want;want=false;
+    if(timer){clearTimeout(timer);timer=null;}
+    if(rec){const r=rec;rec=null;try{r.abort();}catch(e){}}
+    if(was)state('off');
+  };
+  ctl.pause=function(){if(rec){try{rec.abort();}catch(e){}}};
+  autoCtl=ctl;
+  return ctl;
+}
+
 /* ── 읽어 주기 ────────────────────────────── */
 function pickVoice(lang){
   try{
@@ -148,6 +222,7 @@ function speak(text,lang){
   if(!canSpeak()||!text)return false;
   lang=lang||'ko-KR';
   try{
+    if(autoCtl)autoCtl.pause();  // 읽어 주는 소리를 듣고 답으로 오해하지 않도록 잠시 멈춤
     speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(String(text));
     u.lang=lang;const v=pickVoice(lang);if(v)u.voice=v;
@@ -157,7 +232,7 @@ function speak(text,lang){
 function cancelSpeak(){if(canSpeak()){try{speechSynthesis.cancel();}catch(e){}}}
 function isSpeaking(){try{return canSpeak()&&speechSynthesis.speaking;}catch(e){return false;}}
 
-const API={supported,canSpeak,parse,attach,speak,cancelSpeak,isSpeaking,stopListening};
+const API={supported,canSpeak,parse,attach,auto,speak,cancelSpeak,isSpeaking,stopListening};
 if(hasWin)root.QBVoice=API;
 if(typeof module!=='undefined'&&module.exports)module.exports=API;
 })(typeof window!=='undefined'?window:globalThis);
